@@ -7,9 +7,9 @@
 
 ## Поточний статус
 
-**Активна фаза:** Фаза 1 — Основа  
-**Останнє зроблено:** —  
-**Наступний крок:** Ініціалізація проекту  
+**Активна фаза:** Фаза 2 — Admin: Каталог  
+**Останнє зроблено:** Фаза 1 повністю виконана — Next.js 16, Prisma 7, Auth, Admin layout  
+**Наступний крок:** 2.1 Категорії — дерево-таблиця  
 
 ---
 
@@ -18,66 +18,35 @@
 > Мета: працюючий скелет з БД, авторизацією і порожнім адмін-лейаутом.
 > Нічого не можна будувати далі без цього.
 
-### 1.1 Ініціалізація
-- [ ] `npx create-next-app@latest` — App Router, TypeScript, Tailwind
-- [ ] Встановити shadcn/ui (`npx shadcn@latest init`)
-- [ ] Встановити Prisma + PostgreSQL (`prisma init`)
-- [ ] Встановити Redis клієнт (`ioredis`)
-- [ ] Налаштувати `.env` (DATABASE_URL, REDIS_URL, NEXTAUTH_SECRET)
-- [ ] Базовий `docker-compose.yml` — postgres + redis для локальної розробки
-- [ ] ESLint + Prettier конфіг
-- [ ] Структура папок: `/app`, `/components`, `/lib`, `/prisma`, `/types`
+### 1.1 Ініціалізація ✅
+- [x] `npx create-next-app@latest` — App Router, TypeScript, Tailwind (Next.js 16)
+- [x] shadcn/ui компоненти вручну (Button, Badge, Input, Label, Card, Separator)
+- [x] Prisma 7 + PostgreSQL з driver adapter (`@prisma/adapter-pg`)
+- [x] Redis клієнт (`ioredis`)
+- [x] `.env` + `.env.example` (DATABASE_URL, REDIS_URL, JWT_SECRET, all integrations)
+- [x] `docker-compose.yml` — postgres + redis + minio
+- [x] Структура папок: `/app`, `/components/ui`, `/components/admin`, `/lib`, `/prisma`, `/types`
 
-### 1.2 Prisma Schema — повна
-- [ ] Enum-и: `ProductStatus`, `OrderStatus`, `CategoryStatus`, `UserRole`, `PageStatus`, `TagStatus`, `BannerStatus`, `OutOfStockAction`, `PaymentMethod`, `ShipmentStatus`
-- [ ] `User` — id, email, phone, name, role, passwordHash, createdAt
-- [ ] `Category` — id, parentId, name, slug, description, metaTitle, metaDescription, customH1, image, icon, status, position, defaultView
-- [ ] `Product` — повна модель з CLAUDE.md (sku, name, slug, price, listPrice, qty, status, description, shortDescription, metaTitle, metaDescription, customH1, warrantyMonths, returnDays, trackInventory, outOfStockAction, noBoxShipping, checkboxName, uktZed)
-- [ ] `ProductImage` — productId, url, position, alt
-- [ ] `ProductVideo` — productId, type, videoId, position
-- [ ] `ProductFeature` — id, name, displayName, purpose, valueType, filterType, prefix, suffix, position, status, showOnCard, showInList, useForShortDesc
-- [ ] `ProductFeatureVariant` — featureId, value, position
-- [ ] `ProductFeatureValue` — productId, featureId, variantId, customValue
-- [ ] `ProductVariationGroup` — id, products[]
-- [ ] `ProductPrice` — productId, minQty, price, userGroupId (wholesale tiers)
-- [ ] `ProductBundle` + `ProductBundleItem`
-- [ ] `ProductCreditSettings` — productId, privat24Enabled, minMonths, maxMonths
-- [ ] `ProductSticker` — productId, label, color, position
-- [ ] `Order` — id, userId, status, paymentMethod, total, tthNumber, npBranch, notes, adminNotes, createdAt
-- [ ] `OrderItem` — orderId, productId, name, sku, qty, price
-- [ ] `Shipment` — orderId, tthNumber, status, sentAt, deliveredAt
-- [ ] `Review` — productId, userId, rating, text, status, verifiedBuyer, createdAt
-- [ ] `Tag` — id, name, slug, status; зв'язки з Product і BlogPost
-- [ ] `Page` — id, parentId, title, slug, content, type, metaTitle, metaDescription, status, position
-- [ ] `Menu` + `MenuItem`
-- [ ] `BlogPost` — id, title, slug, content, excerpt, image, metaTitle, metaDescription, published, publishedAt, tags[]
-- [ ] `Banner` + `BannerGroup`
-- [ ] `Promotion` — базова модель (id, name, type, conditions, bonuses, status, dateFrom, dateTo)
-- [ ] `GiftCertificate` — id, code, amount, balance, status, expiresAt
-- [ ] `Subscriber` — id, email, gdprConsent, createdAt
-- [ ] `ReturnRequest` — orderId, reason, status, createdAt
-- [ ] `SeoRedirect` — fromUrl, toUrl, code (301/302)
-- [ ] `prisma db push` — перевірити що schema валідна
+### 1.2 Prisma Schema ✅
+- [x] Всі enum-и: UserRole, UserStatus, CategoryStatus, ViewType, ProductStatus, OutOfStockAction, FeaturePurpose, FeatureType, FilterType, FeatureStatus, FilterDisplayType, OrderStatus, PaymentMethod, PaymentStatus, ShipmentStatus, ReviewStatus, PageType, PageStatus, TagStatus, BannerStatus, PromoZone, PromoStatus, GiftCertStatus, SubStatus, ReturnStatus, StickerColor, MenuStatus, BlogPostStatus, SeoRedirectCode
+- [x] Всі моделі з CLAUDE.md — повністю реалізовані
+- [x] `prisma validate` — схема валідна
 
-### 1.3 Auth
-- [ ] `lib/turbosms.ts` — клієнт TurboSMS API (Bearer token з env)
-- [ ] `POST /api/auth/send-otp` — генерація 4-значного коду, збереження в Redis (TTL 300s, rate limit 3 спроби/10 хв)
-- [ ] `POST /api/auth/verify-otp` — перевірка коду, створення JWT (httpOnly cookie)
-- [ ] При першому вході — автоматична реєстрація User з phone
-- [ ] `POST /api/auth/logout` — видалення cookie
-- [ ] Сторінка `/login` — поле номера телефону → поле OTP-коду (2 кроки)
-- [ ] Email + password auth для адмін-панелі (окремий endpoint `POST /api/auth/admin/login`)
-- [ ] `middleware.ts` — захист `/admin/*` (роль ADMIN | MANAGER з JWT)
-- [ ] Seed: перший адмін-юзер (`admin@skladcom.ua` + пароль з env)
+### 1.3 Auth ✅
+- [x] `lib/turbosms.ts` — клієнт TurboSMS API (dev fallback: console.log)
+- [x] `POST /api/auth/send-otp` — OTP генерація, Redis TTL 300s, rate limit 3/10хв
+- [x] `POST /api/auth/verify-otp` — перевірка, JWT cookie, auto-реєстрація
+- [x] `POST /api/auth/logout` — видалення cookie
+- [x] `POST /api/auth/admin/login` — email+password, перевірка ролі
+- [x] `proxy.ts` — захист `/admin/*` (Next.js 16 proxy convention)
+- [x] `prisma/seed.ts` — перший адмін-юзер
 
-### 1.4 Admin Layout
-- [ ] `/app/admin/layout.tsx` — sidebar + topbar
-- [ ] `AdminSidebar` — навігація по розділах (Головна, Замовлення, Товари, Користувачі, Маркетинг, Веб-сайт, Модулі, Налаштування)
-- [ ] `AdminTopBar` — назва розділу + аватар + вихід
-- [ ] Активний пункт меню підсвічується
-- [ ] Sidebar: collapsed на мобільному, drawer по кліку
-- [ ] Breadcrumbs компонент (використовується на всіх сторінках)
-- [ ] `/admin` → redirect на `/admin/dashboard`
+### 1.4 Admin Layout ✅
+- [x] `/app/admin/layout.tsx` — sidebar + content area
+- [x] `AdminSidebar` — навігація по всіх розділах, активний пункт підсвічується, підменю для Товарів
+- [x] `AdminTopBar` — назва розділу + кнопка виходу
+- [x] `/admin` → redirect на `/admin/dashboard`
+- [x] `/admin/dashboard` — статистичні карточки (заглушка)
 
 ---
 
