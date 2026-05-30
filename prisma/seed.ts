@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 const db = new PrismaClient();
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL || "admin@skladcom.ua";
+  const email = process.env.ADMIN_EMAIL || "admin@ulit.ua";
   const password = process.env.ADMIN_PASSWORD || "admin123";
 
   const existing = await db.user.findUnique({ where: { email } });

@@ -1,5 +1,5 @@
 const API_URL = "https://api.turbosms.ua/message/send.json";
-const SENDER = process.env.TURBOSMS_SENDER || "СКЛАДКОМ";
+const SENDER = process.env.TURBOSMS_SENDER || "Ulit";
 
 export async function sendSms(phone: string, text: string): Promise<boolean> {
   const token = process.env.TURBOSMS_TOKEN;

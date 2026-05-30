@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "СКЛАДКОМ — інтернет-магазин",
-  description: "Стелажі, меблі, драбини, сейфи від СКЛАДКОМ",
+  title: "Ulit",
+  description: "Ulit — інтернет-магазин",
 };
 
 export default function RootLayout({

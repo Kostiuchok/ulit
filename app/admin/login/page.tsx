@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-center text-2xl">СКЛАДКОМ</CardTitle>
+          <CardTitle className="text-center text-2xl">Ulit</CardTitle>
           <p className="text-center text-sm text-muted-foreground">Адміністративна панель</p>
         </CardHeader>
         <CardContent>

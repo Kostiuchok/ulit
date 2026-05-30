@@ -45,7 +45,7 @@ export function AdminSidebar() {
   return (
     <aside className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-        <span className="text-lg font-bold tracking-tight">СКЛАДКОМ</span>
+        <span className="text-lg font-bold tracking-tight">Ulit</span>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4">

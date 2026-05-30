@@ -4,8 +4,8 @@ export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">СКЛАДКОМ</h1>
-        <p className="mt-2 text-gray-600">Stелажі, меблі, драбини, сейфи</p>
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900">Ulit</h1>
+        <p className="mt-2 text-gray-600">Інтернет-магазин</p>
         <div className="mt-8 flex justify-center gap-4">
           <Link
             href="/admin"
