@@ -5,16 +5,20 @@
 
 ---
 
-## 🚀 ФАЗА 0 — Ініціалізація
+## 🚀 ФАЗА 0 — Ініціалізація ✅
 
-- [ ] **T-001** Turborepo monorepo (`npx create-turbo@latest`)
-- [ ] **T-002** `apps/web` — Next.js 14 + Tailwind + shadcn/ui
-- [ ] **T-003** `apps/api` — Fastify + TypeScript
-- [ ] **T-004** `packages/shared-types` — спільні TypeScript інтерфейси
-- [ ] **T-005** ESLint + Prettier для всього monorepo
-- [ ] **T-006** `docker-compose.yml` для dev (postgres, redis, minio)
-- [ ] **T-007** `.env.example` для `web` та `api`
-- [ ] **T-008** GitHub Actions CI (lint + typecheck на кожен PR)
+- [x] **T-001** Turborepo monorepo (pnpm workspaces + turbo.json)
+- [x] **T-002** `apps/web` — Next.js 14 + Tailwind CSS
+- [x] **T-003** `apps/api` — Fastify + TypeScript + AppError
+- [x] **T-004** `packages/shared-types` — спільні TypeScript інтерфейси
+- [x] **T-005** ESLint + Prettier для всього monorepo
+- [x] **T-006** `infra/docker-compose.yml` для dev (postgres, redis, minio)
+- [x] **T-007** `.env.example` для `web` та `api`
+- [x] **T-008** GitHub Actions CI (lint + typecheck на кожен PR)
+
+## 🗄️ ФАЗА 1 — Поточна фаза
+
+**Наступний крок:** T-101 Prisma schema + T-102 міграції + T-103 seed
 
 ---
 

@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  AUTHOR
+  ADMIN
+}
+
+enum BookStatus {
+  DRAFT
+  PROCESSING
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DistributionStrategy {
+  WIDE
+  KDP_SELECT
+}
+
+enum ExternalStatus {
+  NOT_SENT
+  SENT
+  PUBLISHED
+  ERROR
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+}
+
+enum RoyaltyStatus {
+  PENDING
+  PAID
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String?
+  name                String
+  slug                String    @unique
+  bio                 String?
+  avatarUrl           String?
+  role                Role      @default(AUTHOR)
+  contractAcceptedAt  DateTime?
+  contractAcceptedIp  String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  books     Book[]
+  orders    Order[]
+  royalties Royalty[]
+
+  @@index([slug])
+  @@index([email])
+}
+
+model Book {
+  id                   String               @id @default(cuid())
+  slug                 String               @unique
+  title                String
+  description          String?
+  authorId             String
+  author               User                 @relation(fields: [authorId], references: [id])
+  status               BookStatus           @default(DRAFT)
+  moderationStatus     ModerationStatus     @default(PENDING)
+  moderationNote       String?
+  isbn                 String?              @unique
+  coverUrl             String?
+  originalDocxUrl      String?
+  pdfUrl               String?
+  epubUrl              String?
+  fb2Url               String?
+  mobiUrl              String?
+  printPdfUrl          String?
+  priceEbook           Decimal?             @db.Decimal(10, 2)
+  pricePrint           Decimal?             @db.Decimal(10, 2)
+  genre                String?
+  language             String               @default("uk")
+  pageCount            Int?
+  previewStart         Int?
+  previewEnd           Int?
+  distributionStrategy DistributionStrategy @default(WIDE)
+  kdpSelectEnrolled    Boolean              @default(false)
+  kdpSelectExpiry      DateTime?
+  d2dStatus            ExternalStatus       @default(NOT_SENT)
+  d2dSentAt            DateTime?
+  kdpStatus            ExternalStatus       @default(NOT_SENT)
+  kdpSentAt            DateTime?
+  googleStatus         ExternalStatus       @default(NOT_SENT)
+  googleSentAt         DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  publishedAt          DateTime?
+
+  orderItems OrderItem[]
+  royalties  Royalty[]
+
+  @@index([authorId])
+  @@index([slug])
+  @@index([status])
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  items     OrderItem[]
+  total     Decimal     @db.Decimal(10, 2)
+  status    OrderStatus @default(PENDING)
+  paymentId String?
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id      String  @id @default(cuid())
+  orderId String
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bookId  String
+  book    Book    @relation(fields: [bookId], references: [id])
+  format  String
+  price   Decimal @db.Decimal(10, 2)
+
+  @@index([orderId])
+}
+
+model Royalty {
+  id        String        @id @default(cuid())
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id])
+  bookId    String
+  book      Book          @relation(fields: [bookId], references: [id])
+  amount    Decimal       @db.Decimal(10, 2)
+  source    String
+  status    RoyaltyStatus @default(PENDING)
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([authorId])
+}
