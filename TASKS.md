@@ -18,23 +18,23 @@
 
 ## 🗄️ ФАЗА 1 — Поточна фаза
 
-**Наступний крок:** T-101 Prisma schema + T-102 міграції + T-103 seed
+**Поточний статус:** Фаза 1 завершена ✅ → Наступний крок: Фаза 2 (T-201 профіль автора)
 
 ---
 
 ## 🗄️ ФАЗА 1 — База даних та авторизація
 
-- [ ] **T-101** Prisma schema (User, Book, Order, OrderItem, Royalty + всі enum)
-- [ ] **T-102** Prisma міграції
-- [ ] **T-103** Seed скрипт (тестовий автор + 2 книги)
-- [ ] **T-104** NextAuth.js v5 — Email/Password стратегія
-- [ ] **T-105** Google OAuth провайдер
-- [ ] **T-106** `POST /api/auth/register`
-- [ ] **T-107** `POST /api/auth/login` — JWT
-- [ ] **T-108** JWT middleware для захищених routes
-- [ ] **T-109** Admin middleware — guard для `/admin/*` routes (role: ADMIN)
-- [ ] **T-110** Сторінки `/login` та `/register` (RHF + Zod)
-- [ ] **T-111** Зберігати `contractAcceptedAt` при першій публікації
+- [x] **T-101** Prisma schema (User, Book, Order, OrderItem, Royalty + всі enum)
+- [x] **T-102** Prisma міграції
+- [x] **T-103** Seed скрипт (тестовий автор + 2 книги)
+- [x] **T-104** NextAuth.js v5 — Email/Password стратегія
+- [x] **T-105** Google OAuth провайдер
+- [x] **T-106** `POST /api/auth/register`
+- [x] **T-107** `POST /api/auth/login` — JWT
+- [x] **T-108** JWT middleware для захищених routes
+- [x] **T-109** Admin middleware — guard для `/admin/*` routes (role: ADMIN)
+- [x] **T-110** Сторінки `/login` та `/register` (RHF + Zod)
+- [ ] **T-111** Зберігати `contractAcceptedAt` при першій публікації (при T-703)
 
 ---
 

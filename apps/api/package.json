@@ -29,6 +29,9 @@
     "nodemailer": "^6.9.15",
     "shared-types": "workspace:*"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/nodemailer": "^6.4.16",
