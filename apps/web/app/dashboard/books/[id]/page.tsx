@@ -11,6 +11,8 @@ import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
 import { useApi } from "../../../../hooks/useApi";
 import { cn } from "../../../../lib/utils";
+import { DocxUploader } from "../../../../components/dashboard/DocxUploader";
+import { ConversionStatus } from "../../../../components/dashboard/ConversionStatus";
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   DRAFT: { label: "Чернетка", className: "bg-gray-100 text-gray-600" },
@@ -45,6 +47,7 @@ export default function BookDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [conversionActive, setConversionActive] = useState(false);
 
   const {
     register,
@@ -57,6 +60,7 @@ export default function BookDetailPage() {
     apiFetch<{ book: any }>(`/api/books/${id}`)
       .then(({ book }) => {
         setBook(book);
+        if (book.status === "PROCESSING") setConversionActive(true);
         reset({
           title: book.title,
           description: book.description ?? "",
@@ -159,21 +163,21 @@ export default function BookDetailPage() {
             </div>
           </div>
 
-          {/* File upload placeholder */}
+          {/* DOCX upload */}
           <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold mb-4">Файл рукопису</h2>
-            {book?.originalDocxUrl ? (
-              <div className="flex items-center gap-3 text-sm text-green-700 bg-green-50 rounded-lg p-3">
-                <span>✓</span>
-                <span>Файл завантажено</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
-                <span>📄</span>
-                <span>Файл не завантажено. Завантаження DOCX — Фаза 4.</span>
-              </div>
-            )}
+            <h2 className="text-base font-semibold mb-4">Файл рукопису (.docx)</h2>
+            <DocxUploader
+              bookId={id}
+              currentDocxUrl={book?.originalDocxUrl}
+              onUploadSuccess={() => {
+                setConversionActive(true);
+                setBook((b: any) => b ? { ...b, status: "PROCESSING", originalDocxUrl: "uploaded" } : b);
+              }}
+            />
           </div>
+
+          {/* Conversion status */}
+          <ConversionStatus bookId={id} active={conversionActive} />
 
           {/* Metadata form */}
           <div className="rounded-xl border bg-white p-6 shadow-sm">

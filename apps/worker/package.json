@@ -16,6 +16,9 @@
     "sharp": "^0.33.5",
     "shared-types": "workspace:*"
   },
+  "prisma": {
+    "schema": "../api/prisma/schema.prisma"
+  },
   "devDependencies": {
     "@types/node": "^20",
     "prisma": "^5.19.1",

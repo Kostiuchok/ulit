@@ -63,20 +63,20 @@
 
 ## 📄 ФАЗА 4 — Завантаження та конвертація
 
-- [ ] **T-401** MinIO клієнт (`storage.service.ts`)
-- [ ] **T-402** `POST /api/books/:id/upload-docx`
-- [ ] **T-403** Компонент `DocxUploader` (drag & drop + прогрес)
-- [ ] **T-404** BullMQ + Redis налаштування
-- [ ] **T-405** `apps/worker/Dockerfile` — Ubuntu 22.04 + Node 20 + LibreOffice + Pandoc + Ghostscript + Calibre
-- [ ] **T-406** Job `convert-docx-to-pdf` — LibreOffice → PDF (стиснений)
-- [ ] **T-407** Job `generate-pdf-print` — Ghostscript → PDF/X-3 (CMYK, 300 DPI, bleed 3мм)
-- [ ] **T-408** Job `generate-epub` — Pandoc → EPUB 3
-- [ ] **T-409** Job `generate-fb2` — Calibre → FB2
-- [ ] **T-410** Job `generate-mobi` — Calibre → MOBI/AZW3
-- [ ] **T-411** `publishing.service.ts` — orchestrator jobs
-- [ ] **T-412** `POST /api/books/:id/job-status` — оновлення статусу
-- [ ] **T-413** Polling на фронті — прогрес кожного формату окремо
-- [ ] **T-414** Валідація print PDF (> 10MB — без стиснення)
+- [x] **T-401** MinIO клієнт (`storage.service.ts`)
+- [x] **T-402** `POST /api/books/:id/upload-docx`
+- [x] **T-403** Компонент `DocxUploader` (drag & drop + прогрес)
+- [x] **T-404** BullMQ + Redis налаштування
+- [x] **T-405** `apps/worker/Dockerfile` — Ubuntu 22.04 + Node 20 + LibreOffice + Pandoc + Ghostscript + Calibre
+- [x] **T-406** Job `convert-docx-to-pdf` — LibreOffice → PDF (стиснений)
+- [x] **T-407** Job `generate-pdf-print` — Ghostscript → PDF/X-3 (CMYK, 300 DPI, bleed 3мм)
+- [x] **T-408** Job `generate-epub` — Pandoc → EPUB 3
+- [x] **T-409** Job `generate-fb2` — Calibre → FB2
+- [x] **T-410** Job `generate-mobi` — Calibre → MOBI/AZW3
+- [x] **T-411** `publishing.service.ts` — orchestrator jobs
+- [x] **T-412** `POST /api/books/:id/job-status` — оновлення статусу
+- [x] **T-413** Polling на фронті — прогрес кожного формату окремо
+- [x] **T-414** Валідація print PDF (> 10MB — без стиснення)
 
 ---
 

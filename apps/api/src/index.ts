@@ -11,6 +11,8 @@ import { usersMe } from "./modules/users/me";
 import { usersAvatar } from "./modules/users/avatar";
 import { booksRoutes } from "./modules/books/books";
 import { bookRoutes } from "./modules/books/book";
+import { uploadDocxRoute } from "./modules/books/upload";
+import { conversionStatusRoutes } from "./modules/books/conversion-status";
 
 const app = Fastify({
   logger: {
@@ -52,6 +54,8 @@ async function bootstrap() {
   await app.register(usersAvatar);
   await app.register(booksRoutes);
   await app.register(bookRoutes);
+  await app.register(uploadDocxRoute);
+  await app.register(conversionStatusRoutes);
 
   const port = Number(process.env.PORT) || 3001;
   await app.listen({ port, host: "0.0.0.0" });

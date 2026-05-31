@@ -17,6 +17,11 @@
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.0",
+  "pnpm": {
+    "overrides": {
+      "ioredis": "^5.4.1"
+    }
+  },
   "workspaces": [
     "apps/*",
     "packages/*"

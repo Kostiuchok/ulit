@@ -50,6 +50,13 @@ enum RoyaltyStatus {
   PAID
 }
 
+enum ConversionStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
 model User {
   id                  String    @id @default(cuid())
   email               String    @unique
@@ -110,8 +117,9 @@ model Book {
   updatedAt            DateTime             @updatedAt
   publishedAt          DateTime?
 
-  orderItems OrderItem[]
-  royalties  Royalty[]
+  orderItems      OrderItem[]
+  royalties       Royalty[]
+  conversionJobs  ConversionJob[]
 
   @@index([authorId])
   @@index([slug])
@@ -156,4 +164,19 @@ model Royalty {
   createdAt DateTime      @default(now())
 
   @@index([authorId])
+}
+
+model ConversionJob {
+  id        String           @id @default(cuid())
+  bookId    String
+  book      Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  format    String
+  status    ConversionStatus @default(PENDING)
+  error     String?
+  bullJobId String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([bookId, format])
+  @@index([bookId])
 }
