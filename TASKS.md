@@ -40,11 +40,11 @@
 
 ## 👤 ФАЗА 2 — Профіль автора
 
-- [ ] **T-201** `GET/PATCH /api/users/me`
-- [ ] **T-202** `POST /api/users/me/avatar` (MinIO)
-- [ ] **T-203** Сторінка `/dashboard/settings`
-- [ ] **T-204** Компонент завантаження аватара (react-image-crop)
-- [ ] **T-205** Унікальний slug для автора
+- [x] **T-201** `GET/PATCH /api/users/me`
+- [x] **T-202** `POST /api/users/me/avatar` (MinIO)
+- [x] **T-203** Сторінка `/dashboard/settings`
+- [x] **T-204** Компонент завантаження аватара (react-image-crop)
+- [x] **T-205** Унікальний slug для автора
 
 ---
 

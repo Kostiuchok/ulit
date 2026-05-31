@@ -1,11 +1,14 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
+import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import { AppError } from "./errors/AppError";
 import { registerRoute } from "./modules/auth/register";
 import { loginRoute } from "./modules/auth/login";
 import { meRoute } from "./modules/auth/me";
+import { usersMe } from "./modules/users/me";
+import { usersAvatar } from "./modules/users/avatar";
 
 const app = Fastify({
   logger: {
@@ -22,6 +25,8 @@ async function bootstrap() {
   await app.register(jwt, {
     secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
   });
+
+  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 
   await app.register(rateLimit, {
     max: 100,
@@ -41,6 +46,8 @@ async function bootstrap() {
   await app.register(registerRoute);
   await app.register(loginRoute);
   await app.register(meRoute);
+  await app.register(usersMe);
+  await app.register(usersAvatar);
 
   const port = Number(process.env.PORT) || 3001;
   await app.listen({ port, host: "0.0.0.0" });
