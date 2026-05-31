@@ -124,7 +124,8 @@ export function BookWizard() {
     if (!draft) return;
     setSaving(true);
     try {
-      await apiFetch(`/api/books/${draft.id}`, {
+      // Use the distribution endpoint so KDP Select expiry is set correctly
+      await apiFetch(`/api/books/${draft.id}/distribution`, {
         method: "PATCH",
         body: JSON.stringify({ distributionStrategy: distribution }),
       });

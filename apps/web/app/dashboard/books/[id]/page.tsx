@@ -13,6 +13,7 @@ import { useApi } from "../../../../hooks/useApi";
 import { cn } from "../../../../lib/utils";
 import { DocxUploader } from "../../../../components/dashboard/DocxUploader";
 import { ConversionStatus } from "../../../../components/dashboard/ConversionStatus";
+import { DistributionStatus } from "../../../../components/books/DistributionStatus";
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   DRAFT: { label: "Чернетка", className: "bg-gray-100 text-gray-600" },
@@ -180,6 +181,9 @@ export default function BookDetailPage() {
 
           {/* Conversion status */}
           <ConversionStatus bookId={id} active={conversionActive} />
+
+          {/* Distribution */}
+          <DistributionStatus bookId={id} bookStatus={book?.status ?? "DRAFT"} />
 
           {/* Metadata form */}
           <div className="rounded-xl border bg-white p-6 shadow-sm">

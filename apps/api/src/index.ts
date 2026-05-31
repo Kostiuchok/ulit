@@ -14,6 +14,8 @@ import { bookRoutes } from "./modules/books/book";
 import { uploadDocxRoute } from "./modules/books/upload";
 import { uploadCoverRoute } from "./modules/books/cover";
 import { conversionStatusRoutes } from "./modules/books/conversion-status";
+import { distributionRoutes } from "./modules/books/distribution";
+import { startEmailWorker } from "./lib/email-queue";
 
 const app = Fastify({
   logger: {
@@ -31,7 +33,7 @@ async function bootstrap() {
     secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
   });
 
-  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
+  await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
 
   await app.register(rateLimit, {
     max: 100,
@@ -58,6 +60,10 @@ async function bootstrap() {
   await app.register(uploadDocxRoute);
   await app.register(uploadCoverRoute);
   await app.register(conversionStatusRoutes);
+  await app.register(distributionRoutes);
+
+  // Email worker runs in the API process
+  startEmailWorker();
 
   const port = Number(process.env.PORT) || 3001;
   await app.listen({ port, host: "0.0.0.0" });
