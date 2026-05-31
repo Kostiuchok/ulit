@@ -1,0 +1,78 @@
+import { FastifyInstance } from "fastify";
+import { z } from "zod";
+import { authenticate } from "../../lib/jwt.middleware";
+import { prisma } from "../../lib/prisma";
+import { AppError } from "../../errors/AppError";
+
+const patchSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  description: z.string().max(5000).nullable().optional(),
+  genre: z.string().max(100).nullable().optional(),
+  language: z.string().length(2).optional(),
+  priceEbook: z.number().positive().nullable().optional(),
+  pricePrint: z.number().positive().nullable().optional(),
+  pageCount: z.number().int().positive().nullable().optional(),
+  distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
+  kdpSelectExpiry: z.string().datetime().nullable().optional(),
+});
+
+async function assertOwnership(bookId: string, userId: string) {
+  const book = await prisma.book.findUnique({ where: { id: bookId }, select: { authorId: true, status: true } });
+  if (!book) throw AppError.notFound("Book");
+  if (book.authorId !== userId) throw AppError.forbidden("Not your book");
+  return book;
+}
+
+export async function bookRoutes(app: FastifyInstance) {
+  // Get single book
+  app.get("/api/books/:id", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    await assertOwnership(id, request.user.id);
+
+    const book = await prisma.book.findUnique({ where: { id } });
+    return reply.send({ book });
+  });
+
+  // Update book metadata
+  app.patch("/api/books/:id", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await assertOwnership(id, request.user.id);
+
+    if (existing.status === "PUBLISHED") {
+      throw new AppError("Published books cannot be edited directly", 400, "BOOK_PUBLISHED");
+    }
+
+    const result = patchSchema.safeParse(request.body);
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
+    }
+
+    const data = result.data;
+    const book = await prisma.book.update({
+      where: { id },
+      data: {
+        ...data,
+        priceEbook: data.priceEbook !== undefined ? (data.priceEbook ?? undefined) : undefined,
+        pricePrint: data.pricePrint !== undefined ? (data.pricePrint ?? undefined) : undefined,
+        kdpSelectExpiry: data.kdpSelectExpiry !== undefined
+          ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
+          : undefined,
+      },
+    });
+
+    return reply.send({ book });
+  });
+
+  // Delete book
+  app.delete("/api/books/:id", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await assertOwnership(id, request.user.id);
+
+    if (existing.status === "PUBLISHED") {
+      throw new AppError("Published books cannot be deleted", 400, "BOOK_PUBLISHED");
+    }
+
+    await prisma.book.delete({ where: { id } });
+    return reply.status(204).send();
+  });
+}

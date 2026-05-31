@@ -50,14 +50,14 @@
 
 ## 📚 ФАЗА 3 — Управління книгами (Dashboard)
 
-- [ ] **T-301** `GET /api/books` — книги автора
-- [ ] **T-302** `POST /api/books` — створити чернетку
-- [ ] **T-303** `GET /api/books/:id`
-- [ ] **T-304** `PATCH /api/books/:id` — метадані
-- [ ] **T-305** `DELETE /api/books/:id`
-- [ ] **T-306** Сторінка `/dashboard/books` — картки книг
-- [ ] **T-307** Сторінка `/dashboard/books/new` — wizard 5 кроків
-- [ ] **T-308** Компонент `BookWizard` — прогрес-бар + кроки
+- [x] **T-301** `GET /api/books` — книги автора
+- [x] **T-302** `POST /api/books` — створити чернетку
+- [x] **T-303** `GET /api/books/:id`
+- [x] **T-304** `PATCH /api/books/:id` — метадані
+- [x] **T-305** `DELETE /api/books/:id`
+- [x] **T-306** Сторінка `/dashboard/books` — картки книг
+- [x] **T-307** Сторінка `/dashboard/books/new` — wizard 5 кроків
+- [x] **T-308** Компонент `BookWizard` — прогрес-бар + кроки
 
 ---
 
