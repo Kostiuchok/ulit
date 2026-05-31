@@ -154,11 +154,13 @@ export default function BookDetailPage() {
               )}
               <div>
                 <p className="text-sm text-gray-500 mb-2">
-                  Редактор обкладинки буде доступний у наступному оновленні (Фаза 5).
+                  Створіть або завантажте обкладинку 1800×2700 px (2:3, 300 DPI).
                 </p>
-                <Button variant="outline" size="sm" disabled>
-                  Редагувати обкладинку
-                </Button>
+                <Link href={`/dashboard/books/${id}/cover`}>
+                  <Button variant="outline" size="sm">
+                    Редагувати обкладинку
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

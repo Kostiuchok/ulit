@@ -20,7 +20,8 @@
   "pnpm": {
     "overrides": {
       "ioredis": "^5.4.1"
-    }
+    },
+    "neverBuiltDependencies": ["canvas"]
   },
   "workspaces": [
     "apps/*",
