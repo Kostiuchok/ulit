@@ -185,15 +185,15 @@
 
 ## 🚀 ФАЗА 13 — Деплой
 
-- [ ] **T-1301** `docker-compose.prod.yml`
-- [ ] **T-1302** Nginx конфіг (web:3000, api:3001)
-- [ ] **T-1303** Certbot SSL
-- [ ] **T-1304** GitHub Actions `deploy.yml` → SSH
-- [ ] **T-1305** `backup-db.sh` — щоденний бекап PostgreSQL → MinIO
-- [ ] **T-1306** Grafana + Prometheus
-- [ ] **T-1307** Health check `/api/health`
-- [ ] **T-1308** Rate limiting (fastify-rate-limit)
-- [ ] **T-1309** Structured logging (Pino)
+- [x] **T-1301** `docker-compose.prod.yml`
+- [x] **T-1302** Nginx конфіг (web:3000, api:3001)
+- [x] **T-1303** Certbot SSL
+- [x] **T-1304** GitHub Actions `deploy.yml` → SSH
+- [x] **T-1305** `backup-db.sh` — щоденний бекап PostgreSQL → MinIO
+- [x] **T-1306** Grafana + Prometheus
+- [x] **T-1307** Health check `/api/health`
+- [x] **T-1308** Rate limiting (fastify-rate-limit)
+- [x] **T-1309** Structured logging (Pino)
 
 ---
 
