@@ -1,8 +1,8 @@
 // Mock ISBN service — MVP uses generated ISBN-13.
 // Phase 2: integrate real Книжкова палата України API.
 
-// Ukrainian publisher prefixes (978-617-*)
-const PUBLISHER_PREFIXES = ["617-7798", "617-7664", "617-664", "617-695", "617-551"];
+// Ukrainian publisher codes under 978-617 group (each 6 chars without dashes → 3-digit title space)
+const PUBLISHER_CODES = ["617551", "617664", "617695", "617702", "617746"];
 
 function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -17,15 +17,13 @@ function computeIsbn13Check(digits12: string): number {
 }
 
 export async function assignIsbn(_bookId: string): Promise<string> {
-  // Pick a random Ukrainian publisher prefix
-  const prefix = PUBLISHER_PREFIXES[randomInt(0, PUBLISHER_PREFIXES.length - 1)];
-  // Random title number (1-9999, zero-padded to 4 digits)
-  const titleNum = String(randomInt(1, 9999)).padStart(4, "0");
-  const digits12 = `978${prefix.replace(/-/g, "")}${titleNum}`;
+  const pub = PUBLISHER_CODES[randomInt(0, PUBLISHER_CODES.length - 1)];
+  // 978 (3) + publisher (6) + title (3) = 12 digits, then +check = 13
+  const titleNum = String(randomInt(1, 999)).padStart(3, "0");
+  const digits12 = `978${pub}${titleNum}`;
   const check = computeIsbn13Check(digits12);
   const raw = `${digits12}${check}`;
-  // Format: 978-617-XXXX-XXXX-X
-  return `${raw.slice(0, 3)}-${raw.slice(3, 6)}-${raw.slice(6, 10)}-${raw.slice(10, 14)}-${raw.slice(14)}`;
+  return `${raw.slice(0, 3)}-${raw.slice(3, 6)}-${raw.slice(6, 9)}-${raw.slice(9, 12)}-${raw.slice(12)}`;
 }
 
 export function validateIsbn13(isbn: string): boolean {
@@ -33,3 +31,4 @@ export function validateIsbn13(isbn: string): boolean {
   if (digits.length !== 13 || !/^\d+$/.test(digits)) return false;
   return computeIsbn13Check(digits.slice(0, 12)) === parseInt(digits[12]);
 }
+

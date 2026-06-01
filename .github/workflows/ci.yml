@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Lint & Typecheck
+    name: Lint, Typecheck & Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -29,4 +29,34 @@ jobs:
         continue-on-error: true
 
       - run: pnpm typecheck
-        continue-on-error: true
+
+      - name: Unit tests (API)
+        run: pnpm --filter api test
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          BASE_URL: ${{ secrets.E2E_BASE_URL || 'http://localhost:3000' }}

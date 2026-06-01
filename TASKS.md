@@ -199,11 +199,11 @@
 
 ## 🧪 ФАЗА 14 — Тестування
 
-- [ ] **T-1401** Unit: `isbn.service.ts` (Vitest)
-- [ ] **T-1402** Unit: Zod схеми
-- [ ] **T-1403** Integration: auth endpoints
-- [ ] **T-1404** E2E: реєстрація → книга → публікація (Playwright)
-- [ ] **T-1405** E2E: магазин → купівля → отримання файлу
+- [x] **T-1401** Unit: `isbn.service.ts` (Vitest)
+- [x] **T-1402** Unit: Zod схеми
+- [x] **T-1403** Integration: auth endpoints
+- [x] **T-1404** E2E: реєстрація → книга → публікація (Playwright)
+- [x] **T-1405** E2E: магазин → купівля → отримання файлу
 
 ---
 

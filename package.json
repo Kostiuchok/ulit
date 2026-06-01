@@ -6,9 +6,12 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:e2e": "playwright test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "prettier": "^3.3.3",
     "turbo": "^2.3.3"
   },
@@ -21,7 +24,9 @@
     "overrides": {
       "ioredis": "^5.4.1"
     },
-    "neverBuiltDependencies": ["canvas"]
+    "neverBuiltDependencies": [
+      "canvas"
+    ]
   },
   "workspaces": [
     "apps/*",
