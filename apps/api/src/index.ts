@@ -20,6 +20,7 @@ import { publishRoute } from "./modules/books/publish";
 import { storeBooksRoutes } from "./modules/store/store-books";
 import { ordersRoutes } from "./modules/orders/orders";
 import { liqpayRoutes } from "./modules/payments/liqpay";
+import { adminRoutes } from "./modules/admin/admin";
 import { startEmailWorker } from "./lib/email-queue";
 
 const app = Fastify({
@@ -71,6 +72,7 @@ async function bootstrap() {
   await app.register(storeBooksRoutes);
   await app.register(ordersRoutes);
   await app.register(liqpayRoutes);
+  await app.register(adminRoutes);
 
   // Email worker runs in the API process
   startEmailWorker();

@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma";
 import { verifyLiqPaySignature, parseLiqPayData } from "../../services/liqpay.service";
 import { getSignedUrl } from "../../services/storage.service";
 import { queueOrderPaidEmail } from "../../lib/email-queue";
+import { createSiteRoyalties } from "../admin/admin";
 
 const FORMAT_TO_FIELDS: Record<string, string[]> = {
   EBOOK: ["epubUrl", "fb2Url", "mobiUrl"],
@@ -110,6 +111,9 @@ export async function liqpayRoutes(app: FastifyInstance) {
         });
       }
     }
+
+    // Create royalty records (70% to author)
+    await createSiteRoyalties(orderId);
 
     // Queue confirmation email with download links
     await queueOrderPaidEmail({

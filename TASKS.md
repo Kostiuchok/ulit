@@ -151,25 +151,25 @@
 
 ## 🛡 ФАЗА 11 — Адмін-панель
 
-- [ ] **T-1101** Layout `/admin` — sidebar + topbar (окремий від auth guard)
-- [ ] **T-1102** `/admin/dashboard` — KPI картки + останні події + черга
-- [ ] **T-1103** `/admin/books` — таблиця + фільтри (статус, сервіс, жанр)
-- [ ] **T-1104** Схвалення книги: `PATCH /api/admin/books/:id/approve`
-- [ ] **T-1105** Відхилення книги з причиною: `PATCH /api/admin/books/:id/reject`
-- [ ] **T-1106** `/admin/books/[id]/distribute` — форми D2D + KDP + Google
-- [ ] **T-1107** Чеклист готовності книги (EPUB ✅ | обкладинка ✅ | ISBN ✅)
-- [ ] **T-1108** `POST /api/admin/books/:id/export-package` — ZIP (EPUB + cover + metadata.csv)
-- [ ] **T-1109** Статуси відправки: `ExternalStatus` (NOT_SENT | SENT | PUBLISHED | ERROR)
-- [ ] **T-1110** `/admin/distribution/queue` — черга книг готових до відправки
-- [ ] **T-1111** `/admin/distribution/bulk` — масова відправка (ZIP з кількох книг)
-- [ ] **T-1112** `/admin/applications/kdp-api` — форма заявки KDP Selling Partner API
-- [ ] **T-1113** `/admin/applications/google-books` — форма заявки Google Books Partner API
-- [ ] **T-1114** `/admin/applications/d2d-partner` — лист до D2D Business Development
-- [ ] **T-1115** `/admin/royalties` — список виплат + поріг 500 грн + кнопка Виплатити
-- [ ] **T-1116** `POST /api/admin/royalties/:id/pay` — відмітити як виплачено
-- [ ] **T-1117** `/admin/royalties/export` — CSV для бухгалтерії
-- [ ] **T-1118** `/admin/services` — toggle on/off кожного сервісу дистрибуції
-- [ ] **T-1119** `/admin/authors` — список авторів + статус договору
+- [x] **T-1101** Layout `/admin` — sidebar + topbar (окремий від auth guard)
+- [x] **T-1102** `/admin/dashboard` — KPI картки + останні події + черга
+- [x] **T-1103** `/admin/books` — таблиця + фільтри (статус, сервіс, жанр)
+- [x] **T-1104** Схвалення книги: `PATCH /api/admin/books/:id/approve`
+- [x] **T-1105** Відхилення книги з причиною: `PATCH /api/admin/books/:id/reject`
+- [x] **T-1106** `/admin/books/[id]/distribute` — форми D2D + KDP + Google
+- [x] **T-1107** Чеклист готовності книги (EPUB ✅ | обкладинка ✅ | ISBN ✅)
+- [x] **T-1108** `POST /api/admin/books/:id/export-package` — ZIP (EPUB + cover + metadata.csv)
+- [x] **T-1109** Статуси відправки: `ExternalStatus` (NOT_SENT | SENT | PUBLISHED | ERROR)
+- [x] **T-1110** `/admin/distribution/queue` — черга книг готових до відправки
+- [x] **T-1111** `/admin/distribution/bulk` — масова відправка (ZIP з кількох книг)
+- [x] **T-1112** `/admin/applications/kdp-api` — форма заявки KDP Selling Partner API
+- [x] **T-1113** `/admin/applications/google-books` — форма заявки Google Books Partner API
+- [x] **T-1114** `/admin/applications/d2d-partner` — лист до D2D Business Development
+- [x] **T-1115** `/admin/royalties` — список виплат + поріг 500 грн + кнопка Виплатити
+- [x] **T-1116** `POST /api/admin/royalties/:id/pay` — відмітити як виплачено
+- [x] **T-1117** `/admin/royalties/export` — CSV для бухгалтерії
+- [x] **T-1118** `/admin/services` — toggle on/off кожного сервісу дистрибуції
+- [x] **T-1119** `/admin/authors` — список авторів + статус договору
 
 ---
 
