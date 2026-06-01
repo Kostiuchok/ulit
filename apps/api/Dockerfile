@@ -14,8 +14,8 @@ FROM deps AS builder
 WORKDIR /app
 COPY apps/api ./apps/api
 COPY packages/shared-types ./packages/shared-types
-RUN pnpm --filter api build
 RUN pnpm --filter api exec prisma generate
+RUN pnpm --filter api build
 
 # ─── runtime ─────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
