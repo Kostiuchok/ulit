@@ -68,4 +68,22 @@ export async function usersMe(app: FastifyInstance) {
 
     return reply.send({ user });
   });
+
+  app.post("/api/users/me/accept-agreement", { preHandler: authenticate }, async (request, reply) => {
+    const ip =
+      (request.headers["x-forwarded-for"] as string)?.split(",")[0].trim() ||
+      request.ip ||
+      "unknown";
+
+    const user = await prisma.user.update({
+      where: { id: request.user.id },
+      data: {
+        contractAcceptedAt: new Date(),
+        contractAcceptedIp: ip,
+      },
+      select: { id: true, contractAcceptedAt: true },
+    });
+
+    return reply.send({ ok: true, contractAcceptedAt: user.contractAcceptedAt });
+  });
 }
