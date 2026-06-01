@@ -16,8 +16,7 @@ certbot certonly \
   --non-interactive \
   --agree-tos \
   --email "$EMAIL" \
-  --domain "$DOMAIN" \
-  --domain "www.$DOMAIN"
+  --domain "$DOMAIN"
 
 echo "✅ Сертифікат отримано: /etc/letsencrypt/live/$DOMAIN/"
 
