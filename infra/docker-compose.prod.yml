@@ -53,8 +53,8 @@ services:
 
   api:
     build:
-      context: ../apps/api
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/api/Dockerfile
     restart: always
     container_name: knyha-api
     env_file: ../.env.production
@@ -76,8 +76,8 @@ services:
 
   web:
     build:
-      context: ../apps/web
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/web/Dockerfile
     restart: always
     container_name: knyha-web
     env_file: ../.env.production
@@ -93,8 +93,8 @@ services:
 
   worker:
     build:
-      context: ../apps/worker
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/worker/Dockerfile
     restart: always
     env_file: ../.env.production
     depends_on:

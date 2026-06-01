@@ -8,25 +8,21 @@ cd "$APP_DIR"
 echo "🚀 Knyha — Перший деплой"
 echo "========================="
 
-[ ! -f ".env.production" ] && echo "❌ .env.production не знайдено! cp .env.example .env.production" && exit 1
+[ ! -f ".env.production" ] && echo "❌ .env.production не знайдено!" && exit 1
 
-echo "[1/5] Залежності..."
-pnpm install --frozen-lockfile
-
-echo "[2/5] Збірка..."
-pnpm build
-
-echo "[3/5] Запуск postgres + redis + minio..."
+echo "[1/3] Запуск інфраструктури (postgres, redis, minio)..."
 docker compose -f infra/docker-compose.prod.yml up -d postgres redis minio
-echo "Чекаємо 20 сек..."
-sleep 20
 
-echo "[4/5] Міграції БД..."
-pnpm --filter api db:migrate
+echo "Чекаємо поки сервіси стануть healthy..."
+sleep 15
 
-echo "[5/5] Запуск всіх сервісів..."
-docker compose -f infra/docker-compose.prod.yml up -d
+echo "[2/3] Збірка та запуск (перший раз займає 5-10 хв)..."
+docker compose -f infra/docker-compose.prod.yml up -d --build api web worker node-exporter prometheus grafana
+
+echo "[3/3] Статус:"
+sleep 5
+docker compose -f infra/docker-compose.prod.yml ps
 
 echo ""
-echo "✅ Платформа запущена!"
-docker compose -f infra/docker-compose.prod.yml ps
+echo "✅ Готово! https://ulit.render.ua"
+echo "Логи: docker compose -f infra/docker-compose.prod.yml logs api -f"
