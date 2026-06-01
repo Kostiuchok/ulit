@@ -16,6 +16,7 @@ import { uploadCoverRoute } from "./modules/books/cover";
 import { conversionStatusRoutes } from "./modules/books/conversion-status";
 import { distributionRoutes } from "./modules/books/distribution";
 import { publishRoute } from "./modules/books/publish";
+import { storeBooksRoutes } from "./modules/store/store-books";
 import { startEmailWorker } from "./lib/email-queue";
 
 const app = Fastify({
@@ -63,6 +64,7 @@ async function bootstrap() {
   await app.register(conversionStatusRoutes);
   await app.register(distributionRoutes);
   await app.register(publishRoute);
+  await app.register(storeBooksRoutes);
 
   // Email worker runs in the API process
   startEmailWorker();
