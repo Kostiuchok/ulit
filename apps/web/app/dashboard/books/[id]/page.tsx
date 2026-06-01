@@ -15,6 +15,7 @@ import { DocxUploader } from "../../../../components/dashboard/DocxUploader";
 import { ConversionStatus } from "../../../../components/dashboard/ConversionStatus";
 import { DistributionStatus } from "../../../../components/books/DistributionStatus";
 import { PublishButton } from "../../../../components/books/PublishButton";
+import { PreviewRangeEditor } from "../../../../components/books/PreviewRangeEditor";
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   DRAFT: { label: "Чернетка", className: "bg-gray-100 text-gray-600" },
@@ -260,6 +261,25 @@ export default function BookDetailPage() {
               </Button>
             </form>
           </div>
+
+          {/* Preview excerpt — only for books with EPUB */}
+          {book?.epubUrl && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <h2 className="text-base font-semibold mb-1">Уривок для читачів</h2>
+              <p className="text-xs text-gray-500 mb-4">
+                Встановіть діапазон сторінок, які покупці зможуть прочитати безкоштовно.
+              </p>
+              <PreviewRangeEditor
+                bookId={id}
+                pageCount={book?.pageCount}
+                initialStart={book?.previewStart}
+                initialEnd={book?.previewEnd}
+                onSaved={(start, end) =>
+                  setBook((b: any) => b ? { ...b, previewStart: start, previewEnd: end } : b)
+                }
+              />
+            </div>
+          )}
 
           {/* Publish */}
           {book?.status !== "PUBLISHED" && (

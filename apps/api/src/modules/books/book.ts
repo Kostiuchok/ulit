@@ -16,6 +16,11 @@ const patchSchema = z.object({
   kdpSelectExpiry: z.string().datetime().nullable().optional(),
 });
 
+const previewSchema = z.object({
+  previewStart: z.number().int().min(1).nullable(),
+  previewEnd: z.number().int().min(1).nullable(),
+});
+
 async function assertOwnership(bookId: string, userId: string) {
   const book = await prisma.book.findUnique({ where: { id: bookId }, select: { authorId: true, status: true } });
   if (!book) throw AppError.notFound("Book");
@@ -58,6 +63,30 @@ export async function bookRoutes(app: FastifyInstance) {
           ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
           : undefined,
       },
+    });
+
+    return reply.send({ book });
+  });
+
+  // PATCH /api/books/:id/preview — set excerpt range (allowed for any status)
+  app.patch("/api/books/:id/preview", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    await assertOwnership(id, request.user.id);
+
+    const result = previewSchema.safeParse(request.body);
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error.errors[0].message });
+    }
+    const { previewStart, previewEnd } = result.data;
+
+    if (previewStart !== null && previewEnd !== null && previewEnd <= previewStart) {
+      return reply.status(400).send({ error: "previewEnd must be greater than previewStart" });
+    }
+
+    const book = await prisma.book.update({
+      where: { id },
+      data: { previewStart, previewEnd },
+      select: { id: true, previewStart: true, previewEnd: true, pageCount: true },
     });
 
     return reply.send({ book });

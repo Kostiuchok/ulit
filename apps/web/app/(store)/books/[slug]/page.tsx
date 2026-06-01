@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BuyButton } from "../../../../components/store/BuyButton";
+import { EpubReader } from "../../../../components/store/EpubReader";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -157,6 +158,18 @@ export default async function BookPage({ params }: Props) {
               ) : (
                 <div className="flex aspect-[2/3] w-full max-w-xs mx-auto items-center justify-center rounded-xl bg-gray-100 text-7xl">
                   📖
+                </div>
+              )}
+
+              {/* Read preview */}
+              {book.epubUrl && (
+                <div className="mt-4 flex justify-center">
+                  <EpubReader
+                    bookSlug={book.slug}
+                    bookTitle={book.title}
+                    bookId={book.id}
+                    bookPrice={book.priceEbook ? Number(book.priceEbook) : null}
+                  />
                 </div>
               )}
 

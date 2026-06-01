@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
+import { getSignedUrl } from "../../services/storage.service";
 
 const querySchema = z.object({
   q: z.string().optional(),
@@ -131,6 +132,35 @@ export async function storeBooksRoutes(app: FastifyInstance) {
     });
     if (!author) throw AppError.notFound("Author");
     return reply.send({ author });
+  });
+
+  // T-1003 — public EPUB preview config for a book
+  app.get("/api/store/books/:slug/preview", async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+    const book = await prisma.book.findUnique({
+      where: { slug },
+      select: {
+        status: true,
+        epubUrl: true,
+        previewStart: true,
+        previewEnd: true,
+        pageCount: true,
+      },
+    });
+
+    if (!book || book.status !== "PUBLISHED") throw AppError.notFound("Book");
+    if (!book.epubUrl) {
+      return reply.status(404).send({ error: "No EPUB available for preview" });
+    }
+
+    const previewUrl = await getSignedUrl(book.epubUrl);
+
+    return reply.send({
+      previewUrl,
+      previewStart: book.previewStart,
+      previewEnd: book.previewEnd,
+      pageCount: book.pageCount,
+    });
   });
 
   // Genres list (for filter UI)
