@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
+import formbody from "@fastify/formbody";
 import rateLimit from "@fastify/rate-limit";
 import { AppError } from "./errors/AppError";
 import { registerRoute } from "./modules/auth/register";
@@ -17,6 +18,8 @@ import { conversionStatusRoutes } from "./modules/books/conversion-status";
 import { distributionRoutes } from "./modules/books/distribution";
 import { publishRoute } from "./modules/books/publish";
 import { storeBooksRoutes } from "./modules/store/store-books";
+import { ordersRoutes } from "./modules/orders/orders";
+import { liqpayRoutes } from "./modules/payments/liqpay";
 import { startEmailWorker } from "./lib/email-queue";
 
 const app = Fastify({
@@ -36,6 +39,7 @@ async function bootstrap() {
   });
 
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
+  await app.register(formbody);
 
   await app.register(rateLimit, {
     max: 100,
@@ -65,6 +69,8 @@ async function bootstrap() {
   await app.register(distributionRoutes);
   await app.register(publishRoute);
   await app.register(storeBooksRoutes);
+  await app.register(ordersRoutes);
+  await app.register(liqpayRoutes);
 
   // Email worker runs in the API process
   startEmailWorker();

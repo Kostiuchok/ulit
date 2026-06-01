@@ -58,6 +58,55 @@ export async function sendKdpExpiryWarning(opts: {
   );
 }
 
+export async function sendOrderDownloadLinks(opts: {
+  email: string;
+  name: string;
+  orderId: string;
+  total: number;
+  downloads: Array<{
+    bookTitle: string;
+    coverUrl: string | null;
+    links: Array<{ label: string; url: string }>;
+  }>;
+}) {
+  const { email, name, orderId, total, downloads } = opts;
+  const orderUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/orders/${orderId}`;
+
+  const booksHtml = downloads
+    .map(
+      (b) => `
+        <div style="margin-bottom:16px;padding:12px;border:1px solid #e5e7eb;border-radius:8px">
+          <p style="margin:0 0 8px;font-weight:bold;color:#111">${b.bookTitle}</p>
+          ${b.links
+            .map(
+              (l) =>
+                `<a href="${l.url}" style="display:inline-block;margin:4px 4px 0 0;padding:6px 14px;background:#1a1a2e;color:#fff;text-decoration:none;border-radius:4px;font-size:0.85em">
+                  ⬇ ${l.label}
+                </a>`
+            )
+            .join("")}
+        </div>`
+    )
+    .join("");
+
+  await sendMail(
+    email,
+    `✅ Ваше замовлення оплачено — завантажте книги`,
+    `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+      <h2 style="color:#1a1a2e">Дякуємо за покупку, ${name}!</h2>
+      <p>Сума замовлення: <strong>${total.toFixed(2)} грн</strong></p>
+      <p>Ваші книги готові до завантаження (посилання дійсні 48 годин):</p>
+      ${booksHtml}
+      <p style="margin-top:16px">
+        <a href="${orderUrl}" style="color:#2563eb">Переглянути замовлення</a>
+      </p>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа Knyha — knyha.ua</p>
+    </div>
+    `
+  );
+}
+
 export async function sendPublishedNotification(opts: {
   email: string;
   name: string;

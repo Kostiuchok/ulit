@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { BuyButton } from "../../../../components/store/BuyButton";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -163,7 +164,7 @@ export default async function BookPage({ params }: Props) {
               <div className="mt-6 space-y-3">
                 {book.priceEbook && (
                   <div className="rounded-xl border bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs text-gray-500">Електронна книга</p>
                         <p className="text-2xl font-bold text-gray-900">{Number(book.priceEbook).toFixed(2)} грн</p>
@@ -172,15 +173,19 @@ export default async function BookPage({ params }: Props) {
                         Е-книга
                       </span>
                     </div>
-                    <button className="mt-3 w-full rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white hover:bg-gray-700 transition-colors">
-                      Купити е-книгу
-                    </button>
+                    <BuyButton
+                      bookId={book.id}
+                      format="EBOOK"
+                      price={Number(book.priceEbook)}
+                      label="Купити е-книгу"
+                      variant="primary"
+                    />
                   </div>
                 )}
 
                 {book.pricePrint && (
                   <div className="rounded-xl border bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs text-gray-500">Друкована</p>
                         <p className="text-2xl font-bold text-gray-900">{Number(book.pricePrint).toFixed(2)} грн</p>
@@ -189,9 +194,13 @@ export default async function BookPage({ params }: Props) {
                         Друк
                       </span>
                     </div>
-                    <button className="mt-3 w-full rounded-lg border border-gray-900 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
-                      Замовити друковану
-                    </button>
+                    <BuyButton
+                      bookId={book.id}
+                      format="PRINT"
+                      price={Number(book.pricePrint)}
+                      label="Замовити друковану"
+                      variant="outline"
+                    />
                   </div>
                 )}
               </div>

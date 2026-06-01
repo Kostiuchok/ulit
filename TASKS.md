@@ -130,14 +130,14 @@
 
 ## 💳 ФАЗА 9 — Замовлення та платежі
 
-- [ ] **T-901** `POST /api/orders`
-- [ ] **T-902** `GET /api/orders/:id`
-- [ ] **T-903** LiqPay інтеграція — форма оплати
-- [ ] **T-904** `POST /api/payments/liqpay/callback`
+- [x] **T-901** `POST /api/orders`
+- [x] **T-902** `GET /api/orders/:id`
+- [x] **T-903** LiqPay інтеграція — форма оплати
+- [x] **T-904** `POST /api/payments/liqpay/callback`
 - [ ] **T-905** Stripe Payment Intent (Фаза 2)
 - [ ] **T-906** `POST /api/payments/stripe/webhook`
-- [ ] **T-907** Email з signed URLs після оплати (48 год)
-- [ ] **T-908** Сторінка `/orders/:id` — статус для покупця
+- [x] **T-907** Email з signed URLs після оплати (48 год)
+- [x] **T-908** Сторінка `/orders/:id` — статус для покупця
 
 ---
 
