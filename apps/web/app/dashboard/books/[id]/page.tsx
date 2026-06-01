@@ -14,6 +14,7 @@ import { cn } from "../../../../lib/utils";
 import { DocxUploader } from "../../../../components/dashboard/DocxUploader";
 import { ConversionStatus } from "../../../../components/dashboard/ConversionStatus";
 import { DistributionStatus } from "../../../../components/books/DistributionStatus";
+import { PublishButton } from "../../../../components/books/PublishButton";
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   DRAFT: { label: "Чернетка", className: "bg-gray-100 text-gray-600" },
@@ -259,6 +260,18 @@ export default function BookDetailPage() {
               </Button>
             </form>
           </div>
+
+          {/* Publish */}
+          {book?.status !== "PUBLISHED" && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <h2 className="text-base font-semibold mb-4">Публікація</h2>
+              <PublishButton
+                bookId={id}
+                bookStatus={book?.status ?? "DRAFT"}
+                onPublished={() => setBook((b: any) => b ? { ...b, status: "PUBLISHED" } : b)}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

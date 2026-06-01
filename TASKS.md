@@ -34,7 +34,7 @@
 - [x] **T-108** JWT middleware для захищених routes
 - [x] **T-109** Admin middleware — guard для `/admin/*` routes (role: ADMIN)
 - [x] **T-110** Сторінки `/login` та `/register` (RHF + Zod)
-- [ ] **T-111** Зберігати `contractAcceptedAt` при першій публікації (при T-703)
+- [x] **T-111** Зберігати `contractAcceptedAt` при першій публікації (при T-703)
 
 ---
 
@@ -104,12 +104,12 @@
 
 ## 🔖 ФАЗА 7 — ISBN та публікація
 
-- [ ] **T-701** `isbn.service.ts` — mock для MVP, реальна Книжкова палата — Фаза 2
-- [ ] **T-702** Валідація перед публікацією (обкладинка + файл + метадані + ціна)
-- [ ] **T-703** `POST /api/books/:id/publish`
-- [ ] **T-704** Статуси: DRAFT → PROCESSING → REVIEW → PUBLISHED
-- [ ] **T-705** Email автору після публікації
-- [ ] **T-706** Сторінка підтвердження з ISBN і посиланням
+- [x] **T-701** `isbn.service.ts` — mock для MVP, реальна Книжкова палата — Фаза 2
+- [x] **T-702** Валідація перед публікацією (обкладинка + файл + метадані + ціна)
+- [x] **T-703** `POST /api/books/:id/publish`
+- [x] **T-704** Статуси: DRAFT → PROCESSING → REVIEW → PUBLISHED
+- [x] **T-705** Email автору після публікації
+- [x] **T-706** Сторінка підтвердження з ISBN і посиланням
 
 ---
 
