@@ -10,10 +10,13 @@ echo "========================="
 
 [ ! -f ".env.production" ] && echo "❌ .env.production не знайдено!" && exit 1
 
-# Symlink so docker compose finds vars for interpolation (it looks in infra/ — compose file dir)
-ln -sf "$APP_DIR/.env.production" "$APP_DIR/infra/.env"
+# Export vars into the shell so docker compose can interpolate ${VAR} in the compose file
+set -a
+# shellcheck source=.env.production
+source "$APP_DIR/.env.production"
+set +a
 
-DC="docker compose -f infra/docker-compose.prod.yml --project-directory $APP_DIR"
+DC="docker compose -f infra/docker-compose.prod.yml"
 
 echo "[1/3] Запуск інфраструктури (postgres, redis, minio)..."
 $DC up -d postgres redis minio
