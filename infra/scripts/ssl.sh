@@ -21,7 +21,7 @@ certbot certonly \
 echo "✅ Сертифікат отримано: /etc/letsencrypt/live/$DOMAIN/"
 
 # Patch nginx.conf with domain
-sed -i "s/\${DOMAIN}/$DOMAIN/g" /ulit/infra/nginx/nginx.conf
+sed -i "s/\${DOMAIN}/$DOMAIN/g" /opt/knyha-platform/infra/nginx/nginx.conf
 
 # Setup auto-renew cron (certbot renew + nginx reload)
 CRON_LINE="0 2 * * * certbot renew --quiet && docker exec knyha-nginx nginx -s reload"

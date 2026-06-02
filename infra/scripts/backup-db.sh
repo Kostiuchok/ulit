@@ -1,9 +1,9 @@
 #!/bin/bash
 # backup-db.sh — щоденний бекап PostgreSQL → MinIO
-# Викликати через cron: 0 3 * * * /ulit/infra/scripts/backup-db.sh >> /var/log/knyha-backup.log 2>&1
+# Викликати через cron: 0 3 * * * /opt/knyha-platform/infra/scripts/backup-db.sh >> /var/log/knyha-backup.log 2>&1
 set -euo pipefail
 
-APP_DIR="/ulit"
+APP_DIR="/opt/knyha-platform"
 ENV_FILE="$APP_DIR/.env.production"
 
 # Load env

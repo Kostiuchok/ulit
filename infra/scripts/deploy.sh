@@ -3,7 +3,7 @@
 # Викликається з GitHub Actions через SSH
 set -euo pipefail
 
-APP_DIR="/ulit"
+APP_DIR="/opt/knyha-platform"
 cd "$APP_DIR"
 
 echo "[$(date)] Knyha Deploy — start"

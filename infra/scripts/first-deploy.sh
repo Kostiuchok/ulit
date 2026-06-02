@@ -2,7 +2,7 @@
 # first-deploy.sh — Перший запуск платформи
 set -e
 
-APP_DIR="/ulit"
+APP_DIR="/opt/knyha-platform"
 cd "$APP_DIR"
 
 echo "🚀 Knyha — Перший деплой"
