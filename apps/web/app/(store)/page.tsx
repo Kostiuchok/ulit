@@ -81,6 +81,20 @@ export default async function StorePage() {
             Відкрийте для себе нові голоси. Підтримайте українських письменників —
             купуйте електронні та друковані книги напряму від авторів.
           </p>
+          <div className="flex justify-center gap-3 mb-6">
+            <Link
+              href="/login"
+              className="rounded-full border border-white/40 px-6 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+            >
+              Увійти
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-100 transition-colors"
+            >
+              Реєстрація
+            </Link>
+          </div>
           <div className="flex justify-center">
             <Suspense>
               <SearchBar />
