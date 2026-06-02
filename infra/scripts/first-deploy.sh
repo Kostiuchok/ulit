@@ -10,18 +10,23 @@ echo "========================="
 
 [ ! -f ".env.production" ] && echo "❌ .env.production не знайдено!" && exit 1
 
+# Symlink so docker compose finds vars for interpolation (it looks in infra/ — compose file dir)
+ln -sf "$APP_DIR/.env.production" "$APP_DIR/infra/.env"
+
+DC="docker compose -f infra/docker-compose.prod.yml --project-directory $APP_DIR"
+
 echo "[1/3] Запуск інфраструктури (postgres, redis, minio)..."
-docker compose -f infra/docker-compose.prod.yml up -d postgres redis minio
+$DC up -d postgres redis minio
 
 echo "Чекаємо поки сервіси стануть healthy..."
 sleep 15
 
 echo "[2/3] Збірка та запуск (перший раз займає 5-10 хв)..."
-docker compose -f infra/docker-compose.prod.yml up -d --build api web worker node-exporter prometheus grafana
+$DC up -d --build api web worker node-exporter prometheus grafana
 
 echo "[3/3] Статус:"
 sleep 5
-docker compose -f infra/docker-compose.prod.yml ps
+$DC ps
 
 echo ""
 echo "✅ Готово! https://ulit.render.ua"
