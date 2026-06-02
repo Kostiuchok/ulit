@@ -23,7 +23,7 @@ pnpm --filter api db:migrate:prod
 
 # 5. Rolling restart (zero-downtime for stateless services)
 set -a; source "$APP_DIR/.env.production"; set +a
-DC="docker compose -f infra/docker-compose.prod.yml"
+DC="docker compose --project-name knyha -f infra/docker-compose.prod.yml"
 $DC pull 2>/dev/null || true
 $DC up -d --build --remove-orphans api web worker
 

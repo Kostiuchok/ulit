@@ -16,7 +16,7 @@ set -a
 source "$APP_DIR/.env.production"
 set +a
 
-DC="docker compose -f infra/docker-compose.prod.yml"
+DC="docker compose --project-name knyha -f infra/docker-compose.prod.yml"
 
 echo "[1/3] Запуск інфраструктури (postgres, redis, minio)..."
 $DC up -d postgres redis minio
