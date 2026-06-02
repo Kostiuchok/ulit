@@ -23,8 +23,7 @@ RUN NODE_ENV=development pnpm install --frozen-lockfile --filter worker...
 COPY apps/worker ./apps/worker
 COPY apps/api/prisma ./apps/api/prisma
 COPY packages/shared-types ./packages/shared-types
-# Generate prisma client from api dir (schema lives there — avoids auto-install confusion)
-RUN cd apps/api && ../../node_modules/.bin/prisma generate
+RUN node_modules/.bin/prisma generate --schema=apps/api/prisma/schema.prisma
 RUN pnpm --filter worker build
 
 CMD ["node", "apps/worker/dist/index.js"]
