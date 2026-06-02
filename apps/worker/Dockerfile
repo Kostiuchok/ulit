@@ -17,7 +17,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/worker/package.json ./apps/worker/
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared-types/package.json ./packages/shared-types/
-RUN pnpm install --frozen-lockfile --filter worker...
+RUN NODE_ENV=development pnpm install --frozen-lockfile --filter worker...
 
 # Copy source + prisma schema (worker references apps/api/prisma/schema.prisma)
 COPY apps/worker ./apps/worker
