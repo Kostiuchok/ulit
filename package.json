@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@prisma/client": "5.22.0",
     "prettier": "^3.3.3",
     "prisma": "5.22.0",
     "turbo": "^2.3.3"
@@ -27,6 +28,9 @@
     },
     "neverBuiltDependencies": [
       "canvas"
+    ],
+    "publicHoistPattern": [
+      "@prisma/client"
     ]
   },
   "workspaces": [

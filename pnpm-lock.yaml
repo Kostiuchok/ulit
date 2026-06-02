@@ -14,6 +14,9 @@ importers:
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.60.0
+      '@prisma/client':
+        specifier: 5.22.0
+        version: 5.22.0(prisma@5.22.0)
       prettier:
         specifier: ^3.3.3
         version: 3.8.3
