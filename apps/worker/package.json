@@ -12,7 +12,7 @@
     "bullmq": "^5.13.2",
     "ioredis": "^5.4.1",
     "minio": "^8.0.1",
-    "@prisma/client": "^5.19.1",
+    "@prisma/client": "5.22.0",
     "sharp": "^0.33.5",
     "shared-types": "workspace:*"
   },
@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
-    "prisma": "^5.19.1",
+    "prisma": "5.22.0",
     "tsx": "^4.19.1",
     "typescript": "^5"
   }

@@ -18,7 +18,7 @@ importers:
         specifier: ^3.3.3
         version: 3.8.3
       prisma:
-        specifier: ^5.19.1
+        specifier: 5.22.0
         version: 5.22.0
       turbo:
         specifier: ^2.3.3
@@ -42,7 +42,7 @@ importers:
         specifier: ^9.1.0
         version: 9.1.0
       '@prisma/client':
-        specifier: ^5.19.1
+        specifier: 5.22.0
         version: 5.22.0(prisma@5.22.0)
       archiver:
         specifier: ^8.0.0
@@ -91,7 +91,7 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8(vitest@4.1.8)
       prisma:
-        specifier: ^5.19.1
+        specifier: 5.22.0
         version: 5.22.0
       tsx:
         specifier: ^4.19.1
@@ -188,7 +188,7 @@ importers:
   apps/worker:
     dependencies:
       '@prisma/client':
-        specifier: ^5.19.1
+        specifier: 5.22.0
         version: 5.22.0(prisma@5.22.0)
       bullmq:
         specifier: ^5.13.2
@@ -210,7 +210,7 @@ importers:
         specifier: ^20
         version: 20.19.41
       prisma:
-        specifier: ^5.19.1
+        specifier: 5.22.0
         version: 5.22.0
       tsx:
         specifier: ^4.19.1
