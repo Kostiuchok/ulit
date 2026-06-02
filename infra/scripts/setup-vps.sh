@@ -6,7 +6,7 @@
 set -e
 
 REPO_URL="${1:-https://github.com/YOUR_ORG/knyha-platform.git}"
-APP_DIR="/opt/knyha-platform"
+APP_DIR="/ulit"
 APP_USER="knyha"
 
 echo "🚀 Knyha Platform — VPS Setup"
