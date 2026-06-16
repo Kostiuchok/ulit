@@ -136,6 +136,8 @@
 - [x] **T-904** `POST /api/payments/liqpay/callback`
 - [ ] **T-905** Stripe Payment Intent (Фаза 2)
 - [ ] **T-906** `POST /api/payments/stripe/webhook`
+- [ ] **T-909** WayForPay інтеграція — форма оплати (Фаза 2)
+- [ ] **T-910** `POST /api/payments/wayforpay/callback`
 - [x] **T-907** Email з signed URLs після оплати (48 год)
 - [x] **T-908** Сторінка `/orders/:id` — статус для покупця
 
