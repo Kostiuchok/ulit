@@ -122,10 +122,11 @@ knyha-platform/
 │   ├── ci.yml
 │   └── deploy.yml
 │
-├── knyha-complete.html              # Повний прототип (24 екрани)
+├── docs/
+│   ├── knyha-complete.html          # Повний прототип (24 екрани)
+│   ├── TASKS.md
+│   └── TECHNICAL-DECISIONS.md       # Wiki рішень (юридика, дистрибуція, договір)
 ├── CLAUDE.md                        # ← цей файл
-├── TASKS.md
-├── TECHNICAL-DECISIONS.md           # Wiki рішень (юридика, дистрибуція, договір)
 ├── turbo.json
 └── package.json
 ```
