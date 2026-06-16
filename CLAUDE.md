@@ -376,6 +376,45 @@ knyha-complete.html (24 екрани)
 
 ---
 
+## 🚀 Правила деплою на VPS
+
+### VPS: `178.105.208.56` | проект: `/opt/knyha-platform`
+### Reverse proxy: Caddy (`dddcore-caddy-1`) — **НЕ модифікувати dddcore проект**
+
+### Команди деплою (завжди з `/opt/knyha-platform`):
+
+```bash
+# Стандартний деплой з кодом (після git pull) — ЗАВЖДИ REBUILD
+set -a; source .env.production; set +a
+docker compose --project-name knyha -f infra/docker-compose.prod.yml up -d --build api web worker
+
+# Тільки env змінні змінились (без зміни коду) — force-recreate БЕЗ --build
+docker compose --project-name knyha -f infra/docker-compose.prod.yml up -d --force-recreate web
+
+# Перевірити стан контейнерів
+docker compose --project-name knyha -f infra/docker-compose.prod.yml ps
+
+# Логи конкретного сервісу
+docker logs knyha-web --tail=50
+docker logs knyha-api --tail=50
+```
+
+### КРИТИЧНЕ ПРАВИЛО: `--force-recreate` ≠ rebuild
+- `--force-recreate` — перезапускає контейнер з ІСНУЮЧИМ образом (нового коду немає)
+- `--build` — будує НОВИЙ образ з поточного коду (потрібно після будь-яких змін файлів)
+- **Якщо змінився код → завжди `--build`. Якщо тільки .env → `--force-recreate`.**
+
+### NextAuth v5 (важливо)
+- Env змінна: `AUTH_SECRET` (НЕ `NEXTAUTH_SECRET`)
+- Env змінна: `AUTH_URL=https://ulit.render.ua` (НЕ `NEXTAUTH_URL`)
+- Caddy: `/api/auth/*` → `knyha-web:3000` (Next.js), `/api/*` → `knyha-api:3001` (Fastify)
+
+### Health check
+- Web контейнер завжди `(unhealthy)` бо `curl` не встановлено в `node:20-alpine` — це нормально, Next.js працює
+- Перевіряти через: `docker exec dddcore-caddy-1 wget -qO- http://knyha-web:3000`
+
+---
+
 ## 🧠 Правила для Claude Code
 
 1. **TypeScript скрізь**, `strict: true`
