@@ -31,7 +31,7 @@ const app = Fastify({
 
 async function bootstrap() {
   await app.register(cors, {
-    origin: process.env.NEXTAUTH_URL || "http://localhost:3000",
+    origin: process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000",
     credentials: true,
   });
 
