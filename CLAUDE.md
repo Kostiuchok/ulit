@@ -413,6 +413,10 @@ docker logs knyha-api --tail=50
 - Web контейнер завжди `(unhealthy)` бо `curl` не встановлено в `node:20-alpine` — це нормально, Next.js працює
 - Перевіряти через: `docker exec dddcore-caddy-1 wget -qO- http://knyha-web:3000`
 
+### Діагностика контейнера що рестартує
+**Перший крок завжди**: `docker logs knyha-api --tail=50` — якщо контейнер рестартує, причина в логах.
+Не треба перевіряти мережу, Caddyfile, або роутинг — поки не переконались що контейнер запущений.
+
 ---
 
 ## 🧠 Правила для Claude Code
@@ -427,3 +431,5 @@ docker logs knyha-api --tail=50
 8. **i18n-ready** — всі UI тексти через `next-intl` (uk/en)
 9. **Admin middleware** — окремий guard для `/admin/*` routes
 10. **Distribution service** — завжди перевіряти `kdpSelectExpiry` перед публікацією на не-Amazon платформах
+11. **Fastify plugins** — мажорна версія `@fastify/*` плагінів ПОВИННА відповідати мажорній версії `fastify`. Fastify 4 → плагіни v7/v8. Fastify 5 → плагіни v8/v9. Після додавання нового плагіна — перевіряти сумісність.
+12. **Next.js роутинг** — НІКОЛИ не створювати `app/page.tsx` якщо існує `app/(store)/page.tsx`. Route groups `(name)` не впливають на URL — обидва файли конкурують за `/` і `app/page.tsx` перемагає.
