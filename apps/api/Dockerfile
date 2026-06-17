@@ -1,0 +1,33 @@
+FROM node:20-alpine AS base
+RUN npm install -g pnpm@9
+
+# ─── deps ────────────────────────────────────────────────────────
+FROM base AS deps
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared-types/package.json ./packages/shared-types/
+RUN pnpm install --frozen-lockfile --filter api...
+
+# ─── build ───────────────────────────────────────────────────────
+FROM deps AS builder
+WORKDIR /app
+COPY apps/api ./apps/api
+COPY packages/shared-types ./packages/shared-types
+RUN pnpm --filter api exec prisma generate
+RUN pnpm --filter api build
+
+# ─── runtime ─────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
+RUN npm install -g pnpm@9
+WORKDIR /app
+
+COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/apps/api/package.json ./
+COPY --from=builder /app/apps/api/prisma ./prisma
+COPY --from=builder /app/node_modules ./node_modules
+
+ENV NODE_ENV=production
+EXPOSE 3001
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]

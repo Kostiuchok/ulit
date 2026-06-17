@@ -1,0 +1,18 @@
+{
+  "root": true,
+  "extends": ["eslint:recommended"],
+  "overrides": [
+    {
+      "files": ["apps/web/**/*.{ts,tsx}"],
+      "extends": ["next/core-web-vitals"],
+      "parserOptions": { "project": "apps/web/tsconfig.json" }
+    },
+    {
+      "files": ["apps/api/**/*.ts"],
+      "parser": "@typescript-eslint/parser",
+      "extends": ["plugin:@typescript-eslint/recommended"],
+      "parserOptions": { "project": "apps/api/tsconfig.json" }
+    }
+  ],
+  "ignorePatterns": ["node_modules", "dist", ".next", "*.js"]
+}
