@@ -34,7 +34,6 @@ export async function generateEpub(job: Job<EpubData>) {
 
     execSync(
       `pandoc "${docxPath}" -o "${epubPath}" ` +
-      `--epub-metadata=/dev/stdin ` +
       `--metadata title="${title.replace(/"/g, '\\"')}" ` +
       `--metadata author="${author.replace(/"/g, '\\"')}" ` +
       `-f docx -t epub3`,
