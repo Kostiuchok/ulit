@@ -11,6 +11,24 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { useApi } from "../../../hooks/useApi";
 
+const UK_TRANSLIT: Record<string, string> = {
+  а:"a",б:"b",в:"v",г:"h",ґ:"g",д:"d",е:"e",є:"ie",ж:"zh",з:"z",
+  и:"y",і:"i",ї:"i",й:"i",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",
+  р:"r",с:"s",т:"t",у:"u",ф:"f",х:"kh",ц:"ts",ч:"ch",ш:"sh",
+  щ:"shch",ь:"",ю:"iu",я:"ia",ъ:"",ы:"y",э:"e",ё:"yo",
+};
+
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .split("")
+    .map((ch) => UK_TRANSLIT[ch] ?? ch)
+    .join("")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 64);
+}
+
 const profileSchema = z.object({
   name: z.string().min(2, "Ім'я повинно містити мінімум 2 символи"),
   slug: z
@@ -46,14 +64,25 @@ export default function SettingsPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProfileForm>({ resolver: zodResolver(profileSchema) });
+
+  const [slugTouched, setSlugTouched] = useState(false);
+  const watchedName = watch("name");
+  useEffect(() => {
+    if (!slugTouched && watchedName) {
+      setValue("slug", toSlug(watchedName), { shouldValidate: true });
+    }
+  }, [watchedName, slugTouched]);
 
   useEffect(() => {
     apiFetch<{ user: UserProfile }>("/api/users/me")
       .then(({ user }) => {
         setProfile(user);
         reset({ name: user.name, slug: user.slug, bio: user.bio ?? "" });
+        setSlugTouched(true);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -117,7 +146,13 @@ export default function SettingsPage() {
               <Label htmlFor="slug">Публічний slug</Label>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-400">knyha.ua/authors/</span>
-                <Input id="slug" {...register("slug")} placeholder="ivan-franko" className="flex-1" />
+                <Input
+                  id="slug"
+                  {...register("slug")}
+                  placeholder="ivan-franko"
+                  className="flex-1"
+                  onChange={(e) => { setSlugTouched(true); register("slug").onChange(e); }}
+                />
               </div>
               {errors.slug && <p className="text-sm text-red-500">{errors.slug.message}</p>}
             </div>

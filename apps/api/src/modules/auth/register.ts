@@ -48,7 +48,7 @@ export async function registerRoute(app: FastifyInstance) {
       select: { id: true, email: true, name: true, slug: true, role: true, createdAt: true },
     });
 
-    const token = app.jwt.sign({ sub: user.id, email: user.email, role: user.role });
+    const token = app.jwt.sign({ id: user.id, sub: user.id, email: user.email, role: user.role });
 
     return reply.status(201).send({ user, token });
   });
