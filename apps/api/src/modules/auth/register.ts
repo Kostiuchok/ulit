@@ -10,11 +10,22 @@ const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
 });
 
+const UK_TRANSLIT: Record<string, string> = {
+  а:"a",б:"b",в:"v",г:"h",ґ:"g",д:"d",е:"e",є:"ie",ж:"zh",з:"z",
+  и:"y",і:"i",ї:"i",й:"i",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",
+  р:"r",с:"s",т:"t",у:"u",ф:"f",х:"kh",ц:"ts",ч:"ch",ш:"sh",
+  щ:"shch",ь:"",ю:"iu",я:"ia",ъ:"",ы:"y",э:"e",ё:"yo",
+};
+
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9Ѐ-ӿ]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .split("")
+    .map((ch) => UK_TRANSLIT[ch] ?? ch)
+    .join("")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 64) || `author-${Date.now()}`;
 }
 
 async function uniqueSlug(base: string): Promise<string> {

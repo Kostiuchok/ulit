@@ -70,19 +70,20 @@ export default function SettingsPage() {
   } = useForm<ProfileForm>({ resolver: zodResolver(profileSchema) });
 
   const [slugTouched, setSlugTouched] = useState(false);
+  const [loadedName, setLoadedName] = useState<string | null>(null);
   const watchedName = watch("name");
   useEffect(() => {
-    if (!slugTouched && watchedName) {
+    if (!slugTouched && watchedName && watchedName !== loadedName) {
       setValue("slug", toSlug(watchedName), { shouldValidate: true });
     }
-  }, [watchedName, slugTouched]);
+  }, [watchedName, slugTouched, loadedName]);
 
   useEffect(() => {
     apiFetch<{ user: UserProfile }>("/api/users/me")
       .then(({ user }) => {
         setProfile(user);
+        setLoadedName(user.name);
         reset({ name: user.name, slug: user.slug, bio: user.bio ?? "" });
-        setSlugTouched(true);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
