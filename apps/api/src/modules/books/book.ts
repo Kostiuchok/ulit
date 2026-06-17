@@ -43,7 +43,7 @@ const BOOK_SELECT = {
   authorId: true,
 } as const;
 
-
+const patchSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(5000).nullable().optional(),
   genre: z.string().max(100).nullable().optional(),
