@@ -27,7 +27,7 @@ async function uniqueSlug(base: string): Promise<string> {
 }
 
 export async function registerRoute(app: FastifyInstance) {
-  app.post("/api/auth/register", async (request, reply) => {
+  app.post("/api/users/register", async (request, reply) => {
     const result = registerSchema.safeParse(request.body);
     if (!result.success) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });

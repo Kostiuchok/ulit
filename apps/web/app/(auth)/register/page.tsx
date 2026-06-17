@@ -38,7 +38,7 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setServerError("");
 
-    const res = await fetch(`${API_URL}/api/auth/register`, {
+    const res = await fetch(`${API_URL}/api/users/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),

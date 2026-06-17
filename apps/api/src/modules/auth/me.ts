@@ -4,7 +4,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 
 export async function meRoute(app: FastifyInstance) {
-  app.get("/api/auth/me", { preHandler: authenticate }, async (request, reply) => {
+  app.get("/api/users/me/auth", { preHandler: authenticate }, async (request, reply) => {
     const user = await prisma.user.findUnique({
       where: { id: request.user.id },
       select: {

@@ -10,7 +10,7 @@ const loginSchema = z.object({
 });
 
 export async function loginRoute(app: FastifyInstance) {
-  app.post("/api/auth/login", async (request, reply) => {
+  app.post("/api/users/login", async (request, reply) => {
     const result = loginSchema.safeParse(request.body);
     if (!result.success) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });

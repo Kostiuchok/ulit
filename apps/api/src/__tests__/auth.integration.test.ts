@@ -39,7 +39,7 @@ async function buildApp() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("POST /api/auth/register", () => {
+describe("POST /api/users/register", () => {
   let app: Awaited<ReturnType<typeof buildApp>>;
 
   beforeEach(async () => {
@@ -62,7 +62,7 @@ describe("POST /api/auth/register", () => {
 
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/register",
+      url: "/api/users/register",
       payload: { email: "author@example.com", password: "secret123", name: "Test Author" },
     });
 
@@ -75,7 +75,7 @@ describe("POST /api/auth/register", () => {
   it("returns 400 for invalid email", async () => {
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/register",
+      url: "/api/users/register",
       payload: { email: "not-an-email", password: "secret123", name: "Author" },
     });
 
@@ -86,7 +86,7 @@ describe("POST /api/auth/register", () => {
   it("returns 400 for short password", async () => {
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/register",
+      url: "/api/users/register",
       payload: { email: "a@b.com", password: "short", name: "Author" },
     });
 
@@ -99,7 +99,7 @@ describe("POST /api/auth/register", () => {
 
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/register",
+      url: "/api/users/register",
       payload: { email: "taken@example.com", password: "secret123", name: "Author" },
     });
 
@@ -109,7 +109,7 @@ describe("POST /api/auth/register", () => {
   it("returns 400 when required fields are missing", async () => {
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/register",
+      url: "/api/users/register",
       payload: { email: "a@b.com" },
     });
 
@@ -117,7 +117,7 @@ describe("POST /api/auth/register", () => {
   });
 });
 
-describe("POST /api/auth/login", () => {
+describe("POST /api/users/login", () => {
   let app: Awaited<ReturnType<typeof buildApp>>;
 
   beforeEach(async () => {
@@ -139,7 +139,7 @@ describe("POST /api/auth/login", () => {
 
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/login",
+      url: "/api/users/login",
       payload: { email: "a@b.com", password: "correct-password" },
     });
 
@@ -158,7 +158,7 @@ describe("POST /api/auth/login", () => {
 
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/login",
+      url: "/api/users/login",
       payload: { email: "a@b.com", password: "wrong-password" },
     });
 
@@ -170,7 +170,7 @@ describe("POST /api/auth/login", () => {
 
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/login",
+      url: "/api/users/login",
       payload: { email: "unknown@example.com", password: "any-password" },
     });
 
@@ -180,7 +180,7 @@ describe("POST /api/auth/login", () => {
   it("returns 400 for missing password", async () => {
     const response = await app.inject({
       method: "POST",
-      url: "/api/auth/login",
+      url: "/api/users/login",
       payload: { email: "a@b.com" },
     });
 
