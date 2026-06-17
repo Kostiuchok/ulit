@@ -28,7 +28,7 @@ export async function loginRoute(app: FastifyInstance) {
       throw AppError.unauthorized("Invalid email or password");
     }
 
-    const token = app.jwt.sign({ sub: user.id, email: user.email, role: user.role });
+    const token = app.jwt.sign({ id: user.id, sub: user.id, email: user.email, role: user.role });
 
     return reply.send({
       user: {

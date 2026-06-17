@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
+import { Button } from "../../../components/ui/button";
 
 interface Author {
   id: string;
@@ -19,6 +21,8 @@ export default function AdminAuthorsPage() {
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<{ authors: Author[] }>("/api/admin/authors")
@@ -33,6 +37,17 @@ export default function AdminAuthorsPage() {
   );
 
   const withContract = authors.filter((a) => a.contractAcceptedAt).length;
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    try {
+      await apiFetch(`/api/admin/users/${id}`, { method: "DELETE" });
+      setAuthors((prev) => prev.filter((a) => a.id !== id));
+    } finally {
+      setDeletingId(null);
+      setConfirmId(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -67,6 +82,7 @@ export default function AdminAuthorsPage() {
                 <th className="px-4 py-3 text-center font-semibold text-gray-600">Книги</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Договір</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Зареєстрований</th>
+                <th className="px-4 py-3 text-right font-semibold text-gray-600">Дії</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -107,6 +123,38 @@ export default function AdminAuthorsPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">
                     {new Date(author.createdAt).toLocaleDateString("uk-UA")}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link href={`/admin/authors/${author.id}`}>
+                        <Button size="sm" variant="outline">Деталі</Button>
+                      </Link>
+                      {confirmId === author.id ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                            loading={deletingId === author.id}
+                            onClick={() => handleDelete(author.id)}
+                          >
+                            Підтвердити
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setConfirmId(null)}>
+                            Скасувати
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-300 hover:bg-red-50"
+                          onClick={() => setConfirmId(author.id)}
+                        >
+                          Видалити
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

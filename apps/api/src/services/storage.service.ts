@@ -53,8 +53,12 @@ export async function deleteFile(objectName: string): Promise<void> {
 }
 
 export function publicUrl(objectName: string): string {
+  // In production, MINIO_PUBLIC_URL_BASE points to the Next.js /storage proxy
+  // e.g. https://ulit.render.ua/storage — browser hits HTTPS, Next.js fetches from minio internally
+  const base = process.env.MINIO_PUBLIC_URL_BASE;
+  if (base) return `${base}/${objectName}`;
+  // Dev fallback: direct MinIO URL
   const endpoint = process.env.MINIO_ENDPOINT || "localhost";
   const port = process.env.MINIO_PORT || "9000";
-  const protocol = process.env.MINIO_USE_SSL === "true" ? "https" : "http";
-  return `${protocol}://${endpoint}:${port}/${BUCKET}/${objectName}`;
+  return `http://${endpoint}:${port}/${BUCKET}/${objectName}`;
 }

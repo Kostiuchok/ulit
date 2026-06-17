@@ -4,8 +4,8 @@ import { prisma } from "./prisma";
 
 declare module "@fastify/jwt" {
   interface FastifyJWT {
-    payload: { sub: string; email: string; role: string };
-    user: { id: string; email: string; role: string };
+    payload: { id: string; sub: string; email: string; role: string };
+    user: { id: string; sub: string; email: string; role: string };
   }
 }
 
@@ -14,7 +14,7 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     await request.jwtVerify();
   } catch {
     const err = AppError.unauthorized("Invalid or missing token");
-    reply.status(err.statusCode).send({ error: err.message, code: err.code });
+    return reply.status(err.statusCode).send({ error: err.message, code: err.code });
   }
 }
 
@@ -27,7 +27,7 @@ export async function requireAdmin(request: FastifyRequest, reply: FastifyReply)
     }
   } catch {
     const err = AppError.unauthorized("Invalid or missing token");
-    reply.status(err.statusCode).send({ error: err.message, code: err.code });
+    return reply.status(err.statusCode).send({ error: err.message, code: err.code });
   }
 }
 

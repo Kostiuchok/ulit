@@ -35,6 +35,7 @@
 - [x] **T-109** Admin middleware — guard для `/admin/*` routes (role: ADMIN)
 - [x] **T-110** Сторінки `/login` та `/register` (RHF + Zod)
 - [x] **T-111** Зберігати `contractAcceptedAt` при першій публікації (при T-703)
+- [ ] **T-112** Google OAuth в production — додати `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` до `.env.production` на VPS; перебудувати `knyha-web`; перевірити `AUTH_URL` callback у Google Console
 
 ---
 
@@ -172,6 +173,66 @@
 - [x] **T-1117** `/admin/royalties/export` — CSV для бухгалтерії
 - [x] **T-1118** `/admin/services` — toggle on/off кожного сервісу дистрибуції
 - [x] **T-1119** `/admin/authors` — список авторів + статус договору
+- [ ] **T-1120** `/admin/authors` — розширена таблиця: email, дата реєстрації, кількість книг, статус договору, остання активність; пошук + фільтр по статусу
+- [ ] **T-1121** `DELETE /api/admin/users/:id` — видалення акаунту автора (каскадно: книги, замовлення, роялті); підтверджуючий модал на фронті
+- [ ] **T-1122** `/admin/authors/:id` — сторінка деталей автора: профіль + повний список книг зі статусами конвертації та дистрибуції
+- [ ] **T-1123** Завантаження файлів книги з панелі автора: кнопки Download для кожного формату (EPUB, FB2, MOBI, PDF, Print PDF) → signed MinIO URL (48 год)
+
+---
+
+## 🔐 ФАЗА 16 — Сесії та UX авторизації
+
+- [ ] **T-1601** Persistent session — користувач не повинен логінитись після кожного переходу між сторінками; перевірити cookie `maxAge`, `AUTH_SECRET` на VPS та `trustHost` за Caddy reverse proxy
+
+---
+
+## 🐛 ФАЗА 17 — Критичні баги (production)
+
+### T-1701 — `POST /api/books` → 401 UNAUTHORIZED при створенні книги
+
+**Сторінка**: `/dashboard/books/new`
+**Помилка**: `{"error":"Invalid or missing token","code":"UNAUTHORIZED"}`
+**Причина**: клієнтський компонент `BookWizard` робить `fetch('/api/books', ...)` без заголовка `Authorization: Bearer <apiToken>`. Токен є в сесії (`session.user.apiToken`), але не передається в запит.
+**Що виправити**:
+- [ ] **T-1701** У `BookWizard` та всіх `fetch` до `/api/books` — передавати `Authorization: Bearer ${session.apiToken}` (взяти через `useSession()` або `getSession()` на клієнті / `auth()` на сервері)
+
+### T-1702 — `GET/PATCH /api/users/me` + `POST /api/users/me/avatar` → 401/404
+
+**Сторінка**: `/dashboard/settings` (завантаження фото профілю)
+**Помилки**:
+- `GET /api/users/me` → `{"error":"Invalid or missing token","code":"UNAUTHORIZED"}` — не передається токен
+- `PATCH /api/users/me` → `{"error":"Invalid or missing token","code":"UNAUTHORIZED"}` — не передається токен
+- `GET /api/users/me/avatar` → 404 Not Found — клієнт робить GET замість POST; маршрут `POST /api/users/me/avatar` існує, GET — ні
+**Що виправити**:
+- [ ] **T-1702a** У компонентах `AvatarUploader` та `settings/page.tsx` — додати `Authorization: Bearer ${apiToken}` до всіх запитів на `/api/users/me` і `/api/users/me/avatar`
+- [ ] **T-1702b** Перевірити `AvatarUploader` — переконатись що аватар відправляється через `POST`, а не `GET`
+
+### Загальне рішення для T-1701 + T-1702
+
+Використовувати хук `useApi` або централізований `fetchWithAuth` що автоматично читає `apiToken` з сесії і додає заголовок:
+```typescript
+// hooks/useApi.ts
+const session = useSession();
+const token = (session.data?.user as any)?.apiToken;
+headers: { Authorization: `Bearer ${token}` }
+```
+
+### T-1703 — 500 Internal Server Error на `/api/books`, `/api/users/me`, `/api/users/me/avatar`
+
+**Помилки** (після того як авторизація буде виправлена — T-1701/T-1702):
+```
+/api/books             → 500
+/api/users/me          → 500
+/api/users/me/avatar   → 500
+```
+**Діагностика**: перевірити `docker logs knyha-api --tail=100` — 500 означає виняток на сервері (Prisma, MinIO, або некоректне тіло запиту).
+- [ ] **T-1703** Дослідити логи API при кожному запиті; виправити серверні помилки (найімовірніше: Prisma query crash або відсутній MinIO bucket)
+
+### T-1704 — Авто-генерація slug з імені автора на `/dashboard/settings`
+
+**Поведінка**: при введенні імені автора в полі "Ім'я" — поле slug автоматично заповнюється транслітерованим значенням (uk → latin), в нижньому регістрі, пробіли → `-`.
+**Приклад**: `Іван Франко` → `ivan-franko`
+- [ ] **T-1704** На `settings/page.tsx` — через `watch('name')` (React Hook Form) генерувати slug: транслітерація (бібліотека `transliteration` або власна uk→latin таблиця) + `.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')`; slug залишається редагованим вручну
 
 ---
 
