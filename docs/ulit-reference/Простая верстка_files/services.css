@@ -1,0 +1,488 @@
+/* Wrapper */
+
+.services-wrapper {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 335px);
+  justify-content: center;
+  justify-items: center;
+  gap: 20px;
+  margin: 25px auto 30px;
+  max-width: 1440px;
+  padding-right: 20px;
+  padding-left: 20px;
+}
+.services-title {
+  font-size: 32px;
+  text-align: center;
+  font-weight: bold;
+  max-width: 1440px;
+  width: 100%;
+  padding-right: 20px;
+  padding-left: 20px;
+  margin: 0 auto 25px;
+  font-family: "PT Serif", serif;
+}
+.services-flex .services-wrapper {
+  max-width: 1400px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  justify-items: center;
+  grid-gap: 0;
+  width: 100%;
+  padding-right: 0px;
+  padding-left: 0px;
+}
+@media (max-width: 1419px) {
+  .services-flex .services-wrapper {
+    justify-content: center;
+  }
+}
+/* Full Card Link */
+
+.services-item__hidden {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+/* Item */
+
+.services-item {
+  box-sizing: border-box;
+  position: relative;
+  min-width: 335px;
+  height: 180px;
+  padding: 20px;
+  border-radius: 4px;
+  background-color: #dfe3e5;
+  color: #46545b;
+  text-align: left;
+  overflow: hidden;
+}
+
+.services-item:hover {
+  box-shadow: 0 2px 8px rgba(70, 84, 91, 0.4);
+}
+
+/* lyceum */
+
+.services-item.lyceum {
+  cursor: pointer;
+  background-color: #fff;
+  background-image: url(./lyceum_banner.jpg);
+  background-position: right;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.services-item__header.lyceum {
+  color: #000;
+}
+
+.services-item__description.lyceum {
+  color: #000;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.services-item__button.lyceum {
+  background-color: #E2AC36;
+  border-color: #E2AC36;
+}
+
+.services-item__button.lyceum:hover,
+.services-item__button.lyceum:focus,
+.services-item__button.lyceum:active {
+  border-color: #E2AC36;
+  background-color: #fff;
+  color: #E2AC36;
+}
+
+/* Item Recommended */
+
+.services-item.service_recommended {
+  background-color: #ffecd9;
+  color: #000000;
+}
+
+/* Item with Flex Wrapper */
+
+.services-flex .services-item {
+  flex-basis: 335px;
+  margin: 10px 0;
+}
+@media (max-width: 1419px) {
+  .services-flex .services-item {
+    margin: 10px;
+  }
+
+}
+/* Image */
+
+.services-item__img {
+  position: absolute;
+  top: 20px;
+  background-repeat: no-repeat;
+  z-index: 0;
+  height: 140px;
+}
+
+/* Info */
+
+.services-item__info {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin-right: 75px;
+}
+
+/* Header */
+
+.services-item__header {
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-family: 'PTSansCaption', 'PT Sans Caption', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Header Wide */
+
+.services-item__header--wide {
+  margin-right: -75px;
+  letter-spacing: 0.3px;
+}
+
+/* Description */
+
+.services-item__description {
+  margin-top: 0;
+  margin-bottom: 7px;
+  font-family: 'PTSans', 'PT Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* Link */
+
+.services-item__href {
+  font-family: 'PTSans', "PT Sans", sans-serif;
+  font-style: normal;
+  font-weight: normal;
+  line-height: normal;
+  font-size: 14px;
+  color: #ff7e00;
+
+  border-bottom: 1px solid #ff7e00;
+  margin: 10px 0 20px;
+  text-decoration: none;
+  z-index: 1;
+  position: relative;
+}
+
+/* Button */
+
+.services-item__button {
+  align-self: start;
+  position: relative;
+  z-index: 5;
+  margin-top: auto;
+  display: inline-block;
+  width: auto;
+  padding: 3px 10px 5px;
+  border: 1px solid #46545b;
+  border-radius: 2px;
+  background-color: #46545b;
+  font-family: 'PTSans', 'PT Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  text-align: center;
+  color: #ffffff;
+  outline: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.services-item__button:hover {
+  border-color: #46545b;
+  background-color: transparent;
+  color: #46545b;
+}
+
+.services-item__button_disabled:hover {
+  background-color: #46545b;
+  color: #ffffff;
+}
+
+/* Button Recommended */
+
+.service_recommended .services-item__button {
+  background-color: #000000;
+  border-color: #000000;
+}
+
+.service_recommended .services-item__button:hover {
+  background-color: transparent;
+  color: #000000;
+}
+
+/* Button Recommended Disabled */
+
+.service_recommended .services-item__button_disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+.service_recommended .services-item__button_disabled:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Icon */
+
+.services-item__icon {
+  position: absolute;
+  z-index: 0;
+  fill: none;
+  stroke: none;
+}
+
+/* Icons */
+
+.services-item__icon--helper {
+  top: 41px;
+  right: -49px;
+  width: 183px;
+  height: 127px;
+}
+
+.services-item__icon--print {
+  top: 28px;
+  right: -17px;
+  width: 123px;
+  height: 136px;
+}
+
+.services-item__icon--correct {
+  top: 42px;
+  right: -36px;
+  width: 128px;
+  height: 131px;
+}
+
+.services-item__icon--pro {
+  top: 26px;
+  right: -21px;
+  width: 149px;
+  height: 176px;
+}
+
+.services-item__icon--prom {
+  top: 35px;
+  right: -12px;
+  width: 116px;
+  height: 127px;
+}
+
+.services-item__icon--designer {
+  top: 34px;
+  right: -14px;
+  width: 120px;
+  height: 135px;
+}
+
+.services-item__icon--edit {
+  top: 48px;
+  right: -10px;
+  width: 120px;
+  height: 120px;
+}
+
+.services-item__icon--publish {
+  top: 33px;
+  right: -36px;
+  width: 165px;
+  height: 142px;
+}
+
+.services-item__icon--ofline {
+  top: 34px;
+  right: -7px;
+  width: 113px;
+  height: 134px;
+}
+
+.services-item__icon--illustrator {
+  top: 26px;
+  right: -41px;
+  width: 178px;
+  height: 145px;
+}
+
+.services-item__icon--boolrt {
+  top: 67px;
+  right: -7px;
+  width: 119px;
+  height: 106px;
+}
+.services-item__icon--bonito {
+  top: 38px;
+  right: 0px;
+  width: 119px;
+  height: 141px;
+}
+.services-item__icon--neuro {
+  top: 3px;
+  right: -17px;
+  width: 175px;
+  height: 175px;
+}
+.services-item__icon--big {
+  top: 45px;
+  right: -39px;
+  width: 164px;
+  height: 123px;
+}
+
+.services-item__icon--audio {
+  top: 28px;
+  right: -25px;
+  width: 126px;
+  height: 141px;
+}
+
+.services-item__icon--trans {
+  top: 43px;
+  right: -7px;
+  width: 114px;
+  height: 125px;
+}
+
+.services-item__icon--text {
+  top: 30px;
+  right: -9px;
+  width: 119px;
+  height: 185px;
+}
+
+.services-item__icon--markup {
+  top: 43px;
+  right: -54px;
+  width: 180px;
+  height: 146px;
+}
+
+.services-item__icon--buisness {
+  top: 50px;
+  right: -34px;
+  width: 159px;
+  height: 121px;
+}
+
+.services-item__icon--lawyer {
+  top: 61px;
+  right: -30px;
+  width: 150px;
+  height: 132px;
+}
+
+.services-item__icon--add {
+  top: 59px;
+  right: -24px;
+  width: 135px;
+  height: 112px;
+}
+
+.services-item__icon--airport {
+  top: 50px;
+  right: 9px;
+  width: 90px;
+  height: 147px;
+}
+
+.services-item__icon--checklist {
+  top: 46px;
+  right: -6px;
+  width: 101px;
+  height: 125px;
+}
+
+/* Checkbox */
+
+.nf-checkbox__book-profile {
+  width: 12px;
+  height: 12px;
+  opacity: 0.7;
+  border-radius: 1px;
+  background: none;
+  cursor: pointer;
+  display: inline-block;
+  vertical-align: middle;
+  transition: all, 0.05s;
+}
+
+.nf-checkbox__book-profile:hover {
+  border: 1px solid #000000;
+  background: none;
+}
+
+.nf-checkbox__book-profile.nf-checkbox_check__active {
+  background: none;
+  border: 1px solid #000000;
+  background-image: url('./checkbox.svg');
+  background-repeat: no-repeat;
+  background-position: 50%;
+}
+
+.service-checkbox {
+  position: relative;
+  z-index: 5;
+  margin-top: 13px;
+  font-family: 'PT Sans', 'PTSans', sans-serif;
+  font-size: 12px;
+  line-height: 15px;
+  cursor: pointer;
+}
+
+.nf-checkbox_check {
+  margin-right: 7px;
+}
+
+.service-checkbox .nf-checkbox_check {
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.service-checkbox .nf-checkbox_check__active {
+  border-color: #000000;
+}
+
+.nf-checkbox_book-text {
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.nf-checkbox_text .black-link_decorated {
+  color: #000000;
+  text-decoration: underline;
+}
+.nf-checkbox_text .black-link_decorated:hover {
+  color: #000000;
+  text-decoration: none;
+  opacity: 1;
+}
+
+/* ??? */
+
+.p-book-profile .b-services_link__visible {
+  transform: none;
+}

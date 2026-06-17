@@ -1,0 +1,158 @@
+/* Modal */
+
+#modal,
+.arcticmodal-container #modal {
+    position: relative;
+}
+
+/* Overlay And Main Container */
+
+.arcticmodal-overlay,
+.arcticmodal-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 9999;
+}
+
+/* Overlay */
+
+.arcticmodal-overlay {
+    background-color: rgba(0,0,0, 0.4) !important;
+}
+
+/* Container */
+
+.arcticmodal-container {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-collapse: collapse;
+    overflow: auto;
+}
+
+*:first-child + html .arcticmodal-container {
+    height: 100%;
+}
+
+/* Table */
+
+.arcticmodal-container_i {
+    height: 100%;
+    margin: 0 auto;
+    border-collapse: collapse;
+}
+
+/* Td */
+
+.arcticmodal-container_i2 {
+    margin: 0;
+    padding: 40px 0 40px;
+    border: 0;
+    vertical-align: top;
+}
+
+/* Error */
+
+.arcticmodal-error {
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #000000;
+    color: #ffffff;
+}
+
+/* Spinner */
+
+.arcticmodal-loading {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    background-color: #000000;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-image: url('loading.gif');
+}
+
+/* Close */
+
+.arcticmodal-close {
+    position: absolute;
+    right: 15px;
+    top: 14px;
+    display: block;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    background-image: url('../images/cloze_box2.png');
+    cursor: pointer;
+}
+
+/* Close Button */
+
+.arcticmodal-close_auth {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+}
+
+.arcticmodal-close:hover {
+    background-image: url('../images/cloze_box2_hov.png');
+}
+
+.arcticmodal-close_auth::before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-repeat: no-repeat;
+    background-image: url("../images/close-icon.svg");
+    background-size: 16px;
+}
+
+/* Hidden */
+
+.hidden {
+    display: none;
+}
+
+/* White Iframe */
+
+.iframe-white {
+    background: #ffffff;
+}
+
+/* Iframe */
+
+#modaliframe,
+.arcticmodal-container #modaliframe {
+    width: 448px !important;
+    height: calc(100vh - 80px);
+    border: none;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+@media (max-width: 767px) {
+    #modaliframe,
+    .arcticmodal-container #modaliframe {
+        width: 480px !important;
+    }
+}
+
+@media (max-width: 479px) {
+    #modaliframe,
+    .arcticmodal-container #modaliframe {
+        width: 360px !important;
+    }
+}

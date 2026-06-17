@@ -1,0 +1,112 @@
+.notification-bar__container {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 150;
+    -webkit-font-smoothing: antialiased;
+    max-width: 100%;
+    padding: 0px 32px 20px;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+}
+
+
+.notification-bar__wrapper {
+    box-sizing: border-box;
+    background: #fff;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+    max-width: 665px;
+    margin: 0 auto;
+    padding: 24px 30px 24px 112px;
+    background-repeat: no-repeat;
+    background-position: left -24px center;
+    background-size: 127px 126px;
+    box-shadow: 0px 0px 15px rgba(70, 84, 91, 0.3);
+}
+
+.notification-bar__wrapper-cookie {
+    background-image: url('./cookies-2x.png');
+    text-align: start;
+}
+
+.notification-bar__message {
+    display: inline-block;
+    margin-right: 20px;
+    font-size: 14px;
+    font-family: 'PT Sans', 'PTSans', sans-serif;
+    line-height: 22px;
+}
+.notification-bar__message a {
+    color: #ff7e00;
+}
+
+.notification-bar__button {
+    height: 42px;
+    min-width: 127px;
+    border-radius: 2px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+
+    background-color: #ff7e00;
+    font-family: 'PT Sans', 'PTSans', sans-serif;
+    display: inline-block;
+    border: 1px solid;
+    border-color: transparent;
+    text-align: center;
+    padding: 12px 15px 10px;
+    cursor: pointer;
+    text-decoration: none !important;
+    box-sizing: border-box;
+    color: #fff;
+    font-size: 14px;
+    line-height: normal;
+    outline-color: #ff7e00;
+    text-transform: uppercase;
+}
+
+.notification-bar__button:hover, .notification-bar__button:active {
+    border-color: #ff7e00;
+    color: #ff7e00;
+    background-color: #fff;
+}
+.notification-bar__hide {
+    display: none;
+}
+
+@media (max-width: 850px) {
+    .notification-bar__wrapper {
+        padding: 13px 20px;
+        background-image: none;
+    }
+
+    .notification-bar__message {
+        font-size: 12px;
+        line-height: 14px;
+    }
+
+    .notification-bar__container {
+        padding: 0;
+        bottom: 70px;
+    }
+    .notification-bar__container-cookie {
+        margin-top: 5px;
+    }
+
+    .notification-bar__button {
+        height: 42px;
+    }
+}
+@media (max-width: 500px) {
+    .notification-bar__message {
+        font-size: 10px;
+    }
+}
+@media (max-width: 666px) {
+    .notification-bar__wrapper {
+        border-radius: 0;
+      }
+}

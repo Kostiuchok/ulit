@@ -1,0 +1,109 @@
+.b-services_outer {
+
+}
+
+.b-services_inner {
+  padding: 0;
+  max-width: 100%;
+}
+
+.b-services_caption {
+
+}
+
+.b-services_subcaption {
+    color: #666;
+    margin-bottom: 40px;
+}
+
+.pl .b-services_subcaption{
+  font-size: 24px;
+}
+
+.b-services_list {
+    display: block;
+    margin: 10px 0;
+    padding: 0;
+    text-align: center;
+}
+
+.b-services_item {
+    display: inline-block;
+    vertical-align: top;
+    width: 25%;
+    min-width: 200px;
+}
+
+.b-services_link {
+    position: relative;
+    padding: 170px 0 40px;
+    display: inline-block;
+    width: 200px;
+    text-decoration: none;
+    color: #000;
+    font: 18px/26px "PTSerif", "PT Serif", serif;
+    transform: scale(0);
+    transition: transform .3s cubic-bezier(1,2,.8,.8);
+    will-change: transform;
+}
+
+.b-services_link:hover {
+    color: #ff7e00;
+}
+
+.b-services_link:before {
+    position: absolute;
+    top: 26px;
+    left: -10px;
+    height: 213px;
+    width: 240px;
+    content: '';
+}
+
+.ru .b-services_link:before {
+    background: no-repeat 0 0 url(../../images/assistant/services_icon_ru.png);
+}
+.pl .b-services_link:before{
+    background: no-repeat 0 0 url(../../images/assistant/services_icon_pl.png);
+}
+.de .b-services_link:before{
+    background: no-repeat 0 0 url(../../images/assistant/services_icon_de.png);
+}
+.lv .b-services_link:before{
+    background: no-repeat 0 0 url(../../images/assistant/services_icon_lv.png);
+}
+.en .b-services_link:before{
+    background: no-repeat 0 0 url(../../images/assistant/services_icon_en.png);
+}
+
+.b-services_link__illustrator:before {
+
+}
+
+.b-services_item .b-services_link__print:before {
+    background-position: -240px 0;
+}
+
+.b-services_item .b-services_link__correction:before {
+    background-position: -480px 0;
+}
+
+.en .b-services_item .b-services_link__correction:before {
+    background-position: -250px 0;
+}
+
+.b-services_item .b-services_link__publish:before {
+    background-position: -720px 0;
+}
+
+.b-services_item .b-services_link__designer:before {
+    background-position: -960px 0;
+}
+
+.b-services_link_text {
+    position: relative;
+}
+
+.b-services_link__visible {
+    transform: none;
+}
