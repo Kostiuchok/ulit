@@ -41,7 +41,7 @@ export async function uploadCoverRoute(app: FastifyInstance) {
       await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype);
       const coverUrl = publicUrl(objectName);
 
-      await prisma.book.update({ where: { id }, data: { coverUrl } });
+      await prisma.book.update({ where: { id }, data: { coverUrl }, select: { id: true } });
       return reply.send({ coverUrl });
     }
   );

@@ -4,7 +4,7 @@ import { bookQueue, ConversionFormat, ConversionJobData } from "../lib/queue";
 const FORMATS: ConversionFormat[] = ["PDF", "EPUB", "FB2", "MOBI", "PRINT_PDF"];
 
 export async function enqueueConversionJobs(bookId: string, docxObjectName: string) {
-  await prisma.book.update({ where: { id: bookId }, data: { status: "PROCESSING" } });
+  await prisma.book.update({ where: { id: bookId }, data: { status: "PROCESSING" }, select: { id: true } });
 
   const jobs = await Promise.all(
     FORMATS.map(async (format) => {

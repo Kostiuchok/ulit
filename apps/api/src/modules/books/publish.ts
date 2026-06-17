@@ -82,7 +82,21 @@ export async function publishRoute(app: FastifyInstance) {
 
       const book = await prisma.book.findUnique({
         where: { id },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          authorId: true,
+          coverUrl: true,
+          originalDocxUrl: true,
+          pdfUrl: true,
+          epubUrl: true,
+          priceEbook: true,
+          pricePrint: true,
+          isbn: true,
+          distributionStrategy: true,
+          kdpSelectEnrolled: true,
+          kdpSelectExpiry: true,
           author: { select: { id: true, email: true, name: true, contractAcceptedAt: true } },
         },
       });

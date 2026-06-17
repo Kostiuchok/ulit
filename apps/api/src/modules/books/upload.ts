@@ -50,6 +50,7 @@ export async function uploadDocxRoute(app: FastifyInstance) {
       await prisma.book.update({
         where: { id },
         data: { originalDocxUrl: objectName },
+        select: { id: true },
       });
 
       const jobs = await enqueueConversionJobs(id, objectName);
