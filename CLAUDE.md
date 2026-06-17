@@ -6,6 +6,21 @@
 
 ---
 
+## ⚡ QUICK RESUME
+
+When the user says **"resume"** — show this status block immediately:
+
+```
+✅ LAST DONE:    <last completed task — one line>
+🔄 IN PROGRESS:  <current task being worked on>
+📋 NEXT 3:
+  1. <next task>
+  2. <task after>
+  3. <task after that>
+```
+
+---
+
 ## 🏗️ Технологічний стек
 
 ### Frontend
