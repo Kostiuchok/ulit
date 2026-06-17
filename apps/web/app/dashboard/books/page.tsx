@@ -31,7 +31,7 @@ export default function BooksPage() {
     if (!token) return;
     apiFetch<{ books: Book[] }>("/api/books")
       .then(({ books }) => setBooks(books))
-      .catch(() => {})
+      .catch((e) => console.error("[books] failed to load:", e))
       .finally(() => setLoading(false));
   }, [token]);
 

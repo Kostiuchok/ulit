@@ -125,6 +125,7 @@ export async function publishRoute(app: FastifyInstance) {
           kdpSelectEnrolled: isKdpSelect ? true : book.kdpSelectEnrolled,
           kdpSelectExpiry: isKdpSelect ? kdpExpiry : book.kdpSelectExpiry,
         },
+        select: { id: true, status: true, isbn: true, publishedAt: true, title: true },
       });
 
       // T-111 — store contractAcceptedAt + IP on first publish
