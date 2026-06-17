@@ -186,6 +186,39 @@
 
 ---
 
+## 🐛 ФАЗА 17 — Критичні баги (production)
+
+### T-1701 — `POST /api/books` → 401 UNAUTHORIZED при створенні книги
+
+**Сторінка**: `/dashboard/books/new`
+**Помилка**: `{"error":"Invalid or missing token","code":"UNAUTHORIZED"}`
+**Причина**: клієнтський компонент `BookWizard` робить `fetch('/api/books', ...)` без заголовка `Authorization: Bearer <apiToken>`. Токен є в сесії (`session.user.apiToken`), але не передається в запит.
+**Що виправити**:
+- [ ] **T-1701** У `BookWizard` та всіх `fetch` до `/api/books` — передавати `Authorization: Bearer ${session.apiToken}` (взяти через `useSession()` або `getSession()` на клієнті / `auth()` на сервері)
+
+### T-1702 — `GET/PATCH /api/users/me` + `POST /api/users/me/avatar` → 401/404
+
+**Сторінка**: `/dashboard/settings` (завантаження фото профілю)
+**Помилки**:
+- `GET /api/users/me` → `{"error":"Invalid or missing token","code":"UNAUTHORIZED"}` — не передається токен
+- `PATCH /api/users/me` → `{"error":"Invalid or missing token","code":"UNAUTHORIZED"}` — не передається токен
+- `GET /api/users/me/avatar` → 404 Not Found — клієнт робить GET замість POST; маршрут `POST /api/users/me/avatar` існує, GET — ні
+**Що виправити**:
+- [ ] **T-1702a** У компонентах `AvatarUploader` та `settings/page.tsx` — додати `Authorization: Bearer ${apiToken}` до всіх запитів на `/api/users/me` і `/api/users/me/avatar`
+- [ ] **T-1702b** Перевірити `AvatarUploader` — переконатись що аватар відправляється через `POST`, а не `GET`
+
+### Загальне рішення для T-1701 + T-1702
+
+Використовувати хук `useApi` або централізований `fetchWithAuth` що автоматично читає `apiToken` з сесії і додає заголовок:
+```typescript
+// hooks/useApi.ts
+const session = useSession();
+const token = (session.data?.user as any)?.apiToken;
+headers: { Authorization: `Bearer ${token}` }
+```
+
+---
+
 ## 📜 ФАЗА 12 — Юридика на сайті
 
 - [x] **T-1201** Сторінка `/author-agreement` — повний текст договору + accept bar
