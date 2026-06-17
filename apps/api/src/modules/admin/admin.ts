@@ -467,6 +467,76 @@ export async function adminRoutes(app: FastifyInstance) {
     return reply.send({ authors });
   });
 
+  // ─── Author detail ────────────────────────────────────────────────────────
+  app.get("/api/admin/authors/:id", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const author = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        slug: true,
+        avatarUrl: true,
+        bio: true,
+        role: true,
+        contractAcceptedAt: true,
+        contractAcceptedIp: true,
+        createdAt: true,
+        _count: { select: { books: true, orders: true } },
+        books: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            status: true,
+            moderationStatus: true,
+            isbn: true,
+            coverUrl: true,
+            pdfUrl: true,
+            epubUrl: true,
+            fb2Url: true,
+            mobiUrl: true,
+            printPdfUrl: true,
+            priceEbook: true,
+            pricePrint: true,
+            genre: true,
+            language: true,
+            distributionStrategy: true,
+            d2dStatus: true,
+            kdpStatus: true,
+            googleStatus: true,
+            createdAt: true,
+            publishedAt: true,
+          },
+        },
+      },
+    });
+    if (!author) throw AppError.notFound("Author");
+    return reply.send({ author });
+  });
+
+  // ─── Delete author account ────────────────────────────────────────────────
+  app.delete("/api/admin/users/:id", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const user = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } });
+    if (!user) throw AppError.notFound("User");
+    if (user.role === "ADMIN") throw new AppError("Cannot delete admin accounts", 403, "FORBIDDEN");
+
+    await prisma.$transaction([
+      prisma.royalty.deleteMany({ where: { authorId: id } }),
+      prisma.royalty.deleteMany({ where: { book: { authorId: id } } }),
+      prisma.orderItem.deleteMany({ where: { book: { authorId: id } } }),
+      prisma.conversionJob.deleteMany({ where: { book: { authorId: id } } }),
+      prisma.book.deleteMany({ where: { authorId: id } }),
+      prisma.order.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    return reply.send({ ok: true });
+  });
+
   // ─── Service toggles ──────────────────────────────────────────────────────
   app.get("/api/admin/settings", { preHandler: requireAdmin }, async (_request, reply) => {
     return reply.send({ services: serviceConfig });
