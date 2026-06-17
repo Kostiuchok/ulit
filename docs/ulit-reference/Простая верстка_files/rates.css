@@ -1,0 +1,264 @@
+.b-rates_outer {
+  overflow: hidden;
+}
+
+.b-rates_inner {
+  position: relative;
+}
+
+.b-rates_inner:before,
+.b-rates_inner:after {
+  position: absolute;
+  top: 18px;
+  height: 119px;
+  background: no-repeat url(../../images/assistant/rates_pics.png);
+  transform: scale(0);
+  transition: transform cubic-bezier(1, 2, .8, .8) .3s;
+  content: '';
+}
+
+.b-rates_inner:before {
+  width: 220px;
+  left: 5px;
+}
+
+.b-rates_inner:after {
+  right: 15px;
+  width: 192px;
+  transition-delay: .2s;
+  background-position: -220px 0;
+}
+
+.b-rates_inner__show:before,
+.b-rates_inner__show:after {
+  transform: scale(1);
+}
+
+.b-rates_caption {
+  position: relative;
+  z-index: 1;
+}
+
+.b-rates_subcaption {
+  position: relative;
+  z-index: 1;
+  max-width: 360px;
+  margin: 17px auto;
+}
+
+.b-rates_list {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  padding: 0;
+  margin: 0;
+}
+
+.b-rates_item {
+  display: inline-block;
+  margin: 20px 15px;
+  padding: 0px 20px 48px;
+  box-shadow: 0px 5px 21.6px 8.4px rgba(109, 127, 135, 0.15);
+  border-radius: 4px;
+  z-index: 68;
+  background-color: rgb(255, 255, 255);
+  width: 240px;
+  /* height: 325px; */
+  text-align: center;
+}
+
+.b-rates_item_caption {
+  font: 24px "PTSerif", "PT Serif", serif;
+  margin-bottom: 10px;
+}
+
+.b-rates_item_subcaption {
+  font: 16px/20px "PTSans", "PT Sans", sans-serif;
+  margin-top: 0;
+}
+
+.b-rates_item_props {
+  position: relative;
+  margin: 20px 0 13px;
+  padding: 0;
+}
+
+.b-rates_item_props:before {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  margin: -1px -13px;
+  width: 26px;
+  border-top: 1px solid #000;
+  content: '';
+}
+
+.b-rates_item_props_item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+  font: 16px/20px "PTSans", "PT Sans", sans-serif;
+  height: 68px;
+  margin: 0;
+  color: #585b5c;
+  border-top: 1px solid #ebebeb;
+  white-space: nowrap;
+}
+
+@media (max-width: 599px) {
+  .b-rates_item_props_item {
+    white-space: normal;
+  }
+}
+
+.b-rates_item_props_item:first-child {
+  border-top: none 0;
+}
+
+.b-rates_item_props_action_wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto;
+  width: 170px;
+}
+
+.b-rates_item_props_action {
+  font-size: 16px;
+  padding-right: 0;
+  padding-left: 0;
+  border-radius: 5px;
+  width: 181px;
+  height: 42px;
+  padding: .5em .5em .5em;
+}
+
+.b-rates_footnote {
+  display: flex;
+  justify-content: flex-start;
+  padding: 20px 0 0;
+  max-width: 916px;
+  margin: 0 auto;
+}
+
+.b-rates_footnote_caption {
+  display: inline-block;
+  margin: 0 8px 20px;
+  font: 16px/22px "PTSans", "PT Sans", sans-serif;
+  color: #636a6d;
+}
+
+.b-rates_footnote_caption.with_table {
+  width: 362px;
+}
+
+.b-rates_footnote_list {
+  display: block;
+  margin: 0 8px 20px;
+  width: 610px;
+  padding: 0;
+}
+
+.b-rates_footnote_item {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 90px;
+  padding-right: 45px;
+  margin-bottom: 10px;
+  font: 16px/22px "PTSans", "PT Sans", sans-serif;
+}
+
+.b-rates_footnote_item:before {
+  position: absolute;
+  top: 0;
+  left: 9px;
+  width: 63px;
+  height: 59px;
+  background: url(../../images/assistant/rates_icon.png);
+  content: '';
+}
+
+.b-rates_footnote_item:last-child {
+  padding-right: 0;
+}
+
+.b-rates_footnote_item__picture:before {
+  background-position: -63px 0;
+}
+
+.b-rates_footnote_item_content {
+  color: #2b2e2f;
+  margin: 0;
+}
+
+.b-rates_footnote_sub {
+  color: #636a6d;
+  font: 16px/18px "PTSans", "PT Sans", sans-serif;
+  max-width: 900px;
+  margin: 10px auto 50px;
+}
+
+@media (max-width: 1200px) {
+  .b-rates_list {
+    flex-wrap: wrap;
+  }
+
+  .b-rates_footnote_sub {
+    width: auto;
+  }
+}
+
+@media (max-width: 1000px) {
+  .b-rates_footnote {
+    flex-wrap: wrap;
+  }
+
+  .b-rates_footnote_list {
+    width: 362px;
+  }
+
+  .b-rates_footnote_sub {
+    width: 362px;
+  }
+}
+
+@media (max-width: 768px) {
+  .b-rates_inner:before,
+  .b-rates_inner:after {
+    display: none;
+  }
+}
+
+@media (max-width: 425px) {
+  .b-rates_footnote_list {
+    text-align: center;
+  }
+
+  .b-rates_footnote_item {
+    display: block;
+    padding: 70px 0 10px;
+  }
+
+  .b-rates_footnote_item:before {
+    left: 50%;
+    margin-left: -30px;
+  }
+
+  .b-rates_footnote_sub {
+    width: auto;
+  }
+}
+
+@media (max-width: 320px) {
+  .b-rates_item {
+    width: 260px;
+  }
+
+  .b-rates_item_caption {
+    font-size: 26px;
+  }
+}

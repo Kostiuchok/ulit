@@ -1,0 +1,58 @@
+.b-main_outer {
+  position: relative;
+  background: 50% 50%/cover #000 url(../../images/assistant/main_bg.jpg);
+  height: 520px;
+}
+
+.b-main_image {
+  display: inline-block;
+  width: 90px;
+  height: 90px;
+  background: url(../../images/assistant/masha.png);
+}
+
+.b-main_inner {
+  margin-top: 60px;
+  margin-bottom: 60px;
+}
+
+.b-main_caption {
+  font: 48px/50px "PTSerif", "PT Serif", serif;
+}
+
+.b-main_subcaption {
+  font: 24px/32px "PTSans", "PT Sans", sans-serif;
+  margin-top: 9px;
+}
+
+.b-main_scroll-down {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  width: 25px;
+  height: 16px;
+  margin: 0 -12.5px;
+  background: url(../../images/main_down.png);
+  outline: none;
+}
+
+.b-main_scroll-down:focus {
+  outline: 0 none;
+}
+
+@media (max-width: 425px) {
+  .b-main_caption {
+    font: 32px/33px "PTSerif", "PT Serif", serif;
+  }
+}
+
+@media (max-width: 700px) {
+
+  .b-main_outer {
+    overflow: hidden;
+    padding-bottom: 40px;
+    height: auto;
+  }
+
+  
+}

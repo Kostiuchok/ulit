@@ -1,0 +1,191 @@
+@font-face {
+    font-family: 'PTSans';
+    font-style: normal;
+    font-weight: 400;
+    src: local('PT Sans'), local('PTSans-Regular'), url(//fonts.gstatic.com/s/ptsans/v8/zQCiNX1F1RnBbbNioGlclQ.woff2) format('woff2'), url(//fonts.gstatic.com/s/ptsans/v8/jduSEW07_j4sIG_ERxiq4Q.woff) format('woff');
+}
+
+@font-face {
+    font-family: 'PTSans';
+    font-style: italic;
+    font-weight: 400;
+    src: local('PT Sans Italic'), local('PTSans-Italic'), url(//fonts.gstatic.com/s/ptsans/v8/GpWpM_6S4VQLPNAQ3iWvVVtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'PTSerif';
+    font-style: normal;
+    font-weight: 400;
+    src: local('PT Serif'), local('PTSerif-Regular'), url(//fonts.gstatic.com/s/ptserif/v8/N89efDtYlSwtNXi263fugQ.woff2) format('woff2'), url(//fonts.gstatic.com/s/ptserif/v8/UQsuzNW4csFAjwcBb7-0yg.woff) format('woff');
+}
+@font-face {
+    font-family: 'PTSansCaption';
+    font-style: normal;
+    font-weight: 400;
+    src: local('PT Sans Caption'), local('PTSans-Caption'), url(//fonts.gstatic.com/s/ptsanscaption/v9/OXYTDOzBcXU8MTNBvBHeScTUshqbnrS2EbMx0CRmx6g.woff2) format('woff2'), url(//fonts.gstatic.com/s/ptsanscaption/v9/OXYTDOzBcXU8MTNBvBHeScENMRmONIR770qe4kUs6CY.woff) format('woff');
+}
+
+@font-face {
+  font-family: 'BadScript';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Bad Script Regular'), local('BadScript-Regular'), url(https://fonts.gstatic.com/s/badscript/v5/xvnrV3H3fZsc-fSw6fOJeCEAvth_LlrfE80CYdSH47w.woff2) format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: 'BadScript';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Bad Script Regular'), local('BadScript-Regular'), url(https://fonts.gstatic.com/s/badscript/v5/rL_b2ND61EQmMOJ8CRr1fvk_vArhqVIZ0nv9q090hN8.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+}
+
+
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+.orange-link,
+.orange-link:focus{
+  text-decoration: none;
+  color: #ff7b00;
+}
+
+
+.g-strong {
+    font-weight: 700;
+}
+
+.g-section_outer {
+    width: 100%;
+    min-width: 1200px;
+    font: 18px/24px "PTSans", "PT Sans", sans-serif;
+    color: #000;
+    border-bottom: solid #ebebeb 1px;
+}
+
+.g-section_inner {
+    width: 1120px;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+.orange-link_decorated {
+    color: #ff7e00;
+    border-bottom: 1px solid;
+    text-decoration: none;
+}
+
+.g-section_caption {
+    text-align: center;
+    font: 36px/40px "PTSerif", "PT Serif", serif;
+    color: #000;
+    margin: 40px 0 17px;
+}
+
+.g-section_subcaption {
+    font: 18px/24px "PTSans", "PT Sans", sans-serif;
+    color: #000;
+    text-align: center;
+    margin: 17px 0;
+}
+
+.g-section_outer__parallax {
+    background: #000;
+    text-align: center;
+    white-space: nowrap;
+    height: 350px;
+}
+
+.g-section_inner__parallax {
+    display: inline-block;
+    vertical-align: middle;
+    white-space: normal;
+}
+
+.g-section_outer__parallax:after {
+    display: inline-block;
+    vertical-align: middle;
+    width: 0;
+    min-height: 100%;
+    content: '';
+}
+
+.g-section_caption__parallax {
+    font: 36px/43px "PTSerif", "PT Serif", serif;
+    color: #fff;
+    margin: 0;
+}
+
+.g-section_subcaption__parallax {
+    font: 18px/24px "PTSans", "PT Sans", sans-serif;
+    color: #fff;
+    margin: 19px 0 30px;
+}
+
+.g-highlight_link {
+    font-weight: 700;
+    text-decoration: none;
+    color: #ff7e00;
+}
+
+.g-nostyle_link {
+    text-decoration: inherit;
+    color: inherit;
+}
+
+.g-action {
+    position: relative;
+    z-index: 1;
+    padding: 9px 19px 13px;
+    border-radius: 3px;
+}
+
+
+@media (max-width: 1225px){
+
+    .g-section_outer {
+        width: auto;
+        min-width: 0;
+    }
+
+    .g-section_inner {
+        width: auto;
+    }
+}
+
+
+@media (max-width: 1025px){
+    .g-section_outer {
+        overflow: hidden;
+    }
+
+    .b-path_canvas {
+        display: none;
+    }
+}
+
+@media (max-width: 425px){
+    .g-section_inner {
+        padding: 0 20px;
+    }
+}
+
+.g-main_button {
+    border-radius: 4px;
+}
+
+/* fix popup mobile layout */
+
+@media (max-width: 839px) {
+
+ }
+
+ .ru .modal-content.auth_iframe {
+    width: 300px;
+    height: 560px;
+  }
+

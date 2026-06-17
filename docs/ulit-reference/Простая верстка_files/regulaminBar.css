@@ -1,0 +1,73 @@
+.notifyBar-cookie .notifyBarMessage{
+    max-width: 80%;
+    display: inline-block;
+    margin: 7px;
+}
+.notifyBar + .notifyBar-cookie{
+    margin-top: 1px;
+}
+.notifyBar.notifyBar-cookie{
+    height: auto;
+    line-height: 1.4em;
+}
+.notifyBar {
+    width: 100%;
+    background: #ECEC5A;
+    height: 2em;
+    line-height: 2em;
+}
+.notifyBar-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 1500;
+}
+.notifyBar a {
+    cursor: pointer;
+    color: #ff7b00;
+    text-decoration: none;
+}
+.notifyBar.notifyBar-cookie {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+  flex-direction: row;
+  position: relative;
+}
+.notifyBarClose {
+    float: right;
+    opacity: .5;
+    padding: .5em;
+    cursor: pointer;
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+
+.notifyBarAccept {
+	margin: 5px;
+}
+@media (max-width: 768px) {
+	.notifyBar.notifyBar-cookie{
+		flex-direction: column;
+		align-items: flex-end;
+		padding: 10px 0 10px 20px;
+	}
+	.notifyBarMessage {
+		align-self: flex-start;
+	}
+	.notifyBarClose {
+		right: 15px;
+	}
+}
+.notifyBarClose:hover {
+    opacity: 1
+}
+
+@media (max-width: 839px) {
+  .notifyBarMessage {
+      line-height: 14px;
+  }
+}

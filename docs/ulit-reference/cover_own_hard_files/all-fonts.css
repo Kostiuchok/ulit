@@ -1,0 +1,5616 @@
+@font-face {
+    font-family: "Anton";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anton";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/anton/Anton.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Bad Script";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/badscript/BadScript-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/comfortaa/Comfortaa-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Comfortaa";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/comfortaa/Comfortaa-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-Thin.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-ThinItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-ExtraLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-ExtraLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-Medium.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-MediumItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-SemiBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-SemiBoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-ExtraBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-ExtraBoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/exo2/Exo2-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Exo 2";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/exo2/Exo2-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Medium.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Medium.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/firamono/FiraMono-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Fira Mono";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/firamono/FiraMono-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Freckle Face";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/freckleface/FreckleFace-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/greatvibes/GreatVibes-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lobster";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/lobster/Lobster-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/lora/Lora-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Lora";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/lora/Lora-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neucha";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/neucha/Neucha.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-ExtraLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-ExtraLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-ExtraBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/neuton/Neuton-ExtraBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Neuton";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/neuton/Neuton-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/newscycle/NewsCycle-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "News Cycle";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/newscycle/NewsCycle-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-Semibold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-SemiboldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-ExtraBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-ExtraBoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/opensans/OpenSans-ExtraBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/opensans/OpenSans-ExtraBoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Open Sans Condensed";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/opensanscondensed/OpenSans-CondLightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/oswald/Oswald-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Oswald";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/oswald/Oswald-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplay/PlayfairDisplay-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Playfair Display SC";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/playfairdisplaysc/PlayfairDisplaySC-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/ptsans/PT_Sans-Web-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Caption";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/ptsanscaption/PT_Sans-Caption-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Narrow";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/ptsansnarrow/PT_Sans-Narrow-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/ptserif/PT_Serif-Web-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Caption";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/ptserifcaption/PT_Serif-Caption-Web-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Thin.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-ThinItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Thin.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-ThinItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Medium.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-MediumItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/roboto/Roboto-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/roboto/Roboto-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Thin.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Thin.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Thin.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Thin.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Roboto Slab";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/robotoslab/RobotoSlab-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Medium.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-MediumItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/rubik/Rubik-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Rubik";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/rubik/Rubik-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ruslan Display";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/ruslandisplay/RuslanDisplay.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tenor Sans";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/google/tenorsans/TenorSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Buratino";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_buratino/BURATWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Ingenue";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_ingenue/EMPLIWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Emploi Travesti";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_emploi_travesti/EMPLTWeb.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Izhitsa";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_izhitsa/IZH__Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT75Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT76Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT75Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT76Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT75Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT76Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_ladoga/LDT75Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Ladoga";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_ladoga/LDT76Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT76.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT76.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT76.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_newton/NWT75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Newton";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_newton/NWT76.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR55Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR56Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR75Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR76Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR75Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR76Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR75Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR76Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_petersburg/PTR75Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Petersburg";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_petersburg/PTR76Web.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG69.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG69.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG69.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG69.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG79.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG79.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG89.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG89.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG89.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG89.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_reforma/RFG89.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Reforma";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_reforma/RFG89.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS45.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS46.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS45.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS46.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS45.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS46.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS65.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS66.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS76.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS85.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS86.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro/PTS95.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro/PTS96.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Caption";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_caption/PTC75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS77.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS77.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS87.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS87.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS97.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Cond";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_condensed/PTS97.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS49.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS59.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS59.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS59.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS59.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS69.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS69.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS79.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS79.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS89.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS89.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS99.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Extra Condensed";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_extra_condensed/PTS99.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN77.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN77.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN87.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN87.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN97.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Sans Pro Narrow";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_sans_pro_narrow/PTN97.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF45.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF46.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF45.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF46.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF45.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF46.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF65.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF66.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF75.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF76.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF85.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF86.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro/PTF95.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro/PTF96.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ55.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Caption";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_caption/PTZ56.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF43.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF44.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF43.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF44.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF43.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF44.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF53.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF54.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF53.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF54.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF63.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF64.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF73.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF74.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF83.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF84.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF93.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Extended";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_extended/PTF94.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF48.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF48.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF47.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF48.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF58.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF57.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF58.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF68.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF77.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF78.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF87.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF88.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF97.ttf") format("truetype");
+}
+@font-face {
+    font-family: "PT Serif Pro Narrow";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_serif_pro_narrow/PTF98.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Tauern";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/paratype/pt_tauern/TRN67.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-R.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-I.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-R.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-I.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-R.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-I.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-R.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-I.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-R.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-I.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-B.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-BI.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-B.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-BI.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-B.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-BI.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/ofl/charis/CharisSIL-B.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Charis SIL";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/ofl/charis/CharisSIL-BI.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Medium.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-MediumItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-SemiBold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-SemiBoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Cormorant Garamond";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/ofl/cormorantgaramond/CormorantGaramond-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-LightItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/ofl/merriweather/Merriweather-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Merriweather";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/ofl/merriweather/Merriweather-BlackItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/ofl/notosans/NotoSans-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Sans";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/ofl/notosans/NotoSans-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/ofl/notoserif/NotoSerif-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Noto Serif";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/ofl/notoserif/NotoSerif-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-ExtraLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-ExtraLightIt.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-ExtraLight.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-ExtraLightIt.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-LightIt.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-It.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-Regular.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-It.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-Semibold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-SemiboldIt.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-BoldIt.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-BlackIt.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/ofl/source-sans-pro/SourceSansPro-BlackIt.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 100;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 100;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 200;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 200;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 300;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 300;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 400;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 400;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 500;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 500;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 600;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 600;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 700;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 700;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 800;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 800;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 900;
+    font-style: normal;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
+@font-face {
+    font-family: "UnifrakturMaguntia21";
+    font-weight: 900;
+    font-style: italic;
+    src: url("../fonts/ofl/unifrakturmaguntia/UnifrakturMaguntia21.ttf") format("truetype");
+}
