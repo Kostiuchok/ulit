@@ -35,6 +35,7 @@
 - [x] **T-109** Admin middleware — guard для `/admin/*` routes (role: ADMIN)
 - [x] **T-110** Сторінки `/login` та `/register` (RHF + Zod)
 - [x] **T-111** Зберігати `contractAcceptedAt` при першій публікації (при T-703)
+- [ ] **T-112** Google OAuth в production — додати `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` до `.env.production` на VPS; перебудувати `knyha-web`; перевірити `AUTH_URL` callback у Google Console
 
 ---
 
@@ -172,6 +173,10 @@
 - [x] **T-1117** `/admin/royalties/export` — CSV для бухгалтерії
 - [x] **T-1118** `/admin/services` — toggle on/off кожного сервісу дистрибуції
 - [x] **T-1119** `/admin/authors` — список авторів + статус договору
+- [ ] **T-1120** `/admin/authors` — розширена таблиця: email, дата реєстрації, кількість книг, статус договору, остання активність; пошук + фільтр по статусу
+- [ ] **T-1121** `DELETE /api/admin/users/:id` — видалення акаунту автора (каскадно: книги, замовлення, роялті); підтверджуючий модал на фронті
+- [ ] **T-1122** `/admin/authors/:id` — сторінка деталей автора: профіль + повний список книг зі статусами конвертації та дистрибуції
+- [ ] **T-1123** Завантаження файлів книги з панелі автора: кнопки Download для кожного формату (EPUB, FB2, MOBI, PDF, Print PDF) → signed MinIO URL (48 год)
 
 ---
 
