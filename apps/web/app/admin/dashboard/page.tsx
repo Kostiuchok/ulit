@@ -31,15 +31,16 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function AdminDashboard() {
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<Stats>("/api/admin/stats")
       .then(setStats)
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   if (loading) {
     return (

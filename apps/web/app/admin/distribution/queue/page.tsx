@@ -18,16 +18,17 @@ interface Book {
 }
 
 export default function DistributionQueuePage() {
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ books: Book[] }>("/api/admin/distribution/queue")
       .then((d) => setBooks(d.books))
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   function toggle(id: string) {
     setSelected((prev) => {

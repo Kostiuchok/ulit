@@ -32,15 +32,16 @@ const FORMAT_LABELS: Record<string, string> = {
 
 export default function PublishedPage() {
   const { id } = useParams<{ id: string }>();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [book, setBook] = useState<BookInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ book: BookInfo }>(`/api/books/${id}`)
       .then(({ book }) => setBook(book))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [token, id]);
 
   if (loading) {
     return (

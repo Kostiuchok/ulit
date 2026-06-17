@@ -86,17 +86,18 @@ function DownloadLink({ url, label }: { url: string | null; label: string }) {
 
 export default function AdminAuthorDetailPage() {
   const params = useParams<{ id: string }>();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [author, setAuthor] = useState<AuthorDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ author: AuthorDetail }>(`/api/admin/authors/${params.id}`)
       .then((d) => setAuthor(d.author))
       .catch(() => setError("Автора не знайдено"))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [token, params.id]);
 
   if (loading) {
     return (

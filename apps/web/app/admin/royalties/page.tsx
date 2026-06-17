@@ -18,7 +18,7 @@ interface Royalty {
 }
 
 export default function RoyaltiesPage() {
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [royalties, setRoyalties] = useState<Royalty[]>([]);
   const [pendingByAuthor, setPendingByAuthor] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -26,6 +26,7 @@ export default function RoyaltiesPage() {
   const [filter, setFilter] = useState("PENDING");
 
   const fetchRoyalties = async () => {
+    if (!token) return;
     setLoading(true);
     const params = filter ? `?status=${filter}` : "";
     try {
@@ -39,7 +40,7 @@ export default function RoyaltiesPage() {
     }
   };
 
-  useEffect(() => { fetchRoyalties(); }, [filter]);
+  useEffect(() => { fetchRoyalties(); }, [token, filter]);
 
   async function handlePay(id: string) {
     setPaying(id);

@@ -17,6 +17,7 @@ interface Props {
   bookAuthor: string;
   existingCoverUrl?: string | null;
   onSaved: (url: string) => void;
+  token?: string;
 }
 
 export function CoverDesigner(props: Props) {

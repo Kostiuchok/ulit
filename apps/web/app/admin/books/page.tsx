@@ -82,7 +82,7 @@ function Checklist({ book }: { book: Book }) {
 
 export default function AdminBooksPage() {
   const searchParams = useSearchParams();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -93,6 +93,7 @@ export default function AdminBooksPage() {
   const [search, setSearch] = useState("");
 
   const fetchBooks = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
@@ -104,7 +105,7 @@ export default function AdminBooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, modFilter, search]);
+  }, [token, statusFilter, modFilter, search]);
 
   useEffect(() => { fetchBooks(); }, [fetchBooks]);
 

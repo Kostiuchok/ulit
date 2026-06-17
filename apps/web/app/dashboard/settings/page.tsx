@@ -54,7 +54,7 @@ interface UserProfile {
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -79,6 +79,7 @@ export default function SettingsPage() {
   }, [watchedName, slugTouched, loadedName]);
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ user: UserProfile }>("/api/users/me")
       .then(({ user }) => {
         setProfile(user);
@@ -87,7 +88,7 @@ export default function SettingsPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   const onSubmit = async (data: ProfileForm) => {
     setServerError("");

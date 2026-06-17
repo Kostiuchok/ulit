@@ -39,16 +39,17 @@ interface Props {
 }
 
 export function DistributionStatus({ bookId, bookStatus }: Props) {
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [info, setInfo] = useState<DistributionInfo | null>(null);
   const [switching, setSwitching] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<DistributionInfo>(`/api/books/${bookId}/distribution`)
       .then(setInfo)
       .catch(() => {});
-  }, [bookId]);
+  }, [token, bookId]);
 
   async function switchToWide() {
     if (!confirm("Перейти на широке розповсюдження? Книга стане доступна на D2D та Google Play.")) return;

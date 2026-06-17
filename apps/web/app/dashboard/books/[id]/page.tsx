@@ -45,7 +45,7 @@ const GENRES = [
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [book, setBook] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -60,6 +60,7 @@ export default function BookDetailPage() {
   } = useForm<EditForm>({ resolver: zodResolver(editSchema) });
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ book: any }>(`/api/books/${id}`)
       .then(({ book }) => {
         setBook(book);
@@ -75,7 +76,7 @@ export default function BookDetailPage() {
       })
       .catch(() => router.push("/dashboard/books"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [token, id]);
 
   const onSubmit = async (data: EditForm) => {
     setServerError("");

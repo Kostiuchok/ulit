@@ -14,7 +14,7 @@ interface Book {
 
 export default function BulkExportPage() {
   const searchParams = useSearchParams();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -23,13 +23,14 @@ export default function BulkExportPage() {
   const preselectedIds = searchParams.get("ids")?.split(",").filter(Boolean) ?? [];
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ books: Book[] }>("/api/admin/distribution/queue")
       .then((d) => {
         setBooks(d.books);
         setSelected(new Set(preselectedIds.length ? preselectedIds : d.books.map((b) => b.id)));
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   function toggle(id: string) {
     setSelected((prev) => {

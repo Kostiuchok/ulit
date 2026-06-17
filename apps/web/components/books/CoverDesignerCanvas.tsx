@@ -110,9 +110,10 @@ interface Props {
   bookAuthor: string;
   existingCoverUrl?: string | null;
   onSaved: (url: string) => void;
+  token?: string;
 }
 
-export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, existingCoverUrl, onSaved }: Props) {
+export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, existingCoverUrl, onSaved, token }: Props) {
   const canvasEl = useRef<HTMLCanvasElement>(null);
   const canvasRef = useRef<fabric.Canvas | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -258,14 +259,6 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
       const dataUrl = canvas.toDataURL({ format: "png", multiplier: EXPORT_SCALE });
       const res = await fetch(dataUrl);
       const blob = await res.blob();
-
-      const apiToken = (window as any).__NEXT_DATA__?.props?.pageProps?.session?.user?.apiToken
-        ?? document.cookie.match(/apiToken=([^;]+)/)?.[1]
-        ?? localStorage.getItem("knyha-token") ?? "";
-
-      // Use the session apiToken stored by our useApi hook
-      const session = await fetch("/api/auth/session").then(r => r.json()).catch(() => ({}));
-      const token = session?.user?.apiToken ?? "";
 
       const form = new FormData();
       form.append("file", blob, "cover.png");
