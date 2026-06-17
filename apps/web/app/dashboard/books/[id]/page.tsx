@@ -51,6 +51,7 @@ export default function BookDetailPage() {
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState("");
   const [conversionActive, setConversionActive] = useState(false);
+  const [mountTime] = useState(() => Date.now());
 
   const {
     register,
@@ -150,7 +151,7 @@ export default function BookDetailPage() {
             <h2 className="text-base font-semibold mb-4">Обкладинка</h2>
             <div className="flex items-center gap-4">
               {book?.coverUrl ? (
-                <img src={book.coverUrl} alt="" className="h-36 w-28 rounded-md object-cover" />
+                <img src={`${book.coverUrl.split("?")[0]}?t=${mountTime}`} alt="" className="h-36 w-28 rounded-md object-cover" />
               ) : (
                 <div className="flex h-36 w-28 items-center justify-center rounded-md bg-gray-100 text-4xl">
                   📖

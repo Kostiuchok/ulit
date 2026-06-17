@@ -274,7 +274,8 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
       }
 
       const { coverUrl } = await uploadRes.json();
-      onSaved(coverUrl);
+      // Bust browser cache — same filename is overwritten on each upload
+      onSaved(`${coverUrl.split("?")[0]}?t=${Date.now()}`);
     } catch (e: any) {
       setSaveError(e.message || "Помилка збереження обкладинки");
     } finally {
