@@ -81,7 +81,7 @@
 
 ### Фаза 4b — UX прогресу завантаження
 
-- [ ] **T-415** Прогрес-бар завантаження DOCX: використати `XMLHttpRequest` з `upload.onprogress` замість `fetch` у `DocxUploader`, відображати відсоток (0–100%) під час передачі файлу на сервер; після завантаження показати "Обробляється…" і перейти до існуючого polling статусу конвертації
+- [x] **T-415** Прогрес-бар завантаження DOCX: використати `XMLHttpRequest` з `upload.onprogress` замість `fetch` у `DocxUploader`, відображати відсоток (0–100%) під час передачі файлу на сервер; після завантаження показати "Обробляється…" і перейти до існуючого polling статусу конвертації
 
 ---
 
@@ -97,10 +97,10 @@
 
 ### Фаза 5b — Виправлення та покращення редактора
 
-- [ ] **T-508** Власне зображення як фон не працює: кнопка "Завантажити фото" у вкладці "Фон" натискається, але файл не завантажується — виправити `handleFileUpload` у `CoverDesignerCanvas.tsx`
-- [ ] **T-509** Undo/Redo (Ctrl+Z / Ctrl+Y) — при змінах тексту, позиції, розтягуванні об'єктів; реалізувати через стек станів canvas JSON (Fabric.js `toJSON` / `loadFromJSON`)
-- [ ] **T-510** Snap до кутів при повороті — крок 10°, спрацьовує якщо об'єкт повертається в межах ±3° від кратного 10°; реалізувати через `object:rotating` event у Fabric.js
-- [ ] **T-511** Додавання та редагування прямокутника: кнопка "Додати прямокутник" → `fabric.Rect` на canvas; панель властивостей активного прямокутника: колір заливки, колір обводки, товщина обводки, прозорість (opacity 0–100%); видалення через Delete/кнопку
+- [x] **T-508** Власне зображення як фон не працює: кнопка "Завантажити фото" у вкладці "Фон" натискається, але файл не завантажується — виправити `handleFileUpload` у `CoverDesignerCanvas.tsx`
+- [x] **T-509** Undo/Redo (Ctrl+Z / Ctrl+Y) — при змінах тексту, позиції, розтягуванні об'єктів; реалізувати через стек станів canvas JSON (Fabric.js `toJSON` / `loadFromJSON`)
+- [x] **T-510** Snap до кутів при повороті — крок 10°, спрацьовує якщо об'єкт повертається в межах ±3° від кратного 10°; реалізувати через `object:rotating` event у Fabric.js
+- [x] **T-511** Додавання та редагування прямокутника: кнопка "Додати прямокутник" → `fabric.Rect` на canvas; панель властивостей активного прямокутника: колір заливки, колір обводки, товщина обводки, прозорість (opacity 0–100%); видалення через Delete/кнопку
 
 ---
 
@@ -223,7 +223,7 @@
 
 ## 🔐 ФАЗА 16 — Сесії та UX авторизації
 
-- [ ] **T-1601** Persistent session — користувач не повинен логінитись після кожного переходу між сторінками; перевірити cookie `maxAge`, `AUTH_SECRET` на VPS та `trustHost` за Caddy reverse proxy
+- [x] **T-1601** Persistent session — користувач не повинен логінитись після кожного переходу між сторінками; перевірити cookie `maxAge`, `AUTH_SECRET` на VPS та `trustHost` за Caddy reverse proxy
 
 ---
 
@@ -235,7 +235,7 @@
 **Помилка**: `{"error":"Invalid or missing token","code":"UNAUTHORIZED"}`
 **Причина**: клієнтський компонент `BookWizard` робить `fetch('/api/books', ...)` без заголовка `Authorization: Bearer <apiToken>`. Токен є в сесії (`session.user.apiToken`), але не передається в запит.
 **Що виправити**:
-- [ ] **T-1701** У `BookWizard` та всіх `fetch` до `/api/books` — передавати `Authorization: Bearer ${session.apiToken}` (взяти через `useSession()` або `getSession()` на клієнті / `auth()` на сервері)
+- [x] **T-1701** У `BookWizard` та всіх `fetch` до `/api/books` — передавати `Authorization: Bearer ${session.apiToken}` (взяти через `useSession()` або `getSession()` на клієнті / `auth()` на сервері)
 
 ### T-1702 — `GET/PATCH /api/users/me` + `POST /api/users/me/avatar` → 401/404
 
@@ -245,8 +245,8 @@
 - `PATCH /api/users/me` → `{"error":"Invalid or missing token","code":"UNAUTHORIZED"}` — не передається токен
 - `GET /api/users/me/avatar` → 404 Not Found — клієнт робить GET замість POST; маршрут `POST /api/users/me/avatar` існує, GET — ні
 **Що виправити**:
-- [ ] **T-1702a** У компонентах `AvatarUploader` та `settings/page.tsx` — додати `Authorization: Bearer ${apiToken}` до всіх запитів на `/api/users/me` і `/api/users/me/avatar`
-- [ ] **T-1702b** Перевірити `AvatarUploader` — переконатись що аватар відправляється через `POST`, а не `GET`
+- [x] **T-1702a** У компонентах `AvatarUploader` та `settings/page.tsx` — додати `Authorization: Bearer ${apiToken}` до всіх запитів на `/api/users/me` і `/api/users/me/avatar`
+- [x] **T-1702b** Перевірити `AvatarUploader` — переконатись що аватар відправляється через `POST`, а не `GET`
 
 ### Загальне рішення для T-1701 + T-1702
 
@@ -267,13 +267,13 @@ headers: { Authorization: `Bearer ${token}` }
 /api/users/me/avatar   → 500
 ```
 **Діагностика**: перевірити `docker logs knyha-api --tail=100` — 500 означає виняток на сервері (Prisma, MinIO, або некоректне тіло запиту).
-- [ ] **T-1703** Дослідити логи API при кожному запиті; виправити серверні помилки (найімовірніше: Prisma query crash або відсутній MinIO bucket)
+- [x] **T-1703** Дослідити логи API при кожному запиті; виправити серверні помилки (найімовірніше: Prisma query crash або відсутній MinIO bucket)
 
 ### T-1704 — Авто-генерація slug з імені автора на `/dashboard/settings`
 
 **Поведінка**: при введенні імені автора в полі "Ім'я" — поле slug автоматично заповнюється транслітерованим значенням (uk → latin), в нижньому регістрі, пробіли → `-`.
 **Приклад**: `Іван Франко` → `ivan-franko`
-- [ ] **T-1704** На `settings/page.tsx` — через `watch('name')` (React Hook Form) генерувати slug: транслітерація (бібліотека `transliteration` або власна uk→latin таблиця) + `.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')`; slug залишається редагованим вручну
+- [x] **T-1704** На `settings/page.tsx` — через `watch('name')` (React Hook Form) генерувати slug: транслітерація (бібліотека `transliteration` або власна uk→latin таблиця) + `.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')`; slug залишається редагованим вручну
 
 ---
 

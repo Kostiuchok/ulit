@@ -113,11 +113,19 @@ interface Props {
   token?: string;
 }
 
+const SNAP_ANGLE = 10;   // snap every 10°
+const SNAP_THRESHOLD = 3; // degrees of tolerance
+
 export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, existingCoverUrl, onSaved, token }: Props) {
   const canvasEl = useRef<HTMLCanvasElement>(null);
   const canvasRef = useRef<fabric.Canvas | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const historyRef = useRef<string[]>([]);
+  const historyIndexRef = useRef(-1);
+  const pauseHistoryRef = useRef(false);
   const [activeObj, setActiveObj] = useState<fabric.Object | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const [bgColor, setBgColor] = useState("#1a1a2e");
   const [textColor, setTextColor] = useState("#ffffff");
   const [fontSize, setFontSize] = useState(28);
@@ -140,11 +148,78 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
     canvas.on("selection:updated", (e) => setActiveObj(e.selected?.[0] ?? null));
     canvas.on("selection:cleared", () => setActiveObj(null));
 
+    // ── Snap to angle ────────────────────────────────────────────
+    canvas.on("object:rotating", (e) => {
+      const obj = e.target;
+      if (!obj) return;
+      const angle = obj.angle ?? 0;
+      const nearest = Math.round(angle / SNAP_ANGLE) * SNAP_ANGLE;
+      if (Math.abs(angle - nearest) <= SNAP_THRESHOLD) obj.angle = nearest;
+    });
+
+    // ── Undo/Redo history ────────────────────────────────────────
+    const saveSnapshot = () => {
+      if (pauseHistoryRef.current) return;
+      const json = JSON.stringify(canvas.toJSON(["data"]));
+      // Trim future states when a new action branches off
+      historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+      historyRef.current.push(json);
+      historyIndexRef.current = historyRef.current.length - 1;
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(false);
+    };
+
+    canvas.on("object:added", saveSnapshot);
+    canvas.on("object:removed", saveSnapshot);
+    canvas.on("object:modified", saveSnapshot);
+
+    // ── Keyboard shortcut ────────────────────────────────────────
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === "z") { e.preventDefault(); undoCanvas(); }
+      if (e.key === "y") { e.preventDefault(); redoCanvas(); }
+    };
+    window.addEventListener("keydown", onKey);
+
     // Apply default template
     TEMPLATES[0].apply(canvas, bookTitle, bookAuthor);
     canvas.renderAll();
 
-    return () => { canvas.dispose(); canvasRef.current = null; };
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      canvas.dispose();
+      canvasRef.current = null;
+    };
+  }, []);
+
+  // ── Undo / Redo ──────────────────────────────────────────────────────────────
+
+  const undoCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || historyIndexRef.current <= 0) return;
+    historyIndexRef.current -= 1;
+    const json = historyRef.current[historyIndexRef.current];
+    pauseHistoryRef.current = true;
+    canvas.loadFromJSON(json, () => {
+      canvas.renderAll();
+      pauseHistoryRef.current = false;
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(true);
+    });
+  }, []);
+
+  const redoCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || historyIndexRef.current >= historyRef.current.length - 1) return;
+    historyIndexRef.current += 1;
+    const json = historyRef.current[historyIndexRef.current];
+    pauseHistoryRef.current = true;
+    canvas.loadFromJSON(json, () => {
+      canvas.renderAll();
+      pauseHistoryRef.current = false;
+      setCanUndo(true);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+    });
   }, []);
 
   // ── Toolbar actions ──────────────────────────────────────────────────────────
@@ -174,6 +249,26 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
       canvas.remove(obj);
       canvas.renderAll();
     }
+  }, []);
+
+  const addRect = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = new fabric.Rect({
+      left: DISPLAY_W / 2 - 60,
+      top: DISPLAY_H / 2 - 40,
+      width: 120,
+      height: 80,
+      fill: "#ffffff",
+      stroke: "transparent",
+      strokeWidth: 0,
+      opacity: 1,
+      originX: "left",
+      originY: "top",
+    });
+    canvas.add(rect);
+    canvas.setActiveObject(rect);
+    canvas.renderAll();
   }, []);
 
   const updateSelected = useCallback((patch: Partial<fabric.IText>) => {
@@ -216,6 +311,8 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
   const loadImageFromUrl = useCallback((url: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // crossOrigin must NOT be set for data: URLs — it taints the canvas and silently fails
+    const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" };
     fabric.Image.fromURL(url, (img) => {
       const scaleX = DISPLAY_W / (img.width ?? DISPLAY_W);
       const scaleY = DISPLAY_H / (img.height ?? DISPLAY_H);
@@ -226,7 +323,7 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
       canvas.add(img);
       canvas.sendToBack(img);
       canvas.renderAll();
-    }, { crossOrigin: "anonymous" });
+    }, opts);
   }, []);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -235,6 +332,7 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
     const reader = new FileReader();
     reader.onload = (ev) => { if (ev.target?.result) loadImageFromUrl(ev.target.result as string); };
     reader.readAsDataURL(file);
+    e.target.value = ""; // reset so same file can be re-selected
   }, [loadImageFromUrl]);
 
   const searchUnsplash = useCallback(async () => {
@@ -286,6 +384,7 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const isText = activeObj?.type === "i-text" || activeObj?.type === "text";
+  const isRect = activeObj?.type === "rect";
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row">
@@ -295,6 +394,16 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
           <canvas ref={canvasEl} />
         </div>
         <p className="text-xs text-gray-400">Подвійний клік на тексті для редагування</p>
+        <div className="flex gap-2 w-full">
+          <Button
+            variant="outline" size="sm" onClick={undoCanvas} disabled={!canUndo}
+            className="flex-1" title="Скасувати (Ctrl+Z)"
+          >↩ Undo</Button>
+          <Button
+            variant="outline" size="sm" onClick={redoCanvas} disabled={!canRedo}
+            className="flex-1" title="Повторити (Ctrl+Y)"
+          >↪ Redo</Button>
+        </div>
         <Button onClick={saveToBook} loading={saving} className="w-full">
           Зберегти обкладинку
         </Button>
@@ -410,6 +519,54 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
             <input type="color" value={textColor} onChange={(e) => { setTextColor(e.target.value); updateSelected({ fill: e.target.value }); }} className="h-7 w-12 cursor-pointer rounded border" />
           </div>
           <Button size="sm" onClick={addText} className="w-full">+ Додати</Button>
+        </div>
+
+        {/* Rectangle tool */}
+        <div className="rounded-lg border p-3 space-y-2">
+          <p className="text-xs font-semibold text-gray-700">Прямокутник</p>
+          <Button size="sm" variant="outline" onClick={addRect} className="w-full">+ Додати прямокутник</Button>
+          {isRect && (
+            <div className="space-y-2 pt-1">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Заливка</Label>
+                  <input
+                    type="color"
+                    value={(activeObj as fabric.Rect).fill as string || "#ffffff"}
+                    onChange={(e) => updateSelected({ fill: e.target.value })}
+                    className="h-7 w-full cursor-pointer rounded border"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Обводка</Label>
+                  <input
+                    type="color"
+                    value={(activeObj as fabric.Rect).stroke as string || "#000000"}
+                    onChange={(e) => updateSelected({ stroke: e.target.value })}
+                    className="h-7 w-full cursor-pointer rounded border"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Товщина обводки</Label>
+                <Input
+                  type="number" min={0} max={20}
+                  value={(activeObj as fabric.Rect).strokeWidth ?? 0}
+                  onChange={(e) => updateSelected({ strokeWidth: Number(e.target.value) })}
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Прозорість {Math.round(((activeObj?.opacity ?? 1) * 100))}%</Label>
+                <input
+                  type="range" min={0} max={100}
+                  value={Math.round((activeObj?.opacity ?? 1) * 100)}
+                  onChange={(e) => updateSelected({ opacity: Number(e.target.value) / 100 })}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Object actions */}

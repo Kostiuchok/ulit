@@ -13,9 +13,10 @@ interface Props {
 }
 
 export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props) {
-  const { apiUpload } = useApi();
+  const { token } = useApi();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [phase, setPhase] = useState<"upload" | "processing">("upload");
   const [error, setError] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -41,23 +42,53 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
     if (!selectedFile) return;
     setUploading(true);
     setError("");
-    setProgress(10);
+    setProgress(0);
+    setPhase("upload");
 
-    try {
-      const form = new FormData();
-      form.append("file", selectedFile);
-      setProgress(40);
-      await apiUpload(`/api/books/${bookId}/upload-docx`, form);
-      setProgress(100);
-      setSelectedFile(null);
-      onUploadSuccess();
-    } catch (e: any) {
+    const form = new FormData();
+    form.append("file", selectedFile);
+
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          // Reserve last 5% for server-side processing
+          setProgress(Math.round((e.loaded / e.total) * 95));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          setProgress(100);
+          setPhase("processing");
+          setSelectedFile(null);
+          resolve();
+          // Brief delay so user sees 100% before parent hides the uploader
+          setTimeout(() => onUploadSuccess(), 300);
+        } else {
+          const body = JSON.parse(xhr.responseText || "{}");
+          reject(new Error(body.error || `Помилка ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Помилка мережі"));
+      xhr.ontimeout = () => reject(new Error("Час очікування вичерпано"));
+
+      xhr.open("POST", `/api/books/${bookId}/upload-docx`);
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.timeout = 5 * 60 * 1000; // 5 min for large files
+      xhr.send(form);
+    }).catch((e: any) => {
       setError(e.message || "Помилка завантаження");
-    } finally {
+    }).finally(() => {
       setUploading(false);
-      setProgress(0);
-    }
+    });
   }
+
+  const progressLabel = phase === "processing"
+    ? "Обробляється на сервері…"
+    : `Завантаження… ${progress}%`;
 
   return (
     <div className="space-y-4">
@@ -100,24 +131,30 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      {uploading && progress > 0 && (
-        <div className="space-y-1">
-          <div className="h-2 w-full rounded-full bg-gray-200">
+      {uploading && (
+        <div className="space-y-1.5">
+          <div className="h-2.5 w-full rounded-full bg-gray-200 overflow-hidden">
             <div
-              className="h-2 rounded-full bg-primary transition-all duration-300"
+              className={cn(
+                "h-2.5 rounded-full transition-all duration-200",
+                phase === "processing" ? "bg-green-500 animate-pulse" : "bg-primary"
+              )}
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500 text-right">{progress}%</p>
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>{progressLabel}</span>
+            {phase === "upload" && <span>{progress}%</span>}
+          </div>
         </div>
       )}
 
-      {selectedFile && (
+      {selectedFile && !uploading && (
         <div className="flex gap-2">
-          <Button onClick={handleUpload} loading={uploading}>
+          <Button onClick={handleUpload}>
             Завантажити та конвертувати
           </Button>
-          <Button variant="outline" onClick={() => setSelectedFile(null)} disabled={uploading}>
+          <Button variant="outline" onClick={() => setSelectedFile(null)}>
             Скасувати
           </Button>
         </div>
