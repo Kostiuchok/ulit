@@ -271,7 +271,7 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
       form.append("file", blob, "cover.png");
 
       const uploadRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/books/${bookId}/upload-cover`,
+        `/api/books/${bookId}/upload-cover`,
         { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: form }
       );
 

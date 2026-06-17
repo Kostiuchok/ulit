@@ -34,10 +34,9 @@ export function BuyButton({ bookId, format, price, label, variant = "primary" }:
     setError("");
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
       const token = (session as any)?.apiToken as string | undefined;
 
-      const res = await fetch(`${apiUrl}/api/orders`, {
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

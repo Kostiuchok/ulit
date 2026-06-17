@@ -37,8 +37,7 @@ export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice }: Props) {
     setLoading(true);
     setError("");
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-      const res = await fetch(`${apiUrl}/api/store/books/${encodeURIComponent(bookSlug)}/preview`);
+      const res = await fetch(`/api/store/books/${encodeURIComponent(bookSlug)}/preview`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError(data.error || "Уривок недоступний");

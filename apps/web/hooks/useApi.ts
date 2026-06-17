@@ -2,14 +2,12 @@
 
 import { useSession } from "next-auth/react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 export function useApi() {
   const { data: session } = useSession();
   const token = (session?.user as any)?.apiToken as string | undefined;
 
   async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(`${API_URL}${path}`, {
+    const res = await fetch(path, {
       ...init,
       headers: {
         "Content-Type": "application/json",
@@ -25,7 +23,7 @@ export function useApi() {
   }
 
   async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
-    const res = await fetch(`${API_URL}${path}`, {
+    const res = await fetch(path, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,

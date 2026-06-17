@@ -10,8 +10,6 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 const registerSchema = z
   .object({
     name: z.string().min(2, "Ім'я повинно містити мінімум 2 символи"),
@@ -38,7 +36,7 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setServerError("");
 
-    const res = await fetch(`${API_URL}/api/users/register`, {
+    const res = await fetch("/api/users/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),

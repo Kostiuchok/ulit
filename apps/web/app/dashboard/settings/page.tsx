@@ -11,8 +11,6 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { useApi } from "../../../hooks/useApi";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 const profileSchema = z.object({
   name: z.string().min(2, "Ім'я повинно містити мінімум 2 символи"),
   slug: z
