@@ -217,6 +217,23 @@ const token = (session.data?.user as any)?.apiToken;
 headers: { Authorization: `Bearer ${token}` }
 ```
 
+### T-1703 — 500 Internal Server Error на `/api/books`, `/api/users/me`, `/api/users/me/avatar`
+
+**Помилки** (після того як авторизація буде виправлена — T-1701/T-1702):
+```
+/api/books             → 500
+/api/users/me          → 500
+/api/users/me/avatar   → 500
+```
+**Діагностика**: перевірити `docker logs knyha-api --tail=100` — 500 означає виняток на сервері (Prisma, MinIO, або некоректне тіло запиту).
+- [ ] **T-1703** Дослідити логи API при кожному запиті; виправити серверні помилки (найімовірніше: Prisma query crash або відсутній MinIO bucket)
+
+### T-1704 — Авто-генерація slug з імені автора на `/dashboard/settings`
+
+**Поведінка**: при введенні імені автора в полі "Ім'я" — поле slug автоматично заповнюється транслітерованим значенням (uk → latin), в нижньому регістрі, пробіли → `-`.
+**Приклад**: `Іван Франко` → `ivan-franko`
+- [ ] **T-1704** На `settings/page.tsx` — через `watch('name')` (React Hook Form) генерувати slug: транслітерація (бібліотека `transliteration` або власна uk→latin таблиця) + `.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')`; slug залишається редагованим вручну
+
 ---
 
 ## 📜 ФАЗА 12 — Юридика на сайті
