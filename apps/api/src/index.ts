@@ -5,6 +5,7 @@ import multipart from "@fastify/multipart";
 import formbody from "@fastify/formbody";
 import rateLimit from "@fastify/rate-limit";
 import { AppError } from "./errors/AppError";
+import { prisma } from "./lib/prisma";
 import { registerRoute } from "./modules/auth/register";
 import { loginRoute } from "./modules/auth/login";
 import { meRoute } from "./modules/auth/me";
@@ -73,6 +74,18 @@ async function bootstrap() {
   await app.register(ordersRoutes);
   await app.register(liqpayRoutes);
   await app.register(adminRoutes);
+
+  // Auto-promote ADMIN_EMAIL to ADMIN role (safe: only upgrades AUTHOR, never downgrades)
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (adminEmail) {
+    const result = await prisma.user.updateMany({
+      where: { email: adminEmail, role: "AUTHOR" },
+      data: { role: "ADMIN" },
+    });
+    if (result.count > 0) {
+      app.log.info(`Promoted ${adminEmail} to ADMIN`);
+    }
+  }
 
   // Email worker runs in the API process
   startEmailWorker();
