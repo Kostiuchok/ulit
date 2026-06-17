@@ -170,6 +170,21 @@ export default function BookDetailPage() {
             </div>
           </div>
 
+          {/* Preview button — shown when PDF ready */}
+          {book?.pdfUrl && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold">Перегляд книги</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Перегляньте як виглядатимуть сторінки</p>
+              </div>
+              <Link href={`/dashboard/books/${id}/preview`}>
+                <Button variant="outline" size="sm">
+                  👁 Переглянути
+                </Button>
+              </Link>
+            </div>
+          )}
+
           {/* DOCX upload */}
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <h2 className="text-base font-semibold mb-4">Файл рукопису (.docx)</h2>

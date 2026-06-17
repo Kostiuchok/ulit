@@ -103,6 +103,7 @@ model Book {
   genre                String?
   language             String               @default("uk")
   pageCount            Int?
+  pagesGeneratedAt     DateTime?
   previewStart         Int?
   previewEnd           Int?
   distributionStrategy DistributionStrategy @default(WIDE)
