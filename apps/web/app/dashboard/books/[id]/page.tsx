@@ -42,6 +42,50 @@ const GENRES = [
   "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
 ];
 
+function StepRow({
+  num,
+  done,
+  label,
+  hint,
+  action,
+}: {
+  num: number;
+  done: boolean;
+  label: string;
+  hint?: string;
+  action?: { label: string; href: string };
+}) {
+  return (
+    <div className="flex items-start gap-3 py-3 border-b last:border-0">
+      <div
+        className={cn(
+          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+          done
+            ? "bg-green-100 text-green-700"
+            : "bg-gray-100 text-gray-400"
+        )}
+      >
+        {done ? "✓" : num}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={cn("text-sm font-medium", done ? "text-gray-700" : "text-gray-500")}>
+          {label}
+        </p>
+        {hint && !done && (
+          <p className="text-xs text-gray-400 mt-0.5">{hint}</p>
+        )}
+      </div>
+      {!done && action && (
+        <Link href={action.href}>
+          <Button variant="outline" size="sm" className="shrink-0">
+            {action.label} →
+          </Button>
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -123,6 +167,14 @@ export default function BookDetailPage() {
 
   const status = STATUS_LABELS[book?.status] ?? STATUS_LABELS.DRAFT;
 
+  // Publication checklist conditions
+  const hasManuscript = !!book?.originalDocxUrl;
+  const hasConversion = !!book?.pdfUrl;
+  const hasCover = !!book?.coverUrl;
+  const hasMetadata = !!(book?.description && (book?.priceEbook || book?.pricePrint));
+  const isProcessing = book?.status === "PROCESSING";
+  const canPublish = hasManuscript && hasConversion && hasCover && !isProcessing;
+
   return (
     <div className="p-8">
       <div className="max-w-3xl mx-auto">
@@ -146,12 +198,24 @@ export default function BookDetailPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Cover placeholder */}
+          {/* ── STEP 1: Cover ── */}
           <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold mb-4">Обкладинка</h2>
+            <div className="flex items-center gap-2 mb-4">
+              <span className={cn(
+                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                hasCover ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+              )}>
+                {hasCover ? "✓" : "1"}
+              </span>
+              <h2 className="text-base font-semibold">Обкладинка</h2>
+            </div>
             <div className="flex items-center gap-4">
               {book?.coverUrl ? (
-                <img src={`${book.coverUrl.split("?")[0]}?t=${mountTime}`} alt="" className="h-36 w-28 rounded-md object-cover" />
+                <img
+                  src={`${book.coverUrl.split("?")[0]}?t=${mountTime}`}
+                  alt=""
+                  className="h-36 w-28 rounded-md object-cover shadow"
+                />
               ) : (
                 <div className="flex h-36 w-28 items-center justify-center rounded-md bg-gray-100 text-4xl">
                   📖
@@ -159,54 +223,84 @@ export default function BookDetailPage() {
               )}
               <div>
                 <p className="text-sm text-gray-500 mb-2">
-                  Створіть або завантажте обкладинку 1800×2700 px (2:3, 300 DPI).
+                  {hasCover
+                    ? "Обкладинку додано. Можна редагувати."
+                    : "Створіть або завантажте обкладинку 1800×2700 px (2:3, 300 DPI)."}
                 </p>
                 <Link href={`/dashboard/books/${id}/cover`}>
                   <Button variant="outline" size="sm">
-                    Редагувати обкладинку
+                    {hasCover ? "Редагувати обкладинку" : "Додати обкладинку →"}
                   </Button>
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* Preview button — shown when PDF ready */}
-          {book?.pdfUrl && (
-            <div className="rounded-xl border bg-white p-6 shadow-sm flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold">Перегляд книги</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Перегляньте як виглядатимуть сторінки</p>
-              </div>
-              <Link href={`/dashboard/books/${id}/preview`}>
-                <Button variant="outline" size="sm">
-                  👁 Переглянути
-                </Button>
-              </Link>
-            </div>
-          )}
-
-          {/* DOCX upload */}
+          {/* ── STEP 2: Manuscript ── */}
           <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold mb-4">Файл рукопису (.docx)</h2>
+            <div className="flex items-center gap-2 mb-4">
+              <span className={cn(
+                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                hasManuscript ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+              )}>
+                {hasManuscript ? "✓" : "2"}
+              </span>
+              <h2 className="text-base font-semibold">Рукопис (.docx)</h2>
+            </div>
             <DocxUploader
               bookId={id}
               currentDocxUrl={book?.originalDocxUrl}
               onUploadSuccess={() => {
                 setConversionActive(true);
-                setBook((b: any) => b ? { ...b, status: "PROCESSING", originalDocxUrl: "uploaded" } : b);
+                setBook((b: any) => b ? { ...b, status: "PROCESSING", originalDocxUrl: "uploaded", pdfUrl: null, pagesGeneratedAt: null } : b);
               }}
             />
           </div>
 
-          {/* Conversion status */}
-          <ConversionStatus bookId={id} active={conversionActive} />
+          {/* ── Conversion status (auto-shown during/after upload) ── */}
+          <ConversionStatus
+            bookId={id}
+            active={conversionActive}
+            onDone={(newStatus) => {
+              setBook((b: any) => b ? { ...b, status: newStatus } : b);
+            }}
+          />
 
-          {/* Distribution */}
-          <DistributionStatus bookId={id} bookStatus={book?.status ?? "DRAFT"} />
+          {/* ── STEP 3: Preview ── */}
+          {hasConversion && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                    3
+                  </span>
+                  <div>
+                    <h2 className="text-base font-semibold">Перегляд книги</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Перевірте верстку, сторінки та обкладинку перед публікацією
+                    </p>
+                  </div>
+                </div>
+                <Link href={`/dashboard/books/${id}/preview`}>
+                  <Button size="sm">
+                    👁 Переглянути книгу
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
 
-          {/* Metadata form */}
+          {/* ── STEP 4: Metadata ── */}
           <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold mb-5">Метадані</h2>
+            <div className="flex items-center gap-2 mb-5">
+              <span className={cn(
+                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                hasMetadata ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+              )}>
+                {hasMetadata ? "✓" : "4"}
+              </span>
+              <h2 className="text-base font-semibold">Метадані та ціни</h2>
+            </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div className="space-y-1.5">
                 <Label htmlFor="title">Назва *</Label>
@@ -221,6 +315,7 @@ export default function BookDetailPage() {
                   {...register("description")}
                   rows={4}
                   className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                  placeholder="Розкажіть читачам про вашу книгу…"
                 />
               </div>
 
@@ -256,13 +351,31 @@ export default function BookDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="priceEbook">Ціна е-книги (грн)</Label>
-                  <Input id="priceEbook" type="number" step="0.01" min="0" {...register("priceEbook")} placeholder="49.99" />
-                  {errors.priceEbook && <p className="text-xs text-red-500">{errors.priceEbook.message}</p>}
+                  <Input
+                    id="priceEbook"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...register("priceEbook")}
+                    placeholder="49.99"
+                  />
+                  {errors.priceEbook && (
+                    <p className="text-xs text-red-500">{errors.priceEbook.message}</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="pricePrint">Ціна друку (грн)</Label>
-                  <Input id="pricePrint" type="number" step="0.01" min="0" {...register("pricePrint")} placeholder="199.99" />
-                  {errors.pricePrint && <p className="text-xs text-red-500">{errors.pricePrint.message}</p>}
+                  <Input
+                    id="pricePrint"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...register("pricePrint")}
+                    placeholder="199.99"
+                  />
+                  {errors.pricePrint && (
+                    <p className="text-xs text-red-500">{errors.pricePrint.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -298,15 +411,59 @@ export default function BookDetailPage() {
             </div>
           )}
 
-          {/* Publish */}
+          {/* Distribution */}
+          <DistributionStatus bookId={id} bookStatus={book?.status ?? "DRAFT"} />
+
+          {/* ── STEP 5: Publish ── */}
           {book?.status !== "PUBLISHED" && (
             <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <h2 className="text-base font-semibold mb-4">Публікація</h2>
-              <PublishButton
-                bookId={id}
-                bookStatus={book?.status ?? "DRAFT"}
-                onPublished={() => setBook((b: any) => b ? { ...b, status: "PUBLISHED" } : b)}
-              />
+              <div className="flex items-center gap-2 mb-5">
+                <span className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                  canPublish ? "bg-gray-100 text-gray-500" : "bg-gray-100 text-gray-300"
+                )}>
+                  5
+                </span>
+                <h2 className="text-base font-semibold">Публікація</h2>
+              </div>
+
+              {/* Checklist of what's missing */}
+              {!canPublish && (
+                <div className="mb-5 space-y-0 divide-y rounded-lg border bg-gray-50 px-4">
+                  <StepRow
+                    num={1}
+                    done={hasManuscript}
+                    label="Завантажено рукопис (.docx)"
+                    hint="Перетягніть .docx файл у блок «Рукопис» вище"
+                  />
+                  <StepRow
+                    num={2}
+                    done={hasConversion}
+                    label="Конвертацію завершено"
+                    hint={isProcessing ? "Зачекайте завершення конвертації…" : "Буде автоматично після завантаження"}
+                  />
+                  <StepRow
+                    num={3}
+                    done={hasCover}
+                    label="Додано обкладинку"
+                    hint="Обкладинка потрібна для публікації в магазині"
+                    action={{ label: "Редагувати", href: `/dashboard/books/${id}/cover` }}
+                  />
+                </div>
+              )}
+
+              {isProcessing ? (
+                <div className="flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+                  Конвертація в процесі — кнопка публікації з'явиться автоматично
+                </div>
+              ) : (
+                <PublishButton
+                  bookId={id}
+                  bookStatus={book?.status ?? "DRAFT"}
+                  onPublished={() => setBook((b: any) => b ? { ...b, status: "PUBLISHED" } : b)}
+                />
+              )}
             </div>
           )}
         </div>

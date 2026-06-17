@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
 
@@ -14,6 +14,7 @@ interface ConversionJob {
 interface Props {
   bookId: string;
   active: boolean;
+  onDone?: (bookStatus: string) => void;
 }
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -31,10 +32,11 @@ const STATUS_CONFIG = {
   FAILED: { icon: "✗", label: "Помилка", className: "text-red-500" },
 };
 
-export function ConversionStatus({ bookId, active }: Props) {
+export function ConversionStatus({ bookId, active, onDone }: Props) {
   const { apiFetch } = useApi();
   const [jobs, setJobs] = useState<ConversionJob[]>([]);
   const [bookStatus, setBookStatus] = useState<string>("");
+  const notifiedRef = useRef(false);
 
   const poll = useCallback(async () => {
     try {
@@ -43,13 +45,20 @@ export function ConversionStatus({ bookId, active }: Props) {
       );
       setJobs(data.jobs);
       setBookStatus(data.bookStatus);
+
+      const allDone = data.jobs.every((j) => j.status === "DONE" || j.status === "FAILED");
+      if (allDone && !notifiedRef.current) {
+        notifiedRef.current = true;
+        onDone?.(data.bookStatus);
+      }
     } catch {
       // ignore polling errors
     }
-  }, [bookId]);
+  }, [bookId, onDone]);
 
   useEffect(() => {
     if (!active) return;
+    notifiedRef.current = false;
     poll();
     const id = setInterval(poll, 3000);
     return () => clearInterval(id);
