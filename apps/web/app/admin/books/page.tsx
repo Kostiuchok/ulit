@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 interface Book {
   id: string;
@@ -135,13 +134,27 @@ export default function AdminBooksPage() {
   }
 
   async function handleExport(id: string) {
-    const session = (window as any).__NEXT_SESSION_TOKEN;
-    const tokenKey = "apiToken";
-    // Get token from sessionStorage/localStorage as used by useApi
-    const token = (document as any).__nextAuthToken;
-    const apiUrl = API_URL;
-    // Fallback: open the URL (browser will prompt download if authenticated via cookie)
-    window.open(`${apiUrl}/api/admin/books/${id}/export-package`, "_blank");
+    setActionLoading(id + "_zip");
+    try {
+      const res = await fetch(`/api/admin/books/${id}/export-package`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `knyha-${id.slice(0, 8)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Помилка завантаження ZIP");
+    } finally {
+      setActionLoading(null);
+    }
   }
 
   return (
@@ -273,10 +286,11 @@ export default function AdminBooksPage() {
                         )}
                         <button
                           onClick={() => handleExport(book.id)}
-                          className="rounded-md border px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                          disabled={actionLoading === book.id + "_zip"}
+                          className="rounded-md border px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                           title="Завантажити ZIP"
                         >
-                          ⬇ ZIP
+                          {actionLoading === book.id + "_zip" ? "…" : "⬇ ZIP"}
                         </button>
                       </div>
                     </td>
