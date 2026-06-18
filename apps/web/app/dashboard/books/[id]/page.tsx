@@ -145,7 +145,7 @@ export default function BookDetailPage() {
       });
       setBook(updated);
       setSaved(true);
-      setFixedBlocks((prev) => new Set([...prev, 4]));
+      setFixedBlocks((prev) => { const s = new Set(prev); s.add(4); return s; });
       setTimeout(() => setSaved(false), 3000);
     } catch (e: any) {
       setServerError(e.message || "Помилка збереження");
