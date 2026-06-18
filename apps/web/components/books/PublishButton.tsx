@@ -65,18 +65,8 @@ export function PublishButton({ bookId, bookStatus, onPublished }: Props) {
     try {
       await apiFetch(`/api/books/${bookId}/publish`, { method: "POST" });
       onPublished?.();
-      router.push(`/dashboard/books/${bookId}/published`);
     } catch (e: any) {
-      if (e.message?.includes("errors")) {
-        try {
-          const parsed = JSON.parse(e.message);
-          setErrors(parsed.errors ?? []);
-        } catch {
-          setErrors([{ field: "general", message: e.message }]);
-        }
-      } else {
-        setErrors([{ field: "general", message: e.message || "Помилка публікації" }]);
-      }
+      setErrors([{ field: "general", message: e.message || "Помилка публікації" }]);
       setShowConfirm(false);
     } finally {
       setLoading(false);
