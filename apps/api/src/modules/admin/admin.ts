@@ -238,9 +238,20 @@ export async function adminRoutes(app: FastifyInstance) {
       const book = await prisma.book.findUnique({ where: { id }, select: BOOK_ADMIN_SELECT });
       if (!book) throw AppError.notFound("Book");
 
-      const archive = archiver("zip", { zlib: { level: 6 } });
+      reply.hijack();
+      reply.raw.setHeader("Content-Type", "application/zip");
+      reply.raw.setHeader(
+        "Content-Disposition",
+        `attachment; filename="knyha-${book.id.slice(0, 8)}.zip"`
+      );
 
-      // metadata.json
+      const archive = archiver("zip", { zlib: { level: 6 } });
+      archive.on("error", (err) => {
+        app.log.error(err, "archiver error");
+        if (!reply.raw.writableEnded) reply.raw.end();
+      });
+      archive.pipe(reply.raw);
+
       archive.append(
         JSON.stringify({
           id: book.id, title: book.title, isbn: book.isbn,
@@ -252,7 +263,6 @@ export async function adminRoutes(app: FastifyInstance) {
         { name: "metadata.json" }
       );
 
-      // metadata.csv
       const csv = [
         "field,value",
         `title,"${book.title}"`,
@@ -267,7 +277,6 @@ export async function adminRoutes(app: FastifyInstance) {
       ].join("\n");
       archive.append(csv, { name: "metadata.csv" });
 
-      // Download files from MinIO and add to ZIP
       const filesToAdd: { objectName: string; zipName: string }[] = [];
       if (book.epubUrl) filesToAdd.push({ objectName: book.epubUrl, zipName: "book.epub" });
       if (book.fb2Url) filesToAdd.push({ objectName: book.fb2Url, zipName: "book.fb2" });
@@ -283,14 +292,11 @@ export async function adminRoutes(app: FastifyInstance) {
           const stream = await minio.getObject(BUCKET, f.objectName);
           archive.append(stream as unknown as Readable, { name: f.zipName });
         } catch {
-          // skip missing files silently
+          // skip missing files
         }
       }
 
-      reply.header("Content-Type", "application/zip");
-      reply.header("Content-Disposition", `attachment; filename="knyha-${book.id.slice(0, 8)}.zip"`);
-      archive.finalize();
-      return reply.send(archive);
+      await archive.finalize();
     }
   );
 
