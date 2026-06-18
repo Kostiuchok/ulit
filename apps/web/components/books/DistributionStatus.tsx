@@ -26,12 +26,17 @@ interface DistributionInfo {
 
 const SERVICE_LABELS = { d2d: "Draft2Digital", kdp: "Amazon KDP", google: "Google Play Books" };
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string }> = {
-  NOT_SENT: { label: "Не надіслано", dot: "bg-gray-300" },
-  SENT: { label: "Надіслано", dot: "bg-blue-500" },
-  PUBLISHED: { label: "Опубліковано", dot: "bg-green-500" },
-  ERROR: { label: "Помилка", dot: "bg-red-500" },
-};
+function getStatusConfig(status: string, bookPublished: boolean): { label: string; dot: string } {
+  if (status === "NOT_SENT") return bookPublished
+    ? { label: "Очікує відправки", dot: "bg-yellow-400" }
+    : { label: "Не надіслано", dot: "bg-gray-300" };
+  const map: Record<string, { label: string; dot: string }> = {
+    SENT: { label: "Надіслано", dot: "bg-blue-500" },
+    PUBLISHED: { label: "Опубліковано", dot: "bg-green-500" },
+    ERROR: { label: "Помилка", dot: "bg-red-500" },
+  };
+  return map[status] ?? { label: "Не надіслано", dot: "bg-gray-300" };
+}
 
 interface Props {
   bookId: string;
@@ -115,6 +120,26 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
         )}
       </div>
 
+      {/* Next-step banner for published books */}
+      {bookStatus === "PUBLISHED" && (
+        <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800 space-y-1">
+          <p className="font-medium">✓ Книга опублікована — що відбувається далі?</p>
+          {isKdpActive ? (
+            <p className="text-blue-700">
+              Ми відправимо її на <strong>Amazon KDP</strong> протягом 2–3 робочих днів.{" "}
+              Draft2Digital та Google Play Books стануть доступні після завершення KDP Select
+              {expiryDate ? <> (до <strong>{expiryDate}</strong>)</> : <> (через 90 дн.)</>}.
+            </p>
+          ) : (
+            <p className="text-blue-700">
+              Ми відправимо книгу на <strong>Draft2Digital</strong>, <strong>Amazon KDP</strong> та{" "}
+              <strong>Google Play Books</strong> протягом 2–3 робочих днів.
+              Ви отримаєте email після розміщення на кожній платформі.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* KDP Select explanation */}
       {isKdpActive && (
         <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 space-y-1">
@@ -143,7 +168,7 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
       {/* Services grid */}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {(Object.entries(info.services) as [keyof typeof SERVICE_LABELS, ServiceInfo][]).map(([key, svc]) => {
-          const cfg = STATUS_CONFIG[svc.status] ?? STATUS_CONFIG.NOT_SENT;
+          const cfg = getStatusConfig(svc.status, bookStatus === "PUBLISHED");
           return (
             <div
               key={key}
