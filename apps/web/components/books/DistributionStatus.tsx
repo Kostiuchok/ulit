@@ -199,7 +199,7 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
 
       {/* Switch actions */}
       {bookStatus === "PUBLISHED" && (
-        <div className="flex gap-2 pt-1">
+        <div className="space-y-3 pt-1">
           {isKdpActive ? (
             <Button
               size="sm"
@@ -213,9 +213,36 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
                 : "Перейти на широке розповсюдження"}
             </Button>
           ) : (
-            <Button size="sm" variant="outline" onClick={enrollKdpSelect} loading={switching}>
-              Зареєструватись у KDP Select
-            </Button>
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-3">
+              <div className="space-y-1.5">
+                <p className="text-sm font-semibold text-blue-900">Що таке KDP Select?</p>
+                <p className="text-sm text-blue-800">
+                  KDP Select — програма Amazon Kindle, яка дає доступ до <strong>Kindle Unlimited</strong> (читачі
+                  платять підписку і читають вашу книгу безкоштовно, а ви отримуєте роялті за сторінки).
+                  Amazon також може просувати книгу в акціях і безкоштовних роздачах.
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                  <div className="rounded-md bg-green-50 border border-green-200 p-2 space-y-1">
+                    <p className="font-semibold text-green-800">✓ Переваги</p>
+                    <p className="text-green-700">Вища ставка роялті на Amazon (до 70%)</p>
+                    <p className="text-green-700">Доступ до Kindle Unlimited</p>
+                    <p className="text-green-700">Участь в акціях Countdown Deals</p>
+                  </div>
+                  <div className="rounded-md bg-red-50 border border-red-200 p-2 space-y-1">
+                    <p className="font-semibold text-red-800">✕ Обмеження</p>
+                    <p className="text-red-700">Ексклюзивність 90 днів: Draft2Digital та Google Play Books будуть заблоковані</p>
+                    <p className="text-red-700">Скасувати не можна до кінця терміну</p>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 pt-0.5">
+                  Після натискання книга стане ексклюзивною на Amazon на <strong>90 днів</strong>.
+                  Після закінчення терміну ви зможете перейти на широке розповсюдження.
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={enrollKdpSelect} loading={switching}>
+                Зареєструватись у KDP Select
+              </Button>
+            </div>
           )}
         </div>
       )}
