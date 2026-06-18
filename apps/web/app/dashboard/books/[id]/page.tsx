@@ -26,7 +26,7 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
 };
 
 const editSchema = z.object({
-  title: z.string().min(1, "Назва обов'язкова").max(255),
+  title: z.string().min(3, "Назва має містити щонайменше 3 символи").max(255),
   description: z.string().max(5000).optional(),
   genre: z.string().max(100).optional(),
   language: z.string().length(2),
@@ -101,8 +101,12 @@ export default function BookDetailPage() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<EditForm>({ resolver: zodResolver(editSchema) });
+
+  const titleValue = watch("title") ?? "";
+  const descValue = watch("description") ?? "";
 
   useEffect(() => {
     if (!token) return;
@@ -175,6 +179,32 @@ export default function BookDetailPage() {
   const isProcessing = book?.status === "PROCESSING";
   const canPublish = hasManuscript && hasConversion && hasCover && !isProcessing;
 
+  // Which blocks the admin flagged in the rejection note
+  const rejectedBlocks = (() => {
+    if (book?.moderationStatus !== "REJECTED" || !book?.moderationNote) return new Set<number>();
+    const n = book.moderationNote.toLowerCase();
+    const s = new Set<number>();
+    if (/обкладин/.test(n)) s.add(1);
+    if (/рукопис|docx|файл|конверт/.test(n)) s.add(2);
+    if (/назв|опис|жанр|мов|ціна|price|isbn|метадан/.test(n)) s.add(4);
+    return s;
+  })();
+
+  function blockCls(num: number, hasError = false) {
+    const flagged = rejectedBlocks.has(num) || hasError;
+    return cn("rounded-xl bg-white p-6 shadow-sm", flagged ? "border-2 border-red-400" : "border");
+  }
+
+  function stepCircle(num: number, done: boolean, hasError = false) {
+    const flagged = rejectedBlocks.has(num) || hasError;
+    return cn(
+      "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+      done && !flagged ? "bg-green-100 text-green-700"
+        : flagged ? "bg-red-100 text-red-700"
+        : "bg-gray-100 text-gray-500"
+    );
+  }
+
   return (
     <div className="p-8">
       <div className="max-w-3xl mx-auto">
@@ -217,13 +247,10 @@ export default function BookDetailPage() {
           )}
 
           {/* ── STEP 1: Cover ── */}
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <div className={blockCls(1, !hasCover && book?.moderationStatus === "REJECTED")}>
             <div className="flex items-center gap-2 mb-4">
-              <span className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                hasCover ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-              )}>
-                {hasCover ? "✓" : "1"}
+              <span className={stepCircle(1, hasCover, !hasCover && book?.moderationStatus === "REJECTED")}>
+                {hasCover && !rejectedBlocks.has(1) ? "✓" : "1"}
               </span>
               <h2 className="text-base font-semibold">Обкладинка</h2>
             </div>
@@ -255,13 +282,10 @@ export default function BookDetailPage() {
           </div>
 
           {/* ── STEP 2: Manuscript ── */}
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <div className={blockCls(2, !hasManuscript && book?.moderationStatus === "REJECTED")}>
             <div className="flex items-center gap-2 mb-4">
-              <span className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                hasManuscript ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-              )}>
-                {hasManuscript ? "✓" : "2"}
+              <span className={stepCircle(2, hasManuscript, !hasManuscript && book?.moderationStatus === "REJECTED")}>
+                {hasManuscript && !rejectedBlocks.has(2) ? "✓" : "2"}
               </span>
               <h2 className="text-base font-semibold">Рукопис (.docx)</h2>
             </div>
@@ -286,12 +310,10 @@ export default function BookDetailPage() {
 
           {/* ── STEP 3: Preview ── */}
           {hasConversion && (
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <div className={blockCls(3)}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                    3
-                  </span>
+                  <span className={stepCircle(3, false)}>3</span>
                   <div>
                     <h2 className="text-base font-semibold">Перегляд книги</h2>
                     <p className="text-xs text-gray-500 mt-0.5">
@@ -309,31 +331,47 @@ export default function BookDetailPage() {
           )}
 
           {/* ── STEP 4: Metadata ── */}
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <div className={blockCls(4, (titleValue.length > 0 && titleValue.length < 3))}>
             <div className="flex items-center gap-2 mb-5">
-              <span className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                hasMetadata ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-              )}>
-                {hasMetadata ? "✓" : "4"}
+              <span className={stepCircle(4, hasMetadata, titleValue.length > 0 && titleValue.length < 3)}>
+                {hasMetadata && !rejectedBlocks.has(4) && !(titleValue.length > 0 && titleValue.length < 3) ? "✓" : "4"}
               </span>
               <h2 className="text-base font-semibold">Метадані та ціни</h2>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div className="space-y-1.5">
-                <Label htmlFor="title">Назва *</Label>
-                <Input id="title" {...register("title")} />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="title">Назва *</Label>
+                  <span className={cn("text-xs", titleValue.length > 0 && titleValue.length < 3 ? "text-red-500 font-medium" : "text-gray-400")}>
+                    {titleValue.length}/255 {titleValue.length > 0 && titleValue.length < 3 && "(мін. 3)"}
+                  </span>
+                </div>
+                <Input
+                  id="title"
+                  {...register("title")}
+                  className={cn(titleValue.length > 0 && titleValue.length < 3 ? "border-red-400 focus-visible:ring-red-300" : "")}
+                />
                 {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="description">Опис</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">Опис</Label>
+                  <span className={cn("text-xs", descValue.length > 0 && descValue.length < 120 ? "text-amber-600 font-medium" : "text-gray-400")}>
+                    {descValue.length}/5000 {descValue.length > 0 && descValue.length < 120 && `(рекомендовано мін. 120 для платформ)`}
+                  </span>
+                </div>
                 <textarea
                   id="description"
                   {...register("description")}
                   rows={4}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-                  placeholder="Розкажіть читачам про вашу книгу…"
+                  className={cn(
+                    "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
+                    descValue.length > 0 && descValue.length < 120
+                      ? "border-amber-400 focus-visible:ring-amber-300"
+                      : "border-input focus-visible:ring-ring"
+                  )}
+                  placeholder="Розкажіть читачам про вашу книгу… (рекомендовано від 120 символів)"
                 />
               </div>
 
@@ -351,17 +389,27 @@ export default function BookDetailPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="language">Мова</Label>
+                  <Label htmlFor="language">
+                    Мова книги *
+                    <span className="ml-1.5 text-xs font-normal text-gray-400">(потрібна для Amazon, Google Play)</span>
+                  </Label>
                   <select
                     id="language"
                     {...register("language")}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className={cn(
+                      "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      rejectedBlocks.has(4) ? "border-red-400" : "border-input"
+                    )}
                   >
-                    <option value="uk">Українська</option>
-                    <option value="en">English</option>
-                    <option value="de">Deutsch</option>
-                    <option value="fr">Français</option>
-                    <option value="pl">Polski</option>
+                    <option value="uk">🇺🇦 Українська</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="de">🇩🇪 Deutsch</option>
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="pl">🇵🇱 Polski</option>
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="it">🇮🇹 Italiano</option>
+                    <option value="pt">🇵🇹 Português</option>
+                    <option value="ru">Русский</option>
                   </select>
                 </div>
               </div>
