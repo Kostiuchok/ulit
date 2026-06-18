@@ -63,7 +63,7 @@ export function PublishButton({ bookId, bookStatus, onPublished }: Props) {
     setLoading(true);
     setErrors([]);
     try {
-      await apiFetch(`/api/books/${bookId}/publish`, { method: "POST" });
+      await apiFetch(`/api/books/${bookId}/publish`, { method: "POST", body: JSON.stringify({}) });
       onPublished?.();
     } catch (e: any) {
       setErrors([{ field: "general", message: e.message || "Помилка публікації" }]);
