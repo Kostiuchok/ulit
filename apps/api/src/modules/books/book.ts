@@ -82,10 +82,6 @@ export async function bookRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const existing = await assertOwnership(id, request.user.id);
 
-    if (existing.status === "PUBLISHED") {
-      throw new AppError("Published books cannot be edited directly", 400, "BOOK_PUBLISHED");
-    }
-
     const result = patchSchema.safeParse(request.body);
     if (!result.success) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });

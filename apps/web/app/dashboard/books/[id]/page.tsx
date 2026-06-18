@@ -452,7 +452,7 @@ export default function BookDetailPage() {
                 <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>
               )}
 
-              <Button type="submit" loading={isSubmitting} disabled={book?.status === "PUBLISHED"}>
+              <Button type="submit" loading={isSubmitting}>
                 Зберегти зміни
               </Button>
             </form>
