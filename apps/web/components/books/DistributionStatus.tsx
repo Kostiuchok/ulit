@@ -115,9 +115,27 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
         )}
       </div>
 
+      {/* KDP Select explanation */}
+      {isKdpActive && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 space-y-1">
+          <p className="font-medium">Що таке KDP Select?</p>
+          <p className="text-amber-700">
+            KDP Select — програма Amazon, яка вимагає <strong>ексклюзивного</strong> розміщення: поки вона активна,
+            книга не може продаватись на інших платформах (Draft2Digital, Google Play Books).
+            Натомість Amazon надає підвищені роялті та доступ до Kindle Unlimited.
+          </p>
+          {expiryDate && (
+            <p className="text-amber-700">
+              Ексклюзивність діє до <strong>{expiryDate}</strong>.
+              Після цього ви зможете перейти на широке розповсюдження.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* KDP Select expiry warning */}
       {isKdpActive && info.kdpSelectDaysLeft != null && info.kdpSelectDaysLeft <= 14 && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-700">
+        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
           ⚠ KDP Select закінчується через {info.kdpSelectDaysLeft} дн. Ви отримаєте email за 7 днів до закінчення.
         </div>
       )}
@@ -139,7 +157,11 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
                 <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
               </div>
               <p className="text-xs text-gray-500">{cfg.label}</p>
-              {svc.blocked && <p className="text-xs text-amber-600 mt-1">Заблоковано KDP Select</p>}
+              {svc.blocked && (
+                <p className="text-xs text-amber-600 mt-1" title="Недоступно до завершення 90-денного терміну KDP Select">
+                  🔒 Недоступно (KDP Select)
+                </p>
+              )}
               {svc.sentAt && (
                 <p className="text-xs text-gray-400 mt-1">
                   {new Date(svc.sentAt).toLocaleDateString("uk-UA")}
