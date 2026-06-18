@@ -96,6 +96,7 @@ export default function BookDetailPage() {
   const [serverError, setServerError] = useState("");
   const [conversionActive, setConversionActive] = useState(false);
   const [mountTime] = useState(() => Date.now());
+  const [fixedBlocks, setFixedBlocks] = useState<Set<number>>(new Set());
 
   const {
     register,
@@ -144,6 +145,7 @@ export default function BookDetailPage() {
       });
       setBook(updated);
       setSaved(true);
+      setFixedBlocks((prev) => new Set([...prev, 4]));
       setTimeout(() => setSaved(false), 3000);
     } catch (e: any) {
       setServerError(e.message || "Помилка збереження");
@@ -191,12 +193,12 @@ export default function BookDetailPage() {
   })();
 
   function blockCls(num: number, hasError = false) {
-    const flagged = rejectedBlocks.has(num) || hasError;
+    const flagged = (rejectedBlocks.has(num) && !fixedBlocks.has(num)) || hasError;
     return cn("rounded-xl bg-white p-6 shadow-sm", flagged ? "border-2 border-red-400" : "border");
   }
 
   function stepCircle(num: number, done: boolean, hasError = false) {
-    const flagged = rejectedBlocks.has(num) || hasError;
+    const flagged = (rejectedBlocks.has(num) && !fixedBlocks.has(num)) || hasError;
     return cn(
       "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
       done && !flagged ? "bg-green-100 text-green-700"
