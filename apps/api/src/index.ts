@@ -53,9 +53,9 @@ async function bootstrap() {
     if (error instanceof AppError) {
       return reply.status(error.statusCode).send({ error: error.message, code: error.code });
     }
-    const status = (error as any).statusCode as number | undefined;
-    if (status && status < 500) {
-      return reply.status(status).send({ error: error.message, code: (error as any).code ?? "ERROR" });
+    const err = error as Error & { statusCode?: number; code?: string };
+    if (err.statusCode && err.statusCode < 500) {
+      return reply.status(err.statusCode).send({ error: err.message, code: err.code ?? "ERROR" });
     }
     app.log.error(error);
     return reply.status(500).send({ error: "Internal server error", code: "INTERNAL_ERROR" });
