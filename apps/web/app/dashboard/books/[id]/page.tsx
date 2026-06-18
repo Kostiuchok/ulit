@@ -198,6 +198,24 @@ export default function BookDetailPage() {
         </div>
 
         <div className="space-y-6">
+          {/* ── Rejection banner ── */}
+          {book?.moderationStatus === "REJECTED" && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-red-600 text-lg">✕</span>
+                <p className="font-semibold text-red-800">Книгу відхилено модератором</p>
+              </div>
+              {book.moderationNote ? (
+                <p className="text-sm text-red-700 whitespace-pre-wrap">{book.moderationNote}</p>
+              ) : (
+                <p className="text-sm text-red-600">Причину не вказано. Зверніться до підтримки.</p>
+              )}
+              <p className="text-xs text-red-500">
+                Виправте зазначені недоліки та надішліть книгу на публікацію повторно.
+              </p>
+            </div>
+          )}
+
           {/* ── STEP 1: Cover ── */}
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">

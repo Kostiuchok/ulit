@@ -177,11 +177,14 @@ export async function adminRoutes(app: FastifyInstance) {
 
       const updated = await prisma.book.update({
         where: { id },
-        data: { moderationStatus: "REJECTED", status: "DRAFT" },
+        data: {
+          moderationStatus: "REJECTED",
+          status: "DRAFT",
+          moderationNote: body.reason ?? null,
+        },
         select: BOOK_ADMIN_SELECT,
       });
 
-      // Log rejection (email would go here in prod)
       app.log.info(
         { bookId: id, reason: body.reason, author: book.author.email },
         "Book rejected"
