@@ -4,7 +4,9 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { requireAdmin } from "../../lib/jwt.middleware";
 import { getSignedUrl } from "../../services/storage.service";
-import archiver = require("archiver");
+import type { Archiver as ArchiverType } from "archiver";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<string, unknown>) => ArchiverType };
 import { Readable, PassThrough } from "stream";
 import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
@@ -238,7 +240,7 @@ export async function adminRoutes(app: FastifyInstance) {
       const book = await prisma.book.findUnique({ where: { id }, select: BOOK_ADMIN_SELECT });
       if (!book) throw AppError.notFound("Book");
 
-      const archive = archiver("zip", { zlib: { level: 6 } });
+      const archive = new ZipArchive({ zlib: { level: 6 } });
       const pass = new PassThrough();
       const bufferPromise = new Promise<Buffer>((resolve, reject) => {
         const chunks: Buffer[] = [];
@@ -246,7 +248,7 @@ export async function adminRoutes(app: FastifyInstance) {
         pass.on("end", () => resolve(Buffer.concat(chunks)));
         pass.on("error", reject);
       });
-      archive.on("error", (err) => pass.destroy(err));
+      archive.on("error", (err: Error) => pass.destroy(err));
       archive.pipe(pass);
 
       archive.append(
@@ -341,7 +343,7 @@ export async function adminRoutes(app: FastifyInstance) {
         select: BOOK_ADMIN_SELECT,
       });
 
-      const archive = archiver("zip", { zlib: { level: 6 } });
+      const archive = new ZipArchive({ zlib: { level: 6 } });
       reply.raw.setHeader("Content-Type", "application/zip");
       reply.raw.setHeader("Content-Disposition", `attachment; filename="knyha-bulk.zip"`);
       archive.pipe(reply.raw);
