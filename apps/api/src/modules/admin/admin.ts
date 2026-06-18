@@ -4,8 +4,8 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { requireAdmin } from "../../lib/jwt.middleware";
 import { getSignedUrl } from "../../services/storage.service";
-import archiver from "archiver";
-import { Readable } from "stream";
+import archiver = require("archiver");
+import { Readable, PassThrough } from "stream";
 import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
 
@@ -238,19 +238,16 @@ export async function adminRoutes(app: FastifyInstance) {
       const book = await prisma.book.findUnique({ where: { id }, select: BOOK_ADMIN_SELECT });
       if (!book) throw AppError.notFound("Book");
 
-      reply.hijack();
-      reply.raw.setHeader("Content-Type", "application/zip");
-      reply.raw.setHeader(
-        "Content-Disposition",
-        `attachment; filename="knyha-${book.id.slice(0, 8)}.zip"`
-      );
-
       const archive = archiver("zip", { zlib: { level: 6 } });
-      archive.on("error", (err) => {
-        app.log.error(err, "archiver error");
-        if (!reply.raw.writableEnded) reply.raw.end();
+      const pass = new PassThrough();
+      const bufferPromise = new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        pass.on("data", (c: Buffer) => chunks.push(c));
+        pass.on("end", () => resolve(Buffer.concat(chunks)));
+        pass.on("error", reject);
       });
-      archive.pipe(reply.raw);
+      archive.on("error", (err) => pass.destroy(err));
+      archive.pipe(pass);
 
       archive.append(
         JSON.stringify({
@@ -296,7 +293,13 @@ export async function adminRoutes(app: FastifyInstance) {
         }
       }
 
-      await archive.finalize();
+      archive.finalize();
+      const buffer = await bufferPromise;
+
+      reply.header("Content-Type", "application/zip");
+      reply.header("Content-Disposition", `attachment; filename="knyha-${book.id.slice(0, 8)}.zip"`);
+      reply.header("Content-Length", String(buffer.length));
+      return reply.send(buffer);
     }
   );
 
