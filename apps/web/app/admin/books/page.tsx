@@ -140,7 +140,10 @@ export default function AdminBooksPage() {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!res.ok) throw new Error("Export failed");
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ""}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -150,8 +153,8 @@ export default function AdminBooksPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch {
-      alert("Помилка завантаження ZIP");
+    } catch (e: any) {
+      alert(`Помилка завантаження ZIP: ${e.message}`);
     } finally {
       setActionLoading(null);
     }

@@ -240,28 +240,17 @@ export async function adminRoutes(app: FastifyInstance) {
 
       const archive = archiver("zip", { zlib: { level: 6 } });
 
-      reply.raw.setHeader("Content-Type", "application/zip");
-      reply.raw.setHeader(
-        "Content-Disposition",
-        `attachment; filename="knyha-${book.id.slice(0, 8)}.zip"`
-      );
-      archive.pipe(reply.raw);
-
       // metadata.json
-      const meta = {
-        id: book.id,
-        title: book.title,
-        isbn: book.isbn,
-        author: book.author.name,
-        genre: book.genre,
-        language: book.language,
-        priceEbook: book.priceEbook,
-        pricePrint: book.pricePrint,
-        pageCount: book.pageCount,
-        publishedAt: book.publishedAt,
-        distributionStrategy: book.distributionStrategy,
-      };
-      archive.append(JSON.stringify(meta, null, 2), { name: "metadata.json" });
+      archive.append(
+        JSON.stringify({
+          id: book.id, title: book.title, isbn: book.isbn,
+          author: book.author.name, genre: book.genre, language: book.language,
+          priceEbook: book.priceEbook, pricePrint: book.pricePrint,
+          pageCount: book.pageCount, publishedAt: book.publishedAt,
+          distributionStrategy: book.distributionStrategy,
+        }, null, 2),
+        { name: "metadata.json" }
+      );
 
       // metadata.csv
       const csv = [
@@ -294,12 +283,14 @@ export async function adminRoutes(app: FastifyInstance) {
           const stream = await minio.getObject(BUCKET, f.objectName);
           archive.append(stream as unknown as Readable, { name: f.zipName });
         } catch {
-          // skip missing files
+          // skip missing files silently
         }
       }
 
-      await archive.finalize();
-      return reply;
+      reply.header("Content-Type", "application/zip");
+      reply.header("Content-Disposition", `attachment; filename="knyha-${book.id.slice(0, 8)}.zip"`);
+      archive.finalize();
+      return reply.send(archive);
     }
   );
 
