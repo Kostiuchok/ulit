@@ -591,7 +591,7 @@ hint: You have divergent branches and need to specify how to reconcile them.
 **Рішення на VPS**:
 ```bash
 git fetch origin
-git reset --hard origin/claude/git-setup-hetzner-deploy-USPFg
+git reset --hard origin/dev
 ```
 **Рішення локально** (якщо є конфлікти після rebase --abort):
 ```bash
