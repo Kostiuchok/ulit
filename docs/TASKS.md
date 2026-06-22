@@ -303,6 +303,8 @@ headers: { Authorization: `Bearer ${token}` }
 - [x] **T-1307** Health check `/api/health`
 - [x] **T-1308** Rate limiting (fastify-rate-limit)
 - [x] **T-1309** Structured logging (Pino)
+- [x] **T-1310** Docker log rotation — `json-file` driver з `max-size`/`max-file` для api, web, worker контейнерів
+- [ ] **T-1311** Grafana Loki — централізований збір логів з усіх Docker контейнерів; додати `loki` + `promtail` сервіси до `docker-compose.prod.yml`; підключити Loki як data source у Grafana; дашборд "API Errors" з фільтром по рівню `error` та `warn`; перевага: все на VPS, без зовнішніх сервісів, інтегрується з вже наявним Grafana
 
 ---
 
@@ -466,6 +468,27 @@ headers: { Authorization: `Bearer ${token}` }
 ### 19m — Завантаження файлів автором (скріншоти 50, 97)
 
 - [ ] **T-1930** Сторінка завантаження форматів — `/dashboard/books/:id?tab=download`: для кожного готового формату (EPUB 3, FB2, PDF для читання, MOBI) — іконка, коротке пояснення ("EPUB 3 — рекомендовано для iBooks та Kindle", "FB2 — для більшості е-читалок", тощо), кнопка "Завантажити" (signed MinIO URL на 48 год); якщо формат ще не згенерований — показувати статус "Генерується..."
+
+---
+
+## 🔭 ФАЗА 20 — Observability & Error Tracking
+
+> Автоматичний збір, сповіщення та документування помилок — без ручного SSH і `docker logs`.
+> Впроваджувати після стабілізації MVP.
+
+### 20a — Sentry (пріоритет: ВИСОКИЙ)
+
+- [ ] **T-2001** Sentry акаунт + проект (безкоштовний тир: 5k помилок/міс) — `sentry.io`; отримати DSN для api та web
+- [ ] **T-2002** `@sentry/node` у `apps/api` — ініціалізація перед Fastify; інтеграція з global error handler (автоматично відправляти всі 5xx з повним stack trace, request context, user id)
+- [ ] **T-2003** `@sentry/nextjs` у `apps/web` — `sentry.client.config.ts` + `sentry.server.config.ts`; перехоплення клієнтських JS-помилок та серверних Next.js помилок
+- [ ] **T-2004** Alerts у Sentry — email-сповіщення при першій появі нової помилки; Slack/Telegram webhook (опціонально); дайджест нових помилок за добу
+- [ ] **T-2005** Source maps upload у CI/CD — щоб stack trace у Sentry показував оригінальний TypeScript, а не скомпільований JS; додати крок `sentry-cli sourcemaps upload` до `deploy.yml`
+- [ ] **T-2006** Performance Monitoring у Sentry — відстежувати повільні API endpoints (p95 latency); встановити threshold 500ms → alert; корисно для виявлення повільних Prisma queries
+
+### 20b — Grafana Loki (впроваджується разом з T-1311)
+
+- [ ] **T-2007** Loki data source у Grafana — після T-1311 підключити Loki; створити дашборд "Application Logs" з панелями: rate помилок per minute, останні 50 `error`-рядків, кількість 5xx відповідей
+- [ ] **T-2008** Alert rule у Grafana — якщо `count(level="error") > 5 за 5 хвилин` → email сповіщення адміну
 
 ---
 
