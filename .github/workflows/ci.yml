@@ -23,6 +23,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm --filter api exec prisma generate
+
       - run: pnpm lint
         continue-on-error: true
 
