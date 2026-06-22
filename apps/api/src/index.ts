@@ -49,7 +49,7 @@ async function bootstrap() {
     timeWindow: "1 minute",
   });
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     if (error instanceof AppError) {
       return reply.status(error.statusCode).send({ error: error.message, code: error.code });
     }
@@ -57,7 +57,10 @@ async function bootstrap() {
     if (err.statusCode && err.statusCode < 500) {
       return reply.status(err.statusCode).send({ error: err.message, code: err.code ?? "ERROR" });
     }
-    app.log.error(error);
+    app.log.error({
+      err: { message: error.message, stack: error.stack, name: error.name },
+      req: { method: request.method, url: request.url, id: request.id },
+    }, "Unhandled error");
     return reply.status(500).send({ error: "Internal server error", code: "INTERNAL_ERROR" });
   });
 

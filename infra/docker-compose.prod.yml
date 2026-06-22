@@ -65,6 +65,11 @@ services:
     networks:
       - internal
       - caddy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
       interval: 30s
@@ -85,6 +90,11 @@ services:
     networks:
       - caddy
       - internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
@@ -106,6 +116,11 @@ services:
         condition: service_healthy
     networks:
       - internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     volumes:
       - worker_tmp:/tmp/knyha-worker
 
