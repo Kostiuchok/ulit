@@ -295,8 +295,8 @@ headers: { Authorization: `Bearer ${token}` }
 ## 🚀 ФАЗА 13 — Деплой
 
 - [x] **T-1301** `docker-compose.prod.yml`
-- [x] **T-1302** Nginx конфіг (web:3000, api:3001)
-- [x] **T-1303** Certbot SSL
+- [x] **T-1302** ~~Nginx конфіг~~ → Caddy (зовнішній, `dddcore_default` мережа) — Caddy reverse proxy `ulit.render.ua` → `knyha-web:3000`; SSL автоматично через Let's Encrypt
+- [x] **T-1303** SSL — автоматично через Caddy/Let's Encrypt
 - [x] **T-1304** GitHub Actions `deploy.yml` → SSH
 - [x] **T-1305** `backup-db.sh` — щоденний бекап PostgreSQL → MinIO
 - [x] **T-1306** Grafana + Prometheus
@@ -304,7 +304,20 @@ headers: { Authorization: `Bearer ${token}` }
 - [x] **T-1308** Rate limiting (fastify-rate-limit)
 - [x] **T-1309** Structured logging (Pino)
 - [x] **T-1310** Docker log rotation — `json-file` driver з `max-size`/`max-file` для api, web, worker контейнерів
+- [x] **T-1311-a** `container_name` для postgres/redis/worker — виправляє `backup-db.sh` та `docker logs` команди; видалено мертвий `infra/nginx/nginx.conf`
+- [x] **T-1311-b** Smoke test у `deploy.sh` — після `docker compose up` чекає 15с і робить `curl /api/health`; при failure: виводить `docker logs knyha-api` і завершується з exit 1 (GitHub Actions позначає деплой як failed)
+- [ ] **T-1312** Pre-deploy backup — у `deploy.sh` перед `docker compose up --build` запускати `backup-db.sh`; гарантує точку відновлення перед кожною міграцією
+- [ ] **T-1313** Worker health check — додати `healthcheck` до worker сервісу в `docker-compose.prod.yml`; перевіряти Redis ping через `redis-cli`; дозволяє `docker ps` показувати реальний стан worker
+- [ ] **T-1314** Deploy failure alert — при failure deploy.sh надсилати Telegram повідомлення через webhook; без цього про падіння деплою дізнаєшся від юзерів
+- [ ] **T-1315** Prometheus `/api/metrics` endpoint — додати `prom-client` до Fastify API; Prometheus вже налаштований scrape `api:3001/api/metrics` але endpoint не існує; дасть: RAM, CPU, HTTP latency p95 в Grafana
 - [ ] **T-1311** Grafana Loki — централізований збір логів з усіх Docker контейнерів; додати `loki` + `promtail` сервіси до `docker-compose.prod.yml`; підключити Loki як data source у Grafana; дашборд "API Errors" з фільтром по рівню `error` та `warn`; перевага: все на VPS, без зовнішніх сервісів, інтегрується з вже наявним Grafana
+
+### Фаза 13b — Resilience (Фаза 2, після MVP стабілізації)
+
+- [ ] **T-1316** Rollback механізм — перед кожним деплоєм тегувати поточний image як `:previous` (`docker tag knyha-api:latest knyha-api:previous`); при smoke test failure — автоматично повернути попередній image без rebuild
+- [ ] **T-1317** Staging environment — деплоїти `dev` гілку у другий stack `knyha-staging` на тому ж VPS (окремі порти/домен); дозволяє тестувати на prod-подібному середовищі до merge в main
+- [ ] **T-1318** Managed PostgreSQL — перенести БД з Docker контейнера на Hetzner Managed Database або standalone PostgreSQL як systemd service; усуває ризик втрати даних при Docker daemon crash
+- [ ] **T-1319** Hetzner Object Storage замість MinIO — S3-сумісний, ~5€/міс, безкоштовний трафік між VPS та Storage в одному datacenter; прибирає MinIO контейнер та потребу в його backup
 
 ---
 

@@ -53,7 +53,7 @@ When the user says **"resume"** — show this status block immediately:
 
 ### Інфраструктура (VPS)
 - Docker + Docker Compose
-- Nginx reverse proxy + Certbot (Let's Encrypt)
+- Caddy reverse proxy + автоматичний SSL (Let's Encrypt) — зовнішній (`dddcore` проект, НЕ модифікувати)
 - GitHub Actions CI/CD → SSH deploy
 - Grafana + Prometheus моніторинг
 
