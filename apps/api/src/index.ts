@@ -58,7 +58,7 @@ async function bootstrap() {
       return reply.status(err.statusCode).send({ error: err.message, code: err.code ?? "ERROR" });
     }
     app.log.error({
-      err: { message: error.message, stack: error.stack, name: error.name },
+      err: { message: err.message, stack: err.stack, name: err.name },
       req: { method: request.method, url: request.url, id: request.id },
     }, "Unhandled error");
     return reply.status(500).send({ error: "Internal server error", code: "INTERNAL_ERROR" });
