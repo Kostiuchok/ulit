@@ -35,7 +35,7 @@ jobs:
       - name: Prepare SSH key
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d ' \n\r\t' | base64 -d > $RUNNER_TEMP/deploy_key
-          chmod 600 $RUNNER_TEMP/deploy_key
+          chmod 644 $RUNNER_TEMP/deploy_key
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
