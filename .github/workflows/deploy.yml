@@ -35,10 +35,10 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
+          port: ${{ vars.SSH_PORT || 22 }}
           timeout: 300s
           script: |
             bash /opt/knyha-platform/infra/scripts/deploy.sh
