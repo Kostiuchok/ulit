@@ -17,10 +17,12 @@ $DC up -d --build --remove-orphans api web worker
 echo "[$(date)] Containers started, waiting 20s..."
 sleep 20
 
-if docker exec knyha-api node -e "const h=require('http');h.get('http://127.0.0.1:3001/api/health',(r)=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"; then
-  echo "[$(date)] ✓ API health check passed"
+HEALTH=$(docker exec knyha-api node -e \
+  "const h=require('http');h.get('http://127.0.0.1:3001/api/health',(r)=>console.log(r.statusCode)).on('error',()=>console.log('ERR'))" 2>/dev/null)
+if [ "$HEALTH" = "200" ]; then
+  echo "[$(date)] ✓ API health check passed (status: $HEALTH)"
 else
-  echo "[$(date)] ✗ API health check FAILED — logs:"
+  echo "[$(date)] ✗ API health check FAILED (status: $HEALTH) — logs:"
   docker logs knyha-api --tail=20
   exit 1
 fi
