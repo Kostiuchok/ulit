@@ -32,18 +32,14 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Prepare SSH key
+      - name: Setup SSH
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d ' \n\r\t' | base64 -d > $RUNNER_TEMP/deploy_key
-          chmod 644 $RUNNER_TEMP/deploy_key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d ' \n\r\t' | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "|1|ano1+rHtFVv9g5TfVIKIOCIbG0k=|l9QN9/SabWN4kvBKi4PP15UZKRY= ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC5eRTni79kOutfRAS8oK9EfJyAeI6ujDRw4waDZBJ1uud7L3KW78FRKRu/yXvZssT67lAfnCVOJpdpA44CVJCu2T/mHYR+KODPbp/OQ5xB7D/nXToCcPO19yYpiWqPXitnYih3zufZ4La30td6KK+tDpdLk8ILoKTHowpuLsalGuv5wZ0y+35UOjJJ4ACwKsazVR6z4k6aWSmmOHy8hkr6ZKAm8moQnDGyU7UIuTiYbTphnb4X0PlgRU8KsEYydGkou3a3vkFplo4wCfdpxay6ZIXrhvGM1iO2H84V/5CXQU+QInohk3TpDU0ALJOnill5df1BactC5tcl1llQcg6D+kZwHDMh1plinGJojqhKrP4wJRemsN6DRp4GNKbChDbaDtDmYd1KBtjMY25ZW0lrr8cP4q+Np1/KRWqPO/w32ZduF8pNvJgpHlsqyTZMmips4z2bMe0KvqacrzBNPq66agLSMXLthPr207hQ0rzWuH5Z+BNH7On1QtRchgru4qE=" >> ~/.ssh/known_hosts
+          echo "|1|86yw1G0dVBodWoL32+8XPcPQwDQ=|4033hKbN+QouwI43DWrMhEV8W3o= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBRqoECRSm3VdABQW9IwT3O1wVj6swqwSFpe2jg7fW0J" >> ~/.ssh/known_hosts
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ vars.SSH_HOST }}
-          username: ${{ vars.SSH_USER }}
-          key_path: /github/runner_temp/deploy_key
-          port: ${{ vars.SSH_PORT || 22 }}
-          timeout: 300s
-          script: |
-            bash /opt/knyha-platform/infra/scripts/deploy.sh
+        run: ssh -i ~/.ssh/deploy_key -p 22 root@${{ vars.SSH_HOST }} "bash /opt/knyha-platform/infra/scripts/deploy.sh"
+        timeout-minutes: 10
