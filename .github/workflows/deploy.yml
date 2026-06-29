@@ -34,15 +34,15 @@ jobs:
 
       - name: Prepare SSH key
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d ' \n\r\t' | base64 -d > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d ' \n\r\t' | base64 -d > $RUNNER_TEMP/deploy_key
+          chmod 600 $RUNNER_TEMP/deploy_key
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ vars.SSH_HOST }}
           username: ${{ vars.SSH_USER }}
-          key_path: /tmp/deploy_key
+          key_path: /github/runner_temp/deploy_key
           port: ${{ vars.SSH_PORT || 22 }}
           timeout: 300s
           script: |
