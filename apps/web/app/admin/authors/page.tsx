@@ -17,7 +17,7 @@ interface Author {
 }
 
 export default function AdminAuthorsPage() {
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -25,10 +25,11 @@ export default function AdminAuthorsPage() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ authors: Author[] }>("/api/admin/authors")
       .then((d) => setAuthors(d.authors))
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   const filtered = authors.filter(
     (a) =>

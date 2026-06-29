@@ -3,8 +3,10 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { requireAdmin } from "../../lib/jwt.middleware";
-import { getSignedUrl } from "../../services/storage.service";
-import archiver from "archiver";
+import {} from "../../services/storage.service";
+import type { Archiver as ArchiverType } from "archiver";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<string, unknown>) => ArchiverType };
 import { Readable } from "stream";
 import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
@@ -177,11 +179,14 @@ export async function adminRoutes(app: FastifyInstance) {
 
       const updated = await prisma.book.update({
         where: { id },
-        data: { moderationStatus: "REJECTED", status: "DRAFT" },
+        data: {
+          moderationStatus: "REJECTED",
+          status: "DRAFT",
+          moderationNote: body.reason ?? null,
+        },
         select: BOOK_ADMIN_SELECT,
       });
 
-      // Log rejection (email would go here in prod)
       app.log.info(
         { bookId: id, reason: body.reason, author: book.author.email },
         "Book rejected"
@@ -226,77 +231,48 @@ export async function adminRoutes(app: FastifyInstance) {
     }
   );
 
-  // ─── Export package (ZIP) ────────────────────────────────────────────────
-  app.post(
-    "/api/admin/books/:id/export-package",
+  // ─── Download individual file ─────────────────────────────────────────────
+  app.get(
+    "/api/admin/books/:id/file/:type",
     { preHandler: requireAdmin },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id, type } = request.params as { id: string; type: string };
+      const VALID = ["epub", "fb2", "mobi", "print", "cover"] as const;
+      if (!VALID.includes(type as (typeof VALID)[number])) {
+        return reply.status(400).send({ error: "Invalid file type" });
+      }
+
       const book = await prisma.book.findUnique({ where: { id }, select: BOOK_ADMIN_SELECT });
       if (!book) throw AppError.notFound("Book");
 
-      const archive = archiver("zip", { zlib: { level: 6 } });
+      let objectName: string | null = null;
+      let contentType = "application/octet-stream";
 
-      reply.raw.setHeader("Content-Type", "application/zip");
-      reply.raw.setHeader(
-        "Content-Disposition",
-        `attachment; filename="knyha-${book.id.slice(0, 8)}.zip"`
-      );
-      archive.pipe(reply.raw);
-
-      // metadata.json
-      const meta = {
-        id: book.id,
-        title: book.title,
-        isbn: book.isbn,
-        author: book.author.name,
-        genre: book.genre,
-        language: book.language,
-        priceEbook: book.priceEbook,
-        pricePrint: book.pricePrint,
-        pageCount: book.pageCount,
-        publishedAt: book.publishedAt,
-        distributionStrategy: book.distributionStrategy,
-      };
-      archive.append(JSON.stringify(meta, null, 2), { name: "metadata.json" });
-
-      // metadata.csv
-      const csv = [
-        "field,value",
-        `title,"${book.title}"`,
-        `isbn,${book.isbn ?? ""}`,
-        `author,"${book.author.name}"`,
-        `genre,${book.genre ?? ""}`,
-        `language,${book.language}`,
-        `priceEbook,${book.priceEbook ?? ""}`,
-        `pricePrint,${book.pricePrint ?? ""}`,
-        `pageCount,${book.pageCount ?? ""}`,
-        `distributionStrategy,${book.distributionStrategy}`,
-      ].join("\n");
-      archive.append(csv, { name: "metadata.csv" });
-
-      // Download files from MinIO and add to ZIP
-      const filesToAdd: { objectName: string; zipName: string }[] = [];
-      if (book.epubUrl) filesToAdd.push({ objectName: book.epubUrl, zipName: "book.epub" });
-      if (book.fb2Url) filesToAdd.push({ objectName: book.fb2Url, zipName: "book.fb2" });
-      if (book.mobiUrl) filesToAdd.push({ objectName: book.mobiUrl, zipName: "book.mobi" });
-      if (book.printPdfUrl) filesToAdd.push({ objectName: book.printPdfUrl, zipName: "print.pdf" });
-      if (book.coverUrl) {
-        const coverObj = book.coverUrl.includes("/") ? book.coverUrl.split("/").pop()! : book.coverUrl;
-        filesToAdd.push({ objectName: `public/covers/${coverObj}`, zipName: "cover.png" });
+      switch (type) {
+        case "epub":  objectName = book.epubUrl;     contentType = "application/epub+zip"; break;
+        case "fb2":   objectName = book.fb2Url;      contentType = "application/x-fictionbook+xml"; break;
+        case "mobi":  objectName = book.mobiUrl;     contentType = "application/x-mobipocket-ebook"; break;
+        case "print": objectName = book.printPdfUrl; contentType = "application/pdf"; break;
+        case "cover":
+          if (book.coverUrl) {
+            const filename = book.coverUrl.split("/").pop() ?? "";
+            objectName = `public/covers/${filename}`;
+            const ext = filename.split(".").pop() ?? "jpg";
+            contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+          }
+          break;
       }
 
-      for (const f of filesToAdd) {
-        try {
-          const stream = await minio.getObject(BUCKET, f.objectName);
-          archive.append(stream as unknown as Readable, { name: f.zipName });
-        } catch {
-          // skip missing files
-        }
-      }
+      if (!objectName) return reply.status(404).send({ error: "File not found" });
 
-      await archive.finalize();
-      return reply;
+      try {
+        const stream = await minio.getObject(BUCKET, objectName);
+        reply.header("Content-Type", contentType);
+        reply.header("Content-Disposition", "attachment");
+        return reply.send(stream);
+      } catch {
+        return reply.status(404).send({ error: "File not found in storage" });
+      }
     }
   );
 
@@ -338,7 +314,7 @@ export async function adminRoutes(app: FastifyInstance) {
         select: BOOK_ADMIN_SELECT,
       });
 
-      const archive = archiver("zip", { zlib: { level: 6 } });
+      const archive = new ZipArchive({ zlib: { level: 6 } });
       reply.raw.setHeader("Content-Type", "application/zip");
       reply.raw.setHeader("Content-Disposition", `attachment; filename="knyha-bulk.zip"`);
       archive.pipe(reply.raw);

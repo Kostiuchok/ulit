@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__github__list_branches",
+      "mcp__github__list_commits",
+      "mcp__github__list_pull_requests",
+      "mcp__github__get_file_contents",
+      "Bash(pnpm --filter api typecheck *)",
+      "Bash(pnpm --filter web typecheck *)",
+      "Bash(npx tsc --noEmit *)"
+    ]
+  }
+}

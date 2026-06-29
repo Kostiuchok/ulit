@@ -22,17 +22,18 @@ interface Book {
 }
 
 export default function BooksPage() {
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ books: Book[] }>("/api/books")
       .then(({ books }) => setBooks(books))
-      .catch(() => {})
+      .catch((e) => console.error("[books] failed to load:", e))
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   async function handleDelete(id: string) {
     if (!confirm("Видалити книгу? Цю дію не можна скасувати.")) return;

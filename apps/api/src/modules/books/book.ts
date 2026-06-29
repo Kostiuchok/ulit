@@ -4,6 +4,45 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 
+const BOOK_SELECT = {
+  id: true,
+  slug: true,
+  title: true,
+  description: true,
+  status: true,
+  moderationStatus: true,
+  moderationNote: true,
+  isbn: true,
+  coverUrl: true,
+  originalDocxUrl: true,
+  pdfUrl: true,
+  epubUrl: true,
+  fb2Url: true,
+  mobiUrl: true,
+  printPdfUrl: true,
+  priceEbook: true,
+  pricePrint: true,
+  genre: true,
+  language: true,
+  pageCount: true,
+  pagesGeneratedAt: true,
+  previewStart: true,
+  previewEnd: true,
+  distributionStrategy: true,
+  kdpSelectEnrolled: true,
+  kdpSelectExpiry: true,
+  d2dStatus: true,
+  d2dSentAt: true,
+  kdpStatus: true,
+  kdpSentAt: true,
+  googleStatus: true,
+  googleSentAt: true,
+  createdAt: true,
+  updatedAt: true,
+  publishedAt: true,
+  authorId: true,
+} as const;
+
 const patchSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(5000).nullable().optional(),
@@ -34,7 +73,7 @@ export async function bookRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     await assertOwnership(id, request.user.id);
 
-    const book = await prisma.book.findUnique({ where: { id } });
+    const book = await prisma.book.findUnique({ where: { id }, select: BOOK_SELECT });
     return reply.send({ book });
   });
 
@@ -42,10 +81,6 @@ export async function bookRoutes(app: FastifyInstance) {
   app.patch("/api/books/:id", { preHandler: authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const existing = await assertOwnership(id, request.user.id);
-
-    if (existing.status === "PUBLISHED") {
-      throw new AppError("Published books cannot be edited directly", 400, "BOOK_PUBLISHED");
-    }
 
     const result = patchSchema.safeParse(request.body);
     if (!result.success) {
@@ -63,6 +98,7 @@ export async function bookRoutes(app: FastifyInstance) {
           ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
           : undefined,
       },
+      select: BOOK_SELECT,
     });
 
     return reply.send({ book });

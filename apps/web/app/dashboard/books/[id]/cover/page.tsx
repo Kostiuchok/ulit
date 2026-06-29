@@ -17,18 +17,19 @@ interface BookInfo {
 export default function CoverPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const { data: session } = useSession();
   const [book, setBook] = useState<BookInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ book: BookInfo }>(`/api/books/${id}`)
       .then(({ book }) => setBook(book))
       .catch(() => router.push("/dashboard/books"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [token, id]);
 
   function handleSaved(url: string) {
     setBook((b) => b ? { ...b, coverUrl: url } : b);
@@ -68,6 +69,7 @@ export default function CoverPage() {
             bookAuthor={session?.user?.name ?? "Автор"}
             existingCoverUrl={book?.coverUrl}
             onSaved={handleSaved}
+            token={token}
           />
         </div>
 

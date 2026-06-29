@@ -82,7 +82,21 @@ export async function publishRoute(app: FastifyInstance) {
 
       const book = await prisma.book.findUnique({
         where: { id },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          authorId: true,
+          coverUrl: true,
+          originalDocxUrl: true,
+          pdfUrl: true,
+          epubUrl: true,
+          priceEbook: true,
+          pricePrint: true,
+          isbn: true,
+          distributionStrategy: true,
+          kdpSelectEnrolled: true,
+          kdpSelectExpiry: true,
           author: { select: { id: true, email: true, name: true, contractAcceptedAt: true } },
         },
       });
@@ -103,8 +117,16 @@ export async function publishRoute(app: FastifyInstance) {
         });
       }
 
-      // T-701 — assign ISBN (if not already set)
-      const isbn = book.isbn ?? (await assignIsbn(id));
+      // T-701 — assign ISBN (if not already set), retry up to 5x on collision
+      let isbn = book.isbn;
+      if (!isbn) {
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const candidate = await assignIsbn(id);
+          const existing = await prisma.book.findUnique({ where: { isbn: candidate }, select: { id: true } });
+          if (!existing) { isbn = candidate; break; }
+        }
+        if (!isbn) throw new AppError("Не вдалося призначити ISBN, спробуйте ще раз", 500, "ISBN_EXHAUSTED");
+      }
 
       // KDP Select enrollment: set expiry if enrolling now
       const now = new Date();
@@ -125,6 +147,7 @@ export async function publishRoute(app: FastifyInstance) {
           kdpSelectEnrolled: isKdpSelect ? true : book.kdpSelectEnrolled,
           kdpSelectExpiry: isKdpSelect ? kdpExpiry : book.kdpSelectExpiry,
         },
+        select: { id: true, status: true, isbn: true, publishedAt: true, title: true },
       });
 
       // T-111 — store contractAcceptedAt + IP on first publish

@@ -17,6 +17,10 @@ COPY packages/shared-types ./packages/shared-types
 ENV NEXT_TELEMETRY_DISABLED=1
 # Hardcode internal API URL so rewrites in next.config.mjs resolve to the correct container
 ENV API_INTERNAL_URL=http://knyha-api:3001
+# Hardcode internal MinIO URL for the /storage/* rewrite
+ENV MINIO_ENDPOINT=minio
+ENV MINIO_PORT=9000
+ENV MINIO_BUCKET_NAME=knyha-books
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN pnpm --filter web build

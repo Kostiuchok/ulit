@@ -1,0 +1,1 @@
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "pagesGeneratedAt" TIMESTAMP(3);

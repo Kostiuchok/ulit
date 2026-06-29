@@ -68,6 +68,7 @@ export async function conversionStatusRoutes(app: FastifyInstance) {
           await prisma.book.update({
             where: { id },
             data: { [field]: outputObjectName },
+            select: { id: true },
           });
         }
       }
@@ -81,6 +82,7 @@ export async function conversionStatusRoutes(app: FastifyInstance) {
         await prisma.book.update({
           where: { id },
           data: { status: anyFailed ? "DRAFT" : "REVIEW" },
+          select: { id: true },
         });
       }
 

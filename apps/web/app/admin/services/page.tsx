@@ -34,16 +34,17 @@ const SERVICE_INFO = [
 ];
 
 export default function ServicesPage() {
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [services, setServices] = useState<Services>({ d2d: true, kdp: true, google: true });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ services: Services }>("/api/admin/settings")
       .then((d) => setServices(d.services))
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   async function toggleService(key: keyof Services) {
     const next = { ...services, [key]: !services[key] };

@@ -26,12 +26,17 @@ interface DistributionInfo {
 
 const SERVICE_LABELS = { d2d: "Draft2Digital", kdp: "Amazon KDP", google: "Google Play Books" };
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string }> = {
-  NOT_SENT: { label: "Не надіслано", dot: "bg-gray-300" },
-  SENT: { label: "Надіслано", dot: "bg-blue-500" },
-  PUBLISHED: { label: "Опубліковано", dot: "bg-green-500" },
-  ERROR: { label: "Помилка", dot: "bg-red-500" },
-};
+function getStatusConfig(status: string, bookPublished: boolean): { label: string; dot: string } {
+  if (status === "NOT_SENT") return bookPublished
+    ? { label: "Очікує відправки", dot: "bg-yellow-400" }
+    : { label: "Не надіслано", dot: "bg-gray-300" };
+  const map: Record<string, { label: string; dot: string }> = {
+    SENT: { label: "Надіслано", dot: "bg-blue-500" },
+    PUBLISHED: { label: "Опубліковано", dot: "bg-green-500" },
+    ERROR: { label: "Помилка", dot: "bg-red-500" },
+  };
+  return map[status] ?? { label: "Не надіслано", dot: "bg-gray-300" };
+}
 
 interface Props {
   bookId: string;
@@ -39,16 +44,17 @@ interface Props {
 }
 
 export function DistributionStatus({ bookId, bookStatus }: Props) {
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [info, setInfo] = useState<DistributionInfo | null>(null);
   const [switching, setSwitching] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<DistributionInfo>(`/api/books/${bookId}/distribution`)
       .then(setInfo)
       .catch(() => {});
-  }, [bookId]);
+  }, [token, bookId]);
 
   async function switchToWide() {
     if (!confirm("Перейти на широке розповсюдження? Книга стане доступна на D2D та Google Play.")) return;
@@ -114,9 +120,47 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
         )}
       </div>
 
+      {/* Next-step banner for published books */}
+      {bookStatus === "PUBLISHED" && (
+        <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800 space-y-1">
+          <p className="font-medium">✓ Книга опублікована — що відбувається далі?</p>
+          {isKdpActive ? (
+            <p className="text-blue-700">
+              Ми відправимо її на <strong>Amazon KDP</strong> протягом 2–3 робочих днів.{" "}
+              Draft2Digital та Google Play Books стануть доступні після завершення KDP Select
+              {expiryDate ? <> (до <strong>{expiryDate}</strong>)</> : <> (через 90 дн.)</>}.
+            </p>
+          ) : (
+            <p className="text-blue-700">
+              Ми відправимо книгу на <strong>Draft2Digital</strong>, <strong>Amazon KDP</strong> та{" "}
+              <strong>Google Play Books</strong> протягом 2–3 робочих днів.
+              Ви отримаєте email після розміщення на кожній платформі.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* KDP Select explanation */}
+      {isKdpActive && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 space-y-1">
+          <p className="font-medium">Що таке KDP Select?</p>
+          <p className="text-amber-700">
+            KDP Select — програма Amazon, яка вимагає <strong>ексклюзивного</strong> розміщення: поки вона активна,
+            книга не може продаватись на інших платформах (Draft2Digital, Google Play Books).
+            Натомість Amazon надає підвищені роялті та доступ до Kindle Unlimited.
+          </p>
+          {expiryDate && (
+            <p className="text-amber-700">
+              Ексклюзивність діє до <strong>{expiryDate}</strong>.
+              Після цього ви зможете перейти на широке розповсюдження.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* KDP Select expiry warning */}
       {isKdpActive && info.kdpSelectDaysLeft != null && info.kdpSelectDaysLeft <= 14 && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-700">
+        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
           ⚠ KDP Select закінчується через {info.kdpSelectDaysLeft} дн. Ви отримаєте email за 7 днів до закінчення.
         </div>
       )}
@@ -124,7 +168,7 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
       {/* Services grid */}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {(Object.entries(info.services) as [keyof typeof SERVICE_LABELS, ServiceInfo][]).map(([key, svc]) => {
-          const cfg = STATUS_CONFIG[svc.status] ?? STATUS_CONFIG.NOT_SENT;
+          const cfg = getStatusConfig(svc.status, bookStatus === "PUBLISHED");
           return (
             <div
               key={key}
@@ -138,7 +182,11 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
                 <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
               </div>
               <p className="text-xs text-gray-500">{cfg.label}</p>
-              {svc.blocked && <p className="text-xs text-amber-600 mt-1">Заблоковано KDP Select</p>}
+              {svc.blocked && (
+                <p className="text-xs text-amber-600 mt-1" title="Недоступно до завершення 90-денного терміну KDP Select">
+                  🔒 Недоступно (KDP Select)
+                </p>
+              )}
               {svc.sentAt && (
                 <p className="text-xs text-gray-400 mt-1">
                   {new Date(svc.sentAt).toLocaleDateString("uk-UA")}
@@ -151,7 +199,7 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
 
       {/* Switch actions */}
       {bookStatus === "PUBLISHED" && (
-        <div className="flex gap-2 pt-1">
+        <div className="space-y-3 pt-1">
           {isKdpActive ? (
             <Button
               size="sm"
@@ -165,9 +213,36 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
                 : "Перейти на широке розповсюдження"}
             </Button>
           ) : (
-            <Button size="sm" variant="outline" onClick={enrollKdpSelect} loading={switching}>
-              Зареєструватись у KDP Select
-            </Button>
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-3">
+              <div className="space-y-1.5">
+                <p className="text-sm font-semibold text-blue-900">Що таке KDP Select?</p>
+                <p className="text-sm text-blue-800">
+                  KDP Select — програма Amazon Kindle, яка дає доступ до <strong>Kindle Unlimited</strong> (читачі
+                  платять підписку і читають вашу книгу безкоштовно, а ви отримуєте роялті за сторінки).
+                  Amazon також може просувати книгу в акціях і безкоштовних роздачах.
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                  <div className="rounded-md bg-green-50 border border-green-200 p-2 space-y-1">
+                    <p className="font-semibold text-green-800">✓ Переваги</p>
+                    <p className="text-green-700">Вища ставка роялті на Amazon (до 70%)</p>
+                    <p className="text-green-700">Доступ до Kindle Unlimited</p>
+                    <p className="text-green-700">Участь в акціях Countdown Deals</p>
+                  </div>
+                  <div className="rounded-md bg-red-50 border border-red-200 p-2 space-y-1">
+                    <p className="font-semibold text-red-800">✕ Обмеження</p>
+                    <p className="text-red-700">Ексклюзивність 90 днів: Draft2Digital та Google Play Books будуть заблоковані</p>
+                    <p className="text-red-700">Скасувати не можна до кінця терміну</p>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 pt-0.5">
+                  Після натискання книга стане ексклюзивною на Amazon на <strong>90 днів</strong>.
+                  Після закінчення терміну ви зможете перейти на широке розповсюдження.
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={enrollKdpSelect} loading={switching}>
+                Зареєструватись у KDP Select
+              </Button>
+            </div>
           )}
         </div>
       )}

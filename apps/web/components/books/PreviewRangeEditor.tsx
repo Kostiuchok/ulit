@@ -27,13 +27,18 @@ export function PreviewRangeEditor({ bookId, pageCount, initialStart, initialEnd
     const startVal = start.trim() ? parseInt(start) : null;
     const endVal = end.trim() ? parseInt(end) : null;
 
-    if (startVal !== null && isNaN(startVal)) {
-      setError("Некоректна початкова сторінка");
+    if (startVal !== null && (isNaN(startVal) || startVal < 1)) {
+      setError("Початкова сторінка має бути числом від 1");
       setSaving(false);
       return;
     }
-    if (endVal !== null && isNaN(endVal)) {
-      setError("Некоректна кінцева сторінка");
+    if (endVal !== null && (isNaN(endVal) || endVal < 1)) {
+      setError("Кінцева сторінка має бути числом від 1");
+      setSaving(false);
+      return;
+    }
+    if (startVal !== null && endVal !== null && endVal <= startVal) {
+      setError("Кінцева сторінка має бути більшою за початкову");
       setSaving(false);
       return;
     }

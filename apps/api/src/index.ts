@@ -18,6 +18,7 @@ import { uploadCoverRoute } from "./modules/books/cover";
 import { conversionStatusRoutes } from "./modules/books/conversion-status";
 import { distributionRoutes } from "./modules/books/distribution";
 import { publishRoute } from "./modules/books/publish";
+import { bookPagesRoutes } from "./modules/books/pages";
 import { storeBooksRoutes } from "./modules/store/store-books";
 import { ordersRoutes } from "./modules/orders/orders";
 import { liqpayRoutes } from "./modules/payments/liqpay";
@@ -48,11 +49,18 @@ async function bootstrap() {
     timeWindow: "1 minute",
   });
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     if (error instanceof AppError) {
       return reply.status(error.statusCode).send({ error: error.message, code: error.code });
     }
-    app.log.error(error);
+    const err = error as Error & { statusCode?: number; code?: string };
+    if (err.statusCode && err.statusCode < 500) {
+      return reply.status(err.statusCode).send({ error: err.message, code: err.code ?? "ERROR" });
+    }
+    app.log.error({
+      err: { message: err.message, stack: err.stack, name: err.name },
+      req: { method: request.method, url: request.url, id: request.id },
+    }, "Unhandled error");
     return reply.status(500).send({ error: "Internal server error", code: "INTERNAL_ERROR" });
   });
 
@@ -70,6 +78,7 @@ async function bootstrap() {
   await app.register(conversionStatusRoutes);
   await app.register(distributionRoutes);
   await app.register(publishRoute);
+  await app.register(bookPagesRoutes);
   await app.register(storeBooksRoutes);
   await app.register(ordersRoutes);
   await app.register(liqpayRoutes);

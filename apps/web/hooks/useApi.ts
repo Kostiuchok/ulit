@@ -7,10 +7,11 @@ export function useApi() {
   const token = (session?.user as any)?.apiToken as string | undefined;
 
   async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+    const hasBody = init?.body != null;
     const res = await fetch(path, {
       ...init,
       headers: {
-        "Content-Type": "application/json",
+        ...(hasBody ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(init?.headers ?? {}),
       },

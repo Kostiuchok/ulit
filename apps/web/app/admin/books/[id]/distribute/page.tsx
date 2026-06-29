@@ -39,7 +39,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function DistributePage() {
   const { id } = useParams<{ id: string }>();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -48,6 +48,7 @@ export default function DistributePage() {
   const [google, setGoogle] = useState("NOT_SENT");
 
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ book: Book }>(`/api/admin/books/${id}`)
       .then(({ book: b }) => {
         setBook(b);
@@ -56,7 +57,7 @@ export default function DistributePage() {
         setGoogle(b.googleStatus);
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [token, id]);
 
   async function saveService(service: "d2d" | "kdp" | "google", status: string) {
     setSaving(service);

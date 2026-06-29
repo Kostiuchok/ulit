@@ -53,7 +53,7 @@ When the user says **"resume"** — show this status block immediately:
 
 ### Інфраструктура (VPS)
 - Docker + Docker Compose
-- Nginx reverse proxy + Certbot (Let's Encrypt)
+- Caddy reverse proxy + автоматичний SSL (Let's Encrypt) — зовнішній (`dddcore` проект, НЕ модифікувати)
 - GitHub Actions CI/CD → SSH deploy
 - Grafana + Prometheus моніторинг
 
@@ -591,7 +591,7 @@ hint: You have divergent branches and need to specify how to reconcile them.
 **Рішення на VPS**:
 ```bash
 git fetch origin
-git reset --hard origin/claude/git-setup-hetzner-deploy-USPFg
+git reset --hard origin/dev
 ```
 **Рішення локально** (якщо є конфлікти після rebase --abort):
 ```bash

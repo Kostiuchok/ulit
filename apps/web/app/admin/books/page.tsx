@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 interface Book {
   id: string;
@@ -80,19 +79,26 @@ function Checklist({ book }: { book: Book }) {
   );
 }
 
+function safeFilename(title: string) {
+  return title.replace(/[\\/:*?"<>|]/g, "_").trim().slice(0, 80);
+}
+
 export default function AdminBooksPage() {
   const searchParams = useSearchParams();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectId, setRejectId] = useState<string | null>(null);
+  const [filesBook, setFilesBook] = useState<Book | null>(null);
+  const [fileLoading, setFileLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "");
   const [modFilter, setModFilter] = useState(searchParams.get("mod") ?? "");
   const [search, setSearch] = useState("");
 
   const fetchBooks = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
@@ -104,7 +110,7 @@ export default function AdminBooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, modFilter, search]);
+  }, [token, statusFilter, modFilter, search]);
 
   useEffect(() => { fetchBooks(); }, [fetchBooks]);
 
@@ -133,14 +139,46 @@ export default function AdminBooksPage() {
     }
   }
 
-  async function handleExport(id: string) {
-    const session = (window as any).__NEXT_SESSION_TOKEN;
-    const tokenKey = "apiToken";
-    // Get token from sessionStorage/localStorage as used by useApi
-    const token = (document as any).__nextAuthToken;
-    const apiUrl = API_URL;
-    // Fallback: open the URL (browser will prompt download if authenticated via cookie)
-    window.open(`${apiUrl}/api/admin/books/${id}/export-package`, "_blank");
+  async function downloadFile(bookId: string, type: string, filename: string) {
+    setFileLoading(type);
+    try {
+      const res = await fetch(`/api/admin/books/${bookId}/file/${type}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ""}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert(`Помилка завантаження: ${e.message}`);
+    } finally {
+      setFileLoading(null);
+    }
+  }
+
+  function downloadMeta(book: Book) {
+    const meta = {
+      id: book.id, title: book.title, isbn: book.isbn,
+      author: book.author.name, genre: book.genre, language: book.language,
+      priceEbook: book.priceEbook, pricePrint: book.pricePrint,
+      distributionStrategy: book.distributionStrategy, publishedAt: book.publishedAt,
+    };
+    const blob = new Blob([JSON.stringify(meta, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${safeFilename(book.title)}-metadata.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -271,11 +309,11 @@ export default function AdminBooksPage() {
                           </Link>
                         )}
                         <button
-                          onClick={() => handleExport(book.id)}
+                          onClick={() => setFilesBook(book)}
                           className="rounded-md border px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                          title="Завантажити ZIP"
+                          title="Завантажити файли"
                         >
-                          ⬇ ZIP
+                          📁 Файли
                         </button>
                       </div>
                     </td>
@@ -314,6 +352,59 @@ export default function AdminBooksPage() {
               >
                 Скасувати
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Files modal */}
+      {filesBook && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setFilesBook(null)}>
+          <div className="rounded-xl bg-white p-6 shadow-xl w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Файли книги</h2>
+                <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{filesBook.title}</p>
+              </div>
+              <button onClick={() => setFilesBook(null)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { type: "epub",  label: "EPUB",       ext: "epub",  available: !!filesBook.epubUrl },
+                { type: "fb2",   label: "FB2",        ext: "fb2",   available: !!filesBook.fb2Url },
+                { type: "mobi",  label: "MOBI",       ext: "mobi",  available: !!filesBook.mobiUrl },
+                { type: "print", label: "Print PDF",  ext: "pdf",   available: !!filesBook.printPdfUrl },
+                { type: "cover", label: "Обкладинка", ext: "jpg",   available: !!filesBook.coverUrl },
+              ].map(({ type, label, ext, available }) => (
+                <div key={type} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                  <span className={`text-sm font-medium ${available ? "text-gray-800" : "text-gray-300"}`}>
+                    {label}
+                  </span>
+                  {available ? (
+                    <button
+                      onClick={() => downloadFile(filesBook.id, type, `${safeFilename(filesBook.title)}.${ext}`)}
+                      disabled={fileLoading === type}
+                      className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                    >
+                      {fileLoading === type ? "…" : "⬇ Скачати"}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-gray-300">Немає</span>
+                  )}
+                </div>
+              ))}
+
+              {/* Metadata — always available */}
+              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                <span className="text-sm font-medium text-gray-800">Метадані JSON</span>
+                <button
+                  onClick={() => downloadMeta(filesBook)}
+                  className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  ⬇ Скачати
+                </button>
+              </div>
             </div>
           </div>
         </div>

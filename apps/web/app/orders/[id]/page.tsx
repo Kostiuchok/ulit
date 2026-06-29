@@ -54,13 +54,14 @@ const STATUS_INFO: Record<string, { label: string; icon: string; className: stri
 
 export default function OrderPage() {
   const { id } = useParams<{ id: string }>();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [order, setOrder] = useState<Order | null>(null);
   const [downloads, setDownloads] = useState<Record<string, DownloadLink[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchOrder = useCallback(async () => {
+    if (!token) return;
     try {
       const data = await apiFetch<{ order: Order; downloads: Record<string, DownloadLink[]> }>(
         `/api/orders/${id}`
@@ -72,7 +73,7 @@ export default function OrderPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [token, id]);
 
   useEffect(() => {
     fetchOrder();
