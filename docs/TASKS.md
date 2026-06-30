@@ -226,9 +226,7 @@
 ## 🔐 ФАЗА 16 — Сесії та UX авторизації
 
 - [x] **T-1601** Persistent session — користувач не повинен логінитись після кожного переходу між сторінками; перевірити cookie `maxAge`, `AUTH_SECRET` на VPS та `trustHost` за Caddy reverse proxy
-- [ ] **T-1602** Підтвердження email при реєстрації — після `POST /api/auth/register` НЕ створювати активний акаунт одразу; зберігати `emailVerified Boolean @default(false)` + `emailVerificationToken String?` у моделі `User`; надсилати лист із посиланням `/verify-email?token=<uuid>`; `GET /api/auth/verify-email?token=` — ставить `emailVerified: true`, інвалідує токен; до підтвердження — `POST /api/auth/login` повертає 403 `EMAIL_NOT_VERIFIED`; на фронті — після реєстрації показувати екран "Перевірте пошту" (`/register/check-email`); посилання в листі діє 24 год; кнопка "Надіслати повторно" (`POST /api/auth/resend-verification`)
-
---- — після `POST /api/auth/register` НЕ створювати активний акаунт одразу; зберігати `emailVerified Boolean @default(false)` + `emailVerificationToken String?` у моделі `User`; надсилати лист із посиланням `/verify-email?token=<uuid>`; `GET /api/auth/verify-email?token=` — ставить `emailVerified: true`, інвалідує токен; до підтвердження — `POST /api/auth/login` повертає 403 `EMAIL_NOT_VERIFIED`; на фронті — після реєстрації показувати екран "Перевірте пошту" (`/register/check-email`); посилання в листі діє 24 год; кнопка "Надіслати повторно" (`POST /api/auth/resend-verification`)
+- [x] **T-1602** Підтвердження email при реєстрації — після `POST /api/auth/register` НЕ створювати активний акаунт одразу; зберігати `emailVerified Boolean @default(false)` + `emailVerificationToken String?` у моделі `User`; надсилати лист із посиланням `/verify-email?token=<uuid>`; `GET /api/auth/verify-email?token=` — ставить `emailVerified: true`, інвалідує токен; до підтвердження — `POST /api/auth/login` повертає 403 `EMAIL_NOT_VERIFIED`; на фронті — після реєстрації показувати екран "Перевірте пошту" (`/register/check-email`); посилання в листі діє 24 год; кнопка "Надіслати повторно" (`POST /api/auth/resend-verification`)
 
 ---
 

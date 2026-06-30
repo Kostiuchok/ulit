@@ -36,6 +36,7 @@ const BOOK_ADMIN_SELECT = {
   id: true,
   slug: true,
   title: true,
+  description: true,
   status: true,
   moderationStatus: true,
   isbn: true,
