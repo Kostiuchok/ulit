@@ -452,7 +452,11 @@ export function BookWizard() {
           />
           <Row
             label="Стратегія"
-            value={distribution === "WIDE" ? "Широке розповсюдження" : "KDP Select (ексклюзив)"}
+            value={
+              channels.includes("KDP") && !channels.includes("D2D") && !channels.includes("GOOGLE")
+                ? "KDP Select (ексклюзив)"
+                : "Широке розповсюдження"
+            }
           />
           {draft && <Row label="ID чернетки" value={draft.id} mono />}
         </div>
