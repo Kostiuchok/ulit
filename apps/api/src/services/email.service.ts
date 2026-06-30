@@ -96,7 +96,9 @@ export async function sendOrderDownloadLinks(opts: {
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
       <h2 style="color:#1a1a2e">Дякуємо за покупку, ${name}!</h2>
       <p>Сума замовлення: <strong>${total.toFixed(2)} грн</strong></p>
-      <p>Ваші книги готові до завантаження (посилання дійсні 48 годин):</p>
+      <div style="margin:16px 0;padding:12px 16px;background:#fffbeb;border:2px solid #f59e0b;border-radius:8px;color:#92400e">
+        <strong>⏳ Важливо:</strong> посилання на завантаження дійсні <strong>48 годин</strong> з моменту отримання цього листа. Завантажте файли та збережіть їх на свій пристрій.
+      </div>
       ${booksHtml}
       <p style="margin-top:16px">
         <a href="${orderUrl}" style="color:#2563eb">Переглянути замовлення</a>

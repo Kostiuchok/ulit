@@ -111,30 +111,34 @@ function DownloadSection({ bookId, hasFiles }: { bookId: string; hasFiles: boole
           {loading ? (
             <span className="text-xs text-gray-400">Генерація посилань…</span>
           ) : urls ? (
-            <>
-              {([
-                { key: "pdf",      label: "PDF" },
-                { key: "epub",     label: "EPUB" },
-                { key: "fb2",      label: "FB2" },
-                { key: "mobi",     label: "MOBI" },
-                { key: "printPdf", label: "Print PDF" },
-              ] as const).map(({ key, label }) =>
-                urls[key] ? (
-                  <a
-                    key={key}
-                    href={urls[key]!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
-                  >
-                    ↓ {label}
-                  </a>
-                ) : (
-                  <span key={key} className="text-gray-300 text-xs">{label}</span>
-                )
-              )}
-              <span className="text-xs text-gray-400 self-center">· діють 48 год</span>
-            </>
+            <div className="space-y-2">
+              <div className="rounded bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs text-amber-800 font-medium">
+                ⏳ Посилання дійсні <strong>48 годин</strong> — збережіть файли одразу.
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { key: "pdf",      label: "PDF" },
+                  { key: "epub",     label: "EPUB" },
+                  { key: "fb2",      label: "FB2" },
+                  { key: "mobi",     label: "MOBI" },
+                  { key: "printPdf", label: "Print PDF" },
+                ] as const).map(({ key, label }) =>
+                  urls[key] ? (
+                    <a
+                      key={key}
+                      href={urls[key]!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      ↓ {label}
+                    </a>
+                  ) : (
+                    <span key={key} className="text-gray-300 text-xs">{label}</span>
+                  )
+                )}
+              </div>
+            </div>
           ) : null}
         </div>
       )}

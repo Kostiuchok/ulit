@@ -165,17 +165,22 @@ export default function OrderPage() {
 
                 {/* Download links */}
                 {isPaid && downloads[item.bookId] && downloads[item.bookId].length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {downloads[item.bookId].map((link) => (
-                      <a
-                        key={link.label}
-                        href={link.url}
-                        download
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-700 transition-colors"
-                      >
-                        ⬇ {link.label}
-                      </a>
-                    ))}
+                  <div className="mt-3 space-y-2">
+                    <div className="rounded-md bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-900 font-medium">
+                      ⏳ Посилання дійсні <strong>48 годин</strong> — завантажте файли зараз і збережіть на пристрій.
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {downloads[item.bookId].map((link) => (
+                        <a
+                          key={link.label}
+                          href={link.url}
+                          download
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-700 transition-colors"
+                        >
+                          ⬇ {link.label}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -184,8 +189,8 @@ export default function OrderPage() {
         </div>
 
         {isPaid && (
-          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-            ⚠️ Посилання для завантаження дійсні <strong>48 годин</strong>. Збережіть файли на свій пристрій.
+          <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+            Не можете завантажити зараз? Поверніться на цю сторінку або скористайтесь посиланнями з email — вони теж дійсні 48 годин.
           </div>
         )}
       </div>
