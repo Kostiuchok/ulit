@@ -13,23 +13,29 @@ interface Author {
   avatarUrl?: string | null;
   contractAcceptedAt?: string | null;
   createdAt: string;
+  lastBookAt?: string | null;
   _count: { books: number };
 }
+
+type ContractFilter = "all" | "signed" | "unsigned";
 
 export default function AdminAuthorsPage() {
   const { apiFetch, token } = useApi();
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [contractFilter, setContractFilter] = useState<ContractFilter>("all");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<{ authors: Author[] }>("/api/admin/authors")
+    setLoading(true);
+    const params = contractFilter !== "all" ? `?contract=${contractFilter}` : "";
+    apiFetch<{ authors: Author[] }>(`/api/admin/authors${params}`)
       .then((d) => setAuthors(d.authors))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, contractFilter]);
 
   const filtered = authors.filter(
     (a) =>
@@ -50,6 +56,11 @@ export default function AdminAuthorsPage() {
     }
   }
 
+  function formatDate(iso?: string | null) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("uk-UA");
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -59,7 +70,7 @@ export default function AdminAuthorsPage() {
         </p>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         <input
           type="search"
           placeholder="Пошук автора…"
@@ -67,11 +78,20 @@ export default function AdminAuthorsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="h-9 rounded-md border px-3 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-gray-300"
         />
+        <select
+          value={contractFilter}
+          onChange={(e) => setContractFilter(e.target.value as ContractFilter)}
+          className="h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+        >
+          <option value="all">Всі договори</option>
+          <option value="signed">Підписаний</option>
+          <option value="unsigned">Не підписаний</option>
+        </select>
       </div>
 
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-400 animate-pulse">Завантаження…</div>
+          <div className="p-8 text-center text-gray-400">Завантаження…</div>
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-gray-400">Авторів не знайдено</div>
         ) : (
@@ -83,6 +103,7 @@ export default function AdminAuthorsPage() {
                 <th className="px-4 py-3 text-center font-semibold text-gray-600">Книги</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Договір</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Зареєстрований</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">Остання активність</th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-600">Дії</th>
               </tr>
             </thead>
@@ -113,7 +134,7 @@ export default function AdminAuthorsPage() {
                           ✓ Підписано
                         </span>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {new Date(author.contractAcceptedAt).toLocaleDateString("uk-UA")}
+                          {formatDate(author.contractAcceptedAt)}
                         </p>
                       </div>
                     ) : (
@@ -123,7 +144,10 @@ export default function AdminAuthorsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">
-                    {new Date(author.createdAt).toLocaleDateString("uk-UA")}
+                    {formatDate(author.createdAt)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">
+                    {formatDate(author.lastBookAt)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">

@@ -24,6 +24,7 @@ import { ordersRoutes } from "./modules/orders/orders";
 import { liqpayRoutes } from "./modules/payments/liqpay";
 import { adminRoutes } from "./modules/admin/admin";
 import { startEmailWorker } from "./lib/email-queue";
+import { metricsRegistry } from "./lib/metrics";
 
 const app = Fastify({
   logger: {
@@ -65,6 +66,11 @@ async function bootstrap() {
   });
 
   app.get("/api/health", async () => ({ status: "ok", ts: new Date().toISOString() }));
+
+  app.get("/api/metrics", async (_request, reply) => {
+    reply.header("Content-Type", metricsRegistry.contentType);
+    return reply.send(await metricsRegistry.metrics());
+  });
 
   await app.register(registerRoute);
   await app.register(loginRoute);

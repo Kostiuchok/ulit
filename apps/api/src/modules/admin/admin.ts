@@ -425,9 +425,15 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // ─── Authors ──────────────────────────────────────────────────────────────
-  app.get("/api/admin/authors", { preHandler: requireAdmin }, async (_request, reply) => {
-    const authors = await prisma.user.findMany({
-      where: { role: "AUTHOR" },
+  app.get("/api/admin/authors", { preHandler: requireAdmin }, async (request, reply) => {
+    const { contract } = request.query as { contract?: "signed" | "unsigned" };
+
+    const raw = await prisma.user.findMany({
+      where: {
+        role: "AUTHOR",
+        ...(contract === "signed" ? { contractAcceptedAt: { not: null } } : {}),
+        ...(contract === "unsigned" ? { contractAcceptedAt: null } : {}),
+      },
       select: {
         id: true,
         name: true,
@@ -437,9 +443,16 @@ export async function adminRoutes(app: FastifyInstance) {
         contractAcceptedAt: true,
         createdAt: true,
         _count: { select: { books: true } },
+        books: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
       },
       orderBy: { createdAt: "desc" },
     });
+
+    const authors = raw.map(({ books, ...a }) => ({
+      ...a,
+      lastBookAt: books[0]?.createdAt ?? null,
+    }));
+
     return reply.send({ authors });
   });
 
