@@ -505,6 +505,16 @@ headers: { Authorization: `Bearer ${token}` }
 
 ---
 
+## 🎨 WIREFRAMES — на черзі (Анатолій)
+
+> Зробити wireframe → повідомити Claude → Claude бере в реалізацію.
+
+- [ ] **W-01** Book Viewer `/dashboard/books/:id/preview` — розворот сторінок (desktop/mobile), thumbnail strip, навігація, skeleton, обкладинка + задня обкладинка
+- [ ] **W-02** Виплати автора `/dashboard/payouts` — блок балансу, форма реквізитів (IBAN/картка/РНОКПП), кнопка запиту, список виплат зі статусами
+- [ ] **W-03** Статистика продажів `/dashboard/stats` — графік по місяцях, таблиця по платформах (collapsible), вкладки, топ-книги, мобільна версія
+
+---
+
 ## 📊 MVP Scope (мінімально робочий продукт)
 
 ```
