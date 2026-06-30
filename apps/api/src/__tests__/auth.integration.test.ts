@@ -47,13 +47,14 @@ describe("POST /api/users/register", () => {
     app = await buildApp();
   });
 
-  it("returns 201 with user + token for valid input", async () => {
+  it("returns 201 with pending:true for valid input", async () => {
     const mockUser = {
       id: "user-1",
       email: "author@example.com",
       name: "Test Author",
       slug: "test-author",
       role: "AUTHOR",
+      emailVerified: false,
       createdAt: new Date(),
     };
 
@@ -68,8 +69,8 @@ describe("POST /api/users/register", () => {
 
     expect(response.statusCode).toBe(201);
     const body = response.json();
-    expect(body.user.email).toBe("author@example.com");
-    expect(body.token).toBeTruthy();
+    expect(body.pending).toBe(true);
+    expect(body.email).toBe("author@example.com");
   });
 
   it("returns 400 for invalid email", async () => {
@@ -134,6 +135,7 @@ describe("POST /api/users/login", () => {
       slug: "author",
       role: "AUTHOR",
       avatarUrl: null,
+      emailVerified: true,
       passwordHash: hash,
     } as any);
 
@@ -149,10 +151,34 @@ describe("POST /api/users/login", () => {
     expect(body.user.email).toBe("a@b.com");
   });
 
+  it("returns 403 when email not verified", async () => {
+    const hash = await bcrypt.hash("correct-password", 10);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "user-1",
+      email: "a@b.com",
+      name: "Author",
+      slug: "author",
+      role: "AUTHOR",
+      avatarUrl: null,
+      emailVerified: false,
+      passwordHash: hash,
+    } as any);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/users/login",
+      payload: { email: "a@b.com", password: "correct-password" },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().code).toBe("EMAIL_NOT_VERIFIED");
+  });
+
   it("returns 401 for wrong password", async () => {
     const hash = await bcrypt.hash("correct-password", 10);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       id: "user-1",
+      emailVerified: true,
       passwordHash: hash,
     } as any);
 
