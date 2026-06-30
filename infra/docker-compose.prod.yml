@@ -126,6 +126,11 @@ services:
         max-file: "5"
     volumes:
       - worker_tmp:/tmp/knyha-worker
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -h knyha-redis -a $REDIS_PASSWORD ping | grep -q PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -165,11 +170,38 @@ services:
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - prometheus
+      - loki
     networks:
       - monitoring
     # Access: ssh -L 3003:localhost:3000 user@vps → http://localhost:3003
+
+  loki:
+    image: grafana/loki:latest
+    restart: always
+    container_name: knyha-loki
+    command: -config.file=/etc/loki/config.yaml
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:latest
+    restart: always
+    container_name: knyha-promtail
+    command: -config.file=/etc/promtail/config.yaml
+    volumes:
+      - ./promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - monitoring
+    depends_on:
+      - loki
 
 volumes:
   postgres_data:
@@ -178,6 +210,7 @@ volumes:
   worker_tmp:
   prometheus_data:
   grafana_data:
+  loki_data:
 
 networks:
   internal:

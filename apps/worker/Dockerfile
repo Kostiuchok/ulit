@@ -4,7 +4,7 @@ ENV NODE_ENV=production
 
 # System deps: LibreOffice, Pandoc, Ghostscript, Calibre, Node 20
 RUN apt-get update && apt-get install -y \
-    curl libreoffice pandoc ghostscript calibre \
+    curl libreoffice pandoc ghostscript calibre redis-tools \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g pnpm@9 \
