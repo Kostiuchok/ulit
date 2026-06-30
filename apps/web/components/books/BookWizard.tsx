@@ -327,12 +327,12 @@ export function BookWizard() {
   if (step === 3) {
     const isKdpSelect = channels.includes("KDP") && !channels.includes("D2D") && !channels.includes("GOOGLE");
 
-    function toggleChannel(key: string) {
-      if (key === "ULIT") return; // always on
+    const toggleChannel = (key: string) => {
+      if (key === "ULIT") return;
       setChannels((prev) =>
         prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]
       );
-    }
+    };
 
     const platforms = [
       {
