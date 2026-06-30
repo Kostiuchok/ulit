@@ -59,18 +59,21 @@ enum ConversionStatus {
 }
 
 model User {
-  id                  String    @id @default(cuid())
-  email               String    @unique
-  passwordHash        String?
-  name                String
-  slug                String    @unique
-  bio                 String?
-  avatarUrl           String?
-  role                Role      @default(AUTHOR)
-  contractAcceptedAt  DateTime?
-  contractAcceptedIp  String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                           String    @id @default(cuid())
+  email                        String    @unique
+  passwordHash                 String?
+  name                         String
+  slug                         String    @unique
+  bio                          String?
+  avatarUrl                    String?
+  role                         Role      @default(AUTHOR)
+  emailVerified                Boolean   @default(false)
+  emailVerificationToken       String?   @unique
+  emailVerificationTokenExpiry DateTime?
+  contractAcceptedAt           DateTime?
+  contractAcceptedIp           String?
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
 
   books     Book[]
   orders    Order[]

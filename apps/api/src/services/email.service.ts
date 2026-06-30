@@ -24,6 +24,31 @@ async function sendMail(to: string, subject: string, html: string) {
   }
 }
 
+export async function sendEmailVerification(opts: {
+  email: string;
+  name: string;
+  verificationUrl: string;
+}) {
+  const { email, name, verificationUrl } = opts;
+  await sendMail(
+    email,
+    "Підтвердіть ваш email — Knyha",
+    `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+      <h2 style="color:#1a1a2e">Підтвердіть вашу електронну адресу</h2>
+      <p>Вітаємо, ${name}!</p>
+      <p>Для завершення реєстрації натисніть кнопку нижче:</p>
+      <a href="${verificationUrl}" style="display:inline-block;margin:20px 0;padding:12px 28px;background:#1a1a2e;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:1em">
+        Підтвердити email
+      </a>
+      <p style="color:#666;font-size:0.9em">Посилання дійсне <strong>24 години</strong>.</p>
+      <p style="color:#999;font-size:0.8em">Якщо ви не реєструвались на Knyha — просто ігноруйте цей лист.</p>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа Knyha — knyha.ua</p>
+    </div>
+    `
+  );
+}
+
 export async function sendKdpExpiryWarning(opts: {
   email: string;
   name: string;

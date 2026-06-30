@@ -28,6 +28,10 @@ export async function loginRoute(app: FastifyInstance) {
       throw AppError.unauthorized("Invalid email or password");
     }
 
+    if (!user.emailVerified) {
+      return reply.status(403).send({ error: "Email not verified", code: "EMAIL_NOT_VERIFIED" });
+    }
+
     const token = app.jwt.sign({ id: user.id, sub: user.id, email: user.email, role: user.role });
 
     return reply.send({

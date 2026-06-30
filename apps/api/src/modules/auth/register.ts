@@ -1,8 +1,10 @@
 import { FastifyInstance } from "fastify";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
+import { sendEmailVerification } from "../../services/email.service";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -53,14 +55,29 @@ export async function registerRoute(app: FastifyInstance) {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const slug = await uniqueSlug(name);
+    const verificationToken = crypto.randomUUID();
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const user = await prisma.user.create({
-      data: { email, passwordHash, name, slug },
-      select: { id: true, email: true, name: true, slug: true, role: true, createdAt: true },
+    await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        name,
+        slug,
+        emailVerificationToken: verificationToken,
+        emailVerificationTokenExpiry: tokenExpiry,
+      },
     });
 
-    const token = app.jwt.sign({ id: user.id, sub: user.id, email: user.email, role: user.role });
+    const baseUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
 
-    return reply.status(201).send({ user, token });
+    try {
+      await sendEmailVerification({ email, name, verificationUrl });
+    } catch (err) {
+      app.log.error({ err }, "Failed to send verification email");
+    }
+
+    return reply.status(201).send({ pending: true, email });
   });
 }

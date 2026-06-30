@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -25,6 +26,7 @@ const registerSchema = z
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [serverError, setServerError] = useState("");
 
   const {
@@ -48,11 +50,7 @@ export default function RegisterPage() {
       return;
     }
 
-    await signIn("credentials", {
-      email: data.email,
-      password: data.password,
-      callbackUrl: "/dashboard",
-    });
+    router.push(`/register/check-email?email=${encodeURIComponent(data.email)}`);
   };
 
   return (

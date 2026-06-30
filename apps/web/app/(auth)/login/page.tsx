@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -18,9 +18,14 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justVerified = searchParams.get("verified") === "1";
+
   const [serverError, setServerError] = useState("");
+  const [notVerifiedEmail, setNotVerifiedEmail] = useState("");
+  const [resendState, setResendState] = useState<"idle" | "loading" | "done">("idle");
 
   const {
     register,
@@ -28,8 +33,40 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
+  const handleResend = async () => {
+    if (!notVerifiedEmail) return;
+    setResendState("loading");
+    await fetch("/api/users/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: notVerifiedEmail }),
+    });
+    setResendState("done");
+  };
+
   const onSubmit = async (data: LoginForm) => {
     setServerError("");
+    setNotVerifiedEmail("");
+    setResendState("idle");
+
+    // Direct API check to surface EMAIL_NOT_VERIFIED before going through NextAuth
+    const checkRes = await fetch("/api/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email, password: data.password }),
+    });
+
+    if (!checkRes.ok) {
+      const body = await checkRes.json().catch(() => ({}));
+      if (body.code === "EMAIL_NOT_VERIFIED") {
+        setNotVerifiedEmail(data.email);
+        return;
+      }
+      setServerError("Невірний email або пароль");
+      return;
+    }
+
+    // Credentials valid — create NextAuth session
     const result = await signIn("credentials", {
       email: data.email,
       password: data.password,
@@ -50,6 +87,12 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-gray-900">📚 Knyha</h1>
           <h2 className="mt-4 text-xl font-semibold text-gray-700">Увійти до кабінету</h2>
         </div>
+
+        {justVerified && (
+          <div className="rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-800 font-medium">
+            ✅ Email підтверджено! Тепер ви можете увійти.
+          </div>
+        )}
 
         <div className="bg-white rounded-xl shadow-sm border p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -79,6 +122,26 @@ export default function LoginPage() {
 
             {serverError && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</div>
+            )}
+
+            {notVerifiedEmail && (
+              <div className="rounded-md bg-amber-50 border border-amber-200 p-3 space-y-2">
+                <p className="text-sm text-amber-800 font-medium">
+                  Email не підтверджено. Перевірте поштову скриньку.
+                </p>
+                {resendState === "done" ? (
+                  <p className="text-xs text-green-700">Новий лист надіслано.</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendState === "loading"}
+                    className="text-xs text-amber-700 underline hover:no-underline disabled:opacity-50"
+                  >
+                    {resendState === "loading" ? "Надсилаємо…" : "Надіслати лист повторно"}
+                  </button>
+                )}
+              </div>
             )}
 
             <Button type="submit" className="w-full" loading={isSubmitting}>
@@ -133,5 +196,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

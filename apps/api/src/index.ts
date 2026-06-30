@@ -8,6 +8,7 @@ import { AppError } from "./errors/AppError";
 import { prisma } from "./lib/prisma";
 import { registerRoute } from "./modules/auth/register";
 import { loginRoute } from "./modules/auth/login";
+import { verifyEmailRoutes } from "./modules/auth/verify-email";
 import { meRoute } from "./modules/auth/me";
 import { usersMe } from "./modules/users/me";
 import { usersAvatar } from "./modules/users/avatar";
@@ -74,6 +75,7 @@ async function bootstrap() {
 
   await app.register(registerRoute);
   await app.register(loginRoute);
+  await app.register(verifyEmailRoutes);
   await app.register(meRoute);
   await app.register(usersMe);
   await app.register(usersAvatar);
@@ -95,7 +97,7 @@ async function bootstrap() {
   if (adminEmail) {
     const result = await prisma.user.updateMany({
       where: { email: adminEmail, role: "AUTHOR" },
-      data: { role: "ADMIN" },
+      data: { role: "ADMIN", emailVerified: true },
     });
     if (result.count > 0) {
       app.log.info(`Promoted ${adminEmail} to ADMIN`);
