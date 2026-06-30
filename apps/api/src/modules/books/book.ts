@@ -29,6 +29,7 @@ const BOOK_SELECT = {
   previewStart: true,
   previewEnd: true,
   distributionStrategy: true,
+  distributionChannels: true,
   kdpSelectEnrolled: true,
   kdpSelectExpiry: true,
   d2dStatus: true,
@@ -52,6 +53,7 @@ const patchSchema = z.object({
   pricePrint: z.number().positive().nullable().optional(),
   pageCount: z.number().int().positive().nullable().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
+  distributionChannels: z.array(z.enum(["ULIT", "D2D", "KDP", "GOOGLE"])).optional(),
   kdpSelectExpiry: z.string().datetime().nullable().optional(),
 });
 

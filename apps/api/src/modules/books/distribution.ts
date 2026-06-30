@@ -7,9 +7,21 @@ import { scheduleKdpExpiryWarning } from "../../lib/email-queue";
 
 const KDP_SELECT_DAYS = 90;
 
+const VALID_CHANNELS = ["ULIT", "D2D", "KDP", "GOOGLE"] as const;
+
 const switchSchema = z.object({
-  distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]),
+  distributionChannels: z
+    .array(z.enum(VALID_CHANNELS))
+    .min(1, "Оберіть хоча б одну платформу")
+    .refine((ch) => ch.includes("ULIT"), "Магазин Ulit завжди обов'язковий"),
 });
+
+function deriveStrategy(channels: string[]): "WIDE" | "KDP_SELECT" {
+  const hasKdp = channels.includes("KDP");
+  const hasD2d = channels.includes("D2D");
+  const hasGoogle = channels.includes("GOOGLE");
+  return hasKdp && !hasD2d && !hasGoogle ? "KDP_SELECT" : "WIDE";
+}
 
 export async function distributionRoutes(app: FastifyInstance) {
   // GET distribution status for a book
@@ -23,6 +35,7 @@ export async function distributionRoutes(app: FastifyInstance) {
         select: {
           authorId: true,
           distributionStrategy: true,
+          distributionChannels: true,
           kdpSelectEnrolled: true,
           kdpSelectExpiry: true,
           d2dStatus: true,
@@ -45,6 +58,7 @@ export async function distributionRoutes(app: FastifyInstance) {
 
       return reply.send({
         distributionStrategy: book.distributionStrategy,
+        distributionChannels: book.distributionChannels,
         kdpSelectEnrolled: book.kdpSelectEnrolled,
         kdpSelectExpiry: book.kdpSelectExpiry,
         kdpSelectDaysLeft: kdpActive
@@ -52,15 +66,15 @@ export async function distributionRoutes(app: FastifyInstance) {
           : null,
         kdpSelectActive: kdpActive,
         services: {
-          d2d: { status: book.d2dStatus, sentAt: book.d2dSentAt, blocked: kdpActive },
-          kdp: { status: book.kdpStatus, sentAt: book.kdpSentAt, blocked: false },
-          google: { status: book.googleStatus, sentAt: book.googleSentAt, blocked: kdpActive },
+          d2d: { status: book.d2dStatus, sentAt: book.d2dSentAt, blocked: kdpActive || !book.distributionChannels.includes("D2D") },
+          kdp: { status: book.kdpStatus, sentAt: book.kdpSentAt, blocked: !book.distributionChannels.includes("KDP") },
+          google: { status: book.googleStatus, sentAt: book.googleSentAt, blocked: kdpActive || !book.distributionChannels.includes("GOOGLE") },
         },
       });
     }
   );
 
-  // PATCH — switch strategy (only allowed when KDP Select is not active)
+  // PATCH — update distribution channels (strategy is derived automatically)
   app.patch(
     "/api/books/:id/distribution",
     { preHandler: authenticate },
@@ -89,7 +103,10 @@ export async function distributionRoutes(app: FastifyInstance) {
       const now = new Date();
       const kdpActive = book.kdpSelectEnrolled && book.kdpSelectExpiry && book.kdpSelectExpiry > now;
 
-      if (kdpActive && result.data.distributionStrategy === "WIDE") {
+      const { distributionChannels } = result.data;
+      const distributionStrategy = deriveStrategy(distributionChannels);
+
+      if (kdpActive && distributionStrategy === "WIDE") {
         throw new AppError(
           `Cannot switch to WIDE while KDP Select is active (expires ${book.kdpSelectExpiry!.toLocaleDateString("uk-UA")})`,
           400,
@@ -97,7 +114,6 @@ export async function distributionRoutes(app: FastifyInstance) {
         );
       }
 
-      const { distributionStrategy } = result.data;
       const isEnrollingKdp = distributionStrategy === "KDP_SELECT" && !kdpActive;
       const expiry = isEnrollingKdp
         ? new Date(now.getTime() + KDP_SELECT_DAYS * 24 * 60 * 60 * 1000)
@@ -106,18 +122,19 @@ export async function distributionRoutes(app: FastifyInstance) {
       const updated = await prisma.book.update({
         where: { id },
         data: {
+          distributionChannels,
           distributionStrategy,
           kdpSelectEnrolled: distributionStrategy === "KDP_SELECT",
           kdpSelectExpiry: isEnrollingKdp ? expiry : (distributionStrategy === "WIDE" ? null : undefined),
         },
         select: {
           distributionStrategy: true,
+          distributionChannels: true,
           kdpSelectEnrolled: true,
           kdpSelectExpiry: true,
         },
       });
 
-      // Schedule 7-day warning email when enrolling KDP Select
       if (isEnrollingKdp && expiry) {
         await scheduleKdpExpiryWarning(
           { email: book.author.email, name: book.author.name, bookTitle: book.title, bookId: id, expiryDate: expiry.toISOString() },
@@ -130,10 +147,14 @@ export async function distributionRoutes(app: FastifyInstance) {
   );
 }
 
-// Helper used by admin publish flow (T-703, Phase 7)
 export function isDistributionAllowed(
   service: "d2d" | "google" | "kdp",
-  book: { distributionStrategy: string; kdpSelectEnrolled: boolean; kdpSelectExpiry: Date | null }
+  book: {
+    distributionStrategy: string;
+    distributionChannels: string[];
+    kdpSelectEnrolled: boolean;
+    kdpSelectExpiry: Date | null;
+  }
 ): boolean {
   const now = new Date();
   const kdpActive =
@@ -141,7 +162,8 @@ export function isDistributionAllowed(
     book.kdpSelectExpiry !== null &&
     book.kdpSelectExpiry > now;
 
+  const channelKey: Record<string, string> = { d2d: "D2D", google: "GOOGLE", kdp: "KDP" };
+  if (!book.distributionChannels.includes(channelKey[service])) return false;
   if (service === "kdp") return true;
-  if (service === "d2d" || service === "google") return !kdpActive;
-  return true;
+  return !kdpActive;
 }

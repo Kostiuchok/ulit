@@ -106,8 +106,9 @@ model Book {
   pagesGeneratedAt     DateTime?
   previewStart         Int?
   previewEnd           Int?
-  distributionStrategy DistributionStrategy @default(WIDE)
-  kdpSelectEnrolled    Boolean              @default(false)
+  distributionStrategy  DistributionStrategy @default(WIDE)
+  distributionChannels  String[]             @default(["ULIT", "D2D", "KDP", "GOOGLE"])
+  kdpSelectEnrolled     Boolean              @default(false)
   kdpSelectExpiry      DateTime?
   d2dStatus            ExternalStatus       @default(NOT_SENT)
   d2dSentAt            DateTime?

@@ -65,7 +65,7 @@ export function BookWizard() {
   const { apiFetch } = useApi();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<BookDraft | null>(null);
-  const [distribution, setDistribution] = useState<"WIDE" | "KDP_SELECT">("WIDE");
+  const [channels, setChannels] = useState<string[]>(["ULIT", "D2D", "KDP", "GOOGLE"]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -80,7 +80,7 @@ export function BookWizard() {
       if (!draft) {
         const { book } = await apiFetch<{ book: BookDraft }>("/api/books", {
           method: "POST",
-          body: JSON.stringify({ ...data, distributionStrategy: distribution }),
+          body: JSON.stringify(data),
         });
         setDraft(book);
       } else {
@@ -124,10 +124,9 @@ export function BookWizard() {
     if (!draft) return;
     setSaving(true);
     try {
-      // Use the distribution endpoint so KDP Select expiry is set correctly
       await apiFetch(`/api/books/${draft.id}/distribution`, {
         method: "PATCH",
-        body: JSON.stringify({ distributionStrategy: distribution }),
+        body: JSON.stringify({ distributionChannels: channels }),
       });
       setStep(4);
     } catch (e: any) {
@@ -324,66 +323,100 @@ export function BookWizard() {
     );
   }
 
-  // Step 3 — Distribution strategy
+  // Step 3 — Distribution channels
   if (step === 3) {
+    const isKdpSelect = channels.includes("KDP") && !channels.includes("D2D") && !channels.includes("GOOGLE");
+
+    function toggleChannel(key: string) {
+      if (key === "ULIT") return; // always on
+      setChannels((prev) =>
+        prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]
+      );
+    }
+
+    const platforms = [
+      {
+        key: "ULIT",
+        icon: "📚",
+        name: "Магазин Ulit",
+        royalty: "70%",
+        description: "Власний магазин платформи. Завжди увімкнений.",
+        locked: true,
+      },
+      {
+        key: "D2D",
+        icon: "🌐",
+        name: "Draft2Digital",
+        royalty: "60%",
+        description: "40+ ритейлерів: Barnes & Noble, Kobo, Apple Books та інші.",
+        locked: false,
+      },
+      {
+        key: "KDP",
+        icon: "🔶",
+        name: "Amazon KDP",
+        royalty: "35–70%",
+        description: "Amazon Kindle Store. Якщо обрано без D2D і Google — активується KDP Select (90 днів ексклюзивності).",
+        locked: false,
+      },
+      {
+        key: "GOOGLE",
+        icon: "🎮",
+        name: "Google Play Books",
+        royalty: "52%",
+        description: "Google Play Books Store.",
+        locked: false,
+      },
+    ];
+
     return (
       <div>
         {progress}
-        <h2 className="text-lg font-semibold mb-2">Стратегія розповсюдження</h2>
-        <p className="text-sm text-gray-500 mb-6">Оберіть, де продавати книгу.</p>
+        <h2 className="text-lg font-semibold mb-2">Платформи розповсюдження</h2>
+        <p className="text-sm text-gray-500 mb-6">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* WIDE */}
-          <button
-            type="button"
-            onClick={() => setDistribution("WIDE")}
-            className={cn(
-              "rounded-xl border-2 p-5 text-left transition-colors",
-              distribution === "WIDE" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"
-            )}
-          >
-            <div className="flex items-start justify-between">
-              <div className="text-2xl mb-2">🌐</div>
-              {distribution === "WIDE" && <span className="text-xs font-semibold text-primary">Вибрано</span>}
-            </div>
-            <p className="font-semibold">Широке розповсюдження</p>
-            <p className="mt-1 text-sm text-gray-500">
-              Продаж на Knyha, Draft2Digital, Google Play Books та KDP одночасно.
-            </p>
-            <ul className="mt-3 space-y-1 text-xs text-gray-500">
-              <li>✓ Knyha.ua — власний магазин</li>
-              <li>✓ Draft2Digital → 40+ ритейлерів</li>
-              <li>✓ Google Play Books</li>
-              <li>✓ Amazon KDP (без ексклюзиву)</li>
-            </ul>
-          </button>
-
-          {/* KDP SELECT */}
-          <button
-            type="button"
-            onClick={() => setDistribution("KDP_SELECT")}
-            className={cn(
-              "rounded-xl border-2 p-5 text-left transition-colors",
-              distribution === "KDP_SELECT" ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300"
-            )}
-          >
-            <div className="flex items-start justify-between">
-              <div className="text-2xl mb-2">🔶</div>
-              {distribution === "KDP_SELECT" && <span className="text-xs font-semibold text-primary">Вибрано</span>}
-            </div>
-            <p className="font-semibold">KDP Select (Kindle Unlimited)</p>
-            <p className="mt-1 text-sm text-gray-500">
-              Ексклюзивно на Amazon на 90 днів. Доступна підписникам Kindle Unlimited.
-            </p>
-            <ul className="mt-3 space-y-1 text-xs text-gray-500">
-              <li>✓ Amazon KDP Select</li>
-              <li>✓ Kindle Unlimited (KU)</li>
-              <li>⏸ Draft2Digital — призупинено</li>
-              <li>⏸ Google Play — призупинено</li>
-            </ul>
-            <p className="mt-3 text-xs text-amber-600 font-medium">⚠ 90-денний ексклюзив на Amazon</p>
-          </button>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {platforms.map((p) => {
+            const selected = channels.includes(p.key);
+            return (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => toggleChannel(p.key)}
+                className={cn(
+                  "rounded-xl border-2 p-4 text-left transition-colors",
+                  selected ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300",
+                  p.locked && "cursor-default"
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{p.icon}</span>
+                    <span className="font-semibold text-sm">{p.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-medium text-green-600">{p.royalty}</span>
+                    <div className={cn(
+                      "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0",
+                      selected ? "border-primary bg-primary" : "border-gray-300"
+                    )}>
+                      {selected && <span className="text-white text-[10px] leading-none">✓</span>}
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">{p.description}</p>
+                {p.locked && <p className="mt-1 text-xs text-gray-400">Не можна вимкнути</p>}
+              </button>
+            );
+          })}
         </div>
+
+        {isKdpSelect && (
+          <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+            <span className="font-medium">KDP Select (Kindle Unlimited)</span> — ексклюзивна угода з Amazon на 90 днів.
+            Протягом цього часу книга не може продаватись на D2D та Google Play Books.
+          </div>
+        )}
 
         {errorBanner}
         <div className="flex justify-between mt-6">

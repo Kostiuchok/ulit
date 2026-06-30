@@ -50,6 +50,7 @@ const BOOK_ADMIN_SELECT = {
   language: true,
   pageCount: true,
   distributionStrategy: true,
+  distributionChannels: true,
   d2dStatus: true,
   d2dSentAt: true,
   kdpStatus: true,

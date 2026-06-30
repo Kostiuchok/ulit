@@ -12,6 +12,7 @@ const createSchema = z.object({
   priceEbook: z.number().positive().optional(),
   pricePrint: z.number().positive().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).default("WIDE"),
+  distributionChannels: z.array(z.enum(["ULIT", "D2D", "KDP", "GOOGLE"])).default(["ULIT", "D2D", "KDP", "GOOGLE"]),
 });
 
 function slugifyTitle(title: string): string {

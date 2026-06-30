@@ -8,6 +8,8 @@ export type ModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export type DistributionStrategy = "WIDE" | "KDP_SELECT";
 
+export type DistributionChannel = "ULIT" | "D2D" | "KDP" | "GOOGLE";
+
 export type ExternalStatus = "NOT_SENT" | "SENT" | "PUBLISHED" | "ERROR";
 
 export type OrderStatus = "PENDING" | "PAID" | "FULFILLED" | "CANCELLED";
@@ -50,6 +52,7 @@ export interface Book {
   language: string;
   pageCount?: number;
   distributionStrategy: DistributionStrategy;
+  distributionChannels: DistributionChannel[];
   kdpSelectEnrolled: boolean;
   kdpSelectExpiry?: string;
   d2dStatus: ExternalStatus;
