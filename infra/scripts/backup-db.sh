@@ -31,8 +31,16 @@ if ! command -v mc &>/dev/null; then
   chmod +x /usr/local/bin/mc
 fi
 
+# Resolve MinIO endpoint: use container IP when MINIO_ENDPOINT is a Docker service name
+# (Docker DNS names are only resolvable inside containers, not from the host)
+MINIO_HOST="${MINIO_ENDPOINT:-localhost}"
+if ! echo "$MINIO_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$|^localhost$|^127\.'; then
+  # Looks like a Docker service name — resolve to container IP
+  MINIO_HOST=$(docker inspect "knyha-minio-1" --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "localhost")
+fi
+
 mc alias set knyha \
-  "http://${MINIO_ENDPOINT:-localhost}:${MINIO_PORT:-9000}" \
+  "http://${MINIO_HOST}:${MINIO_PORT:-9000}" \
   "${MINIO_ACCESS_KEY}" \
   "${MINIO_SECRET_KEY}" \
   --quiet
