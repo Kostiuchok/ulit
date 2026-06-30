@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { requireAdmin } from "../../lib/jwt.middleware";
-import {} from "../../services/storage.service";
+import { getSignedUrl } from "../../services/storage.service";
 import type { Archiver as ArchiverType } from "archiver";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<string, unknown>) => ArchiverType };
@@ -525,6 +525,26 @@ export async function adminRoutes(app: FastifyInstance) {
     ]);
 
     return reply.send({ ok: true });
+  });
+
+  // ─── Book signed download URLs ────────────────────────────────────────────
+  app.get("/api/admin/books/:id/signed-urls", { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const book = await prisma.book.findUnique({
+      where: { id },
+      select: { pdfUrl: true, epubUrl: true, fb2Url: true, mobiUrl: true, printPdfUrl: true },
+    });
+    if (!book) throw AppError.notFound("Book");
+
+    const [pdf, epub, fb2, mobi, printPdf] = await Promise.all([
+      book.pdfUrl ? getSignedUrl(book.pdfUrl).catch(() => null) : null,
+      book.epubUrl ? getSignedUrl(book.epubUrl).catch(() => null) : null,
+      book.fb2Url ? getSignedUrl(book.fb2Url).catch(() => null) : null,
+      book.mobiUrl ? getSignedUrl(book.mobiUrl).catch(() => null) : null,
+      book.printPdfUrl ? getSignedUrl(book.printPdfUrl).catch(() => null) : null,
+    ]);
+
+    return reply.send({ pdf, epub, fb2, mobi, printPdf });
   });
 
   // ─── Service toggles ──────────────────────────────────────────────────────

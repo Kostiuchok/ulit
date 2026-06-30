@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../../hooks/useApi";
@@ -70,17 +70,75 @@ function Badge({ status }: { status: string }) {
   );
 }
 
-function DownloadLink({ url, label }: { url: string | null; label: string }) {
-  if (!url) return <span className="text-gray-300 text-xs">{label}</span>;
+interface SignedUrls {
+  pdf: string | null;
+  epub: string | null;
+  fb2: string | null;
+  mobi: string | null;
+  printPdf: string | null;
+}
+
+function DownloadSection({ bookId, hasFiles }: { bookId: string; hasFiles: boolean }) {
+  const { apiFetch } = useApi();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [urls, setUrls] = useState<SignedUrls | null>(null);
+
+  const fetchUrls = useCallback(async () => {
+    if (urls) return;
+    setLoading(true);
+    try {
+      const data = await apiFetch<SignedUrls>(`/api/admin/books/${bookId}/signed-urls`);
+      setUrls(data);
+    } finally {
+      setLoading(false);
+    }
+  }, [bookId, urls, apiFetch]);
+
+  if (!hasFiles) return <span className="text-xs text-gray-400">Файли відсутні</span>;
+
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
-    >
-      ↓ {label}
-    </a>
+    <div>
+      <button
+        type="button"
+        onClick={() => { setOpen((v) => !v); if (!open) fetchUrls(); }}
+        className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
+      >
+        {open ? "▲" : "▼"} Завантажити файли
+      </button>
+      {open && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {loading ? (
+            <span className="text-xs text-gray-400">Генерація посилань…</span>
+          ) : urls ? (
+            <>
+              {([
+                { key: "pdf",      label: "PDF" },
+                { key: "epub",     label: "EPUB" },
+                { key: "fb2",      label: "FB2" },
+                { key: "mobi",     label: "MOBI" },
+                { key: "printPdf", label: "Print PDF" },
+              ] as const).map(({ key, label }) =>
+                urls[key] ? (
+                  <a
+                    key={key}
+                    href={urls[key]!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    ↓ {label}
+                  </a>
+                ) : (
+                  <span key={key} className="text-gray-300 text-xs">{label}</span>
+                )
+              )}
+              <span className="text-xs text-gray-400 self-center">· діють 48 год</span>
+            </>
+          ) : null}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -216,12 +274,11 @@ export default function AdminAuthorDetailPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <DownloadLink url={book.pdfUrl} label="PDF" />
-                      <DownloadLink url={book.epubUrl} label="EPUB" />
-                      <DownloadLink url={book.fb2Url} label="FB2" />
-                      <DownloadLink url={book.mobiUrl} label="MOBI" />
-                      <DownloadLink url={book.printPdfUrl} label="Print PDF" />
+                    <div className="mt-3">
+                      <DownloadSection
+                        bookId={book.id}
+                        hasFiles={!!(book.pdfUrl || book.epubUrl || book.fb2Url || book.mobiUrl || book.printPdfUrl)}
+                      />
                     </div>
 
                     <div className="mt-3 grid grid-cols-3 gap-3 text-xs text-gray-500">
