@@ -83,6 +83,59 @@ pnpm --filter web dev
 (публікація книги, оплата, дистрибуція), локально не спрацюють — для цього
 є VPS.
 
+### 4. `.env` файли (опційно, не обов'язково для CI/деплою)
+
+`.env` в git не комітяться (`.gitignore`). Якщо потрібні локально (напр. щоб
+typecheck/IDE не лаявся на відсутні змінні):
+
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+```
+Значення там — dev-заглушки на `localhost` (Docker не піднятий, тому реально
+не працюють). Реальні прод-значення — лише в `.env.production` на VPS.
+
+---
+
+## 🔑 Доступ до VPS (SSH)
+
+VPS (`178.105.208.56`, `/opt/knyha-platform`) — спільний сервер, на якому
+живуть **кілька різних проєктів** під `root`. **Не використовуй SSH-ключ
+іншого проєкту** (наприклад `doskonalo_deploy`, `uecommerce_deploy`,
+`finlover_deploy`) для роботи з `knyha-platform` — заведи окремий ключ саме
+під цей проєкт, щоб доступи не змішувались.
+
+### Якщо переносиш проєкт на нову машину / в нову локальну папку
+
+1. Згенерувати новий ключ (без passphrase, для автоматизації):
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/knyha_deploy -N "" -C "claude-code-knyha-deploy"
+   ```
+2. Додати публічний ключ (`~/.ssh/knyha_deploy.pub`) у
+   `/root/.ssh/authorized_keys` на VPS. Якщо вже є доступ з іншої машини —
+   підключитись існуючим ключем і дописати рядок вручну (`>> authorized_keys`,
+   не перезаписувати файл). Якщо доступу ще немає — попросити того, хто вже
+   має SSH до сервера, додати публічний ключ.
+3. Додати host-alias у `~/.ssh/config` (локальний файл, не в репо):
+   ```
+   Host knyha
+       HostName 178.105.208.56
+       User root
+       IdentityFile ~/.ssh/knyha_deploy
+       IdentitiesOnly yes
+   ```
+4. Перевірити:
+   ```bash
+   ssh knyha "whoami && ls /opt/knyha-platform"
+   ```
+
+Далі всі ручні SSH-команди до цього проєкту (діагностика контейнерів,
+перевірка логів — див. `CLAUDE.md`) виконувати через `ssh knyha ...`.
+
+> Автодеплой з GitHub Actions (`deploy.yml`) використовує **окремий** ключ
+> зі `secrets.SSH_PRIVATE_KEY` в GitHub — до нього це не стосується, він
+> вже налаштований на рівні репозиторію.
+
 ---
 
 ## 🔄 Git workflow / метод роботи
