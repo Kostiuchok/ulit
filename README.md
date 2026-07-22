@@ -46,11 +46,15 @@ knyha-platform/
 
 ---
 
-## ⚡ Швидкий старт (локально)
+## ⚙️ Setup (локальна машина)
+
+> **Docker локально не потрібен.** Postgres/Redis/MinIO існують лише на VPS
+> (`infra/docker-compose.prod.yml`). Локально код лише редагується,
+> лінтиться, типчекається і покривається unit-тестами — жива інфраструктура
+> (БД, файлове сховище, конвертація документів) є тільки в проді.
 
 ### Вимоги
 - Node.js 20+
-- Docker + Docker Compose
 - pnpm 9+
 
 ### 1. Клонувати та встановити залежності
@@ -61,39 +65,71 @@ cd knyha-platform
 pnpm install
 ```
 
-### 2. Налаштувати змінні середовища
+### 2. Локальні перевірки
 
 ```bash
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
-# Заповнити .env файли (дивись секцію нижче)
+pnpm lint
+pnpm typecheck
+pnpm --filter api test      # unit-тести API (без реальної БД)
 ```
 
-### 3. Запустити інфраструктуру (PostgreSQL + Redis + MinIO)
+### 3. UI без бекенду (опційно)
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d
+pnpm --filter web dev
+# web → http://localhost:3000
+```
+Працює для верстки/UI-компонентів. Функції, що потребують API/БД/файлів
+(публікація книги, оплата, дистрибуція), локально не спрацюють — для цього
+є VPS.
+
+---
+
+## 🔄 Git workflow / метод роботи
+
+Розробка йде **не** через локальний docker-compose стек, а через пряму
+CI/CD-петлю на VPS:
+
+```
+main           — стабільна гілка, захищена, автодеплой на VPS
+dev            — інтеграційна гілка (тільки CI, без деплою)
+feat/<id>-name — фіча (від dev)
+fix/<id>-name  — баг-фікс (від dev)
 ```
 
-### 4. Міграції та seed
+**Коміти:** Conventional Commits — `feat:` · `fix:` · `chore:` · `docs:` · `refactor:`
 
-```bash
-pnpm --filter api db:migrate
-pnpm --filter api db:seed
+```
+1. git checkout -b feat/<id>-name   (від dev)
+2. Редагуєш код, локально: pnpm lint / pnpm typecheck / pnpm --filter api test
+3. git push → PR у GitHub
+4. CI (.github/workflows/ci.yml) на push/PR у main/dev:
+   lint → typecheck → unit-тести API
+5. Merge у main
+6. CI знову проганяється на main → якщо success:
+   .github/workflows/deploy.yml автоматично по SSH деплоїть
+   на VPS (178.105.208.56, /opt/knyha-platform), rebuild контейнерів
+7. E2E-тести (той самий CI, job `e2e`) ганяються вже
+   проти прод-URL https://ulit.render.ua, а не проти localhost
+8. Перевіряєш результат живого деплою на VPS
+   (docker logs knyha-api / knyha-web, див. CLAUDE.md → журнал проблем)
 ```
 
-### 5. Запустити dev сервери
-
-```bash
-pnpm dev
-# web  → http://localhost:3000
-# api  → http://localhost:3001
-# minio → http://localhost:9001 (admin UI)
-```
+**Важливо:**
+- Auto-deploy спрацьовує тільки на `main` (branches: `[main]` у
+  `deploy.yml`), і тільки якщо CI пройшло успішно.
+- `dev` та `feat/*` гілки проходять лише CI (lint/typecheck/unit), без деплою.
+- Детальні команди деплою, діагностика контейнерів і журнал вирішених
+  production-проблем — у `CLAUDE.md` (розділи "Правила деплою на VPS" і
+  "Журнал вирішених проблем").
 
 ---
 
 ## ⚙️ Змінні середовища
+
+> Значення нижче — з `infra/docker-compose.yml` / dev-профілю, актуальні
+> лише якщо колись знадобиться підняти Postgres/Redis/MinIO локально.
+> Реальні прод-значення живуть у `.env.production` на VPS (не в репо).
 
 ### `apps/api/.env`
 
@@ -142,20 +178,6 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 | [`docs/TASKS.md`](./docs/TASKS.md) | ~140 задач по 14 фазах розробки |
 | [`docs/TECHNICAL-DECISIONS.md`](./docs/TECHNICAL-DECISIONS.md) | Wiki рішень: юридика, договір з автором, дистрибуція |
 | [`docs/knyha-complete.html`](./docs/knyha-complete.html) | Повний UI прототип (24 екрани, відкрити у браузері) |
-
----
-
-## 🔄 Git workflow
-
-```
-main          — стабільна гілка, захищена
-dev           — інтеграційна гілка
-feat/<id>-name — фіча (від dev)
-fix/<id>-name  — баг-фікс (від dev)
-```
-
-**Коміти:** Conventional Commits  
-`feat:` · `fix:` · `chore:` · `docs:` · `refactor:`
 
 ---
 
