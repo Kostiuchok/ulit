@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import {
   Save,
@@ -93,7 +92,6 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Underline,
       TextAlign.configure({ types: ["paragraph"] }),
       StyledParagraph,
     ],

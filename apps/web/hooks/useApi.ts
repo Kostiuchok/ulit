@@ -9,6 +9,7 @@ export function useApi() {
   async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const hasBody = init?.body != null;
     const res = await fetch(path, {
+      cache: "no-store",
       ...init,
       headers: {
         ...(hasBody ? { "Content-Type": "application/json" } : {}),
