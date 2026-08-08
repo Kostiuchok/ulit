@@ -552,6 +552,19 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
               <p className="text-xs text-green-600">✓ {ownCoverDims.w}×{ownCoverDims.h}px — застосовано на канву</p>
             )}
             {ownCoverError && <p className="text-xs text-red-500">{ownCoverError}</p>}
+
+            <div className="rounded-lg border p-3 space-y-2">
+              <p className="text-xs font-semibold text-gray-700">Редагувати офлайн у Photoshop</p>
+              <p className="text-xs text-gray-400">
+                PSD-шаблони з полями обрізу (bleed) та safe zone для поліграфії. Готуються — з'являться найближчим часом.
+              </p>
+              <Button size="sm" variant="outline" disabled className="w-full text-xs cursor-not-allowed">
+                Завантажити PSD-шаблон (м'яка обкладинка)
+              </Button>
+              <Button size="sm" variant="outline" disabled className="w-full text-xs cursor-not-allowed">
+                Завантажити PSD-шаблон (тверда обкладинка)
+              </Button>
+            </div>
           </div>
         )}
 
