@@ -3,6 +3,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import sharp from "sharp";
 import { downloadToFile, uploadFromFile } from "../lib/minio";
 import { prisma } from "../lib/prisma";
 
@@ -32,8 +33,12 @@ export async function generatePageThumbnails(job: Job<PageThumbnailsData>) {
       .sort();
 
     for (const file of files) {
-      const objectName = `public/pages/${bookId}/${file}`;
-      await uploadFromFile(objectName, path.join(tmpDir, file), "image/png");
+      const colorPath = path.join(tmpDir, file);
+      await uploadFromFile(`public/pages/${bookId}/${file}`, colorPath, "image/png");
+
+      const bwPath = path.join(tmpDir, `bw-${file}`);
+      await sharp(colorPath).grayscale().toFile(bwPath);
+      await uploadFromFile(`public/pages-bw/${bookId}/${file}`, bwPath, "image/png");
     }
 
     await prisma.book.update({

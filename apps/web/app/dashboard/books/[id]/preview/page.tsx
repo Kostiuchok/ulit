@@ -10,7 +10,7 @@ interface BackCoverData { authorName: string; bio?: string | null; avatarUrl?: s
 interface BookInfo { coverUrl?: string | null; pdfUrl?: string | null; title: string }
 
 type PagesResponse =
-  | { status: "DONE"; pages: PageEntry[]; pdfUrl: string | null }
+  | { status: "DONE"; pages: PageEntry[]; pagesBw: PageEntry[]; pdfUrl: string | null }
   | { status: "PROCESSING" }
   | { status: "NO_PDF" };
 
@@ -21,6 +21,7 @@ export default function PreviewPage() {
 
   const [book, setBook] = useState<BookInfo | null>(null);
   const [pages, setPages] = useState<PageEntry[] | null>(null);
+  const [pagesBw, setPagesBw] = useState<PageEntry[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [backCover, setBackCover] = useState<BackCoverData | null>(null);
   const [status, setStatus] = useState<"loading" | "processing" | "ready" | "no_pdf">("loading");
@@ -50,6 +51,7 @@ export default function PreviewPage() {
         if (pollRef.current) clearInterval(pollRef.current);
       } else if (res.status === "DONE") {
         setPages(res.pages);
+        setPagesBw(res.pagesBw);
         setPdfUrl(res.pdfUrl);
         setStatus("ready");
         if (pollRef.current) clearInterval(pollRef.current);
@@ -102,6 +104,7 @@ export default function PreviewPage() {
           <BookViewer
             coverUrl={book?.coverUrl}
             pages={pages}
+            pagesBw={pagesBw}
             backCover={backCover}
             pdfUrl={pdfUrl}
             onClose={() => router.push(`/dashboard/books/${id}`)}

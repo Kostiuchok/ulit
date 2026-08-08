@@ -5,10 +5,10 @@ import { AppError } from "../../errors/AppError";
 import { bookQueue } from "../../lib/queue";
 import { publicUrl, getSignedUrl } from "../../services/storage.service";
 
-function buildPageUrls(bookId: string, pageCount: number) {
+function buildPageUrls(bookId: string, pageCount: number, variant: "pages" | "pages-bw") {
   return Array.from({ length: pageCount }, (_, i) => ({
     page: i + 1,
-    url: publicUrl(`public/pages/${bookId}/page-${String(i + 1).padStart(3, "0")}.png`),
+    url: publicUrl(`public/${variant}/${bookId}/page-${String(i + 1).padStart(3, "0")}.png`),
   }));
 }
 
@@ -46,9 +46,10 @@ export async function bookPagesRoutes(app: FastifyInstance) {
         return reply.send({ status: "PROCESSING" });
       }
 
-      const pages = buildPageUrls(id, book.pageCount ?? 0);
+      const pages = buildPageUrls(id, book.pageCount ?? 0, "pages");
+      const pagesBw = buildPageUrls(id, book.pageCount ?? 0, "pages-bw");
       const pdfUrl = await getSignedUrl(book.pdfUrl).catch(() => null);
-      return reply.send({ status: "DONE", pages, pdfUrl });
+      return reply.send({ status: "DONE", pages, pagesBw, pdfUrl });
     }
   );
 
