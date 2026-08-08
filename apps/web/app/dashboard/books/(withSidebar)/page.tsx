@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookCard } from "../../../components/books/BookCard";
-import { Button } from "../../../components/ui/button";
-import { useApi } from "../../../hooks/useApi";
+import { BookCard } from "@/components/books/BookCard";
+import { Button } from "@/components/ui/button";
+import { useApi } from "@/hooks/useApi";
 
 interface Book {
   id: string;

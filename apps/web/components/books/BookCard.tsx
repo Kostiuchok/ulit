@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "../../lib/utils";
+import { BOOK_STATUS_LABELS } from "../../lib/bookStatus";
 
 interface Book {
   id: string;
@@ -18,21 +19,13 @@ interface Book {
   publishedAt?: string | null;
 }
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  DRAFT: { label: "Чернетка", className: "bg-gray-100 text-gray-600" },
-  PROCESSING: { label: "Обробка", className: "bg-blue-100 text-blue-700" },
-  REVIEW: { label: "На перевірці", className: "bg-yellow-100 text-yellow-700" },
-  PUBLISHED: { label: "Опубліковано", className: "bg-green-100 text-green-700" },
-  ARCHIVED: { label: "Архів", className: "bg-gray-100 text-gray-500" },
-};
-
 interface Props {
   book: Book;
   onDelete?: (id: string) => void;
 }
 
 export function BookCard({ book, onDelete }: Props) {
-  const status = statusConfig[book.status] ?? statusConfig.DRAFT;
+  const status = BOOK_STATUS_LABELS[book.status] ?? BOOK_STATUS_LABELS.DRAFT;
 
   return (
     <div className="group relative flex gap-4 rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">

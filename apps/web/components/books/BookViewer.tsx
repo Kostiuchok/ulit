@@ -23,6 +23,7 @@ type Tab = "cover" | "color" | "bw";
 
 interface Props {
   coverUrl?: string | null;
+  backCoverUrl?: string | null;
   pages: PageEntry[];
   pagesBw?: PageEntry[];
   backCover: BackCoverData;
@@ -57,10 +58,11 @@ function PageImage({ page }: { page: PageEntry | null }) {
   );
 }
 
-export function BookViewer({ coverUrl, pages, pagesBw = [], backCover, pdfUrl, onClose }: Props) {
+export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCover, pdfUrl, onClose }: Props) {
   const [tab, setTab] = useState<Tab>(coverUrl ? "cover" : "color");
   const [current, setCurrent] = useState(0);
   const [is3D, setIs3D] = useState(true);
+  const [coverSide, setCoverSide] = useState<0 | 1>(0); // 0 = front, 1 = back
 
   const activePages = tab === "bw" ? pagesBw : pages;
 
@@ -74,6 +76,7 @@ export function BookViewer({ coverUrl, pages, pagesBw = [], backCover, pdfUrl, o
   const changeTab = (t: Tab) => {
     setTab(t);
     setCurrent(0);
+    setCoverSide(0);
   };
 
   const go = useCallback(
@@ -161,15 +164,38 @@ export function BookViewer({ coverUrl, pages, pagesBw = [], backCover, pdfUrl, o
 
       {/* Cover tab — single dedicated view */}
       {tab === "cover" && coverUrl ? (
-        <div className="flex items-center justify-center bg-gray-50 py-10 px-4 min-h-[420px]">
-          <div className="h-[360px] shadow-2xl rounded-sm overflow-hidden transition-transform duration-300" style={tilt}>
-            <img src={coverUrl} alt="Обкладинка" className="h-full aspect-[3/4] object-cover" />
+        <>
+          <div className="flex items-center justify-center bg-gray-50 py-10 px-4 min-h-[70vh]">
+            <div className="h-[70vh] max-h-[720px] shadow-2xl rounded-sm overflow-hidden transition-transform duration-300" style={tilt}>
+              <img
+                src={coverSide === 0 ? coverUrl : (backCoverUrl ?? coverUrl)}
+                alt={coverSide === 0 ? "Передня обкладинка" : "Задня обкладинка"}
+                className="h-full aspect-[3/4] object-cover"
+              />
+            </div>
           </div>
-        </div>
+
+          {backCoverUrl && (
+            <div className="flex items-center gap-3 px-6 py-4 border-t">
+              <span className="text-xs text-gray-400 w-10 shrink-0">Перед</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={1}
+                value={coverSide}
+                onChange={(e) => setCoverSide(Number(e.target.value) as 0 | 1)}
+                className="flex-1 accent-gray-900"
+                aria-label="Перед / зад обкладинки"
+              />
+              <span className="text-xs text-gray-400 w-10 shrink-0 text-right">Зад</span>
+            </div>
+          )}
+        </>
       ) : (
         <>
           {/* Spread area */}
-          <div className="relative flex items-center justify-center bg-gray-50 py-10 px-4 min-h-[420px]">
+          <div className="relative flex items-center justify-center bg-gray-50 py-10 px-4 min-h-[70vh]">
             {current > 0 && (
               <button
                 onClick={() => go(-1)}
@@ -180,7 +206,7 @@ export function BookViewer({ coverUrl, pages, pagesBw = [], backCover, pdfUrl, o
               </button>
             )}
 
-            <div className="h-[360px] shadow-2xl rounded-sm overflow-hidden transition-transform duration-300" style={tilt}>
+            <div className="h-[70vh] max-h-[720px] shadow-2xl rounded-sm overflow-hidden transition-transform duration-300" style={tilt}>
               {entry?.kind === "single" && entry.content === "back-cover" && (
                 <div className="h-full aspect-[3/4]">
                   <BackCoverPage

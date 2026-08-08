@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useApi } from "../../../../../hooks/useApi";
+import { useApi } from "@/hooks/useApi";
 
 interface BookInfo {
   id: string;

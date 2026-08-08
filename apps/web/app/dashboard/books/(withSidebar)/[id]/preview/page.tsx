@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useApi } from "../../../../../hooks/useApi";
-import { BookViewer } from "../../../../../components/books/BookViewer";
+import { useApi } from "@/hooks/useApi";
+import { BookViewer } from "@/components/books/BookViewer";
 
 interface PageEntry { page: number; url: string }
 interface BackCoverData { authorName: string; bio?: string | null; avatarUrl?: string | null }
-interface BookInfo { coverUrl?: string | null; pdfUrl?: string | null; title: string }
+interface BookInfo { coverUrl?: string | null; backCoverUrl?: string | null; pdfUrl?: string | null; title: string }
 
 type PagesResponse =
   | { status: "DONE"; pages: PageEntry[]; pagesBw: PageEntry[]; pdfUrl: string | null }
@@ -67,7 +67,7 @@ export default function PreviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-3xl mx-auto space-y-4">
+      <div className="max-w-6xl mx-auto space-y-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{book?.title ?? "Передперегляд"}</h1>
           <p className="text-sm text-gray-500 mt-0.5">Перевірте верстку, сторінки та обкладинку перед публікацією</p>
@@ -103,6 +103,7 @@ export default function PreviewPage() {
         {status === "ready" && pages && backCover && (
           <BookViewer
             coverUrl={book?.coverUrl}
+            backCoverUrl={book?.backCoverUrl}
             pages={pages}
             pagesBw={pagesBw}
             backCover={backCover}
