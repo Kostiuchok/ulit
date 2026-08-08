@@ -129,6 +129,8 @@ model Book {
   updatedAt            DateTime             @updatedAt
   publishedAt          DateTime?
   publicationTimeline  Json?
+  manuscriptContent    Json?
+  manuscriptImportedAt DateTime?
 
   orderItems      OrderItem[]
   royalties       Royalty[]

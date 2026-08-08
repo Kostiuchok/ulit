@@ -1,0 +1,78 @@
+import { FastifyInstance } from "fastify";
+import { z } from "zod";
+import { authenticate } from "../../lib/jwt.middleware";
+import { prisma } from "../../lib/prisma";
+import { AppError } from "../../errors/AppError";
+import { bookQueue } from "../../lib/queue";
+
+const contentSchema = z.object({
+  content: z.any(),
+});
+
+export async function bookManuscriptRoutes(app: FastifyInstance) {
+  app.get(
+    "/api/books/:id/manuscript",
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      const book = await prisma.book.findUnique({
+        where: { id },
+        select: {
+          authorId: true,
+          originalDocxUrl: true,
+          manuscriptImportedAt: true,
+          manuscriptContent: true,
+        },
+      });
+      if (!book) throw AppError.notFound("Book");
+      if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
+
+      if (!book.originalDocxUrl) {
+        return reply.send({ status: "NO_DOCX" });
+      }
+
+      if (!book.manuscriptImportedAt) {
+        await bookQueue.add(
+          "MANUSCRIPT_IMPORT",
+          { bookId: id, format: "MANUSCRIPT_IMPORT", docxObjectName: book.originalDocxUrl },
+          {
+            jobId: `manuscript-${id}`,
+            attempts: 2,
+            backoff: { type: "exponential", delay: 5000 },
+            removeOnComplete: { count: 10 },
+            removeOnFail: { count: 10 },
+          }
+        );
+        return reply.send({ status: "PROCESSING" });
+      }
+
+      return reply.send({ status: "DONE", content: book.manuscriptContent });
+    }
+  );
+
+  app.patch(
+    "/api/books/:id/manuscript",
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      const book = await prisma.book.findUnique({ where: { id }, select: { authorId: true } });
+      if (!book) throw AppError.notFound("Book");
+      if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
+
+      const result = contentSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.status(400).send({ error: result.error.errors[0].message });
+      }
+
+      await prisma.book.update({
+        where: { id },
+        data: { manuscriptContent: result.data.content },
+        select: { id: true },
+      });
+
+      return reply.send({ ok: true });
+    }
+  );
+}

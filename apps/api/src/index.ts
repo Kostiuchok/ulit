@@ -22,6 +22,7 @@ import { conversionStatusRoutes } from "./modules/books/conversion-status";
 import { distributionRoutes } from "./modules/books/distribution";
 import { publishRoute } from "./modules/books/publish";
 import { bookPagesRoutes } from "./modules/books/pages";
+import { bookManuscriptRoutes } from "./modules/books/manuscript";
 import { storeBooksRoutes } from "./modules/store/store-books";
 import { ordersRoutes } from "./modules/orders/orders";
 import { liqpayRoutes } from "./modules/payments/liqpay";
@@ -91,6 +92,7 @@ async function bootstrap() {
   await app.register(distributionRoutes);
   await app.register(publishRoute);
   await app.register(bookPagesRoutes);
+  await app.register(bookManuscriptRoutes);
   await app.register(storeBooksRoutes);
   await app.register(ordersRoutes);
   await app.register(liqpayRoutes);

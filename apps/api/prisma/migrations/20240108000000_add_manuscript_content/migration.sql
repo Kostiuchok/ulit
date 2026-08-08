@@ -1,0 +1,2 @@
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "manuscriptContent" JSONB;
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "manuscriptImportedAt" TIMESTAMP(3);

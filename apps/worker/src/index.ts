@@ -5,6 +5,7 @@ import { generateEpub } from "./jobs/generate-epub";
 import { generateFb2 } from "./jobs/generate-fb2";
 import { generateMobi } from "./jobs/generate-mobi";
 import { generatePageThumbnails } from "./jobs/generate-page-thumbnails";
+import { importManuscript } from "./jobs/import-manuscript";
 import { prisma } from "./lib/prisma";
 
 const QUEUE_NAME = "book-processing";
@@ -27,6 +28,7 @@ const handlers: Record<string, (job: Job) => Promise<void>> = {
   MOBI: generateMobi as any,
   PRINT_PDF: generatePdfPrint as any,
   PAGE_THUMBNAILS: generatePageThumbnails as any,
+  MANUSCRIPT_IMPORT: importManuscript as any,
 };
 
 const worker = new Worker(
