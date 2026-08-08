@@ -35,7 +35,8 @@
 - [x] **T-109** Admin middleware — guard для `/admin/*` routes (role: ADMIN)
 - [x] **T-110** Сторінки `/login` та `/register` (RHF + Zod)
 - [x] **T-111** Зберігати `contractAcceptedAt` при першій публікації (при T-703)
-- [ ] **T-112** Google OAuth в production — додати `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` до `.env.production` на VPS; перебудувати `knyha-web`; перевірити `AUTH_URL` callback у Google Console
+- [x] **T-112** Google OAuth в production — додати `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` до `.env.production` на VPS; перебудувати `knyha-web`; перевірити `AUTH_URL` callback у Google Console
+- [ ] **T-113** Sign in with Apple — додати `next-auth/providers/apple` до `auth.ts` за тим самим умовним патерном, що й Google (провайдер вмикається лише якщо є credentials); потрібні від автора: Apple Developer Program акаунт, Services ID (redirect `https://ulit.render.ua/api/auth/callback/apple`), Team ID, Key ID, `.p8` приватний ключ; env: `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`; кнопка "Увійти через Apple" на `/login` поруч з Google
 
 ---
 
