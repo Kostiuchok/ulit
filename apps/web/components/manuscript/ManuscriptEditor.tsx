@@ -91,7 +91,7 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ paragraph: false }),
       TextAlign.configure({ types: ["paragraph"] }),
       StyledParagraph,
     ],
