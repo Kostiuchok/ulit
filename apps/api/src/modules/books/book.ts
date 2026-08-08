@@ -42,6 +42,7 @@ const BOOK_SELECT = {
   updatedAt: true,
   publishedAt: true,
   authorId: true,
+  publicationTimeline: true,
 } as const;
 
 const patchSchema = z.object({

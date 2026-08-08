@@ -122,6 +122,7 @@ model Book {
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   publishedAt          DateTime?
+  publicationTimeline  Json?
 
   orderItems      OrderItem[]
   royalties       Royalty[]

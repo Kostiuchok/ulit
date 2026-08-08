@@ -23,6 +23,24 @@ const BUCKET = process.env.MINIO_BUCKET_NAME || "knyha-books";
 // In-memory service toggles (persists until server restart)
 const serviceConfig = { d2d: true, kdp: true, google: true };
 
+// Admin-settable steps of the per-book publication timeline (T-1932).
+// "created" (Book.createdAt) and "published" (status===PUBLISHED + isbn) are
+// derived, not stored here — see PublicationTimeline.tsx on the frontend for
+// the matching ordered list of labels shown to the author.
+const PUBLICATION_TIMELINE_STEPS = [
+  "submitted",
+  "review_done",
+  "contract_pending",
+  "contract_corrected",
+  "review_2",
+  "contract_signed",
+] as const;
+
+const publicationTimelineUpdateSchema = z.object({
+  step: z.enum(PUBLICATION_TIMELINE_STEPS),
+  date: z.string().datetime().nullable(),
+});
+
 const distributionUpdateSchema = z.object({
   d2dStatus: z.enum(["NOT_SENT", "SENT", "PUBLISHED", "ERROR"]).optional(),
   kdpStatus: z.enum(["NOT_SENT", "SENT", "PUBLISHED", "ERROR"]).optional(),
@@ -60,6 +78,7 @@ const BOOK_ADMIN_SELECT = {
   googleSentAt: true,
   publishedAt: true,
   createdAt: true,
+  publicationTimeline: true,
   author: { select: { id: true, name: true, slug: true, email: true, contractAcceptedAt: true } },
 } as const;
 
@@ -226,6 +245,37 @@ export async function adminRoutes(app: FastifyInstance) {
             ? { googleSentAt: data.googleSentAt ? new Date(data.googleSentAt) : null }
             : {}),
         },
+        select: BOOK_ADMIN_SELECT,
+      });
+
+      return reply.send({ book });
+    }
+  );
+
+  // ─── Publication timeline step update ────────────────────────────────────
+  app.patch(
+    "/api/admin/books/:id/publication-timeline",
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const result = publicationTimelineUpdateSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.status(400).send({ error: result.error.errors[0].message });
+      }
+
+      const existing = await prisma.book.findUnique({ where: { id }, select: { publicationTimeline: true } });
+      if (!existing) throw AppError.notFound("Book");
+
+      const timeline = { ...((existing.publicationTimeline as Record<string, string>) ?? {}) };
+      if (result.data.date) {
+        timeline[result.data.step] = result.data.date;
+      } else {
+        delete timeline[result.data.step];
+      }
+
+      const book = await prisma.book.update({
+        where: { id },
+        data: { publicationTimeline: timeline },
         select: BOOK_ADMIN_SELECT,
       });
 

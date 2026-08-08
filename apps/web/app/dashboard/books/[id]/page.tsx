@@ -14,6 +14,7 @@ import { cn } from "../../../../lib/utils";
 import { DocxUploader } from "../../../../components/dashboard/DocxUploader";
 import { ConversionStatus } from "../../../../components/dashboard/ConversionStatus";
 import { DistributionStatus } from "../../../../components/books/DistributionStatus";
+import { PublicationTimeline } from "../../../../components/books/PublicationTimeline";
 import { PublishButton } from "../../../../components/books/PublishButton";
 import { PreviewRangeEditor } from "../../../../components/books/PreviewRangeEditor";
 
@@ -481,6 +482,20 @@ export default function BookDetailPage() {
 
           {/* Distribution */}
           <DistributionStatus bookId={id} bookStatus={book?.status ?? "DRAFT"} />
+
+          {/* Publication timeline (T-1932) */}
+          {book && (
+            <PublicationTimeline
+              createdAt={book.createdAt}
+              timeline={book.publicationTimeline}
+              isbn={book.isbn}
+              bookStatus={book.status}
+              distributionChannels={book.distributionChannels ?? []}
+              d2d={{ status: book.d2dStatus, sentAt: book.d2dSentAt }}
+              kdp={{ status: book.kdpStatus, sentAt: book.kdpSentAt }}
+              google={{ status: book.googleStatus, sentAt: book.googleSentAt }}
+            />
+          )}
 
           {/* ── STEP 5: Publish ── */}
           {book?.status !== "PUBLISHED" && (

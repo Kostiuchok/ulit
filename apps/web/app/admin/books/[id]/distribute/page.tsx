@@ -31,8 +31,19 @@ interface Book {
   googleSentAt?: string | null;
   moderationStatus: string;
   moderationNote?: string | null;
+  publicationTimeline?: Record<string, string> | null;
+  createdAt: string;
   author: { name: string; email: string };
 }
+
+const TIMELINE_STEPS = [
+  { key: "submitted", label: "Надішліть книгу на публікацію" },
+  { key: "review_done", label: "Перевірка завершена" },
+  { key: "contract_pending", label: "Укладіть договір" },
+  { key: "contract_corrected", label: "Договір виправлено" },
+  { key: "review_2", label: "Повторна перевірка документів" },
+  { key: "contract_signed", label: "Договір укладено" },
+] as const;
 
 const STATUS_OPTS = ["NOT_SENT", "SENT", "PUBLISHED", "ERROR"] as const;
 const STATUS_COLORS: Record<string, string> = {
@@ -255,6 +266,7 @@ export default function DistributePage() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [rejectDone, setRejectDone] = useState(false);
+  const [savingStep, setSavingStep] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -297,6 +309,20 @@ export default function DistributePage() {
       if (service === "google") setGoogle(updated.googleStatus);
     } finally {
       setSaving(null);
+    }
+  }
+
+  async function saveTimelineStep(step: string, dateValue: string) {
+    setSavingStep(step);
+    try {
+      const iso = dateValue ? new Date(dateValue).toISOString() : null;
+      const { book: updated } = await apiFetch<{ book: Book }>(
+        `/api/admin/books/${id}/publication-timeline`,
+        { method: "PATCH", body: JSON.stringify({ step, date: iso }) }
+      );
+      setBook(updated);
+    } finally {
+      setSavingStep(null);
     }
   }
 
@@ -426,6 +452,56 @@ export default function DistributePage() {
           ✕ Книгу відхилено. Автора повідомлено.
         </div>
       )}
+
+      {/* ── Publication / contract timeline (T-1932) ──────────────────────────── */}
+      <div className="rounded-xl border bg-white p-5 shadow-sm space-y-1">
+        <h2 className="text-base font-semibold text-gray-900 mb-3">Статус публікації та договору</h2>
+        <p className="text-xs text-gray-400 mb-3">
+          Дата кожного кроку — вручну. Порожньо = крок ще не пройдено. Автор бачить цей таймлайн на сторінці книги.
+        </p>
+        <div className="divide-y">
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-sm text-gray-500">Книга створена</span>
+            <span className="text-xs font-mono text-gray-400">
+              {new Date(book.createdAt).toLocaleDateString("uk-UA")}
+            </span>
+          </div>
+          {TIMELINE_STEPS.map((step) => {
+            const value = book.publicationTimeline?.[step.key];
+            const dateValue = value ? value.slice(0, 10) : "";
+            return (
+              <div key={step.key} className="flex items-center justify-between py-2.5 gap-3">
+                <span className="text-sm text-gray-700">{step.label}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <input
+                    type="date"
+                    value={dateValue}
+                    disabled={savingStep === step.key}
+                    onChange={(e) => saveTimelineStep(step.key, e.target.value)}
+                    className="rounded-md border px-2 py-1 text-xs disabled:opacity-50"
+                  />
+                  {dateValue && (
+                    <button
+                      type="button"
+                      onClick={() => saveTimelineStep(step.key, "")}
+                      disabled={savingStep === step.key}
+                      className="text-xs text-gray-400 hover:text-red-600 disabled:opacity-50"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-sm text-gray-500">Публікація у магазинах</span>
+            <span className="text-xs font-mono text-gray-400">
+              {book.isbn ? `ISBN: ${book.isbn}` : "очікує ISBN"}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* ── Distribution services ─────────────────────────────────────────────── */}
       <div className="space-y-4">
