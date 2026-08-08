@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BackCoverPage } from "./BackCoverPage";
 import { cn } from "../../lib/utils";
 
 interface PageEntry {
-  type: "cover" | "content" | "back-cover";
-  url?: string;
-  page?: number;
+  page: number;
+  url: string;
 }
 
 interface BackCoverData {
@@ -16,28 +15,65 @@ interface BackCoverData {
   avatarUrl?: string | null;
 }
 
+type SpreadEntry =
+  | { kind: "single"; content: "cover" | "back-cover" }
+  | { kind: "spread"; left: PageEntry | null; right: PageEntry | null };
+
 interface Props {
   coverUrl?: string | null;
-  pages: Array<{ page: number; url: string }>;
+  pages: PageEntry[];
   backCover: BackCoverData;
+  pdfUrl?: string | null;
   onClose: () => void;
 }
 
-export function BookViewer({ coverUrl, pages, backCover, onClose }: Props) {
-  const allPages: PageEntry[] = [
-    ...(coverUrl ? [{ type: "cover" as const, url: coverUrl }] : []),
-    ...pages.map((p) => ({ type: "content" as const, url: p.url, page: p.page })),
-    { type: "back-cover" as const },
+function buildContentSpreads(pages: PageEntry[]): Array<{ left: PageEntry | null; right: PageEntry | null }> {
+  if (pages.length === 0) return [];
+  // Page 1 conventionally opens recto (right side), so the first spread
+  // pairs it with a blank left — matching how the printed book will look.
+  const spreads: Array<{ left: PageEntry | null; right: PageEntry | null }> = [
+    { left: null, right: pages[0] },
   ];
+  for (let i = 1; i < pages.length; i += 2) {
+    spreads.push({ left: pages[i] ?? null, right: pages[i + 1] ?? null });
+  }
+  return spreads;
+}
+
+function PageImage({ page, side }: { page: PageEntry | null; side: "left" | "right" }) {
+  if (!page) {
+    return <div className="h-full aspect-[3/4] bg-white" />;
+  }
+  return (
+    <img
+      src={page.url}
+      alt={`Сторінка ${page.page}`}
+      className="h-full aspect-[3/4] object-cover bg-white"
+      loading={side === "left" ? "eager" : "eager"}
+    />
+  );
+}
+
+export function BookViewer({ coverUrl, pages, backCover, pdfUrl, onClose }: Props) {
+  const allSpreads: SpreadEntry[] = useMemo(() => {
+    const contentSpreads = buildContentSpreads(pages).map(
+      (s): SpreadEntry => ({ kind: "spread", ...s })
+    );
+    return [
+      ...(coverUrl ? [{ kind: "single" as const, content: "cover" as const }] : []),
+      ...contentSpreads,
+      { kind: "single", content: "back-cover" },
+    ];
+  }, [coverUrl, pages]);
 
   const [current, setCurrent] = useState(0);
-  const thumbnailRef = useRef<HTMLDivElement>(null);
+  const [is3D, setIs3D] = useState(true);
 
   const go = useCallback(
     (delta: number) => {
-      setCurrent((c) => Math.max(0, Math.min(allPages.length - 1, c + delta)));
+      setCurrent((c) => Math.max(0, Math.min(allSpreads.length - 1, c + delta)));
     },
-    [allPages.length]
+    [allSpreads.length]
   );
 
   useEffect(() => {
@@ -50,109 +86,118 @@ export function BookViewer({ coverUrl, pages, backCover, onClose }: Props) {
     return () => window.removeEventListener("keydown", handler);
   }, [go, onClose]);
 
-  // Scroll active thumbnail into view
-  useEffect(() => {
-    const el = thumbnailRef.current?.querySelector(`[data-idx="${current}"]`);
-    el?.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
-  }, [current]);
-
-  const currentPage = allPages[current];
+  const entry = allSpreads[current];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="bg-white rounded-xl border shadow-sm">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-black/80 border-b border-white/10 shrink-0">
-        <span className="text-white/60 text-sm">
-          {current + 1} / {allPages.length}
-        </span>
+      <div className="flex items-center justify-between px-4 py-3 border-b">
         <button
           onClick={onClose}
-          className="text-white/60 hover:text-white text-sm px-3 py-1 rounded hover:bg-white/10 transition-colors"
+          className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
         >
-          ✕ Закрити
+          ← Закрити
         </button>
+
+        <div className="flex items-center rounded-full border bg-gray-50 p-0.5 text-xs font-medium">
+          <button
+            onClick={() => setIs3D(true)}
+            className={cn(
+              "px-3 py-1.5 rounded-full transition-colors",
+              is3D ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
+            )}
+          >
+            3D
+          </button>
+          {pdfUrl ? (
+            <a
+              href={pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setIs3D(false)}
+              className={cn(
+                "px-3 py-1.5 rounded-full transition-colors",
+                !is3D ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
+              )}
+            >
+              PDF
+            </a>
+          ) : (
+            <span className="px-3 py-1.5 rounded-full text-gray-300 cursor-not-allowed">PDF</span>
+          )}
+        </div>
       </div>
 
-      {/* Main page area */}
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-        {/* Prev */}
+      {/* Spread area */}
+      <div className="relative flex items-center justify-center bg-gray-50 py-10 px-4 min-h-[420px]">
         {current > 0 && (
           <button
             onClick={() => go(-1)}
-            className="absolute left-2 z-10 text-white/50 hover:text-white text-3xl px-3 py-6 rounded hover:bg-white/10 transition-colors"
             aria-label="Попередня сторінка"
+            className="absolute left-2 z-10 text-gray-400 hover:text-gray-900 text-3xl px-3 py-6 rounded hover:bg-gray-100 transition-colors"
           >
             ‹
           </button>
         )}
 
-        {/* Page */}
-        <div className="h-full flex items-center justify-center p-4">
-          {currentPage.type === "back-cover" ? (
-            <div
-              className="h-full aspect-[2/3] rounded shadow-2xl overflow-hidden"
-              style={{ maxHeight: "calc(100vh - 160px)" }}
-            >
+        <div
+          className="h-[360px] shadow-2xl rounded-sm overflow-hidden transition-transform duration-300"
+          style={
+            is3D
+              ? { transform: "perspective(1400px) rotateY(-10deg)", transformStyle: "preserve-3d" }
+              : { transform: "none" }
+          }
+        >
+          {entry.kind === "single" && entry.content === "cover" && (
+            <img src={coverUrl!} alt="Обкладинка" className="h-full aspect-[3/4] object-cover" />
+          )}
+          {entry.kind === "single" && entry.content === "back-cover" && (
+            <div className="h-full aspect-[3/4]">
               <BackCoverPage
                 authorName={backCover.authorName}
                 bio={backCover.bio}
                 avatarUrl={backCover.avatarUrl}
               />
             </div>
-          ) : (
-            <img
-              key={currentPage.url}
-              src={currentPage.url}
-              alt={currentPage.type === "cover" ? "Обкладинка" : `Сторінка ${currentPage.page}`}
-              className="max-h-full max-w-full object-contain rounded shadow-2xl"
-              style={{ maxHeight: "calc(100vh - 160px)" }}
-              loading="eager"
-            />
+          )}
+          {entry.kind === "spread" && (
+            <div className="h-full flex">
+              <div className="relative">
+                <PageImage page={entry.left} side="left" />
+                <div className="absolute inset-y-0 right-0 w-3 bg-gradient-to-l from-black/15 to-transparent" />
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-black/15 to-transparent" />
+                <PageImage page={entry.right} side="right" />
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Next */}
-        {current < allPages.length - 1 && (
+        {current < allSpreads.length - 1 && (
           <button
             onClick={() => go(1)}
-            className="absolute right-2 z-10 text-white/50 hover:text-white text-3xl px-3 py-6 rounded hover:bg-white/10 transition-colors"
             aria-label="Наступна сторінка"
+            className="absolute right-2 z-10 text-gray-400 hover:text-gray-900 text-3xl px-3 py-6 rounded hover:bg-gray-100 transition-colors"
           >
             ›
           </button>
         )}
       </div>
 
-      {/* Thumbnail strip */}
-      <div
-        ref={thumbnailRef}
-        className="shrink-0 flex gap-2 overflow-x-auto px-4 py-2 bg-black/80 border-t border-white/10 scrollbar-hide"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {allPages.map((p, i) => (
-          <button
-            key={i}
-            data-idx={i}
-            onClick={() => setCurrent(i)}
-            className={cn(
-              "shrink-0 h-16 rounded overflow-hidden border-2 transition-all",
-              i === current ? "border-white opacity-100" : "border-transparent opacity-40 hover:opacity-70"
-            )}
-          >
-            {p.type === "back-cover" ? (
-              <div className="h-16 aspect-[2/3] bg-gray-800 flex items-center justify-center text-xs text-white/50">
-                ←
-              </div>
-            ) : (
-              <img
-                src={p.url}
-                alt=""
-                className="h-16 aspect-[2/3] object-cover"
-                loading="lazy"
-              />
-            )}
-          </button>
-        ))}
+      {/* Slider navigator */}
+      <div className="flex items-center gap-3 px-6 py-4 border-t">
+        <span className="text-xs text-gray-400 w-6 text-right shrink-0">1</span>
+        <input
+          type="range"
+          min={0}
+          max={Math.max(0, allSpreads.length - 1)}
+          value={current}
+          onChange={(e) => setCurrent(Number(e.target.value))}
+          className="flex-1 accent-gray-900"
+          aria-label="Навігація по сторінках"
+        />
+        <span className="text-xs text-gray-400 w-6 shrink-0">{allSpreads.length}</span>
       </div>
     </div>
   );

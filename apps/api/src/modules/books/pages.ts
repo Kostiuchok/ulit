@@ -3,7 +3,7 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { bookQueue } from "../../lib/queue";
-import { publicUrl } from "../../services/storage.service";
+import { publicUrl, getSignedUrl } from "../../services/storage.service";
 
 function buildPageUrls(bookId: string, pageCount: number) {
   return Array.from({ length: pageCount }, (_, i) => ({
@@ -47,7 +47,8 @@ export async function bookPagesRoutes(app: FastifyInstance) {
       }
 
       const pages = buildPageUrls(id, book.pageCount ?? 0);
-      return reply.send({ status: "DONE", pages });
+      const pdfUrl = await getSignedUrl(book.pdfUrl).catch(() => null);
+      return reply.send({ status: "DONE", pages, pdfUrl });
     }
   );
 
