@@ -43,7 +43,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       : []),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      if (user && account?.provider === "google") {
+        const res = await fetch(`${API_URL}/api/users/oauth-login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+          },
+          body: JSON.stringify({
+            email: user.email,
+            name: user.name || user.email,
+            avatarUrl: user.image ?? undefined,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          token.id = data.user.id;
+          token.role = data.user.role;
+          token.slug = data.user.slug;
+          token.apiToken = data.token;
+        }
+        return token;
+      }
+
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;

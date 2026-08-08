@@ -8,6 +8,7 @@ import { AppError } from "./errors/AppError";
 import { prisma } from "./lib/prisma";
 import { registerRoute } from "./modules/auth/register";
 import { loginRoute } from "./modules/auth/login";
+import { oauthLoginRoute } from "./modules/auth/oauth-login";
 import { verifyEmailRoutes } from "./modules/auth/verify-email";
 import { meRoute } from "./modules/auth/me";
 import { usersMe } from "./modules/users/me";
@@ -75,6 +76,7 @@ async function bootstrap() {
 
   await app.register(registerRoute);
   await app.register(loginRoute);
+  await app.register(oauthLoginRoute);
   await app.register(verifyEmailRoutes);
   await app.register(meRoute);
   await app.register(usersMe);
