@@ -1,7 +1,6 @@
 import { auth } from "../../auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { SignOutButton } from "../../components/dashboard/SignOutButton";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -9,28 +8,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="border-b bg-white">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="font-bold text-lg">
-              📚 Knyha
+      <header className="bg-[#d9d9d9]">
+        <div className="h-8 flex items-center justify-between px-8">
+          <Link href="/dashboard/books" className="flex items-center gap-1">
+            <img src="/figma/logo-group.svg" alt="" className="h-[18px] w-[18px]" />
+            <span className="text-xs font-black tracking-tight text-black">ULIT</span>
+          </Link>
+          <div className="flex items-center gap-4">
+            <div className="relative flex items-center">
+              <img src="/figma/alert.svg" alt="Сповіщення" className="h-4 w-4" />
+              <span className="absolute -top-1.5 -right-2.5 rounded-sm bg-[#ff5900] px-1 py-px text-[7px] font-black leading-none text-white">
+                99+
+              </span>
+            </div>
+            <Link href="/dashboard/settings" className="flex items-center gap-1.5 text-xs text-black">
+              <img src="/figma/account.svg" alt="" className="h-4 w-4" />
+              ПРОФІЛЬ
             </Link>
-            <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
-              Головна
-            </Link>
-            <Link href="/dashboard/books" className="text-sm text-gray-600 hover:text-gray-900">
-              Книги
-            </Link>
-            <Link href="/dashboard/settings" className="text-sm text-gray-600 hover:text-gray-900">
-              Профіль
-            </Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">{session.user?.name}</span>
-            <SignOutButton />
           </div>
         </div>
-      </nav>
+      </header>
       <main className="flex-1">{children}</main>
     </div>
   );

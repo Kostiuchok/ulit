@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { AvatarUploader } from "../../../components/dashboard/AvatarUploader";
+import { SignOutButton } from "../../../components/dashboard/SignOutButton";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
@@ -120,9 +121,12 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-2xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Налаштування профілю</h1>
-          <p className="mt-1 text-sm text-gray-500">{session?.user?.email}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Налаштування профілю</h1>
+            <p className="mt-1 text-sm text-gray-500">{session?.user?.email}</p>
+          </div>
+          <SignOutButton />
         </div>
 
         {/* Avatar */}
