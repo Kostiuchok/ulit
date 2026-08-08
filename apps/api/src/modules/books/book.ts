@@ -15,6 +15,7 @@ const BOOK_SELECT = {
   moderationNote: true,
   isbn: true,
   coverUrl: true,
+  backCoverUrl: true,
   originalDocxUrl: true,
   pdfUrl: true,
   epubUrl: true,

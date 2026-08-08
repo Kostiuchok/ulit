@@ -4,13 +4,17 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CoverDesigner } from "../../../../../components/books/CoverDesigner";
+import { BackCoverEditor } from "../../../../../components/books/BackCoverEditor";
 import { useApi } from "../../../../../hooks/useApi";
 import { useSession } from "next-auth/react";
+import { cn } from "../../../../../lib/utils";
 
 interface BookInfo {
   id: string;
   title: string;
   coverUrl?: string | null;
+  backCoverUrl?: string | null;
+  pageCount?: number | null;
   author?: { name: string };
 }
 
@@ -22,6 +26,7 @@ export default function CoverPage() {
   const [book, setBook] = useState<BookInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [side, setSide] = useState<"front" | "back">("front");
 
   useEffect(() => {
     if (!token) return;
@@ -33,6 +38,12 @@ export default function CoverPage() {
 
   function handleSaved(url: string) {
     setBook((b) => b ? { ...b, coverUrl: url } : b);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  function handleBackSaved(url: string) {
+    setBook((b) => b ? { ...b, backCoverUrl: url } : b);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }
@@ -62,15 +73,40 @@ export default function CoverPage() {
           </div>
         )}
 
+        <div className="mb-4 flex gap-1 rounded-lg border p-1 bg-gray-50 max-w-xs">
+          {(["front", "back"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setSide(s)}
+              className={cn(
+                "flex-1 rounded-md py-1.5 text-xs font-medium transition-colors",
+                side === s ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {s === "front" ? "Передня обкладинка" : "Задня сторінка"}
+            </button>
+          ))}
+        </div>
+
         <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <CoverDesigner
-            bookId={id}
-            bookTitle={book?.title ?? "Назва книги"}
-            bookAuthor={session?.user?.name ?? "Автор"}
-            existingCoverUrl={book?.coverUrl}
-            onSaved={handleSaved}
-            token={token}
-          />
+          {side === "front" ? (
+            <CoverDesigner
+              bookId={id}
+              bookTitle={book?.title ?? "Назва книги"}
+              bookAuthor={session?.user?.name ?? "Автор"}
+              existingCoverUrl={book?.coverUrl}
+              onSaved={handleSaved}
+              token={token}
+            />
+          ) : (
+            <BackCoverEditor
+              bookId={id}
+              pageCount={book?.pageCount}
+              existingBackCoverUrl={book?.backCoverUrl}
+              onSaved={handleBackSaved}
+              token={token}
+            />
+          )}
         </div>
 
         <p className="mt-3 text-xs text-gray-400 text-center">

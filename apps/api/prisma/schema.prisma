@@ -95,6 +95,7 @@ model Book {
   moderationNote       String?
   isbn                 String?              @unique
   coverUrl             String?
+  backCoverUrl         String?
   originalDocxUrl      String?
   pdfUrl               String?
   epubUrl              String?
