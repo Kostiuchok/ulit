@@ -28,20 +28,30 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
 
 const editSchema = z.object({
   title: z.string().min(3, "Назва має містити щонайменше 3 символи").max(255),
+  subtitle: z.string().max(255).optional(),
   description: z.string().max(5000).optional(),
   genre: z.string().max(100).optional(),
+  ageRating: z.string().optional(),
   language: z.string().length(2),
   priceEbook: z.coerce.number().positive().optional().or(z.literal("")),
   pricePrint: z.coerce.number().positive().optional().or(z.literal("")),
+  aiGenerated: z.boolean().optional(),
+  aiGeneratedNote: z.string().max(1000).optional(),
 });
 
 type EditForm = z.infer<typeof editSchema>;
+
+interface CoAuthor {
+  name: string;
+}
 
 const GENRES = [
   "Проза", "Поезія", "Драматургія", "Наукова фантастика", "Фентезі",
   "Детектив", "Роман", "Повість", "Оповідання", "Нон-фікшн",
   "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
 ];
+
+const AGE_RATINGS = ["0+", "6+", "12+", "16+", "18+"];
 
 function StepRow({
   num,
@@ -98,6 +108,8 @@ export default function BookDetailPage() {
   const [conversionActive, setConversionActive] = useState(false);
   const [mountTime] = useState(() => Date.now());
   const [fixedBlocks, setFixedBlocks] = useState<Set<number>>(new Set());
+  const [coAuthors, setCoAuthors] = useState<CoAuthor[]>([]);
+  const [newCoAuthorName, setNewCoAuthorName] = useState("");
 
   const {
     register,
@@ -109,6 +121,7 @@ export default function BookDetailPage() {
 
   const titleValue = watch("title") ?? "";
   const descValue = watch("description") ?? "";
+  const aiGeneratedValue = watch("aiGenerated") ?? false;
 
   useEffect(() => {
     if (!token) return;
@@ -116,18 +129,34 @@ export default function BookDetailPage() {
       .then(({ book }) => {
         setBook(book);
         if (book.status === "PROCESSING") setConversionActive(true);
+        setCoAuthors(Array.isArray(book.coAuthors) ? book.coAuthors : []);
         reset({
           title: book.title,
+          subtitle: book.subtitle ?? "",
           description: book.description ?? "",
           genre: book.genre ?? "",
+          ageRating: book.ageRating ?? "",
           language: book.language,
           priceEbook: book.priceEbook ? Number(book.priceEbook) : "",
           pricePrint: book.pricePrint ? Number(book.pricePrint) : "",
+          aiGenerated: book.aiGenerated ?? false,
+          aiGeneratedNote: book.aiGeneratedNote ?? "",
         });
       })
       .catch(() => router.push("/dashboard/books"))
       .finally(() => setLoading(false));
   }, [token, id]);
+
+  function addCoAuthor() {
+    const name = newCoAuthorName.trim();
+    if (!name) return;
+    setCoAuthors((prev) => [...prev, { name }]);
+    setNewCoAuthorName("");
+  }
+
+  function removeCoAuthor(index: number) {
+    setCoAuthors((prev) => prev.filter((_, i) => i !== index));
+  }
 
   const onSubmit = async (data: EditForm) => {
     setServerError("");
@@ -137,14 +166,20 @@ export default function BookDetailPage() {
         method: "PATCH",
         body: JSON.stringify({
           title: data.title,
+          subtitle: data.subtitle || null,
           description: data.description || null,
           genre: data.genre || null,
+          ageRating: data.ageRating || null,
           language: data.language,
           priceEbook: data.priceEbook ? Number(data.priceEbook) : null,
           pricePrint: data.pricePrint ? Number(data.pricePrint) : null,
+          aiGenerated: data.aiGenerated ?? false,
+          aiGeneratedNote: data.aiGenerated ? (data.aiGeneratedNote || null) : null,
+          coAuthors: coAuthors.length > 0 ? coAuthors : null,
         }),
       });
       setBook(updated);
+      setCoAuthors(Array.isArray(updated.coAuthors) ? updated.coAuthors : []);
       setSaved(true);
       setFixedBlocks((prev) => { const s = new Set(prev); s.add(4); return s; });
       setTimeout(() => setSaved(false), 3000);
@@ -358,6 +393,11 @@ export default function BookDetailPage() {
               </div>
 
               <div className="space-y-1.5">
+                <Label htmlFor="subtitle">Підзаголовок</Label>
+                <Input id="subtitle" {...register("subtitle")} placeholder="Наприклад: збірка оповідань" />
+              </div>
+
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="description">Опис</Label>
                   <span className={cn("text-xs", descValue.length > 0 && descValue.length < 120 ? "text-amber-600 font-medium" : "text-gray-400")}>
@@ -415,6 +455,68 @@ export default function BookDetailPage() {
                     <option value="ru">Русский</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="ageRating">Вікові обмеження</Label>
+                  <select
+                    id="ageRating"
+                    {...register("ageRating")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Не вказано</option>
+                    {AGE_RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Над книгою також працювали</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {coAuthors.map((c, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700"
+                      >
+                        {c.name}
+                        <button
+                          type="button"
+                          onClick={() => removeCoAuthor(i)}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newCoAuthorName}
+                      onChange={(e) => setNewCoAuthorName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCoAuthor(); } }}
+                      placeholder="Ім'я співавтора"
+                      className="h-9 text-sm"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={addCoAuthor}>
+                      + Додати
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" {...register("aiGenerated")} className="rounded border-gray-300" />
+                  Текст (або обкладинку) частково/повністю створено за допомогою ШІ
+                </label>
+                {aiGeneratedValue && (
+                  <textarea
+                    {...register("aiGeneratedNote")}
+                    rows={2}
+                    placeholder="Уточніть, що саме створено за допомогою ШІ (необов'язково)"
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

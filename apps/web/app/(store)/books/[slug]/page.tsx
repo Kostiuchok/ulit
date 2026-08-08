@@ -10,11 +10,16 @@ interface BookDetail {
   id: string;
   slug: string;
   title: string;
+  subtitle?: string | null;
   description?: string | null;
   coverUrl?: string | null;
   priceEbook?: string | null;
   pricePrint?: string | null;
   genre?: string | null;
+  ageRating?: string | null;
+  aiGenerated?: boolean;
+  aiGeneratedNote?: string | null;
+  coAuthors?: { name: string }[] | null;
   language?: string;
   isbn?: string | null;
   pageCount?: number | null;
@@ -222,18 +227,38 @@ export default async function BookPage({ params }: Props) {
 
           {/* Details */}
           <div className="md:col-span-2 space-y-6">
-            {book.genre && (
-              <Link
-                href={`/books?genre=${encodeURIComponent(book.genre)}`}
-                className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200"
-              >
-                {book.genre}
-              </Link>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {book.genre && (
+                <Link
+                  href={`/books?genre=${encodeURIComponent(book.genre)}`}
+                  className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200"
+                >
+                  {book.genre}
+                </Link>
+              )}
+              {book.ageRating && (
+                <span className="inline-block rounded-full bg-gray-900 px-2.5 py-1 text-xs font-bold text-white">
+                  {book.ageRating}
+                </span>
+              )}
+              {book.aiGenerated && (
+                <span
+                  className="inline-block rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700"
+                  title={book.aiGeneratedNote ?? undefined}
+                >
+                  🤖 Створено за допомогою ШІ
+                </span>
+              )}
+            </div>
 
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
-              {book.title}
-            </h1>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
+                {book.title}
+              </h1>
+              {book.subtitle && (
+                <p className="mt-1 text-lg text-gray-500">{book.subtitle}</p>
+              )}
+            </div>
 
             <Link
               href={`/authors/${book.author.slug}`}
@@ -255,6 +280,12 @@ export default async function BookPage({ params }: Props) {
                 <p className="text-sm font-semibold text-gray-900 group-hover:underline">{book.author.name}</p>
               </div>
             </Link>
+
+            {book.coAuthors && book.coAuthors.length > 0 && (
+              <p className="text-sm text-gray-500">
+                Над книгою також працювали: {book.coAuthors.map((c) => c.name).join(", ")}
+              </p>
+            )}
 
             {/* Meta */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

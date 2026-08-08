@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
@@ -23,6 +24,11 @@ const BOOK_SELECT = {
   priceEbook: true,
   pricePrint: true,
   genre: true,
+  subtitle: true,
+  ageRating: true,
+  aiGenerated: true,
+  aiGeneratedNote: true,
+  coAuthors: true,
   language: true,
   pageCount: true,
   pagesGeneratedAt: true,
@@ -45,10 +51,20 @@ const BOOK_SELECT = {
   publicationTimeline: true,
 } as const;
 
+const coAuthorSchema = z.object({
+  name: z.string().min(1).max(255),
+  photoUrl: z.string().url().optional(),
+});
+
 const patchSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(5000).nullable().optional(),
   genre: z.string().max(100).nullable().optional(),
+  subtitle: z.string().max(255).nullable().optional(),
+  ageRating: z.enum(["0+", "6+", "12+", "16+", "18+"]).nullable().optional(),
+  aiGenerated: z.boolean().optional(),
+  aiGeneratedNote: z.string().max(1000).nullable().optional(),
+  coAuthors: z.array(coAuthorSchema).max(10).nullable().optional(),
   language: z.string().length(2).optional(),
   priceEbook: z.number().positive().nullable().optional(),
   pricePrint: z.number().positive().nullable().optional(),
@@ -99,6 +115,9 @@ export async function bookRoutes(app: FastifyInstance) {
         pricePrint: data.pricePrint !== undefined ? (data.pricePrint ?? undefined) : undefined,
         kdpSelectExpiry: data.kdpSelectExpiry !== undefined
           ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
+          : undefined,
+        coAuthors: data.coAuthors !== undefined
+          ? (data.coAuthors ?? Prisma.JsonNull)
           : undefined,
       },
       select: BOOK_SELECT,

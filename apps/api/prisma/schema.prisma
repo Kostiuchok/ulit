@@ -104,6 +104,11 @@ model Book {
   priceEbook           Decimal?             @db.Decimal(10, 2)
   pricePrint           Decimal?             @db.Decimal(10, 2)
   genre                String?
+  subtitle             String?
+  ageRating            String?
+  aiGenerated          Boolean              @default(false)
+  aiGeneratedNote      String?
+  coAuthors            Json?
   language             String               @default("uk")
   pageCount            Int?
   pagesGeneratedAt     DateTime?
