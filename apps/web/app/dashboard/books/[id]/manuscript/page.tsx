@@ -35,7 +35,7 @@ export default function ManuscriptEditorPage() {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
-  }, [id]);
+  }, [id, apiFetch]);
 
   useEffect(() => {
     if (!token || !book?.originalDocxUrl) return;
