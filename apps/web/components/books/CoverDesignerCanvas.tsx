@@ -12,6 +12,10 @@ const DISPLAY_W = 350;
 const DISPLAY_H = 525;
 const EXPORT_SCALE = 1800 / DISPLAY_W; // ~5.14× → 1800×2700px
 
+// T-1926 — minimum accepted size for a self-uploaded cover (matches print requirements: 150 DPI)
+const OWN_COVER_MIN_W = 915;
+const OWN_COVER_MIN_H = 1270;
+
 // ─── Templates ────────────────────────────────────────────────────────────────
 
 type Template = {
@@ -136,7 +140,10 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
   const [unsplashLoading, setUnsplashLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [activeTab, setActiveTab] = useState<"templates" | "bg" | "unsplash">("templates");
+  const [activeTab, setActiveTab] = useState<"templates" | "bg" | "unsplash" | "own">("templates");
+  const [ownCoverError, setOwnCoverError] = useState("");
+  const [ownCoverDims, setOwnCoverDims] = useState<{ w: number; h: number } | null>(null);
+  const ownCoverInputRef = useRef<HTMLInputElement>(null);
 
   // Init canvas
   useEffect(() => {
@@ -335,6 +342,45 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
     e.target.value = ""; // reset so same file can be re-selected
   }, [loadImageFromUrl]);
 
+  // T-1926 — self-uploaded ready-made cover replaces the whole canvas (not layered
+  // as a background under existing text/shapes, unlike the "Фон" tab above).
+  const handleOwnCoverUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setOwnCoverError("");
+    setOwnCoverDims(null);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (!dataUrl) return;
+      const img = new Image();
+      img.onload = () => {
+        setOwnCoverDims({ w: img.naturalWidth, h: img.naturalHeight });
+        if (img.naturalWidth < OWN_COVER_MIN_W || img.naturalHeight < OWN_COVER_MIN_H) {
+          setOwnCoverError(
+            `Зображення ${img.naturalWidth}×${img.naturalHeight}px — менше мінімуму ${OWN_COVER_MIN_W}×${OWN_COVER_MIN_H}px (150 DPI). Завантажте зображення більшого розміру.`
+          );
+          return;
+        }
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.clear();
+        fabric.Image.fromURL(dataUrl, (fabricImg) => {
+          const scaleX = DISPLAY_W / (fabricImg.width ?? DISPLAY_W);
+          const scaleY = DISPLAY_H / (fabricImg.height ?? DISPLAY_H);
+          const scale = Math.max(scaleX, scaleY);
+          fabricImg.set({ left: 0, top: 0, scaleX: scale, scaleY: scale, selectable: false, evented: false, data: { role: "bg" } });
+          canvas.add(fabricImg);
+          canvas.renderAll();
+        });
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
   const searchUnsplash = useCallback(async () => {
     setUnsplashLoading(true);
     try {
@@ -414,13 +460,13 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
       <div className="flex-1 space-y-4 min-w-0">
         {/* Tabs */}
         <div className="flex gap-1 rounded-lg border p-1 bg-gray-50">
-          {(["templates", "bg", "unsplash"] as const).map((tab) => (
+          {(["templates", "bg", "unsplash", "own"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn("flex-1 rounded-md py-1.5 text-xs font-medium transition-colors", activeTab === tab ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700")}
             >
-              {tab === "templates" ? "Шаблони" : tab === "bg" ? "Фон" : "Unsplash"}
+              {tab === "templates" ? "Шаблони" : tab === "bg" ? "Фон" : tab === "unsplash" ? "Unsplash" : "Своя обкладинка"}
             </button>
           ))}
         </div>
@@ -484,6 +530,28 @@ export default function CoverDesignerCanvas({ bookId, bookTitle, bookAuthor, exi
             ) : (
               <p className="text-xs text-gray-400 text-center py-4">Введіть запит і натисніть Пошук</p>
             )}
+          </div>
+        )}
+
+        {/* Own cover */}
+        {activeTab === "own" && (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">
+              Завантажте готову обкладинку цілком — вона замінить усе на канві. Мінімум {OWN_COVER_MIN_W}×{OWN_COVER_MIN_H}px (150 DPI).
+            </p>
+            <input ref={ownCoverInputRef} type="file" accept="image/*" className="hidden" onChange={handleOwnCoverUpload} />
+            <button
+              type="button"
+              onClick={() => ownCoverInputRef.current?.click()}
+              className="w-full rounded-lg border-2 border-dashed border-gray-300 py-6 text-center hover:border-gray-400 transition-colors"
+            >
+              <p className="text-sm text-gray-600">Перетягніть зображення або натисніть для вибору</p>
+              <p className="text-xs text-gray-400 mt-1">JPG, PNG</p>
+            </button>
+            {ownCoverDims && !ownCoverError && (
+              <p className="text-xs text-green-600">✓ {ownCoverDims.w}×{ownCoverDims.h}px — застосовано на канву</p>
+            )}
+            {ownCoverError && <p className="text-xs text-red-500">{ownCoverError}</p>}
           </div>
         )}
 
