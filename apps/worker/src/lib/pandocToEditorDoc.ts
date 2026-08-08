@@ -75,10 +75,13 @@ function mapInlines(inlines: PandocInline[], activeMarks: EditorMark[] = []): Ed
   return out;
 }
 
+// Editor-side, the styled node is a `Paragraph` extension that kept the name "paragraph"
+// (see apps/web/components/manuscript/styledParagraph.ts) — TipTap's schema has no node
+// literally called "styledBlock", so the JSON emitted here must use "paragraph".
 function styledBlock(style: string, inlines: PandocInline[]): EditorNode {
   const text = mapInlines(inlines);
   return {
-    type: "styledBlock",
+    type: "paragraph",
     attrs: { style, id: nextBlockId() },
     content: text.length ? text : undefined,
   };
