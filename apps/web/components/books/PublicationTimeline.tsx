@@ -79,7 +79,7 @@ function Row({
           {date && <span className="text-xs text-gray-500 shrink-0">/ {fmt(date)}</span>}
         </div>
         {tooltip && active && (
-          <div className="relative mt-2 inline-flex max-w-xs items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[10px] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
+          <div className="relative mt-2 inline-flex max-w-xs items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[11px] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
             <span>📖</span>
             <span>
               Ми надамо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і відправимо до книжкової палати України
