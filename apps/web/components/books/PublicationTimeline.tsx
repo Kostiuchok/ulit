@@ -150,7 +150,7 @@ function CreationSubItem({
       {date && <span className="text-gray-500">/ {fmt(date)}</span>}
     </div>
   );
-  return href && !done ? <Link href={href}>{inner}</Link> : inner;
+  return href && !done ? <Link href={href} className="block">{inner}</Link> : inner;
 }
 
 export function PublicationTimeline({

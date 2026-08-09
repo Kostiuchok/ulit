@@ -2,11 +2,6 @@ import { FastifyInstance, FastifyRequest } from "fastify";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
-import { assignIsbn } from "../../services/isbn.service";
-import { queuePublishedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
-
-const KDP_SELECT_DAYS = 90;
-const WARN_BEFORE_DAYS = 7;
 
 interface ValidationError {
   field: string;
@@ -71,7 +66,11 @@ export async function publishRoute(app: FastifyInstance) {
     }
   );
 
-  // POST — submit for publication (T-703)
+  // POST — submit for moderation (T-2010). This does NOT publish the book —
+  // it validates required fields, marks the book REVIEW, and records
+  // publicationTimeline.submitted so the author's dashboard checklist turns
+  // green immediately. Actual publish (ISBN + status=PUBLISHED) only happens
+  // when an admin approves via PATCH /api/admin/books/:id/approve.
   app.post(
     "/api/books/:id/publish",
     { preHandler: authenticate },
@@ -96,11 +95,8 @@ export async function publishRoute(app: FastifyInstance) {
           priceEbook: true,
           pricePrint: true,
           pricePrintHardcover: true,
-          isbn: true,
-          distributionStrategy: true,
-          kdpSelectEnrolled: true,
-          kdpSelectExpiry: true,
-          author: { select: { id: true, email: true, name: true, contractAcceptedAt: true } },
+          publicationTimeline: true,
+          author: { select: { id: true, contractAcceptedAt: true } },
         },
       });
 
@@ -108,6 +104,9 @@ export async function publishRoute(app: FastifyInstance) {
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
       if (book.status === "PUBLISHED") {
         throw new AppError("Book is already published", 400, "ALREADY_PUBLISHED");
+      }
+      if (book.status === "REVIEW") {
+        throw new AppError("Book is already submitted and awaiting review", 400, "ALREADY_SUBMITTED");
       }
 
       // T-702 — validate
@@ -120,40 +119,19 @@ export async function publishRoute(app: FastifyInstance) {
         });
       }
 
-      // T-701 — assign ISBN (if not already set), retry up to 5x on collision
-      let isbn = book.isbn;
-      if (!isbn) {
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const candidate = await assignIsbn(id);
-          const existing = await prisma.book.findUnique({ where: { isbn: candidate }, select: { id: true } });
-          if (!existing) { isbn = candidate; break; }
-        }
-        if (!isbn) throw new AppError("Не вдалося призначити ISBN, спробуйте ще раз", 500, "ISBN_EXHAUSTED");
-      }
-
-      // KDP Select enrollment: set expiry if enrolling now
       const now = new Date();
-      const isKdpSelect = book.distributionStrategy === "KDP_SELECT";
-      const kdpExpiry =
-        isKdpSelect && !book.kdpSelectEnrolled
-          ? new Date(now.getTime() + KDP_SELECT_DAYS * 24 * 60 * 60 * 1000)
-          : book.kdpSelectExpiry;
+      const timeline = { ...((book.publicationTimeline as Record<string, string>) ?? {}), submitted: now.toISOString() };
 
-      // T-704 — transition to PUBLISHED
-      const published = await prisma.book.update({
+      const submitted = await prisma.book.update({
         where: { id },
         data: {
-          status: "PUBLISHED",
-          moderationStatus: "APPROVED",
-          isbn,
-          publishedAt: now,
-          kdpSelectEnrolled: isKdpSelect ? true : book.kdpSelectEnrolled,
-          kdpSelectExpiry: isKdpSelect ? kdpExpiry : book.kdpSelectExpiry,
+          status: "REVIEW",
+          publicationTimeline: timeline,
         },
-        select: { id: true, status: true, isbn: true, publishedAt: true, title: true },
+        select: { id: true, status: true, title: true },
       });
 
-      // T-111 — store contractAcceptedAt + IP on first publish
+      // T-111 — store contractAcceptedAt + IP on first submission
       if (!book.author.contractAcceptedAt) {
         await prisma.user.update({
           where: { id: book.author.id },
@@ -161,25 +139,7 @@ export async function publishRoute(app: FastifyInstance) {
         });
       }
 
-      // T-705 — send published email
-      queuePublishedEmail({
-        email: book.author.email,
-        name: book.author.name,
-        bookTitle: book.title,
-        bookId: id,
-        isbn,
-      }).catch((err) => console.error("[email] published notification failed:", err));
-
-      // Schedule KDP Select expiry warning if newly enrolled
-      if (isKdpSelect && !book.kdpSelectEnrolled && kdpExpiry) {
-        const warnDate = new Date(kdpExpiry.getTime() - WARN_BEFORE_DAYS * 24 * 60 * 60 * 1000);
-        scheduleKdpExpiryWarning(
-          { email: book.author.email, name: book.author.name, bookTitle: book.title, bookId: id, expiryDate: kdpExpiry.toISOString() },
-          kdpExpiry
-        ).catch((err) => console.error("[email] KDP warning schedule failed:", err));
-      }
-
-      return reply.status(200).send({ book: published, isbn });
+      return reply.status(200).send({ book: submitted });
     }
   );
 }

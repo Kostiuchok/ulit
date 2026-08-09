@@ -92,7 +92,7 @@ export function BookDashboard() {
               <PublishButton
                 bookId={id}
                 bookStatus={book?.status ?? "DRAFT"}
-                onPublished={() => setBook((b) => (b ? { ...b, status: "PUBLISHED" } : b))}
+                onSubmitted={() => setBook((b) => (b ? { ...b, status: "REVIEW" } : b))}
               />
             )}
             {isPublished ? (

@@ -10,6 +10,11 @@ const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<s
 import { Readable } from "stream";
 import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
+import { assignIsbn } from "../../services/isbn.service";
+import { queuePublishedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
+
+const KDP_SELECT_DAYS = 90;
+const WARN_BEFORE_DAYS = 7;
 
 const minio = new Client({
   endPoint: process.env.MINIO_ENDPOINT || "localhost",
@@ -160,6 +165,11 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // ─── Approve ──────────────────────────────────────────────────────────────
+  // Admin-side "перевірка пройдена": marks the review checkpoint done
+  // (publicationTimeline.review_done) so the author's dashboard shows
+  // "Перевірка завершена". Does NOT publish — per the real process, the book
+  // still goes through a contract step (see /publication-timeline below)
+  // before admin actually sends it live on Ulit + external stores.
   app.patch(
     "/api/admin/books/:id/approve",
     { preHandler: requireAdmin },
@@ -167,16 +177,19 @@ export async function adminRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       const book = await prisma.book.findUnique({
         where: { id },
-        select: { status: true, title: true },
+        select: { status: true, publicationTimeline: true },
       });
       if (!book) throw AppError.notFound("Book");
+
+      const now = new Date();
+      const timeline = { ...((book.publicationTimeline as Record<string, string>) ?? {}) };
+      if (book.status === "REVIEW") timeline.review_done = now.toISOString();
 
       const updated = await prisma.book.update({
         where: { id },
         data: {
           moderationStatus: "APPROVED",
-          status: book.status === "REVIEW" ? "PUBLISHED" : undefined,
-          publishedAt: book.status === "REVIEW" ? new Date() : undefined,
+          publicationTimeline: timeline,
         },
         select: BOOK_ADMIN_SELECT,
       });
@@ -254,6 +267,11 @@ export async function adminRoutes(app: FastifyInstance) {
   );
 
   // ─── Publication timeline step update ────────────────────────────────────
+  // Real process: submitted -> review_done -> contract_pending/corrected ->
+  // review_2 -> contract_signed. Only once admin sets "Договір укладено"
+  // does the book actually go live on Ulit (ISBN + PUBLISHED) — everything
+  // before that is checkpoint tracking only. Sending to external stores
+  // (D2D/KDP/Google) stays a separate manual step via /distribution.
   app.patch(
     "/api/admin/books/:id/publication-timeline",
     { preHandler: requireAdmin },
@@ -264,7 +282,19 @@ export async function adminRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: result.error.errors[0].message });
       }
 
-      const existing = await prisma.book.findUnique({ where: { id }, select: { publicationTimeline: true } });
+      const existing = await prisma.book.findUnique({
+        where: { id },
+        select: {
+          status: true,
+          title: true,
+          isbn: true,
+          publicationTimeline: true,
+          distributionStrategy: true,
+          kdpSelectEnrolled: true,
+          kdpSelectExpiry: true,
+          author: { select: { id: true, email: true, name: true } },
+        },
+      });
       if (!existing) throw AppError.notFound("Book");
 
       const timeline = { ...((existing.publicationTimeline as Record<string, string>) ?? {}) };
@@ -274,11 +304,60 @@ export async function adminRoutes(app: FastifyInstance) {
         delete timeline[result.data.step];
       }
 
+      const shouldPublish =
+        result.data.step === "contract_signed" && !!result.data.date && existing.status !== "PUBLISHED";
+
+      const now = new Date();
+      let isbn = existing.isbn;
+      let kdpSelectEnrolled = existing.kdpSelectEnrolled;
+      let kdpSelectExpiry = existing.kdpSelectExpiry;
+
+      if (shouldPublish) {
+        if (!isbn) {
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const candidate = await assignIsbn(id);
+            const collision = await prisma.book.findUnique({ where: { isbn: candidate }, select: { id: true } });
+            if (!collision) { isbn = candidate; break; }
+          }
+          if (!isbn) throw new AppError("Не вдалося призначити ISBN, спробуйте ще раз", 500, "ISBN_EXHAUSTED");
+        }
+
+        const isKdpSelect = existing.distributionStrategy === "KDP_SELECT";
+        if (isKdpSelect && !kdpSelectEnrolled) {
+          kdpSelectEnrolled = true;
+          kdpSelectExpiry = new Date(now.getTime() + KDP_SELECT_DAYS * 24 * 60 * 60 * 1000);
+        }
+      }
+
       const book = await prisma.book.update({
         where: { id },
-        data: { publicationTimeline: timeline },
+        data: {
+          publicationTimeline: timeline,
+          status: shouldPublish ? "PUBLISHED" : undefined,
+          publishedAt: shouldPublish ? now : undefined,
+          isbn: shouldPublish ? isbn : undefined,
+          kdpSelectEnrolled: shouldPublish ? kdpSelectEnrolled : undefined,
+          kdpSelectExpiry: shouldPublish ? kdpSelectExpiry : undefined,
+        },
         select: BOOK_ADMIN_SELECT,
       });
+
+      if (shouldPublish) {
+        queuePublishedEmail({
+          email: existing.author.email,
+          name: existing.author.name,
+          bookTitle: existing.title,
+          bookId: id,
+          isbn,
+        }).catch((err) => console.error("[email] published notification failed:", err));
+
+        if (existing.distributionStrategy === "KDP_SELECT" && !existing.kdpSelectEnrolled && kdpSelectExpiry) {
+          scheduleKdpExpiryWarning(
+            { email: existing.author.email, name: existing.author.name, bookTitle: existing.title, bookId: id, expiryDate: kdpSelectExpiry.toISOString() },
+            kdpSelectExpiry
+          ).catch((err) => console.error("[email] KDP warning schedule failed:", err));
+        }
+      }
 
       return reply.send({ book });
     }

@@ -181,6 +181,32 @@ LibreOffice, Pandoc, Ghostscript і Calibre мають складні систе
 
 ---
 
+## 🔄 Флоу модерації та публікації книги (задокументовано 2026-08-09)
+
+> Уточнено Анатолієм в чаті — реальний ручний процес, а не декоративний UI. Може змінитись пізніше, тоді оновити цей розділ.
+
+Це модерований флоу — книга ніколи не стає `PUBLISHED` одразу після дії автора. Задіяні два незалежні статуси: `Book.status` (DRAFT → PROCESSING → REVIEW → PUBLISHED) і `Book.publicationTimeline` (JSON, довільні кроки з датами — див. нижче), плюс окремо `d2dStatus`/`kdpStatus`/`googleStatus` для зовнішніх майданчиків.
+
+### Кроки
+
+1. **Автор завантажує рукопис** → worker конвертує → `conversion-status.ts` автоматично ставить `status = REVIEW` щойно конвертація завершилась успішно (без участі автора).
+2. **Автор тисне «Надіслати на модерацію»** (дашборд книги, `POST /api/books/:id/publish`) — валідує обов'язкові поля (обкладинка/рукопис/ціна), ставить `status = REVIEW` (якщо ще не) і `publicationTimeline.submitted = now`. **Це НЕ публікація** — книга ще ніде не видима. Тут же фіксується `User.contractAcceptedAt`/IP (акцепт публічної оферти автором).
+3. **Адмін бачить книгу в черзі** (`status = REVIEW`, admin dashboard/`/admin/books`) і тисне «Схвалити» (`PATCH /api/admin/books/:id/approve`) — ставить `publicationTimeline.review_done = now`. Це теж **НЕ публікація**, лише позначка "перевірку пройдено".
+4. **Адмін надсилає автору договір на підписання** — вручну через форму `PATCH /api/admin/books/:id/publication-timeline` (крок `contract_pending`, дата = коли надіслано). За потреби — `contract_corrected` / `review_2` (повторні ітерації, теж вручну).
+5. **Договір підписано** — адмін ставить дату на кроці `contract_signed` через ту саму форму. **Це і є момент фактичної публікації**: бекенд автоматично призначає ISBN, ставить `status = PUBLISHED`, `publishedAt = now`, активує KDP Select (якщо обрано), шле email автору. Книга стає видимою в магазині Ulit — це "перше" місце публікації.
+6. **Адмін відправляє файли на зовнішні майданчики** (Amazon KDP, Draft2Digital, Google Play Books) — окремо, вручну, через `PATCH /api/admin/books/:id/distribution` (виставляє `d2dStatus`/`kdpStatus`/`googleStatus` + дати відправки). Це вже після кроку 5, ніяк не впливає на `status`/ISBN — суто зовнішній трекінг, показується автору як «Дата оновлення статистики продажів на зовнішніх майданчиках».
+
+### Де саме в коді
+
+- `apps/api/src/modules/books/publish.ts` — `POST /api/books/:id/publish` = крок 2 (тільки submit, без ISBN).
+- `apps/api/src/modules/admin/admin.ts`:
+  - `PATCH /api/admin/books/:id/approve` = крок 3 (review checkpoint).
+  - `PATCH /api/admin/books/:id/publication-timeline` = кроки 4/5 — при виставленні дати на `contract_signed` виконує реальну публікацію (ISBN + `PUBLISHED`), решта кроків — просто мітки.
+  - `PATCH /api/admin/books/:id/distribution` = крок 6.
+- Фронтенд: `PublicationTimeline.tsx` показує весь цей ланцюг автору read-only; `PublishButton.tsx` — кнопка кроку 2 ("Надіслати на модерацію", раніше називалась "Опублікувати книгу" — перейменовано, бо не публікує напряму).
+
+---
+
 ## 📜 Юридика
 
 ### Публічна оферта (договір з автором)

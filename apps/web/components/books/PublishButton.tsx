@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { useApi } from "../../hooks/useApi";
 
@@ -13,12 +12,11 @@ interface ValidationError {
 interface Props {
   bookId: string;
   bookStatus: string;
-  onPublished?: () => void;
+  onSubmitted?: () => void;
 }
 
-export function PublishButton({ bookId, bookStatus, onPublished }: Props) {
+export function PublishButton({ bookId, bookStatus, onSubmitted }: Props) {
   const { apiFetch } = useApi();
-  const router = useRouter();
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -28,6 +26,14 @@ export function PublishButton({ bookId, bookStatus, onPublished }: Props) {
     return (
       <div className="rounded-md bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-700">
         ✓ Книга опублікована
+      </div>
+    );
+  }
+
+  if (bookStatus === "REVIEW") {
+    return (
+      <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-700">
+        ⏳ На модерації — очікує на перевірку адміністратором
       </div>
     );
   }
@@ -59,14 +65,14 @@ export function PublishButton({ bookId, bookStatus, onPublished }: Props) {
     }
   }
 
-  async function handlePublish() {
+  async function handleSubmit() {
     setLoading(true);
     setErrors([]);
     try {
       await apiFetch(`/api/books/${bookId}/publish`, { method: "POST", body: JSON.stringify({}) });
-      onPublished?.();
+      onSubmitted?.();
     } catch (e: any) {
-      setErrors([{ field: "general", message: e.message || "Помилка публікації" }]);
+      setErrors([{ field: "general", message: e.message || "Помилка надсилання" }]);
       setShowConfirm(false);
     } finally {
       setLoading(false);
@@ -77,18 +83,18 @@ export function PublishButton({ bookId, bookStatus, onPublished }: Props) {
     <div className="space-y-3">
       {!showConfirm ? (
         <Button onClick={handleValidate} loading={validating} className="w-full">
-          Опублікувати книгу →
+          Надіслати на модерацію →
         </Button>
       ) : (
         <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
-          <p className="text-sm font-semibold text-green-800">✓ Книга готова до публікації</p>
+          <p className="text-sm font-semibold text-green-800">✓ Книга готова до модерації</p>
           <p className="text-xs text-green-700">
-            Після публікації книга отримає ISBN та стане доступна в магазині.
-            Автор акцептує публічну оферту.
+            Адміністратор перевірить книгу. Ви отримаєте email, щойно перевірку завершено і книгу опубліковано
+            (буде призначено ISBN). Автор акцептує публічну оферту.
           </p>
           <div className="flex gap-2">
-            <Button onClick={handlePublish} loading={loading} className="flex-1">
-              Підтвердити публікацію
+            <Button onClick={handleSubmit} loading={loading} className="flex-1">
+              Підтвердити надсилання
             </Button>
             <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={loading}>
               Скасувати
@@ -99,7 +105,7 @@ export function PublishButton({ bookId, bookStatus, onPublished }: Props) {
 
       {errors.length > 0 && (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 space-y-1">
-          <p className="text-xs font-semibold text-red-700">Необхідно виправити перед публікацією:</p>
+          <p className="text-xs font-semibold text-red-700">Необхідно виправити перед надсиланням:</p>
           <ul className="space-y-0.5">
             {errors.map((err, i) => (
               <li key={i} className="text-xs text-red-600">• {err.message}</li>
