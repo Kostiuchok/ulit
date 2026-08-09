@@ -5,6 +5,8 @@ import Link from "next/link";
 import { PublicationTimeline } from "@/components/books/PublicationTimeline";
 import { PublishButton } from "@/components/books/PublishButton";
 import { RepublishButton } from "@/components/books/RepublishButton";
+import { UnpublishButton } from "@/components/books/UnpublishButton";
+import { RelistButton } from "@/components/books/RelistButton";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
 import { useBook } from "@/hooks/useBook";
 
@@ -20,6 +22,7 @@ interface DashboardBook {
   originalDocxUrl?: string | null;
   docxUpdatedAt?: string | null;
   republishRequestedAt?: string | null;
+  unpublishedAt?: string | null;
   manuscriptImportedAt?: string | null;
   manuscriptEditedAt?: string | null;
   pdfUrl?: string | null;
@@ -54,6 +57,7 @@ export function BookDashboard() {
   }
 
   const isPublished = book?.status === "PUBLISHED";
+  const isUnpublished = book?.status === "UNPUBLISHED";
 
   return (
     <div className="min-h-screen bg-white p-8">
@@ -85,14 +89,27 @@ export function BookDashboard() {
               Редагувати
             </Link>
             {isPublished ? (
-              <RepublishButton
+              <>
+                <RepublishButton
+                  bookId={id}
+                  docxUpdatedAt={book?.docxUpdatedAt}
+                  publishedAt={book?.publishedAt}
+                  republishRequestedAt={book?.republishRequestedAt}
+                  onSubmitted={(republishRequestedAt) =>
+                    setBook((b) => (b ? { ...b, republishRequestedAt } : b))
+                  }
+                />
+                <UnpublishButton
+                  bookId={id}
+                  onUnpublished={() =>
+                    setBook((b) => (b ? { ...b, status: "UNPUBLISHED" } : b))
+                  }
+                />
+              </>
+            ) : isUnpublished ? (
+              <RelistButton
                 bookId={id}
-                docxUpdatedAt={book?.docxUpdatedAt}
-                publishedAt={book?.publishedAt}
-                republishRequestedAt={book?.republishRequestedAt}
-                onSubmitted={(republishRequestedAt) =>
-                  setBook((b) => (b ? { ...b, republishRequestedAt } : b))
-                }
+                onRelisted={() => setBook((b) => (b ? { ...b, status: "PUBLISHED" } : b))}
               />
             ) : (
               <PublishButton

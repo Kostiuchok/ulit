@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "BookStatus" ADD VALUE 'UNPUBLISHED';
+
+-- AlterTable
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "unpublishedAt" TIMESTAMP(3);

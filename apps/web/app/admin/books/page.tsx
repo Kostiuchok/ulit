@@ -36,6 +36,7 @@ const STATUS_COLORS: Record<string, string> = {
   PROCESSING: "bg-blue-100 text-blue-700",
   REVIEW: "bg-yellow-100 text-yellow-700",
   PUBLISHED: "bg-green-100 text-green-700",
+  UNPUBLISHED: "bg-orange-100 text-orange-700",
   ARCHIVED: "bg-gray-100 text-gray-500",
 };
 
@@ -369,7 +370,7 @@ export default function AdminBooksPage() {
           className="h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
         >
           <option value="">Всі статуси</option>
-          {["DRAFT", "PROCESSING", "REVIEW", "PUBLISHED", "ARCHIVED"].map((s) => (
+          {["DRAFT", "PROCESSING", "REVIEW", "PUBLISHED", "UNPUBLISHED", "ARCHIVED"].map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>

@@ -89,6 +89,7 @@ const BOOK_ADMIN_SELECT = {
   originalDocxUrl: true,
   docxUpdatedAt: true,
   republishRequestedAt: true,
+  unpublishedAt: true,
   author: {
     select: {
       id: true,

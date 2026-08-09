@@ -18,6 +18,7 @@ enum BookStatus {
   PROCESSING
   REVIEW
   PUBLISHED
+  UNPUBLISHED
   ARCHIVED
 }
 
@@ -118,6 +119,7 @@ model Book {
   originalDocxUrl      String?
   docxUpdatedAt        DateTime? // set whenever the source .docx changes; compared to publishedAt to know if a live book has unpublished file changes
   republishRequestedAt DateTime? // author submitted post-publish changes for re-moderation; cleared once admin approves or rejects
+  unpublishedAt        DateTime? // author took the book off sale ("Зняти з публікації"); status=UNPUBLISHED, files/ISBN/publishedAt kept for /relist
   pdfUrl               String?
   epubUrl              String?
   fb2Url               String?

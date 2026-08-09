@@ -14,6 +14,7 @@ const BOOK_SELECT = {
   moderationStatus: true,
   moderationNote: true,
   archivedAt: true,
+  unpublishedAt: true,
   isbn: true,
   coverUrl: true,
   backCoverUrl: true,
@@ -195,6 +196,49 @@ export async function bookRoutes(app: FastifyInstance) {
       select: BOOK_SELECT,
     });
 
+    return reply.send({ book });
+  });
+
+  // Unpublish (T-1950): take a PUBLISHED book off sale — hidden from the
+  // Ulit store and checkout (store/order queries filter on status ===
+  // "PUBLISHED"), external marketplace removal stays the existing manual
+  // admin step via PATCH /api/admin/books/:id/distribution. Files, ISBN and
+  // publishedAt are left untouched so /relist can bring it straight back.
+  // Distinct from DELETE (soft-delete/archive) — the book keeps showing in
+  // the author's active books list, not the archived section.
+  app.post("/api/books/:id/unpublish", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await assertOwnership(id, request.user.id);
+
+    if (existing.status !== "PUBLISHED") {
+      throw new AppError("Ця дія доступна лише для опублікованих книг", 400, "NOT_PUBLISHED");
+    }
+
+    const book = await prisma.book.update({
+      where: { id },
+      data: { status: "UNPUBLISHED", unpublishedAt: new Date() },
+      select: BOOK_SELECT,
+    });
+    return reply.send({ book });
+  });
+
+  // Relist a previously unpublished book — same files/ISBN as before, goes
+  // straight back to PUBLISHED without re-moderation (content hasn't changed
+  // since the last approval; a fresh .docx upload still goes through the
+  // normal /republish re-moderation flow once live again).
+  app.post("/api/books/:id/relist", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await assertOwnership(id, request.user.id);
+
+    if (existing.status !== "UNPUBLISHED") {
+      throw new AppError("Книга не знята з публікації", 400, "NOT_UNPUBLISHED");
+    }
+
+    const book = await prisma.book.update({
+      where: { id },
+      data: { status: "PUBLISHED", unpublishedAt: null },
+      select: BOOK_SELECT,
+    });
     return reply.send({ book });
   });
 }

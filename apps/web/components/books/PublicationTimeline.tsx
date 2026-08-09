@@ -180,7 +180,7 @@ export function PublicationTimeline({
   const hasDistribution = distributionChannels.length > 0;
   const outputDataFilled = hasBasicInfo && hasPrice;
   const isSubmitted = bookStatus !== "DRAFT" && bookStatus !== "PROCESSING";
-  const publishedDone = bookStatus === "PUBLISHED" && !!isbn;
+  const publishedDone = (bookStatus === "PUBLISHED" || bookStatus === "UNPUBLISHED") && !!isbn;
   const doneFlags = [true, ...STEPS.map((s) => !!timeline?.[s.key]), publishedDone];
   const firstPendingIdx = doneFlags.findIndex((d) => !d);
 
