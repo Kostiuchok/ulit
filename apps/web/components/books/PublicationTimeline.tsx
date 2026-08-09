@@ -286,43 +286,49 @@ export function PublicationTimeline({
           </div>
         );
       })}
-      <Row
-        done={publishedDone}
-        active={firstPendingIdx === STEPS.length + 1}
-        label={isbn ? `Публікація у магазинах / ISBN: ${isbn}` : "Публікація у магазинах"}
-        isLast={!publishedDone}
-        tooltip={distributionStrategy ? strategyTooltip : undefined}
-      />
+      <div className="relative">
+        {publishedDone && (
+          <div className="absolute left-[9px] top-5 bottom-0 w-px" style={{ backgroundColor: ACCENT }} />
+        )}
+        <Row
+          done={publishedDone}
+          active={firstPendingIdx === STEPS.length + 1}
+          label={isbn ? `Публікація у магазинах / ISBN: ${isbn}` : "Публікація у магазинах"}
+          isLast={!publishedDone}
+          hideLine={publishedDone}
+          tooltip={distributionStrategy ? strategyTooltip : undefined}
+        />
 
-      {publishedDone && (
-        <div className="ml-7 mt-1 space-y-1.5">
-          <button
-            type="button"
-            onClick={() => setChannelsExpanded((v) => !v)}
-            className="flex items-center gap-2 text-left text-sm font-bold text-black"
-          >
-            Дата оновлення статистики продажів на зовнішніх майданчиках
-            <img
-              src="/figma/chevron-collapse.svg"
-              alt=""
-              className={cn("h-2.5 w-3.5 shrink-0 transition-transform", channelsExpanded ? "rotate-180" : "rotate-90")}
-            />
-          </button>
-          {channelsExpanded && CHANNELS.filter((c) => distributionChannels.includes(c.key)).map((c) => {
-            const st = channelByKey[c.key];
-            const ok = st.status === "SENT" || st.status === "PUBLISHED";
-            return (
-              <div key={c.key} className="flex items-center gap-1.5 text-sm">
-                <span style={ok ? { color: ACCENT } : undefined} className={!ok ? "text-gray-300" : undefined}>
-                  {ok ? "✓" : "✕"}
-                </span>
-                <span style={ok ? { color: ACCENT } : undefined}>{c.name}</span>
-                {st.sentAt && <span className="text-black">/ поновлено {fmt(st.sentAt)}</span>}
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {publishedDone && (
+          <div className="ml-7 mt-1 space-y-1.5">
+            <button
+              type="button"
+              onClick={() => setChannelsExpanded((v) => !v)}
+              className="flex items-center gap-2 text-left text-sm font-bold text-black"
+            >
+              Дата оновлення статистики продажів на зовнішніх майданчиках
+              <img
+                src="/figma/chevron-collapse.svg"
+                alt=""
+                className={cn("h-2.5 w-3.5 shrink-0 transition-transform", channelsExpanded ? "rotate-180" : "rotate-90")}
+              />
+            </button>
+            {channelsExpanded && CHANNELS.filter((c) => distributionChannels.includes(c.key)).map((c) => {
+              const st = channelByKey[c.key];
+              const ok = st.status === "SENT" || st.status === "PUBLISHED";
+              return (
+                <div key={c.key} className="flex items-center gap-1.5 text-sm">
+                  <span style={ok ? { color: ACCENT } : undefined} className={!ok ? "text-gray-300" : undefined}>
+                    {ok ? "✓" : "✕"}
+                  </span>
+                  <span style={ok ? { color: ACCENT } : undefined}>{c.name}</span>
+                  {st.sentAt && <span className="text-black">/ поновлено {fmt(st.sentAt)}</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

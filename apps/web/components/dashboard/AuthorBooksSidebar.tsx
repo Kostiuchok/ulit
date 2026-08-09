@@ -39,8 +39,6 @@ const TOP_ITEMS: SubNavItem[] = [
     icon: <Download size={14} />,
     href: (id) => `/dashboard/books/${id}/published`,
   },
-  { label: "Замовити тираж", icon: <Package size={14} />, disabled: true },
-  { label: "Обговорення книги", icon: <MessageSquare size={14} />, disabled: true },
 ];
 
 const EDIT_GROUP: SubNavItem[] = [
@@ -62,6 +60,11 @@ const STORE_GROUP: SubNavItem[] = [
     href: (id) => `/dashboard/books/${id}/publish`,
   },
   { label: "Статистика", icon: <BarChart3 size={14} />, disabled: true },
+];
+
+const PROMO_GROUP: SubNavItem[] = [
+  { label: "Замовити тираж", icon: <Package size={14} />, disabled: true },
+  { label: "Обговорення книги", icon: <MessageSquare size={14} />, disabled: true },
   { label: "Знайти нових читачів", icon: <Users size={14} />, disabled: true },
   { label: "Включити акцію на книгу", icon: <Percent size={14} />, disabled: true },
 ];
@@ -150,6 +153,7 @@ export function AuthorBooksSidebar() {
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(true);
   const [storeOpen, setStoreOpen] = useState(true);
+  const [promoOpen, setPromoOpen] = useState(true);
 
   function load() {
     if (!token) return;
@@ -247,6 +251,11 @@ export function AuthorBooksSidebar() {
                     ))}
 
                     {TOP_ITEMS.map((item) => (
+                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
+                    ))}
+
+                    <GroupLabel label="Реклама" expanded={promoOpen} onClick={() => setPromoOpen((v) => !v)} />
+                    {promoOpen && PROMO_GROUP.map((item) => (
                       <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
                     ))}
                   </nav>
