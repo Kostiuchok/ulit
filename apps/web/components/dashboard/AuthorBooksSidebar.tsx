@@ -159,9 +159,9 @@ export function AuthorBooksSidebar() {
                       onClick={(e) => e.stopPropagation()}
                       className="block truncate hover:underline"
                     >
-                      <h2 className="truncate text-[1rem] font-bold text-black">{book.title}</h2>
+                      <h2 className="truncate">{book.title}</h2>
                     </Link>
-                    <h3 className="text-[0.8125rem] font-normal text-gray-500">{status.label}</h3>
+                    <h3 className="font-normal text-gray-500">{status.label}</h3>
                   </div>
                 </div>
 

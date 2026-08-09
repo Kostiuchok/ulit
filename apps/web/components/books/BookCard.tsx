@@ -49,14 +49,14 @@ export function BookCard({ book, onDelete }: Props) {
         <div>
           <div className="flex items-start justify-between gap-2">
             <Link href={`/dashboard/books/${book.id}`} className="min-w-0 hover:underline">
-              <h2 className="truncate text-[1rem] font-bold text-gray-900">{book.title}</h2>
+              <h2 className="truncate">{book.title}</h2>
             </Link>
             <span className={cn("flex-shrink-0 rounded-full px-2.5 py-0.5 text-[0.8125rem] font-medium", status.className)}>
               {status.label}
             </span>
           </div>
 
-          {book.genre && <h3 className="mt-0.5 text-[0.8125rem] font-normal text-gray-500">{book.genre}</h3>}
+          {book.genre && <h3 className="mt-0.5 font-normal text-gray-500">{book.genre}</h3>}
 
           {book.description && (
             <p className="mt-1.5 text-base text-gray-600 line-clamp-2">{book.description}</p>

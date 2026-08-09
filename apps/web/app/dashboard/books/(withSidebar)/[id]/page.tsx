@@ -39,7 +39,7 @@ export default function BookOverviewPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-3xl mx-auto">
+      <div className="p-8">
         <div className="h-8 bg-gray-200 rounded w-64 animate-pulse mb-6" />
         <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
       </div>
@@ -54,7 +54,7 @@ export default function BookOverviewPage() {
 
   return (
     <div className="p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ export default function BookOverviewPage() {
               ← Мої книги
             </Link>
             <span className="text-gray-300">/</span>
-            <h1 className="text-lg font-semibold text-gray-900 truncate max-w-xs">{book?.title}</h1>
+            <h2 className="truncate max-w-xs">{book?.title}</h2>
             <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", status.className)}>
               {status.label}
             </span>
@@ -123,10 +123,10 @@ export default function BookOverviewPage() {
 
         {/* Readiness checklist */}
         <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold mb-1">Готовність до публікації</h2>
-          <p className="text-xs text-gray-500 mb-4">
+          <h1 className="mb-1">Готовність до публікації</h1>
+          <h2 className="mb-4 font-normal">
             Виконайте всі кроки, щоб опублікувати книгу в магазині
-          </p>
+          </h2>
           <div className="divide-y">
             <StepRow
               num={1}

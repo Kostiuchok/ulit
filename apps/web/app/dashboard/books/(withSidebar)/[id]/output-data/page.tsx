@@ -143,7 +143,7 @@ export default function OutputDataPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-3xl mx-auto">
+      <div className="p-8">
         <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
       </div>
     );
@@ -155,7 +155,7 @@ export default function OutputDataPage() {
 
   return (
     <div className="p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="space-y-6">
         <h1 className="text-lg font-semibold text-gray-900">Вихідні дані</h1>
 
         {showRejection && (

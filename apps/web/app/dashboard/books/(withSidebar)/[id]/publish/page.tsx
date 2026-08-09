@@ -36,7 +36,7 @@ export default function PublishPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
+      <div className="p-8">
         <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />
       </div>
     );
@@ -51,7 +51,7 @@ export default function PublishPage() {
 
   return (
     <div className="min-h-screen bg-white p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[1.4375rem] font-bold text-black">{book?.title}</h1>
           {isPublished && (

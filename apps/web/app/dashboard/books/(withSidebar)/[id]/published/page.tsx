@@ -45,7 +45,7 @@ export default function PublishedPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-2xl mx-auto space-y-4">
+      <div className="p-8 space-y-4">
         <div className="h-8 w-48 bg-gray-200 animate-pulse rounded" />
         <div className="h-64 bg-gray-200 animate-pulse rounded-xl" />
       </div>
@@ -58,7 +58,7 @@ export default function PublishedPage() {
 
   return (
     <div className="p-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="">
         {/* Success header */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">🎉</div>

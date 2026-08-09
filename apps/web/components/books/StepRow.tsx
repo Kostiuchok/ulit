@@ -30,11 +30,11 @@ export function StepRow({
         {done ? "✓" : num}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn("text-sm font-medium", done ? "text-gray-700" : "text-gray-500")}>
+        <h3 className={cn("text-[0.8125rem] font-medium", done ? "text-gray-700" : "text-gray-500")}>
           {label}
-        </p>
+        </h3>
         {hint && !done && (
-          <p className="text-xs text-gray-400 mt-0.5">{hint}</p>
+          <p className="mt-0.5">{hint}</p>
         )}
       </div>
       {!done && action && (

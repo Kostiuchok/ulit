@@ -67,7 +67,7 @@ export default function PreviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto space-y-4">
+      <div className="space-y-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{book?.title ?? "Передперегляд"}</h1>
           <p className="text-sm text-gray-500 mt-0.5">Перевірте верстку, сторінки та обкладинку перед публікацією</p>

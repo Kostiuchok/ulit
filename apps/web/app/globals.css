@@ -30,4 +30,27 @@
     color: hsl(var(--foreground));
     font-family: system-ui, -apple-system, sans-serif;
   }
+
+  /* Consistent heading scale across the whole app — one page must have exactly
+     one h1; h2/h3 used for section/item headings. Component-level Tailwind
+     classes (e.g. a muted h3 in a checklist) still win over these defaults. */
+  h1 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #000;
+  }
+  h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #000;
+  }
+  h3 {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #000;
+  }
+  p {
+    font-size: 0.875rem;
+    color: #000;
+  }
 }
