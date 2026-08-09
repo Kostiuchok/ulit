@@ -47,7 +47,6 @@ export function BookDashboard() {
     );
   }
 
-  const isProcessing = book?.status === "PROCESSING";
   const isPublished = book?.status === "PUBLISHED";
 
   return (
@@ -72,14 +71,14 @@ export function BookDashboard() {
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[1.4375rem] font-bold text-black">{book?.title}</h1>
-          {isPublished && (
-            <div className="flex flex-wrap gap-2.5">
-              <Link
-                href={`/dashboard/books/${id}/output-data`}
-                className="rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50"
-              >
-                Редагувати
-              </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              href={`/dashboard/books/${id}/output-data`}
+              className="rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50"
+            >
+              Редагувати
+            </Link>
+            {isPublished ? (
               <button
                 disabled
                 title="Скоро — повторна публікація змін"
@@ -87,6 +86,14 @@ export function BookDashboard() {
               >
                 Опублікувати із змінами
               </button>
+            ) : (
+              <PublishButton
+                bookId={id}
+                bookStatus={book?.status ?? "DRAFT"}
+                onPublished={() => setBook((b) => (b ? { ...b, status: "PUBLISHED" } : b))}
+              />
+            )}
+            {isPublished ? (
               <a
                 href={`/books/${book.slug}`}
                 target="_blank"
@@ -95,8 +102,15 @@ export function BookDashboard() {
               >
                 Сайт книги
               </a>
-            </div>
-          )}
+            ) : (
+              <span
+                title="Доступно після публікації"
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-300 cursor-not-allowed"
+              >
+                Сайт книги
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr]">
@@ -149,23 +163,6 @@ export function BookDashboard() {
             )}
 
             <DistributionStatus bookId={id} bookStatus={book?.status ?? "DRAFT"} />
-
-            {!isPublished && (
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                {isProcessing ? (
-                  <div className="flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
-                    <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-500" />
-                    Конвертація в процесі — кнопка публікації з'явиться автоматично
-                  </div>
-                ) : (
-                  <PublishButton
-                    bookId={id}
-                    bookStatus={book?.status ?? "DRAFT"}
-                    onPublished={() => setBook((b) => (b ? { ...b, status: "PUBLISHED" } : b))}
-                  />
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>

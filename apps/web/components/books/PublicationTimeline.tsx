@@ -74,7 +74,7 @@ function Row({
   toggle?: { expanded: boolean; onClick: () => void };
 }) {
   return (
-    <div className="relative flex items-start gap-3 pb-5">
+    <div className="group/row relative flex items-start gap-3 pb-5">
       {!isLast && (
         <div
           className="absolute left-[9px] top-5 bottom-0 w-px"
@@ -82,12 +82,18 @@ function Row({
         />
       )}
       <div
-        className={cn("relative z-10 mt-0.5 flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-white text-[0.6875rem] font-bold")}
-        style={done ? { color: ACCENT } : active ? { border: "2px solid #111" } : { border: "1px solid #d4d4d4", color: "#c4c4c4" }}
+        className="relative z-10 mt-0.5 flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-bold"
+        style={
+          done
+            ? { backgroundColor: ACCENT, color: "#fff" }
+            : active
+            ? { backgroundColor: "#fff", border: "2px solid #111" }
+            : { backgroundColor: "#fff", border: "1px solid #d4d4d4", color: "#c4c4c4" }
+        }
       >
         {done ? "✓" : ""}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="relative flex-1 min-w-0">
         <div className="flex items-center flex-wrap gap-2">
           <span
             className={cn("text-sm", done ? "font-bold" : active ? "font-bold text-black" : "text-gray-400")}
@@ -107,7 +113,7 @@ function Row({
           )}
         </div>
         {tooltip && active && (
-          <div className="relative mt-2 inline-flex max-w-xs items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
+          <div className="absolute left-0 top-full z-20 mt-2 hidden w-72 items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] group-hover/row:flex sm:left-full sm:top-0 sm:ml-3 sm:mt-0">
             <span>📖</span>
             <span>
               Ми надамо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і відправимо до книжкової палати України
@@ -157,12 +163,15 @@ export function PublicationTimeline({
   creation,
 }: Props) {
   const [creationExpanded, setCreationExpanded] = useState(true);
+  const [submittedExpanded, setSubmittedExpanded] = useState(true);
+  const [channelsExpanded, setChannelsExpanded] = useState(true);
   const hasBasicInfo = !!(creation.title && creation.genre);
   const hasManuscript = !!creation.originalDocxUrl;
   const manuscriptDate = creation.manuscriptEditedAt ?? creation.manuscriptImportedAt;
   const hasPrice = !!(creation.priceEbook || creation.pricePrint || creation.pricePrintHardcover);
   const hasCover = !!creation.coverUrl;
   const hasDistribution = distributionChannels.length > 0;
+  const outputDataFilled = hasBasicInfo && hasPrice;
   const isSubmitted = bookStatus !== "DRAFT" && bookStatus !== "PROCESSING";
   const publishedDone = bookStatus === "PUBLISHED" && !!isbn;
   const doneFlags = [true, ...STEPS.map((s) => !!timeline?.[s.key]), publishedDone];
@@ -212,16 +221,31 @@ export function PublicationTimeline({
           <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
         </div>
       )}
-      {STEPS.map((step, i) => (
-        <Row
-          key={step.key}
-          done={!!timeline?.[step.key]}
-          active={firstPendingIdx === i + 1}
-          label={step.label}
-          date={timeline?.[step.key]}
-          tooltip={step.key === "submitted" ? "isbn" : undefined}
-        />
-      ))}
+      {STEPS.map((step, i) => {
+        const isSubmittedStep = step.key === "submitted";
+        return (
+          <div key={step.key}>
+            <Row
+              done={!!timeline?.[step.key]}
+              active={firstPendingIdx === i + 1}
+              label={step.label}
+              date={timeline?.[step.key]}
+              tooltip={isSubmittedStep ? "isbn" : undefined}
+              toggle={
+                isSubmittedStep
+                  ? { expanded: submittedExpanded, onClick: () => setSubmittedExpanded((v) => !v) }
+                  : undefined
+              }
+            />
+            {isSubmittedStep && submittedExpanded && (
+              <div className="ml-7 mb-4 -mt-3 space-y-1.5">
+                <CreationSubItem done={outputDataFilled} label="Вихідні дані заповнені" />
+                <CreationSubItem done={hasDistribution} label="Магазини та розмір роялті обрані" />
+              </div>
+            )}
+          </div>
+        );
+      })}
       <Row
         done={publishedDone}
         active={firstPendingIdx === STEPS.length + 1}
@@ -231,8 +255,19 @@ export function PublicationTimeline({
 
       {publishedDone && (
         <div className="ml-7 mt-1 space-y-1.5">
-          <p className="text-sm font-bold text-black">Дата оновлення статистики продажів на зовнішніх майданчиках</p>
-          {CHANNELS.filter((c) => distributionChannels.includes(c.key)).map((c) => {
+          <button
+            type="button"
+            onClick={() => setChannelsExpanded((v) => !v)}
+            className="flex items-center gap-2 text-left text-sm font-bold text-black"
+          >
+            Дата оновлення статистики продажів на зовнішніх майданчиках
+            <img
+              src="/figma/chevron-collapse.svg"
+              alt=""
+              className={cn("h-2.5 w-3.5 shrink-0 transition-transform", channelsExpanded ? "rotate-180" : "rotate-90")}
+            />
+          </button>
+          {channelsExpanded && CHANNELS.filter((c) => distributionChannels.includes(c.key)).map((c) => {
             const st = channelByKey[c.key];
             const ok = st.status === "SENT" || st.status === "PUBLISHED";
             return (
