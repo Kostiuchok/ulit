@@ -161,7 +161,7 @@ export function AuthorBooksSidebar() {
                     >
                       <h2 className="truncate">{book.title}</h2>
                     </Link>
-                    <h3 className="font-normal text-gray-500">{status.label}</h3>
+                    <span className="block text-[0.75rem] font-normal text-gray-500">{status.label}</span>
                   </div>
                 </div>
 

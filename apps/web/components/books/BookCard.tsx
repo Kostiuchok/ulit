@@ -59,7 +59,7 @@ export function BookCard({ book, onDelete }: Props) {
           {book.genre && <h3 className="mt-0.5 font-normal text-gray-500">{book.genre}</h3>}
 
           {book.description && (
-            <p className="mt-1.5 text-base text-gray-600 line-clamp-2">{book.description}</p>
+            <h3 className="mt-1.5 font-normal text-gray-600 line-clamp-2">{book.description}</h3>
           )}
         </div>
 

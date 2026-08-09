@@ -34,7 +34,7 @@ export function FontSizeControl() {
       >
         A−
       </button>
-      <span className="text-[0.625rem] text-gray-500 tabular-nums">{Math.round(scale)}%</span>
+      <span className="text-[0.75rem] text-gray-500 tabular-nums">{Math.round(scale)}%</span>
       <button
         onClick={() => apply(scale + STEP)}
         title="Збільшити розмір шрифту інтерфейсу"
