@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { ManuscriptEditor } from "@/components/manuscript/ManuscriptEditor";
+import { AuthorBooksSidebar } from "@/components/dashboard/AuthorBooksSidebar";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 
@@ -60,28 +59,31 @@ export default function ManuscriptEditorPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="h-96 max-w-3xl animate-pulse rounded-xl bg-gray-100" />
+      <div className="flex">
+        <AuthorBooksSidebar />
+        <div className="flex-1 p-8">
+          <div className="h-96 max-w-3xl animate-pulse rounded-xl bg-gray-100" />
+        </div>
       </div>
     );
   }
 
   if (!book?.originalDocxUrl) {
     return (
-      <div className="p-8">
-        <div className="mx-auto max-w-2xl space-y-4">
-          <Link href={`/dashboard/books/${id}`} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-            <ChevronLeft size={14} /> {book?.title}
-          </Link>
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h1 className="mb-4 text-lg font-semibold text-gray-900">Рукопис (.docx)</h1>
-            <DocxUploader
-              bookId={id}
-              currentDocxUrl={book?.originalDocxUrl}
-              onUploadSuccess={() => {
-                setBook((b) => (b ? { ...b, originalDocxUrl: "uploaded" } : b));
-              }}
-            />
+      <div className="flex">
+        <AuthorBooksSidebar />
+        <div className="flex-1 p-8">
+          <div className="mx-auto max-w-2xl">
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <h1 className="mb-4 text-lg font-semibold text-gray-900">Рукопис (.docx)</h1>
+              <DocxUploader
+                bookId={id}
+                currentDocxUrl={book?.originalDocxUrl}
+                onUploadSuccess={() => {
+                  setBook((b) => (b ? { ...b, originalDocxUrl: "uploaded" } : b));
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -90,20 +92,20 @@ export default function ManuscriptEditorPage() {
 
   if (!manuscript || manuscript.status !== "DONE") {
     return (
-      <div className="p-8">
-        <div className="mx-auto max-w-2xl">
-          <Link href={`/dashboard/books/${id}`} className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-            <ChevronLeft size={14} /> {book?.title}
-          </Link>
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border bg-white p-16 shadow-sm">
-            <p className="text-sm text-gray-700">Імпортуємо рукопис у редактор…</p>
-            <div className="relative h-1.5 w-64 overflow-hidden rounded-full bg-gray-200">
-              <div className="progress-indeterminate-bar absolute top-0 h-full rounded-full bg-gray-900" />
+      <div className="flex">
+        <AuthorBooksSidebar />
+        <div className="flex-1 p-8">
+          <div className="mx-auto max-w-2xl">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border bg-white p-16 shadow-sm">
+              <p className="text-sm text-gray-700">Імпортуємо рукопис у редактор…</p>
+              <div className="relative h-1.5 w-64 overflow-hidden rounded-full bg-gray-200">
+                <div className="progress-indeterminate-bar absolute top-0 h-full rounded-full bg-gray-900" />
+              </div>
+              <p className="text-xs text-gray-400">
+                {elapsed}с — зазвичай це займає менше хвилини
+                {elapsed >= 45 && " (великий файл може тривати довше — не закривайте сторінку)"}
+              </p>
             </div>
-            <p className="text-xs text-gray-400">
-              {elapsed}с — зазвичай це займає менше хвилини
-              {elapsed >= 45 && " (великий файл може тривати довше — не закривайте сторінку)"}
-            </p>
           </div>
         </div>
       </div>
