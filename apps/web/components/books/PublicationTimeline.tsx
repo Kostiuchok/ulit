@@ -345,28 +345,21 @@ export function PublicationTimeline({
           isLast={!publishedDone}
           hideLine={publishedDone}
           tooltip={distributionStrategy ? strategyTooltip : undefined}
+          toggle={
+            publishedDone
+              ? { expanded: channelsExpanded, onClick: () => setChannelsExpanded((v) => !v) }
+              : undefined
+          }
         />
 
-        {publishedDone && (
+        {publishedDone && channelsExpanded && (
           <div className="ml-7 mt-1 space-y-1.5">
             <div className="flex items-center gap-1.5 text-sm">
               <span style={{ color: ACCENT }}>✓</span>
               <span style={{ color: ACCENT }} className="font-medium">Ulit</span>
               {timeline?.contract_signed && <span className="text-black">/ опубліковано {fmt(timeline.contract_signed)}</span>}
             </div>
-            <button
-              type="button"
-              onClick={() => setChannelsExpanded((v) => !v)}
-              className="flex items-center gap-2 text-left text-sm font-bold text-black"
-            >
-              Дата оновлення статистики продажів на зовнішніх майданчиках
-              <img
-                src="/figma/chevron-collapse.svg"
-                alt=""
-                className={cn("h-2.5 w-3.5 shrink-0 transition-transform", channelsExpanded ? "rotate-180" : "rotate-90")}
-              />
-            </button>
-            {channelsExpanded && CHANNELS.filter((c) => distributionChannels.includes(c.key)).map((c) => {
+            {CHANNELS.filter((c) => distributionChannels.includes(c.key)).map((c) => {
               const st = channelByKey[c.key];
               const ok = st.status === "SENT" || st.status === "PUBLISHED";
               return (
