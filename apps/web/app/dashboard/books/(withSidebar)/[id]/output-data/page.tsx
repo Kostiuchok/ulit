@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,12 +91,17 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function OutputDataPage() {
+function OutputDataContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { apiFetch } = useApi();
   const { book, setBook, loading } = useBook<MetadataBook>(id);
-  const [step, setStep] = useState(0);
+  const requestedStep = Number(searchParams.get("step"));
+  const initialStep = Number.isInteger(requestedStep) && requestedStep >= 0 && requestedStep < STEP_META.length
+    ? requestedStep
+    : 0;
+  const [step, setStep] = useState(initialStep);
 
   const [infoSaved, setInfoSaved] = useState(false);
   const [infoError, setInfoError] = useState("");
@@ -527,5 +532,13 @@ export default function OutputDataPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OutputDataPage() {
+  return (
+    <Suspense>
+      <OutputDataContent />
+    </Suspense>
   );
 }

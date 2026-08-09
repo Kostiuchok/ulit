@@ -153,7 +153,7 @@ export function BookDashboard() {
                   {book?.pricePrintHardcover && <p>Друк, тверда - {Number(book.pricePrintHardcover).toFixed(0)} грн</p>}
                 </div>
                 <Link
-                  href={`/dashboard/books/${id}/output-data`}
+                  href={`/dashboard/books/${id}/output-data?step=2`}
                   className="block w-full rounded-md border border-black py-2 text-center text-sm text-black hover:bg-gray-50"
                 >
                   Змінити ціну
