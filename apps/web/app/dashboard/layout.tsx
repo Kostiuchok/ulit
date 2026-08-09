@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <FontSizeControl />
             <div className="relative flex items-center">
               <img src="/figma/alert.svg" alt="Сповіщення" className="h-[1rem] w-[1rem]" />
-              <span className="absolute -top-2.5 -right-3.5 rounded-sm bg-[#ff5900] px-1.5 py-0.5 text-[0.875rem] font-black leading-none text-white">
+              <span className="absolute -top-2.5 -right-3.5 rounded-sm bg-[#ff5900] px-1.5 py-0.5 text-[0.75rem] font-black leading-none text-white">
                 99+
               </span>
             </div>
