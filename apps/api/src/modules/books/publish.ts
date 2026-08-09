@@ -76,10 +76,6 @@ export async function publishRoute(app: FastifyInstance) {
     { preHandler: authenticate },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const clientIp =
-        (request.headers["x-forwarded-for"] as string)?.split(",")[0].trim() ??
-        request.socket.remoteAddress ??
-        "unknown";
 
       const book = await prisma.book.findUnique({
         where: { id },
@@ -119,6 +115,18 @@ export async function publishRoute(app: FastifyInstance) {
         });
       }
 
+      // T-1951 — the platform contract is now signed explicitly, once, by the
+      // author (see /dashboard/settings/contract, POST /api/users/me/contract/sign)
+      // instead of being silently auto-stamped on first submission. Require it
+      // up front so consent is a real checkbox action, not an implicit side effect.
+      if (!book.author.contractAcceptedAt) {
+        throw new AppError(
+          "Спочатку підпишіть договір з платформою в профілі автора",
+          400,
+          "CONTRACT_NOT_SIGNED"
+        );
+      }
+
       const now = new Date();
       const timeline = { ...((book.publicationTimeline as Record<string, string>) ?? {}), submitted: now.toISOString() };
 
@@ -130,14 +138,6 @@ export async function publishRoute(app: FastifyInstance) {
         },
         select: { id: true, status: true, title: true },
       });
-
-      // T-111 — store contractAcceptedAt + IP on first submission
-      if (!book.author.contractAcceptedAt) {
-        await prisma.user.update({
-          where: { id: book.author.id },
-          data: { contractAcceptedAt: now, contractAcceptedIp: clientIp },
-        });
-      }
 
       return reply.status(200).send({ book: submitted });
     }

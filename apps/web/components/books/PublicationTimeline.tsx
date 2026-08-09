@@ -6,13 +6,22 @@ import { FileText } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getBookStatusLabel } from "../../lib/bookStatus";
 
+// Only "submitted"/"review_done" drive the active-step highlighting below —
+// the contract is now signed once, author-wide, before a book can even be
+// submitted (see /dashboard/settings/contract), so "Укладання договору" is
+// rendered as its own always-done group (see CONTRACT_SUB_STEPS) rather than
+// a step the author waits on per book.
 const STEPS = [
   { key: "submitted", label: "Надішліть книгу на публікацію" },
   { key: "review_done", label: "Перевірка завершена" },
-  { key: "contract_pending", label: "Укладіть договір" },
+] as const;
+
+// Nested under the "Укладання договору" group — only shown when the admin has
+// actually initiated one of these for this specific book (document re-check
+// or updated terms), not as steps the author waits through by default.
+const CONTRACT_SUB_STEPS = [
   { key: "contract_corrected", label: "Договір виправлено" },
   { key: "review_2", label: "Повторна перевірка документів" },
-  { key: "contract_signed", label: "Договір укладено" },
 ] as const;
 
 const CHANNELS = [
@@ -44,6 +53,7 @@ interface Props {
   bookId: string;
   createdAt: string;
   timeline?: Record<string, string> | null;
+  contractAcceptedAt?: string | null;
   isbn?: string | null;
   bookStatus: string;
   distributionChannels: string[];
@@ -158,6 +168,7 @@ export function PublicationTimeline({
   bookId,
   createdAt,
   timeline,
+  contractAcceptedAt,
   isbn,
   bookStatus,
   distributionChannels,
@@ -249,7 +260,6 @@ export function PublicationTimeline({
       </div>
       {STEPS.map((step, i) => {
         const isSubmittedStep = step.key === "submitted";
-        const isContractStep = step.key === "contract_pending";
         const stepDone = !!timeline?.[step.key];
         const stepActive = firstPendingIdx === i + 1;
         return (
@@ -263,20 +273,7 @@ export function PublicationTimeline({
             <Row
               done={stepDone}
               active={stepActive}
-              label={
-                isContractStep && stepActive ? (
-                  <Link
-                    href={`/dashboard/books/${bookId}/contract`}
-                    className="inline-flex items-center gap-1.5 underline hover:no-underline"
-                    style={{ color: ACCENT }}
-                  >
-                    <FileText size={14} />
-                    {step.label}
-                  </Link>
-                ) : (
-                  step.label
-                )
-              }
+              label={step.label}
               date={timeline?.[step.key]}
               hideLine={isSubmittedStep}
               tooltip={
@@ -302,6 +299,33 @@ export function PublicationTimeline({
           </div>
         );
       })}
+      {!!timeline?.review_done && (
+        <div className="relative">
+          <div className="absolute left-[9px] top-5 bottom-0 w-px" style={{ backgroundColor: ACCENT }} />
+          <Row
+            done={!!contractAcceptedAt}
+            label={
+              <Link
+                href="/dashboard/settings/contract"
+                className="inline-flex items-center gap-1.5 underline hover:no-underline"
+                style={contractAcceptedAt ? { color: ACCENT } : undefined}
+              >
+                <FileText size={14} />
+                Укладання договору
+              </Link>
+            }
+            date={contractAcceptedAt}
+            hideLine
+          />
+          {(!!timeline?.contract_corrected || !!timeline?.review_2) && (
+            <div className="ml-7 mb-4 -mt-3 space-y-1.5">
+              {CONTRACT_SUB_STEPS.filter((s) => !!timeline?.[s.key]).map((s) => (
+                <CreationSubItem key={s.key} done label={s.label} date={timeline?.[s.key]} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="relative">
         {publishedDone && (
           <div className="absolute left-[9px] top-5 bottom-0 w-px" style={{ backgroundColor: ACCENT }} />
@@ -309,7 +333,15 @@ export function PublicationTimeline({
         <Row
           done={publishedDone}
           active={firstPendingIdx === STEPS.length + 1}
-          label={isbn ? `Публікація у магазинах / ISBN: ${isbn}` : "Публікація у магазинах"}
+          label={
+            <Link
+              href={`/dashboard/books/${bookId}/publish`}
+              className="inline-flex items-center gap-1.5 underline hover:no-underline"
+              style={publishedDone ? { color: ACCENT } : undefined}
+            >
+              {isbn ? `Публікація у магазинах / ISBN: ${isbn}` : "Публікація у магазинах"}
+            </Link>
+          }
           isLast={!publishedDone}
           hideLine={publishedDone}
           tooltip={distributionStrategy ? strategyTooltip : undefined}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "../ui/button";
 import { useApi } from "../../hooks/useApi";
 
@@ -19,6 +20,7 @@ interface Props {
 export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: Props) {
   const { apiFetch } = useApi();
   const [errors, setErrors] = useState<ValidationError[]>([]);
+  const [contractRequired, setContractRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -35,7 +37,7 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
     if (reviewDone) {
       return (
         <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-700">
-          📄 Тепер укладіть договір і почнемо публікацію Вашої книжки
+          ✓ Перевірку пройдено — очікуйте на публікацію у магазинах
         </div>
       );
     }
@@ -76,11 +78,16 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
   async function handleSubmit() {
     setLoading(true);
     setErrors([]);
+    setContractRequired(false);
     try {
       await apiFetch(`/api/books/${bookId}/publish`, { method: "POST", body: JSON.stringify({}) });
       onSubmitted?.();
     } catch (e: any) {
-      setErrors([{ field: "general", message: e.message || "Помилка надсилання" }]);
+      if (e.code === "CONTRACT_NOT_SIGNED") {
+        setContractRequired(true);
+      } else {
+        setErrors([{ field: "general", message: e.message || "Помилка надсилання" }]);
+      }
       setShowConfirm(false);
     } finally {
       setLoading(false);
@@ -108,6 +115,15 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
               Скасувати
             </Button>
           </div>
+        </div>
+      )}
+
+      {contractRequired && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 space-y-1.5">
+          <p className="text-xs text-amber-800">Спочатку підпишіть договір з платформою — він укладається один раз і діє на всі ваші книги.</p>
+          <Link href="/dashboard/settings/contract" className="text-xs font-semibold text-amber-900 underline hover:no-underline">
+            Підписати договір →
+          </Link>
         </div>
       )}
 

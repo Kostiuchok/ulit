@@ -77,6 +77,16 @@ model User {
   payoutDocument               String?
   bankIban                     String?
   payoutDetailsSubmittedAt     DateTime?
+  firstName                    String?
+  lastName                     String?
+  patronymic                   String?
+  birthDate                    DateTime?
+  citizenship                  String?
+  registrationAddress          String?
+  passportSeries               String?
+  identityDocumentUrls         String[]  @default([])
+  identityChangeReason         String?
+  identityUpdatedAt            DateTime?
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 

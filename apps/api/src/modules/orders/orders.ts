@@ -33,6 +33,47 @@ const BOOK_URL_FIELDS = {
   printPdfUrl: true,
 } as const;
 
+type OrderItemBook = {
+  epubUrl: string | null;
+  fb2Url: string | null;
+  mobiUrl: string | null;
+  printPdfUrl: string | null;
+};
+
+// Shared by GET /api/orders/:id and GET /api/orders (list mine) — builds
+// {bookId: [{label, url}]} signed-download-link maps for an order's items.
+async function buildDownloadLinks(
+  items: { bookId: string; format: string; book: OrderItemBook }[]
+): Promise<Record<string, { label: string; url: string }[]>> {
+  const downloads: Record<string, { label: string; url: string }[]> = {};
+
+  for (const item of items) {
+    const links: { label: string; url: string }[] = [];
+    const urlFields = FORMAT_TO_URLS[item.format] ?? [];
+
+    for (const field of urlFields) {
+      const objectName = item.book[field as keyof typeof item.book] as string | null;
+      if (!objectName) continue;
+
+      const label =
+        field === "epubUrl" ? "EPUB" :
+        field === "fb2Url" ? "FB2" :
+        field === "mobiUrl" ? "MOBI" : "PDF (друк)";
+
+      try {
+        const url = await getSignedUrl(objectName);
+        links.push({ label, url });
+      } catch {
+        // signed URL generation failed — skip
+      }
+    }
+
+    downloads[item.bookId] = links;
+  }
+
+  return downloads;
+}
+
 export async function ordersRoutes(app: FastifyInstance) {
   // POST /api/orders — create order and return LiqPay form data
   app.post(
@@ -176,33 +217,10 @@ export async function ordersRoutes(app: FastifyInstance) {
       if (order.userId !== request.user.id) throw AppError.forbidden("Not your order");
 
       // Build download links for paid orders
-      let downloads: Record<string, { label: string; url: string }[]> = {};
-
-      if (order.status === "PAID" || order.status === "FULFILLED") {
-        for (const item of order.items) {
-          const links: { label: string; url: string }[] = [];
-          const urlFields = FORMAT_TO_URLS[item.format] ?? [];
-
-          for (const field of urlFields) {
-            const objectName = item.book[field as keyof typeof item.book] as string | null;
-            if (!objectName) continue;
-
-            const label =
-              field === "epubUrl" ? "EPUB" :
-              field === "fb2Url" ? "FB2" :
-              field === "mobiUrl" ? "MOBI" : "PDF (друк)";
-
-            try {
-              const url = await getSignedUrl(objectName);
-              links.push({ label, url });
-            } catch {
-              // signed URL generation failed — skip
-            }
-          }
-
-          downloads[item.bookId] = links;
-        }
-      }
+      const downloads =
+        order.status === "PAID" || order.status === "FULFILLED"
+          ? await buildDownloadLinks(order.items)
+          : {};
 
       return reply.send({
         order: {
@@ -221,6 +239,55 @@ export async function ordersRoutes(app: FastifyInstance) {
             },
           })),
         },
+        downloads,
+      });
+    }
+  );
+
+  // GET /api/orders — list the current user's orders ("Мої покупки")
+  app.get(
+    "/api/orders",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const orders = await prisma.order.findMany({
+        where: { userId: request.user.id },
+        include: {
+          items: {
+            include: {
+              book: {
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                  coverUrl: true,
+                  epubUrl: true,
+                  fb2Url: true,
+                  mobiUrl: true,
+                  printPdfUrl: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const paidOrFulfilled = orders.filter((o) => o.status === "PAID" || o.status === "FULFILLED");
+      const downloads = await buildDownloadLinks(paidOrFulfilled.flatMap((o) => o.items));
+
+      return reply.send({
+        orders: orders.map((o) => ({
+          id: o.id,
+          total: o.total,
+          status: o.status,
+          createdAt: o.createdAt,
+          items: o.items.map((i) => ({
+            bookId: i.bookId,
+            format: i.format,
+            price: i.price,
+            book: { title: i.book.title, slug: i.book.slug, coverUrl: i.book.coverUrl },
+          })),
+        })),
         downloads,
       });
     }

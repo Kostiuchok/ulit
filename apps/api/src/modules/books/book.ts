@@ -57,6 +57,7 @@ const BOOK_SELECT = {
   publishedAt: true,
   authorId: true,
   publicationTimeline: true,
+  author: { select: { contractAcceptedAt: true } },
 } as const;
 
 const coAuthorSchema = z.object({

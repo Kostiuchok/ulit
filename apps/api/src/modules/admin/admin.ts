@@ -33,6 +33,17 @@ const serviceConfig = { d2d: true, kdp: true, google: true };
 // "created" (Book.createdAt) and "published" (status===PUBLISHED + isbn) are
 // derived, not stored here — see PublicationTimeline.tsx on the frontend for
 // the matching ordered list of labels shown to the author.
+//
+// T-1951: these keys are unchanged, but the author-facing meaning shifted —
+// the actual contract (User.contractAcceptedAt) is now signed once, author-
+// wide, BEFORE a book can even reach "submitted" (see publish.ts). So by the
+// time a book gets here, contract_pending/contract_corrected/review_2 are
+// really just "admin wants to re-verify this author's documents for this
+// book" checkpoints, not a fresh signature — PublicationTimeline.tsx renders
+// them as nested sub-items under one always-signed "Укладання договору" row.
+// contract_signed keeps its real job unchanged: it's still the actual
+// go-live trigger below (shouldPublish → ISBN + status=PUBLISHED), shown to
+// the author as "Публікація у магазинах".
 const PUBLICATION_TIMELINE_STEPS = [
   "submitted",
   "review_done",

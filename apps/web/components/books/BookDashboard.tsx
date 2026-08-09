@@ -42,6 +42,7 @@ interface DashboardBook {
   googleSentAt?: string | null;
   moderationStatus?: string | null;
   moderationNote?: string | null;
+  author?: { contractAcceptedAt?: string | null } | null;
 }
 
 export function BookDashboard() {
@@ -168,6 +169,7 @@ export function BookDashboard() {
                 bookId={id}
                 createdAt={book.createdAt}
                 timeline={book.publicationTimeline}
+                contractAcceptedAt={book.author?.contractAcceptedAt}
                 isbn={book.isbn}
                 bookStatus={book.status}
                 distributionChannels={book.distributionChannels ?? []}

@@ -1,7 +1,7 @@
 "use client";
 
-import { BookDashboard } from "@/components/books/BookDashboard";
+import { BookDistribution } from "@/components/books/BookDistribution";
 
 export default function PublishPage() {
-  return <BookDashboard />;
+  return <BookDistribution />;
 }
