@@ -17,7 +17,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
-import { BOOK_STATUS_LABELS } from "@/lib/bookStatus";
+import { getBookStatusLabel } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
 import { DeleteBookModal } from "@/components/books/DeleteBookModal";
 
@@ -26,6 +26,7 @@ interface SidebarBook {
   title: string;
   coverUrl?: string | null;
   status: string;
+  publicationTimeline?: Record<string, string> | null;
 }
 
 type SubNavItem =
@@ -207,7 +208,7 @@ export function AuthorBooksSidebar() {
       ) : (
         <div>
           {books.map((book) => {
-            const status = BOOK_STATUS_LABELS[book.status] ?? BOOK_STATUS_LABELS.DRAFT;
+            const status = getBookStatusLabel(book.status, book.publicationTimeline);
             const isExpanded = expandedBookId === book.id;
             return (
               <div key={book.id} className="border-b border-gray-200">

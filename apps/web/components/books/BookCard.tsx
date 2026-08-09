@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "../../lib/utils";
-import { BOOK_STATUS_LABELS } from "../../lib/bookStatus";
+import { getBookStatusLabel } from "../../lib/bookStatus";
 
 interface Book {
   id: string;
@@ -18,6 +18,7 @@ interface Book {
   isbn?: string | null;
   createdAt: string;
   publishedAt?: string | null;
+  publicationTimeline?: Record<string, string> | null;
 }
 
 interface Props {
@@ -26,7 +27,7 @@ interface Props {
 }
 
 export function BookCard({ book, onDelete }: Props) {
-  const status = BOOK_STATUS_LABELS[book.status] ?? BOOK_STATUS_LABELS.DRAFT;
+  const status = getBookStatusLabel(book.status, book.publicationTimeline);
 
   return (
     <div className="group relative flex gap-4 rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">

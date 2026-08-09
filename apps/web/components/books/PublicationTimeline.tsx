@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "../../lib/utils";
-import { BOOK_STATUS_LABELS } from "../../lib/bookStatus";
+import { getBookStatusLabel } from "../../lib/bookStatus";
 
 const STEPS = [
   { key: "submitted", label: "Надішліть книгу на публікацію" },
@@ -185,7 +185,7 @@ export function PublicationTimeline({
 
   const channelByKey: Record<string, ChannelStatus> = { D2D: d2d, KDP: kdp, GOOGLE: google };
 
-  const statusLabel = BOOK_STATUS_LABELS[bookStatus]?.label ?? bookStatus;
+  const statusLabel = getBookStatusLabel(bookStatus, timeline).label;
 
   const kdpExpiryDate = kdpSelectExpiry ? new Date(kdpSelectExpiry) : null;
   const kdpActive = !!kdpSelectEnrolled && !!kdpExpiryDate && kdpExpiryDate > new Date();

@@ -22,6 +22,7 @@ interface Book {
   createdAt: string;
   publishedAt?: string | null;
   archivedAt?: string | null;
+  publicationTimeline?: Record<string, string> | null;
 }
 
 export default function BooksPage() {

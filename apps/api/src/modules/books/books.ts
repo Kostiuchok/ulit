@@ -71,6 +71,7 @@ export async function booksRoutes(app: FastifyInstance) {
         d2dStatus: true,
         kdpStatus: true,
         googleStatus: true,
+        publicationTimeline: true,
         createdAt: true,
         publishedAt: true,
         archivedAt: true,
