@@ -8,6 +8,7 @@ export interface StoreBook {
   coverUrl?: string | null;
   priceEbook?: string | null;
   pricePrint?: string | null;
+  pricePrintHardcover?: string | null;
   genre?: string | null;
   language?: string;
   epubUrl?: string | null;
@@ -31,7 +32,7 @@ const FORMAT_BADGES: { key: keyof StoreBook; label: string }[] = [
 ];
 
 export function StoreBookCard({ book }: { book: StoreBook }) {
-  const lowestPrice = [book.priceEbook, book.pricePrint]
+  const lowestPrice = [book.priceEbook, book.pricePrint, book.pricePrintHardcover]
     .filter(Boolean)
     .map(Number)
     .sort((a, b) => a - b)[0];

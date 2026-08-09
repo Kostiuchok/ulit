@@ -24,6 +24,7 @@ const BOOK_SELECT = {
   printPdfUrl: true,
   priceEbook: true,
   pricePrint: true,
+  pricePrintHardcover: true,
   genre: true,
   subtitle: true,
   ageRating: true,
@@ -69,6 +70,7 @@ const patchSchema = z.object({
   language: z.string().length(2).optional(),
   priceEbook: z.number().positive().nullable().optional(),
   pricePrint: z.number().positive().nullable().optional(),
+  pricePrintHardcover: z.number().positive().nullable().optional(),
   pageCount: z.number().int().positive().nullable().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
   distributionChannels: z.array(z.enum(["ULIT", "D2D", "KDP", "GOOGLE"])).optional(),
@@ -114,6 +116,7 @@ export async function bookRoutes(app: FastifyInstance) {
         ...data,
         priceEbook: data.priceEbook !== undefined ? (data.priceEbook ?? undefined) : undefined,
         pricePrint: data.pricePrint !== undefined ? (data.pricePrint ?? undefined) : undefined,
+        pricePrintHardcover: data.pricePrintHardcover !== undefined ? (data.pricePrintHardcover ?? undefined) : undefined,
         kdpSelectExpiry: data.kdpSelectExpiry !== undefined
           ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
           : undefined,

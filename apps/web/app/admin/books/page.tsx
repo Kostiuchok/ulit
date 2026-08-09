@@ -22,6 +22,7 @@ interface Book {
   googleStatus: string;
   priceEbook?: string | null;
   pricePrint?: string | null;
+  pricePrintHardcover?: string | null;
   epubUrl?: string | null;
   fb2Url?: string | null;
   mobiUrl?: string | null;
@@ -62,7 +63,7 @@ function Checklist({ book }: { book: Book }) {
     { label: "Обкладинка", ok: !!book.coverUrl },
     { label: "EPUB", ok: !!book.epubUrl },
     { label: "ISBN", ok: !!book.isbn },
-    { label: "Ціна", ok: !!(book.priceEbook || book.pricePrint) },
+    { label: "Ціна", ok: !!(book.priceEbook || book.pricePrint || book.pricePrintHardcover) },
   ];
   return (
     <div className="flex gap-1.5">
@@ -169,7 +170,7 @@ export default function AdminBooksPage() {
     const meta = {
       id: book.id, title: book.title, isbn: book.isbn,
       author: book.author.name, genre: book.genre, language: book.language,
-      priceEbook: book.priceEbook, pricePrint: book.pricePrint,
+      priceEbook: book.priceEbook, pricePrint: book.pricePrint, pricePrintHardcover: book.pricePrintHardcover,
       distributionStrategy: book.distributionStrategy, publishedAt: book.publishedAt,
     };
     const blob = new Blob([JSON.stringify(meta, null, 2)], { type: "application/json" });

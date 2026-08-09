@@ -21,6 +21,7 @@ function validateBook(book: {
   epubUrl: string | null;
   priceEbook: any;
   pricePrint: any;
+  pricePrintHardcover: any;
   status: string;
 }): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -30,7 +31,7 @@ function validateBook(book: {
   if (!book.originalDocxUrl && !book.pdfUrl && !book.epubUrl) {
     errors.push({ field: "file", message: "Файл рукопису не завантажено" });
   }
-  if (!book.priceEbook && !book.pricePrint) {
+  if (!book.priceEbook && !book.pricePrint && !book.pricePrintHardcover) {
     errors.push({ field: "price", message: "Вкажіть ціну (е-книга або друкована версія)" });
   }
   if (book.status === "PROCESSING") {
@@ -58,6 +59,7 @@ export async function publishRoute(app: FastifyInstance) {
           epubUrl: true,
           priceEbook: true,
           pricePrint: true,
+          pricePrintHardcover: true,
           status: true,
         },
       });
@@ -93,6 +95,7 @@ export async function publishRoute(app: FastifyInstance) {
           epubUrl: true,
           priceEbook: true,
           pricePrint: true,
+          pricePrintHardcover: true,
           isbn: true,
           distributionStrategy: true,
           kdpSelectEnrolled: true,

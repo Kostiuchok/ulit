@@ -16,6 +16,7 @@ interface DashboardBook {
   coverUrl?: string | null;
   priceEbook?: string | number | null;
   pricePrint?: string | number | null;
+  pricePrintHardcover?: string | number | null;
   originalDocxUrl?: string | null;
   pdfUrl?: string | null;
   createdAt: string;
@@ -105,11 +106,12 @@ export function BookDashboard() {
           <div className="space-y-4">
             <TabletCoverFrame coverUrl={book?.coverUrl} />
 
-            {(book?.priceEbook || book?.pricePrint) && (
+            {(book?.priceEbook || book?.pricePrint || book?.pricePrintHardcover) && (
               <div className="rounded-md border bg-white p-4 shadow-sm space-y-3">
                 <div className="space-y-1 text-sm text-black">
-                  {book?.pricePrint && <p>Друкована &nbsp;- {Number(book.pricePrint).toFixed(0)} грн</p>}
                   {book?.priceEbook && <p>Електронна - {Number(book.priceEbook).toFixed(0)} грн</p>}
+                  {book?.pricePrint && <p>Друк, м'яка - {Number(book.pricePrint).toFixed(0)} грн</p>}
+                  {book?.pricePrintHardcover && <p>Друк, тверда - {Number(book.pricePrintHardcover).toFixed(0)} грн</p>}
                 </div>
                 <Link
                   href={`/dashboard/books/${id}/output-data`}

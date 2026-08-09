@@ -11,6 +11,7 @@ const createSchema = z.object({
   language: z.string().length(2).default("uk"),
   priceEbook: z.number().positive().optional(),
   pricePrint: z.number().positive().optional(),
+  pricePrintHardcover: z.number().positive().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).default("WIDE"),
   distributionChannels: z.array(z.enum(["ULIT", "D2D", "KDP", "GOOGLE"])).default(["ULIT", "D2D", "KDP", "GOOGLE"]),
 });
@@ -52,6 +53,7 @@ export async function booksRoutes(app: FastifyInstance) {
         coverUrl: true,
         priceEbook: true,
         pricePrint: true,
+        pricePrintHardcover: true,
         genre: true,
         language: true,
         pageCount: true,
@@ -74,7 +76,7 @@ export async function booksRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
     }
 
-    const { title, description, genre, language, priceEbook, pricePrint, distributionStrategy } = result.data;
+    const { title, description, genre, language, priceEbook, pricePrint, pricePrintHardcover, distributionStrategy } = result.data;
     const slug = await uniqueBookSlug(title);
 
     const book = await prisma.book.create({
@@ -86,6 +88,7 @@ export async function booksRoutes(app: FastifyInstance) {
         language,
         priceEbook: priceEbook ? priceEbook : undefined,
         pricePrint: pricePrint ? pricePrint : undefined,
+        pricePrintHardcover: pricePrintHardcover ? pricePrintHardcover : undefined,
         distributionStrategy,
         authorId: request.user.id,
         status: "DRAFT",

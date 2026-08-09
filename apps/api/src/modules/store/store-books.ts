@@ -22,6 +22,7 @@ const BOOK_SELECT = {
   coverUrl: true,
   priceEbook: true,
   pricePrint: true,
+  pricePrintHardcover: true,
   genre: true,
   ageRating: true,
   aiGenerated: true,

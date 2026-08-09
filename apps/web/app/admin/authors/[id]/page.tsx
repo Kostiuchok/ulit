@@ -21,6 +21,7 @@ interface Book {
   printPdfUrl: string | null;
   priceEbook: string | null;
   pricePrint: string | null;
+  pricePrintHardcover: string | null;
   genre: string | null;
   language: string;
   distributionStrategy: string;
@@ -302,7 +303,8 @@ export default function AdminAuthorDetailPage() {
 
                     <div className="mt-2 flex gap-4 text-xs text-gray-400">
                       {book.priceEbook && <span>Е-книга: {book.priceEbook} грн</span>}
-                      {book.pricePrint && <span>Друк: {book.pricePrint} грн</span>}
+                      {book.pricePrint && <span>Друк (м'яка): {book.pricePrint} грн</span>}
+                      {book.pricePrintHardcover && <span>Друк (тверда): {book.pricePrintHardcover} грн</span>}
                       <span>Додано: {new Date(book.createdAt).toLocaleDateString("uk-UA")}</span>
                       {book.publishedAt && (
                         <span>Опубліковано: {new Date(book.publishedAt).toLocaleDateString("uk-UA")}</span>

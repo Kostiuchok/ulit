@@ -159,7 +159,11 @@ export default function OrderPage() {
               <div className="flex-1">
                 <p className="font-semibold text-gray-900">{item.book.title}</p>
                 <p className="text-sm text-gray-500">
-                  {item.format === "EBOOK" ? "Електронна книга (EPUB + FB2 + MOBI)" : "Друкована версія (PDF)"}
+                  {item.format === "EBOOK"
+                    ? "Електронна книга (EPUB + FB2 + MOBI)"
+                    : item.format === "PRINT_HARDCOVER"
+                    ? "Друкована версія, тверда обкладинка (PDF)"
+                    : "Друкована версія, м'яка обкладинка (PDF)"}
                 </p>
                 <p className="text-sm font-medium text-gray-900 mt-1">{Number(item.price).toFixed(2)} грн</p>
 

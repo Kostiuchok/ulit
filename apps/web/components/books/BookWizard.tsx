@@ -23,6 +23,7 @@ const step1Schema = z.object({
 const step3Schema = z.object({
   priceEbook: z.coerce.number().positive("Вкажіть коректну ціну").optional().or(z.literal("")),
   pricePrint: z.coerce.number().positive("Вкажіть коректну ціну").optional().or(z.literal("")),
+  pricePrintHardcover: z.coerce.number().positive("Вкажіть коректну ціну").optional().or(z.literal("")),
 });
 
 type Step1Form = z.infer<typeof step1Schema>;
@@ -108,6 +109,7 @@ export function BookWizard() {
         body: JSON.stringify({
           priceEbook: data.priceEbook || undefined,
           pricePrint: data.pricePrint || undefined,
+          pricePrintHardcover: data.pricePrintHardcover || undefined,
         }),
       });
       setStep(3);
@@ -267,7 +269,7 @@ export function BookWizard() {
         <p className="text-sm text-gray-500 mb-6">Вкажіть ціну для форматів, які хочете продавати. Залиште порожнім щоб не продавати.</p>
 
         <form onSubmit={submitStep3} className="space-y-5">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-3 gap-4">
             <div className="rounded-lg border p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">📱</span>
@@ -293,7 +295,7 @@ export function BookWizard() {
             <div className="rounded-lg border p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">📗</span>
-                <p className="font-medium">Друкована книга</p>
+                <p className="font-medium">Друкована, м'яка обкладинка</p>
               </div>
               <p className="text-xs text-gray-500">PDF/X-3 для типографії — замовлення на друк</p>
               <div className="space-y-1">
@@ -308,6 +310,28 @@ export function BookWizard() {
                 />
                 {step3.formState.errors.pricePrint && (
                   <p className="text-xs text-red-500">{step3.formState.errors.pricePrint.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📘</span>
+                <p className="font-medium">Друкована, тверда обкладинка</p>
+              </div>
+              <p className="text-xs text-gray-500">PDF/X-3 для типографії — замовлення на друк</p>
+              <div className="space-y-1">
+                <Label htmlFor="pricePrintHardcover">Ціна (грн)</Label>
+                <Input
+                  id="pricePrintHardcover"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="299.99"
+                  {...step3.register("pricePrintHardcover")}
+                />
+                {step3.formState.errors.pricePrintHardcover && (
+                  <p className="text-xs text-red-500">{step3.formState.errors.pricePrintHardcover.message}</p>
                 )}
               </div>
             </div>
@@ -447,8 +471,12 @@ export function BookWizard() {
             value={s3.priceEbook ? `${Number(s3.priceEbook).toFixed(2)} грн` : "Не продається"}
           />
           <Row
-            label="Друк"
+            label="Друк, м'яка"
             value={s3.pricePrint ? `${Number(s3.pricePrint).toFixed(2)} грн` : "Не продається"}
+          />
+          <Row
+            label="Друк, тверда"
+            value={s3.pricePrintHardcover ? `${Number(s3.pricePrintHardcover).toFixed(2)} грн` : "Не продається"}
           />
           <Row
             label="Стратегія"

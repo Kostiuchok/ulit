@@ -11,17 +11,19 @@ const createOrderSchema = z.object({
     .array(
       z.object({
         bookId: z.string(),
-        format: z.enum(["EBOOK", "PRINT"]),
+        format: z.enum(["EBOOK", "PRINT_SOFTCOVER", "PRINT_HARDCOVER"]),
       })
     )
     .min(1)
     .max(10),
 });
 
-// Map order item format to book URL fields for download
+// Map order item format to book URL fields for download — both print bindings
+// ship the same PDF/X-3 file, cover type only affects the print vendor's bindery.
 const FORMAT_TO_URLS: Record<string, (keyof typeof BOOK_URL_FIELDS)[]> = {
   EBOOK: ["epubUrl", "fb2Url", "mobiUrl"],
-  PRINT: ["printPdfUrl"],
+  PRINT_SOFTCOVER: ["printPdfUrl"],
+  PRINT_HARDCOVER: ["printPdfUrl"],
 };
 
 const BOOK_URL_FIELDS = {
@@ -52,6 +54,7 @@ export async function ordersRoutes(app: FastifyInstance) {
           title: true,
           priceEbook: true,
           pricePrint: true,
+          pricePrintHardcover: true,
           epubUrl: true,
           fb2Url: true,
           mobiUrl: true,
@@ -79,13 +82,14 @@ export async function ordersRoutes(app: FastifyInstance) {
           }
           orderItems.push({ bookId: item.bookId, format: "EBOOK", price: Number(book.priceEbook) });
         } else {
-          if (!book.pricePrint) {
+          const price = item.format === "PRINT_HARDCOVER" ? book.pricePrintHardcover : book.pricePrint;
+          if (!price) {
             return reply.status(400).send({ error: `Book "${book.title}" has no print price` });
           }
           if (!book.printPdfUrl) {
             return reply.status(400).send({ error: `Book "${book.title}" has no print file yet` });
           }
-          orderItems.push({ bookId: item.bookId, format: "PRINT", price: Number(book.pricePrint) });
+          orderItems.push({ bookId: item.bookId, format: item.format, price: Number(price) });
         }
       }
 

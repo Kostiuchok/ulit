@@ -23,6 +23,7 @@ const editSchema = z.object({
   language: z.string().length(2),
   priceEbook: z.coerce.number().positive().optional().or(z.literal("")),
   pricePrint: z.coerce.number().positive().optional().or(z.literal("")),
+  pricePrintHardcover: z.coerce.number().positive().optional().or(z.literal("")),
   aiGenerated: z.boolean().optional(),
   aiGeneratedNote: z.string().max(1000).optional(),
 });
@@ -50,6 +51,7 @@ interface MetadataBook {
   language: string;
   priceEbook?: number | string | null;
   pricePrint?: number | string | null;
+  pricePrintHardcover?: number | string | null;
   aiGenerated?: boolean;
   aiGeneratedNote?: string | null;
   coAuthors?: CoAuthor[] | null;
@@ -95,6 +97,7 @@ export default function OutputDataPage() {
       language: book.language,
       priceEbook: book.priceEbook ? Number(book.priceEbook) : "",
       pricePrint: book.pricePrint ? Number(book.pricePrint) : "",
+      pricePrintHardcover: book.pricePrintHardcover ? Number(book.pricePrintHardcover) : "",
       aiGenerated: book.aiGenerated ?? false,
       aiGeneratedNote: book.aiGeneratedNote ?? "",
     });
@@ -126,6 +129,7 @@ export default function OutputDataPage() {
           language: data.language,
           priceEbook: data.priceEbook ? Number(data.priceEbook) : null,
           pricePrint: data.pricePrint ? Number(data.pricePrint) : null,
+          pricePrintHardcover: data.pricePrintHardcover ? Number(data.pricePrintHardcover) : null,
           aiGenerated: data.aiGenerated ?? false,
           aiGeneratedNote: data.aiGenerated ? (data.aiGeneratedNote || null) : null,
           coAuthors: coAuthors.length > 0 ? coAuthors : null,
@@ -308,7 +312,7 @@ export default function OutputDataPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="priceEbook">Ціна е-книги (грн)</Label>
                 <Input
@@ -324,7 +328,7 @@ export default function OutputDataPage() {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="pricePrint">Ціна друку (грн)</Label>
+                <Label htmlFor="pricePrint">Друк, м'яка (грн)</Label>
                 <Input
                   id="pricePrint"
                   type="number"
@@ -335,6 +339,20 @@ export default function OutputDataPage() {
                 />
                 {errors.pricePrint && (
                   <p className="text-xs text-red-500">{errors.pricePrint.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pricePrintHardcover">Друк, тверда (грн)</Label>
+                <Input
+                  id="pricePrintHardcover"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register("pricePrintHardcover")}
+                  placeholder="299.99"
+                />
+                {errors.pricePrintHardcover && (
+                  <p className="text-xs text-red-500">{errors.pricePrintHardcover.message}</p>
                 )}
               </div>
             </div>

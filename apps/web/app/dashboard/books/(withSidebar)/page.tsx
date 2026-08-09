@@ -15,6 +15,7 @@ interface Book {
   coverUrl?: string | null;
   priceEbook?: string | null;
   pricePrint?: string | null;
+  pricePrintHardcover?: string | null;
   genre?: string | null;
   isbn?: string | null;
   createdAt: string;

@@ -22,6 +22,7 @@ const bookCreateSchema = z.object({
   language: z.string().length(2).default("uk"),
   priceEbook: z.number().positive().optional(),
   pricePrint: z.number().positive().optional(),
+  pricePrintHardcover: z.number().positive().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).default("WIDE"),
 });
 

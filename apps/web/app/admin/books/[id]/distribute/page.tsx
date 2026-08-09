@@ -18,6 +18,7 @@ interface Book {
   printPdfUrl?: string | null;
   priceEbook?: string | null;
   pricePrint?: string | null;
+  pricePrintHardcover?: string | null;
   genre?: string | null;
   language?: string;
   pageCount?: number | null;
@@ -131,8 +132,8 @@ function buildPlatforms(book: Book, coverW: number, coverH: number): Platform[] 
         check("cover", "Обкладинка", book.coverUrl ? "pass" : "fail",
           book.coverUrl ? "" : "Обкладинка обов'язкова для D2D"),
         check("price", "Ціна встановлена",
-          (book.priceEbook || book.pricePrint) ? "pass" : "warn",
-          (book.priceEbook || book.pricePrint) ? "" : "Ціна не встановлена"),
+          (book.priceEbook || book.pricePrint || book.pricePrintHardcover) ? "pass" : "warn",
+          (book.priceEbook || book.pricePrint || book.pricePrintHardcover) ? "" : "Ціна не встановлена"),
       ],
     },
     {
