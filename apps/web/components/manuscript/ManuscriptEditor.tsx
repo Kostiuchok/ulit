@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -20,7 +21,7 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  ChevronRight,
+  ChevronLeft,
   ChevronDown,
 } from "lucide-react";
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
@@ -144,10 +145,13 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
     <div className="flex h-full">
       {/* Left — outline */}
       <aside className="w-[260px] shrink-0 overflow-y-auto border-r border-gray-200 bg-[#f3f3f3]">
-        <div className="flex items-center gap-2 px-4 py-3 text-[14px] font-medium text-black border-b border-gray-300">
-          <ChevronRight size={12} className="text-gray-500" />
+        <Link
+          href={`/dashboard/books/${bookId}`}
+          className="flex items-center gap-2 px-4 py-3 text-[14px] font-medium text-black border-b border-gray-300 hover:bg-[#e9e9e9] transition-colors"
+        >
+          <ChevronLeft size={12} className="text-gray-500" />
           Рукопис
-        </div>
+        </Link>
         <p className="px-4 pt-3 pb-2 text-[15px] font-bold text-black">Зміст</p>
         <nav className="pb-4">
           {outline.length === 0 && (
