@@ -193,11 +193,15 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // ─── Approve ──────────────────────────────────────────────────────────────
-  // Admin-side "перевірка пройдена": marks the review checkpoint done
-  // (publicationTimeline.review_done) so the author's dashboard shows
-  // "Перевірка завершена". Does NOT publish — per the real process, the book
-  // still goes through a contract step (see /publication-timeline below)
-  // before admin actually sends it live on Ulit + external stores.
+  // T-1951 follow-up: "Схвалити" and "Опублікувати книгу" used to be two
+  // separate admin actions (review checkpoint vs. actual go-live), which
+  // read as one step to admins in practice — now approving a REVIEW book
+  // publishes it in the same click: marks review_done AND does everything
+  // the old contract_signed publish trigger did (ISBN, status=PUBLISHED,
+  // KDP Select enrollment, notification email). The manual per-step editor
+  // on /admin/books/:id/distribute (advanced/collapsed) still exists for the
+  // rare case a book needs re-verification or a book was approved before
+  // this change without being published.
   app.patch(
     "/api/admin/books/:id/approve",
     { preHandler: requireAdmin },
@@ -205,18 +209,51 @@ export async function adminRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       const book = await prisma.book.findUnique({
         where: { id },
-        select: { status: true, publicationTimeline: true },
+        select: {
+          status: true,
+          title: true,
+          isbn: true,
+          publicationTimeline: true,
+          distributionStrategy: true,
+          kdpSelectEnrolled: true,
+          kdpSelectExpiry: true,
+          author: { select: { id: true, email: true, name: true } },
+        },
       });
       if (!book) throw AppError.notFound("Book");
 
       const now = new Date();
       const timeline = { ...((book.publicationTimeline as Record<string, string>) ?? {}) };
-      if (book.status === "REVIEW") {
+      const shouldPublish = book.status === "REVIEW";
+
+      if (shouldPublish) {
         // A book can only reach REVIEW after being submitted — backfill `submitted`
         // for legacy books that reached REVIEW before that step was tracked, so the
         // author's timeline doesn't show review_done green with submitted still empty.
         if (!timeline.submitted) timeline.submitted = now.toISOString();
         timeline.review_done = now.toISOString();
+        timeline.contract_signed = now.toISOString();
+      }
+
+      let isbn = book.isbn;
+      let kdpSelectEnrolled = book.kdpSelectEnrolled;
+      let kdpSelectExpiry = book.kdpSelectExpiry;
+
+      if (shouldPublish) {
+        if (!isbn) {
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const candidate = await assignIsbn(id);
+            const collision = await prisma.book.findUnique({ where: { isbn: candidate }, select: { id: true } });
+            if (!collision) { isbn = candidate; break; }
+          }
+          if (!isbn) throw new AppError("Не вдалося призначити ISBN, спробуйте ще раз", 500, "ISBN_EXHAUSTED");
+        }
+
+        const isKdpSelect = book.distributionStrategy === "KDP_SELECT";
+        if (isKdpSelect && !kdpSelectEnrolled) {
+          kdpSelectEnrolled = true;
+          kdpSelectExpiry = new Date(now.getTime() + KDP_SELECT_DAYS * 24 * 60 * 60 * 1000);
+        }
       }
 
       const updated = await prisma.book.update({
@@ -224,9 +261,31 @@ export async function adminRoutes(app: FastifyInstance) {
         data: {
           moderationStatus: "APPROVED",
           publicationTimeline: timeline,
+          status: shouldPublish ? "PUBLISHED" : undefined,
+          publishedAt: shouldPublish ? now : undefined,
+          isbn: shouldPublish ? isbn : undefined,
+          kdpSelectEnrolled: shouldPublish ? kdpSelectEnrolled : undefined,
+          kdpSelectExpiry: shouldPublish ? kdpSelectExpiry : undefined,
         },
         select: BOOK_ADMIN_SELECT,
       });
+
+      if (shouldPublish) {
+        queuePublishedEmail({
+          email: book.author.email,
+          name: book.author.name,
+          bookTitle: book.title,
+          bookId: id,
+          isbn,
+        }).catch((err) => console.error("[email] published notification failed:", err));
+
+        if (book.distributionStrategy === "KDP_SELECT" && !book.kdpSelectEnrolled && kdpSelectExpiry) {
+          scheduleKdpExpiryWarning(
+            { email: book.author.email, name: book.author.name, bookTitle: book.title, bookId: id, expiryDate: kdpSelectExpiry.toISOString() },
+            kdpSelectExpiry
+          ).catch((err) => console.error("[email] KDP warning schedule failed:", err));
+        }
+      }
 
       return reply.send({ book: updated });
     }
@@ -536,6 +595,33 @@ export async function adminRoutes(app: FastifyInstance) {
         where: { id: { in: bookIds }, status: "PUBLISHED" },
         select: BOOK_ADMIN_SELECT,
       });
+
+      // Downloading the ZIP is the admin's signal that files were handed off for
+      // upload — mark each book's enabled external channels SENT so the queue
+      // (/admin/distribution/queue) reflects it without a separate manual step.
+      // Only touches channels actually enabled for that book and still NOT_SENT —
+      // never downgrades an already SENT/PUBLISHED/ERROR status.
+      const now = new Date();
+      const sentUpdates = books.flatMap((book) => {
+        const channels = book.distributionChannels ?? [];
+        const data: { d2dStatus?: "SENT"; d2dSentAt?: Date; kdpStatus?: "SENT"; kdpSentAt?: Date; googleStatus?: "SENT"; googleSentAt?: Date } = {};
+        if (channels.includes("D2D") && book.d2dStatus === "NOT_SENT") {
+          data.d2dStatus = "SENT";
+          data.d2dSentAt = now;
+        }
+        if (channels.includes("KDP") && book.kdpStatus === "NOT_SENT") {
+          data.kdpStatus = "SENT";
+          data.kdpSentAt = now;
+        }
+        if (channels.includes("GOOGLE") && book.googleStatus === "NOT_SENT") {
+          data.googleStatus = "SENT";
+          data.googleSentAt = now;
+        }
+        return Object.keys(data).length > 0 ? [prisma.book.update({ where: { id: book.id }, data })] : [];
+      });
+      if (sentUpdates.length > 0) {
+        await prisma.$transaction(sentUpdates);
+      }
 
       const archive = new ZipArchive({ zlib: { level: 6 } });
       reply.raw.setHeader("Content-Type", "application/zip");

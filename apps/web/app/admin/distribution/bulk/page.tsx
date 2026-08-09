@@ -18,6 +18,7 @@ export default function BulkExportPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const preselectedIds = searchParams.get("ids")?.split(",").filter(Boolean) ?? [];
@@ -43,6 +44,7 @@ export default function BulkExportPage() {
   async function handleExport() {
     if (!selected.size) return;
     setExporting(true);
+    setExported(false);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
       const session = (window as any).__nextAuthSession;
@@ -66,6 +68,7 @@ export default function BulkExportPage() {
       a.download = "knyha-bulk.zip";
       a.click();
       URL.revokeObjectURL(url);
+      setExported(true);
     } catch (e: any) {
       alert(e.message || "Помилка експорту");
     } finally {
@@ -79,6 +82,7 @@ export default function BulkExportPage() {
         <h1 className="text-2xl font-bold text-gray-900">Масова відправка</h1>
         <p className="text-sm text-gray-500 mt-1">
           Завантажте ZIP-архів з усіма вибраними книгами для відправки на сервіси розподілу.
+          Завантаження автоматично позначає увімкнені для книги D2D/KDP/Google як «Надіслано».
         </p>
       </div>
 
@@ -145,6 +149,12 @@ export default function BulkExportPage() {
       >
         {exporting ? "Формування ZIP…" : `⬇ Завантажити ZIP (${selected.size} книг)`}
       </button>
+
+      {exported && (
+        <p className="text-center text-sm text-green-700">
+          ✓ Завантажено — увімкнені зовнішні сервіси позначено «Надіслано».
+        </p>
+      )}
     </div>
   );
 }

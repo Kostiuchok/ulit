@@ -173,7 +173,11 @@ function BookRow({
               </button>
             </>
           )}
-          {book.moderationStatus === "APPROVED" ? (
+          {book.status === "PUBLISHED" ? (
+            <span className="rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+              ✓ Опубліковано
+            </span>
+          ) : book.moderationStatus === "APPROVED" ? (
             <span className="rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
               ✓ Схвалено
             </span>
@@ -182,9 +186,10 @@ function BookRow({
               <button
                 onClick={() => onApprove(book.id)}
                 disabled={actionLoading === book.id + "_approve"}
+                title="Схвалює перевірку і одразу публікує книгу на Ulit (ISBN + статус Опубліковано)"
                 className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
               >
-                ✓ Схвалити
+                ✓ Схвалити й опублікувати
               </button>
             )
           )}
@@ -196,12 +201,12 @@ function BookRow({
               ✕ Відхилити
             </button>
           )}
-          {book.status === "PUBLISHED" && (
+          {(book.status === "PUBLISHED" || book.moderationStatus === "APPROVED") && (
             <Link
               href={`/admin/books/${book.id}/distribute`}
               className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
             >
-              📦 Розіслати
+              {book.status === "PUBLISHED" ? "📦 Розіслати" : "📦 Публікація"}
             </Link>
           )}
           <button

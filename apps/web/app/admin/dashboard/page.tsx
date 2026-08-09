@@ -132,7 +132,7 @@ export default function AdminDashboard() {
                       </span>
                     )}
                     <Link
-                      href={`/admin/books?id=${book.id}`}
+                      href={`/admin/books/${book.id}/distribute`}
                       className="rounded-md bg-yellow-100 border border-yellow-300 px-3 py-1 text-xs font-medium text-yellow-900 hover:bg-yellow-200"
                     >
                       Переглянути
