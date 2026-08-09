@@ -1,3 +1,51 @@
+const CHANNEL_LABELS: Record<string, string> = {
+  ULIT: "Магазин Ulit",
+  D2D: "Draft2Digital",
+  KDP: "Amazon KDP",
+  GOOGLE: "Google Play Books",
+};
+
+const STRATEGY_LABELS: Record<string, string> = {
+  WIDE: "Широке розповсюдження (усі обрані магазини одночасно)",
+  KDP_SELECT: "KDP Select (ексклюзивність на Amazon, 90 днів)",
+};
+
+export function ContractAddendum({
+  channels,
+  strategy,
+}: {
+  channels: string[];
+  strategy?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <h3 className="text-sm font-semibold text-gray-900 mb-2">Додаток — умови для цієї книжки</h3>
+      <dl className="space-y-1.5 text-sm text-gray-700">
+        <div className="flex flex-wrap gap-2">
+          <dt className="font-medium text-gray-500 shrink-0">Стратегія розповсюдження:</dt>
+          <dd>{strategy ? STRATEGY_LABELS[strategy] ?? strategy : "не вказано"}</dd>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <dt className="font-medium text-gray-500 shrink-0">Магазини:</dt>
+          <dd>{channels.length ? channels.map((c) => CHANNEL_LABELS[c] ?? c).join(", ") : "не обрано"}</dd>
+        </div>
+      </dl>
+      <p className="mt-2 text-xs text-gray-400">
+        Ці умови застосовуються до книги на момент підписання договору й можуть бути змінені пізніше у налаштуваннях книги.
+      </p>
+    </div>
+  );
+}
+
+function addendumTextPlain(channels: string[], strategy?: string): string {
+  const strategyLabel = strategy ? STRATEGY_LABELS[strategy] ?? strategy : "не вказано";
+  const channelsLabel = channels.length ? channels.map((c) => CHANNEL_LABELS[c] ?? c).join(", ") : "не обрано";
+  return `ДОДАТОК — УМОВИ ДЛЯ ЦІЄЇ КНИЖКИ
+Стратегія розповсюдження: ${strategyLabel}
+Магазини: ${channelsLabel}
+`;
+}
+
 export function ContractText() {
   return (
     <div className="prose prose-gray max-w-none space-y-8 text-gray-700 leading-relaxed">
@@ -191,7 +239,11 @@ export function ContractText() {
   );
 }
 
-export function contractTextPlain(bookTitle: string, authorName: string): string {
+export function contractTextPlain(
+  bookTitle: string,
+  authorName: string,
+  addendum?: { channels: string[]; strategy?: string }
+): string {
   return `ДОГОВІР З АВТОРОМ — Платформа самовидавництва Knyha
 Публічна оферта про надання послуг платформи самовидавництва
 Редакція від 01.01.2025
@@ -203,6 +255,7 @@ export function contractTextPlain(bookTitle: string, authorName: string): string
 Повний текст договору доступний на сторінці:
 https://ulit.render.ua/author-agreement
 
+${addendum ? addendumTextPlain(addendum.channels, addendum.strategy) : ""}
 1. ЗАГАЛЬНІ ПОЛОЖЕННЯ
 1.1. ФОП «Knyha» (далі — «Платформа»), діючи на підставі чинного законодавства України, пропонує необмеженому колу осіб (далі — «Автор») укласти цей Договір про надання послуг платформи самовидавництва на умовах, визначених нижче.
 1.2. Цей Договір є публічною офертою відповідно до статті 641 Цивільного кодексу України.

@@ -34,7 +34,14 @@ interface Book {
   moderationNote?: string | null;
   publicationTimeline?: Record<string, string> | null;
   createdAt: string;
-  author: { name: string; email: string };
+  author: {
+    name: string;
+    email: string;
+    taxId?: string | null;
+    payoutDocument?: string | null;
+    bankIban?: string | null;
+    payoutDetailsSubmittedAt?: string | null;
+  };
 }
 
 const TIMELINE_STEPS = [
@@ -570,6 +577,7 @@ export default function DistributePage() {
           const value = book.publicationTimeline?.[step.key];
           const dateValue = value ? value.slice(0, 10) : "";
           const done = !!value;
+          const isReview2 = step.key === "review_2";
           return (
             <TimelineRow
               key={step.key}
@@ -597,7 +605,35 @@ export default function DistributePage() {
                   )}
                 </div>
               }
-            />
+            >
+              {isReview2 && (
+                <div className="rounded-lg border border-gray-200 bg-white p-3 text-xs">
+                  <p className="mb-1.5 font-semibold text-gray-500">Платіжні реквізити автора (для перевірки)</p>
+                  {book.author.payoutDetailsSubmittedAt ? (
+                    <dl className="space-y-1 text-gray-700">
+                      <div className="flex gap-2">
+                        <dt className="w-28 shrink-0 text-gray-400">ІПН/РНОКПП:</dt>
+                        <dd className="font-mono">{book.author.taxId}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="w-28 shrink-0 text-gray-400">Паспорт/ФОП:</dt>
+                        <dd>{book.author.payoutDocument}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="w-28 shrink-0 text-gray-400">IBAN:</dt>
+                        <dd className="font-mono">{book.author.bankIban}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="w-28 shrink-0 text-gray-400">Подано:</dt>
+                        <dd>{fmtDate(book.author.payoutDetailsSubmittedAt)}</dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <p className="text-gray-400">Автор ще не подав платіжні реквізити (підписує договір на /contract)</p>
+                  )}
+                </div>
+              )}
+            </TimelineRow>
           );
         })}
 

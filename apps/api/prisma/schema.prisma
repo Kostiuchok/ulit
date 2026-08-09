@@ -72,6 +72,10 @@ model User {
   emailVerificationTokenExpiry DateTime?
   contractAcceptedAt           DateTime?
   contractAcceptedIp           String?
+  taxId                        String?
+  payoutDocument               String?
+  bankIban                     String?
+  payoutDetailsSubmittedAt     DateTime?
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 

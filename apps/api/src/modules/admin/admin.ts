@@ -85,7 +85,19 @@ const BOOK_ADMIN_SELECT = {
   publishedAt: true,
   createdAt: true,
   publicationTimeline: true,
-  author: { select: { id: true, name: true, slug: true, email: true, contractAcceptedAt: true } },
+  author: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      email: true,
+      contractAcceptedAt: true,
+      taxId: true,
+      payoutDocument: true,
+      bankIban: true,
+      payoutDetailsSubmittedAt: true,
+    },
+  },
 } as const;
 
 export async function adminRoutes(app: FastifyInstance) {

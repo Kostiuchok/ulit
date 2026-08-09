@@ -1,14 +1,24 @@
 import { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 
+const signSchema = z.object({
+  taxId: z.string().min(1).max(32),
+  payoutDocument: z.string().min(1).max(255),
+  bankIban: z.string().min(1).max(64),
+});
+
 // Author-side contract signing (T-1932 follow-up). The "Укладіть договір" step
 // (publicationTimeline.contract_pending) used to be admin-only — this lets the
 // author complete it themselves once the admin has approved the book (review_done),
-// by stamping contract_pending. contract_signed stays admin-only: that's the real
-// go-live trigger (ISBN + external distribution), set after the admin verifies
-// everything is in order — see docs/TECHNICAL-DECISIONS.md "Флоу модерації".
+// by stamping contract_pending. Payout/identity details (taxId, passport-or-FOP,
+// IBAN) are captured here too — the platform is a tax agent for royalty payouts
+// (see contract text §4.4), and "Повторна перевірка документів" (review_2) is the
+// admin verifying exactly these details. contract_signed stays admin-only: that's
+// the real go-live trigger (ISBN + external distribution) — see
+// docs/TECHNICAL-DECISIONS.md "Флоу модерації".
 export async function bookContractRoutes(app: FastifyInstance) {
   app.post(
     "/api/books/:id/contract/sign",
@@ -19,6 +29,11 @@ export async function bookContractRoutes(app: FastifyInstance) {
         (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
         request.socket.remoteAddress ??
         "unknown";
+
+      const result = signSchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
+      }
 
       const book = await prisma.book.findUnique({
         where: { id },
@@ -49,12 +64,16 @@ export async function bookContractRoutes(app: FastifyInstance) {
         select: { id: true, publicationTimeline: true },
       });
 
-      if (!book.author.contractAcceptedAt) {
-        await prisma.user.update({
-          where: { id: book.author.id },
-          data: { contractAcceptedAt: now, contractAcceptedIp: clientIp },
-        });
-      }
+      await prisma.user.update({
+        where: { id: book.author.id },
+        data: {
+          taxId: result.data.taxId,
+          payoutDocument: result.data.payoutDocument,
+          bankIban: result.data.bankIban,
+          payoutDetailsSubmittedAt: now,
+          ...(book.author.contractAcceptedAt ? {} : { contractAcceptedAt: now, contractAcceptedIp: clientIp }),
+        },
+      });
 
       return reply.send({ book: updated });
     }
