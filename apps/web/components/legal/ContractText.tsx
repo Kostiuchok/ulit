@@ -239,6 +239,33 @@ export function ContractText() {
   );
 }
 
+export function signatureBlockPlain(params: {
+  authorName: string;
+  taxId?: string;
+  payoutDocument?: string;
+  bankIban?: string;
+}): string {
+  const { authorName, taxId, payoutDocument, bankIban } = params;
+  return `
+ПІДПИСИ СТОРІН
+
+Правообладатель (Автор):
+ПІБ: ${authorName || "—"}
+ІПН/РНОКПП: ${taxId || "—"}
+Паспортні дані / ФОП: ${payoutDocument || "—"}
+IBAN для виплат: ${bankIban || "—"}
+
+/підпис/
+
+
+Адміністрація Сайта:
+ФОП «Knyha»
+${new Date().toLocaleDateString("uk-UA")}
+
+/підпис/
+`;
+}
+
 export function contractTextPlain(
   bookTitle: string,
   authorName: string,

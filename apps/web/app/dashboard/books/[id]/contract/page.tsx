@@ -8,7 +8,7 @@ import { FileText } from "lucide-react";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
-import { ContractText, ContractAddendum, contractTextPlain } from "@/components/legal/ContractText";
+import { ContractText, ContractAddendum, contractTextPlain, signatureBlockPlain } from "@/components/legal/ContractText";
 import { buildContractDocxBlob } from "@/lib/contractDocx";
 
 interface ContractBook {
@@ -42,7 +42,10 @@ export default function BookContractPage() {
   async function downloadContract() {
     setDownloading(true);
     try {
-      const text = contractTextPlain(book?.title ?? "", session?.user?.name ?? "Автор", { channels, strategy });
+      const authorName = session?.user?.name ?? "Автор";
+      const text =
+        contractTextPlain(book?.title ?? "", authorName, { channels, strategy }) +
+        signatureBlockPlain({ authorName, taxId, payoutDocument, bankIban });
       const blob = await buildContractDocxBlob(text);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

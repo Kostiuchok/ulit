@@ -22,6 +22,7 @@ import { conversionStatusRoutes } from "./modules/books/conversion-status";
 import { distributionRoutes } from "./modules/books/distribution";
 import { publishRoute } from "./modules/books/publish";
 import { bookContractRoutes } from "./modules/books/contract";
+import { republishRoute } from "./modules/books/republish";
 import { bookPagesRoutes } from "./modules/books/pages";
 import { bookManuscriptRoutes } from "./modules/books/manuscript";
 import { authorStyleSetRoutes } from "./modules/books/style-sets";
@@ -106,6 +107,7 @@ async function bootstrap() {
   await app.register(distributionRoutes);
   await app.register(publishRoute);
   await app.register(bookContractRoutes);
+  await app.register(republishRoute);
   await app.register(bookPagesRoutes);
   await app.register(bookManuscriptRoutes);
   await app.register(authorStyleSetRoutes);

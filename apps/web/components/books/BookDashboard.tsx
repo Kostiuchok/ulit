@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { PublicationTimeline } from "@/components/books/PublicationTimeline";
 import { PublishButton } from "@/components/books/PublishButton";
+import { RepublishButton } from "@/components/books/RepublishButton";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
 import { useBook } from "@/hooks/useBook";
 
@@ -17,10 +18,12 @@ interface DashboardBook {
   pricePrintHardcover?: string | number | null;
   genre?: string | null;
   originalDocxUrl?: string | null;
+  docxUpdatedAt?: string | null;
   manuscriptImportedAt?: string | null;
   manuscriptEditedAt?: string | null;
   pdfUrl?: string | null;
   createdAt: string;
+  publishedAt?: string | null;
   publicationTimeline?: any;
   isbn?: string | null;
   distributionChannels?: string[] | null;
@@ -81,13 +84,12 @@ export function BookDashboard() {
               Редагувати
             </Link>
             {isPublished ? (
-              <button
-                disabled
-                title="Скоро — повторна публікація змін"
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-300 cursor-not-allowed"
-              >
-                Опублікувати із змінами
-              </button>
+              <RepublishButton
+                bookId={id}
+                docxUpdatedAt={book?.docxUpdatedAt}
+                publishedAt={book?.publishedAt}
+                onRepublished={(publishedAt) => setBook((b) => (b ? { ...b, publishedAt } : b))}
+              />
             ) : (
               <PublishButton
                 bookId={id}

@@ -18,6 +18,7 @@ const BOOK_SELECT = {
   coverUrl: true,
   backCoverUrl: true,
   originalDocxUrl: true,
+  docxUpdatedAt: true,
   manuscriptImportedAt: true,
   manuscriptEditedAt: true,
   pdfUrl: true,

@@ -22,9 +22,6 @@ export async function uploadDocxRoute(app: FastifyInstance) {
       const book = await prisma.book.findUnique({ where: { id }, select: { authorId: true, status: true } });
       if (!book) throw AppError.notFound("Book");
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
-      if (book.status === "PUBLISHED") {
-        throw new AppError("Published books cannot be re-uploaded", 400, "BOOK_PUBLISHED");
-      }
 
       const data = await request.file();
       if (!data) throw new AppError("No file uploaded", 400, "NO_FILE");
@@ -49,9 +46,21 @@ export async function uploadDocxRoute(app: FastifyInstance) {
 
       await prisma.book.update({
         where: { id },
-        data: { originalDocxUrl: objectName },
+        data: { originalDocxUrl: objectName, docxUpdatedAt: new Date() },
         select: { id: true },
       });
+
+      // A PUBLISHED book's live files must not change until the author
+      // explicitly confirms via POST /api/books/:id/republish ("Опублікувати
+      // із змінами") — stage the new .docx without touching status or
+      // re-running conversion yet.
+      if (book.status === "PUBLISHED") {
+        return reply.send({
+          message: "Файл оновлено. Натисніть «Опублікувати із змінами», щоб застосувати.",
+          staged: true,
+          docxPath: objectName,
+        });
+      }
 
       const jobs = await enqueueConversionJobs(id, objectName);
 

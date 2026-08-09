@@ -77,16 +77,22 @@ export async function conversionStatusRoutes(app: FastifyInstance) {
       // can review readiness (cover/price/etc.) and explicitly submit via
       // POST /api/books/:id/publish. REVIEW is reserved for that deliberate
       // submission — conversion alone must not put a book in the admin's
-      // moderation queue.
+      // moderation queue. Only demote when the book was actually PROCESSING
+      // (the original creation flow) — a republish of an already-PUBLISHED
+      // book (see /api/books/:id/republish) regenerates files in place and
+      // must stay PUBLISHED throughout.
       const allJobs = await prisma.conversionJob.findMany({ where: { bookId: id } });
       const allDone = allJobs.every((j) => j.status === "DONE" || j.status === "FAILED");
 
       if (allDone) {
-        await prisma.book.update({
-          where: { id },
-          data: { status: "DRAFT" },
-          select: { id: true },
-        });
+        const current = await prisma.book.findUnique({ where: { id }, select: { status: true } });
+        if (current?.status === "PROCESSING") {
+          await prisma.book.update({
+            where: { id },
+            data: { status: "DRAFT" },
+            select: { id: true },
+          });
+        }
       }
 
       return reply.send({ ok: true });

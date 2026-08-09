@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "docxUpdatedAt" TIMESTAMP(3);
