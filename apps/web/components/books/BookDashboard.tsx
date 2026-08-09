@@ -2,7 +2,6 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { DistributionStatus } from "@/components/books/DistributionStatus";
 import { PublicationTimeline } from "@/components/books/PublicationTimeline";
 import { PublishButton } from "@/components/books/PublishButton";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
@@ -25,6 +24,9 @@ interface DashboardBook {
   publicationTimeline?: any;
   isbn?: string | null;
   distributionChannels?: string[] | null;
+  distributionStrategy?: string;
+  kdpSelectEnrolled?: boolean;
+  kdpSelectExpiry?: string | null;
   d2dStatus: string;
   d2dSentAt?: string | null;
   kdpStatus: string;
@@ -145,6 +147,9 @@ export function BookDashboard() {
                 isbn={book.isbn}
                 bookStatus={book.status}
                 distributionChannels={book.distributionChannels ?? []}
+                distributionStrategy={book.distributionStrategy}
+                kdpSelectEnrolled={book.kdpSelectEnrolled}
+                kdpSelectExpiry={book.kdpSelectExpiry}
                 d2d={{ status: book.d2dStatus, sentAt: book.d2dSentAt }}
                 kdp={{ status: book.kdpStatus, sentAt: book.kdpSentAt }}
                 google={{ status: book.googleStatus, sentAt: book.googleSentAt }}
@@ -161,8 +166,6 @@ export function BookDashboard() {
                 }}
               />
             )}
-
-            <DistributionStatus bookId={id} bookStatus={book?.status ?? "DRAFT"} />
           </div>
         </div>
       </div>

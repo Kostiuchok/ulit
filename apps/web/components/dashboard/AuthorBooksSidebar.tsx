@@ -44,6 +44,7 @@ const TOP_ITEMS: SubNavItem[] = [
 ];
 
 const EDIT_GROUP: SubNavItem[] = [
+  { label: "Вихідні дані", icon: <Info size={14} />, href: (id) => `/dashboard/books/${id}/output-data` },
   {
     label: "Рукопис",
     icon: <img src="/figma/icon-text-edit.svg" alt="" className="h-3.5 w-3.5" />,
@@ -52,7 +53,6 @@ const EDIT_GROUP: SubNavItem[] = [
   { label: "Обкладинка", icon: <ImagePlus size={14} />, href: (id) => `/dashboard/books/${id}/cover` },
   { label: "Передперегляд", icon: <Eye size={14} />, href: (id) => `/dashboard/books/${id}/preview` },
   { label: "Видалити", icon: <Trash2 size={14} />, action: "delete" },
-  { label: "Вихідні дані", icon: <Info size={14} />, href: (id) => `/dashboard/books/${id}/output-data` },
 ];
 
 const STORE_GROUP: SubNavItem[] = [

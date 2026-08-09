@@ -46,6 +46,9 @@ interface Props {
   isbn?: string | null;
   bookStatus: string;
   distributionChannels: string[];
+  distributionStrategy?: string;
+  kdpSelectEnrolled?: boolean;
+  kdpSelectExpiry?: string | null;
   d2d: ChannelStatus;
   kdp: ChannelStatus;
   google: ChannelStatus;
@@ -69,7 +72,7 @@ function Row({
   active?: boolean;
   label: React.ReactNode;
   date?: string | null;
-  tooltip?: string;
+  tooltip?: React.ReactNode;
   isLast?: boolean;
   toggle?: { expanded: boolean; onClick: () => void };
 }) {
@@ -112,12 +115,10 @@ function Row({
             </button>
           )}
         </div>
-        {tooltip && active && (
+        {tooltip && (
           <div className="absolute left-0 top-full z-20 mt-2 hidden w-72 items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] group-hover/row:flex sm:left-full sm:top-0 sm:ml-3 sm:mt-0">
             <span>📖</span>
-            <span>
-              Ми надамо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і відправимо до книжкової палати України
-            </span>
+            <span>{tooltip}</span>
           </div>
         )}
       </div>
@@ -157,6 +158,9 @@ export function PublicationTimeline({
   isbn,
   bookStatus,
   distributionChannels,
+  distributionStrategy,
+  kdpSelectEnrolled,
+  kdpSelectExpiry,
   d2d,
   kdp,
   google,
@@ -180,6 +184,21 @@ export function PublicationTimeline({
   const channelByKey: Record<string, ChannelStatus> = { D2D: d2d, KDP: kdp, GOOGLE: google };
 
   const statusLabel = BOOK_STATUS_LABELS[bookStatus]?.label ?? bookStatus;
+
+  const kdpExpiryDate = kdpSelectExpiry ? new Date(kdpSelectExpiry) : null;
+  const kdpActive = !!kdpSelectEnrolled && !!kdpExpiryDate && kdpExpiryDate > new Date();
+  const strategyTooltip = kdpActive ? (
+    <>
+      Книга ексклюзивна на <span style={{ color: ACCENT }}>Amazon KDP</span> (KDP Select)
+      {kdpExpiryDate ? <> до {fmt(kdpExpiryDate.toISOString())}</> : null} — Draft2Digital і Google Play Books
+      недоступні до завершення терміну.
+    </>
+  ) : (
+    <>
+      Книга доступна одночасно на <span style={{ color: ACCENT }}>Draft2Digital</span>,{" "}
+      <span style={{ color: ACCENT }}>Amazon KDP</span> та <span style={{ color: ACCENT }}>Google Play Books</span>.
+    </>
+  );
 
   return (
     <div>
@@ -230,7 +249,14 @@ export function PublicationTimeline({
               active={firstPendingIdx === i + 1}
               label={step.label}
               date={timeline?.[step.key]}
-              tooltip={isSubmittedStep ? "isbn" : undefined}
+              tooltip={
+                isSubmittedStep ? (
+                  <>
+                    Ми надамо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і відправимо до
+                    книжкової палати України
+                  </>
+                ) : undefined
+              }
               toggle={
                 isSubmittedStep
                   ? { expanded: submittedExpanded, onClick: () => setSubmittedExpanded((v) => !v) }
@@ -251,6 +277,7 @@ export function PublicationTimeline({
         active={firstPendingIdx === STEPS.length + 1}
         label={isbn ? `Публікація у магазинах / ISBN: ${isbn}` : "Публікація у магазинах"}
         isLast={!publishedDone}
+        tooltip={distributionStrategy ? strategyTooltip : undefined}
       />
 
       {publishedDone && (

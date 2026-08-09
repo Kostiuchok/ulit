@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
 import { DistributionChannelPicker } from "@/components/books/DistributionChannelPicker";
+import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
@@ -44,6 +45,7 @@ const GENRES = [
 const AGE_RATINGS = ["0+", "6+", "12+", "16+", "18+"];
 
 interface MetadataBook {
+  status: string;
   title: string;
   subtitle?: string | null;
   description?: string | null;
@@ -377,6 +379,13 @@ export default function OutputDataPage() {
           <p className="text-xs text-gray-500 mb-4">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
           <DistributionChannelPicker bookId={id} />
         </div>
+
+        {/* KDP Select management — only relevant once the book is live */}
+        {book?.status === "PUBLISHED" && (
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <KdpSelectPanel bookId={id} bookStatus={book.status} />
+          </div>
+        )}
 
         {/* Preview excerpt — only for books with EPUB */}
         {book?.epubUrl && (
