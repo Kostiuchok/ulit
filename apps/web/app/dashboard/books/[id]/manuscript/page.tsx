@@ -25,7 +25,9 @@ export default function ManuscriptEditorPage() {
   const { apiFetch, token } = useApi();
   const { book, setBook, loading } = useBook<ManuscriptBook>(id);
   const [manuscript, setManuscript] = useState<ManuscriptStatus | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = useCallback(async () => {
     const res = await apiFetch<ManuscriptStatus>(`/api/books/${id}/manuscript`).catch(() => null);
@@ -41,10 +43,20 @@ export default function ManuscriptEditorPage() {
     if (!token || !book?.originalDocxUrl) return;
     poll();
     pollRef.current = setInterval(poll, 3000);
+    setElapsed(0);
+    tickRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (tickRef.current) clearInterval(tickRef.current);
     };
   }, [token, book?.originalDocxUrl, poll]);
+
+  useEffect(() => {
+    if (manuscript?.status === "DONE" && tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+  }, [manuscript?.status]);
 
   if (loading) {
     return (
@@ -84,8 +96,14 @@ export default function ManuscriptEditorPage() {
             <ChevronLeft size={14} /> {book?.title}
           </Link>
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border bg-white p-16 shadow-sm">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900" />
-            <p className="text-sm text-gray-500">Імпортуємо рукопис у редактор…</p>
+            <p className="text-sm text-gray-700">Імпортуємо рукопис у редактор…</p>
+            <div className="relative h-1.5 w-64 overflow-hidden rounded-full bg-gray-200">
+              <div className="progress-indeterminate-bar absolute top-0 h-full rounded-full bg-gray-900" />
+            </div>
+            <p className="text-xs text-gray-400">
+              {elapsed}с — зазвичай це займає менше хвилини
+              {elapsed >= 45 && " (великий файл може тривати довше — не закривайте сторінку)"}
+            </p>
           </div>
         </div>
       </div>
