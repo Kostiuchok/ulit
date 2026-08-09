@@ -21,7 +21,9 @@ export function useApi() {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || `Request failed: ${res.status}`);
     }
-    return res.json() as Promise<T>;
+    if (res.status === 204) return undefined as T;
+    const text = await res.text();
+    return (text ? JSON.parse(text) : undefined) as T;
   }
 
   async function apiUpload<T>(path: string, formData: FormData): Promise<T> {

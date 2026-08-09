@@ -8,8 +8,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-[#d9d9d9]">
+    <div className="flex h-screen flex-col overflow-hidden">
+      <header className="shrink-0 bg-[#d9d9d9]">
         <div className="h-8 flex items-center justify-between px-8">
           <div className="flex items-center gap-4">
             <Link href="/dashboard/books" className="flex items-center gap-1">
@@ -35,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </div>
       </header>
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   );
 }

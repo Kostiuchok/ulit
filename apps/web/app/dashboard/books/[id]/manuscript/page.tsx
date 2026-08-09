@@ -59,9 +59,9 @@ export default function ManuscriptEditorPage() {
 
   if (loading) {
     return (
-      <div className="flex">
+      <div className="flex h-full overflow-hidden">
         <AuthorBooksSidebar />
-        <div className="flex-1 p-8">
+        <div className="flex-1 overflow-y-auto p-8">
           <div className="h-96 max-w-3xl animate-pulse rounded-xl bg-gray-100" />
         </div>
       </div>
@@ -70,9 +70,9 @@ export default function ManuscriptEditorPage() {
 
   if (!book?.originalDocxUrl) {
     return (
-      <div className="flex">
+      <div className="flex h-full overflow-hidden">
         <AuthorBooksSidebar />
-        <div className="flex-1 p-8">
+        <div className="flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-2xl">
             <div className="rounded-xl border bg-white p-6 shadow-sm">
               <h1 className="mb-4 text-lg font-semibold text-gray-900">Рукопис (.docx)</h1>
@@ -92,9 +92,9 @@ export default function ManuscriptEditorPage() {
 
   if (!manuscript || manuscript.status !== "DONE") {
     return (
-      <div className="flex">
+      <div className="flex h-full overflow-hidden">
         <AuthorBooksSidebar />
-        <div className="flex-1 p-8">
+        <div className="flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-2xl">
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border bg-white p-16 shadow-sm">
               <p className="text-sm text-gray-700">Імпортуємо рукопис у редактор…</p>
@@ -113,7 +113,7 @@ export default function ManuscriptEditorPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-32px)]">
+    <div className="h-full">
       <ManuscriptEditor bookId={id} initialContent={manuscript.content} initialStyleOverrides={manuscript.styleOverrides} />
     </div>
   );

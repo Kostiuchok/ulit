@@ -83,11 +83,11 @@ function NavRow({
     return (
       <div
         title="Функція в розробці"
-        className="flex h-[32px] items-center gap-2.5 pl-12 pr-8 text-[0.875rem] text-gray-300 cursor-not-allowed"
+        className="flex h-[2rem] items-center gap-2.5 pl-12 pr-8 text-[0.875rem] text-gray-300 cursor-not-allowed"
       >
         {iconEl}
-        <span className="flex-1">{item.label}</span>
-        <span className="rounded-sm bg-gray-200/60 px-1 py-px text-[0.6875rem] text-gray-400">скоро</span>
+        <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
+        <span className="shrink-0 rounded-sm bg-gray-200/60 px-1 py-px text-[0.6875rem] text-gray-400">скоро</span>
       </div>
     );
   }
@@ -97,10 +97,10 @@ function NavRow({
       <button
         type="button"
         onClick={() => onDeleteClick(bookId)}
-        className="flex h-[32px] w-full items-center gap-2.5 pl-12 pr-8 text-left text-[0.875rem] font-medium text-black transition-colors hover:bg-[#e9e9e9]"
+        className="flex h-[2rem] w-full items-center gap-2.5 pl-12 pr-8 text-left text-[0.875rem] font-medium text-black transition-colors hover:bg-[#e9e9e9]"
       >
         {iconEl}
-        {item.label}
+        <span className="truncate whitespace-nowrap">{item.label}</span>
       </button>
     );
   }
@@ -111,12 +111,12 @@ function NavRow({
     <Link
       href={href}
       className={cn(
-        "flex h-[32px] items-center gap-2.5 pl-12 pr-8 text-[0.875rem] font-medium transition-colors",
+        "flex h-[2rem] items-center gap-2.5 pl-12 pr-8 text-[0.875rem] font-medium transition-colors",
         active ? "bg-[#e3e3e3] text-black" : "text-black hover:bg-[#e9e9e9]"
       )}
     >
       {iconEl}
-      {item.label}
+      <span className="truncate whitespace-nowrap">{item.label}</span>
     </Link>
   );
 }
@@ -126,14 +126,14 @@ function GroupLabel({ label, expanded, onClick }: { label: string; expanded: boo
     <button
       type="button"
       onClick={onClick}
-      className="flex h-[32px] w-full items-center gap-1 px-8 text-left text-[0.875rem] text-black"
+      className="flex h-[2rem] w-full items-center gap-1 px-8 text-left text-[0.875rem] text-black"
     >
       <img
         src="/figma/chevron-collapse.svg"
         alt=""
         className={cn("h-2 w-3 shrink-0 transition-transform", expanded ? "rotate-180" : "rotate-90")}
       />
-      {label}
+      <span className="truncate whitespace-nowrap">{label}</span>
     </button>
   );
 }
@@ -170,7 +170,7 @@ export function AuthorBooksSidebar() {
   }, [routeId]);
 
   return (
-    <aside className="flex h-screen w-[280px] shrink-0 flex-col border-r border-gray-200 bg-white sticky top-0">
+    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-gray-200 bg-white overflow-hidden">
       <div className="shrink-0 border-b border-gray-200 p-4">
         <Link
           href="/dashboard/books/new"
