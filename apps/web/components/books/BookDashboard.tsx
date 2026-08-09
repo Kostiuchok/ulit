@@ -92,6 +92,7 @@ export function BookDashboard() {
               <PublishButton
                 bookId={id}
                 bookStatus={book?.status ?? "DRAFT"}
+                reviewDone={!!book?.publicationTimeline?.review_done}
                 onSubmitted={() => setBook((b) => (b ? { ...b, status: "REVIEW" } : b))}
               />
             )}

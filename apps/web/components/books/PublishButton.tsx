@@ -12,10 +12,11 @@ interface ValidationError {
 interface Props {
   bookId: string;
   bookStatus: string;
+  reviewDone?: boolean;
   onSubmitted?: () => void;
 }
 
-export function PublishButton({ bookId, bookStatus, onSubmitted }: Props) {
+export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: Props) {
   const { apiFetch } = useApi();
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,13 @@ export function PublishButton({ bookId, bookStatus, onSubmitted }: Props) {
   }
 
   if (bookStatus === "REVIEW") {
+    if (reviewDone) {
+      return (
+        <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-700">
+          📄 Тепер укладіть договір і почнемо публікацію Вашої книжки
+        </div>
+      );
+    }
     return (
       <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-700">
         ⏳ На модерації — очікує на перевірку адміністратором
