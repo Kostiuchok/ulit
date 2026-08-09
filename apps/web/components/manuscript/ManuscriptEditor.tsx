@@ -147,15 +147,16 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
       <aside className="w-[260px] shrink-0 overflow-y-auto border-r border-gray-200 bg-[#f3f3f3]">
         <Link
           href={`/dashboard/books/${bookId}`}
-          className="flex items-center gap-2 px-4 py-3 text-[14px] font-medium text-black border-b border-gray-300 hover:bg-[#e9e9e9] transition-colors"
+          className="flex items-center gap-2 px-8 py-3 text-[14px] font-medium text-black border-b border-gray-300 hover:bg-[#e9e9e9] transition-colors"
         >
-          <ChevronLeft size={12} className="text-gray-500" />
+          <ChevronLeft size={12} className="shrink-0 text-gray-500" />
+          <img src="/figma/icon-text-edit.svg" alt="" className="h-3.5 w-3.5 shrink-0" />
           Рукопис
         </Link>
-        <p className="px-4 pt-3 pb-2 text-[15px] font-bold text-black">Зміст</p>
+        <p className="px-8 pt-3 pb-2 text-[15px] font-bold text-black">Зміст</p>
         <nav className="pb-4">
           {outline.length === 0 && (
-            <p className="px-4 text-[13px] text-gray-400">
+            <p className="px-8 text-[13px] text-gray-400">
               Позначте розділ/главу/заголовок через панель "Стилі тексту" праворуч — вони з'являться тут.
             </p>
           )}
@@ -163,7 +164,7 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
             <button
               key={item.id}
               onClick={() => scrollToBlock(item.id)}
-              style={{ paddingLeft: `${16 + item.tier * 14}px` }}
+              style={{ paddingLeft: `${32 + item.tier * 14}px` }}
               className="block w-full truncate py-1.5 pr-3 text-left text-[15px] text-black hover:bg-[#e3e3e3]"
               title={item.text}
             >

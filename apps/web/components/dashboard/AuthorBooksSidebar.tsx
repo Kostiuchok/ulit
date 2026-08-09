@@ -68,7 +68,7 @@ function NavRow({ item, bookId, pathname }: { item: SubNavItem; bookId: string; 
     return (
       <div
         title="Функція в розробці"
-        className="flex h-[32px] items-center gap-2.5 px-4 text-[14px] text-gray-300 cursor-not-allowed"
+        className="flex h-[32px] items-center gap-2.5 px-8 text-[14px] text-gray-300 cursor-not-allowed"
       >
         {iconEl}
         <span className="flex-1">{item.label}</span>
@@ -82,7 +82,7 @@ function NavRow({ item, bookId, pathname }: { item: SubNavItem; bookId: string; 
     <Link
       href={href}
       className={cn(
-        "flex h-[32px] items-center gap-2.5 px-4 text-[14px] font-medium transition-colors",
+        "flex h-[32px] items-center gap-2.5 px-8 text-[14px] font-medium transition-colors",
         active ? "bg-[#e3e3e3] text-black" : "text-black hover:bg-[#e9e9e9]"
       )}
     >
@@ -94,7 +94,7 @@ function NavRow({ item, bookId, pathname }: { item: SubNavItem; bookId: string; 
 
 function GroupLabel({ label }: { label: string }) {
   return (
-    <div className="flex h-[32px] items-center gap-1 px-2 text-[14px] text-black">
+    <div className="flex h-[32px] items-center gap-1 px-8 text-[14px] text-black">
       <ChevronDown size={12} className="shrink-0 text-gray-500" />
       {label}
     </div>
@@ -139,7 +139,7 @@ export function AuthorBooksSidebar() {
             return (
               <div key={book.id} className="border-b border-gray-200">
                 <div
-                  className="flex h-[65px] items-center gap-3 px-4 cursor-pointer bg-white hover:bg-gray-50"
+                  className="flex h-[65px] items-center gap-3 px-8 cursor-pointer bg-white hover:bg-gray-50"
                   onClick={() => setExpandedBookId((prev) => (prev === book.id ? null : book.id))}
                 >
                   {book.coverUrl ? (
