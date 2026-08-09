@@ -107,15 +107,22 @@ export function AuthorBooksSidebar() {
   const { id: routeId } = useParams<{ id?: string }>();
   const [books, setBooks] = useState<SidebarBook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedBookId, setExpandedBookId] = useState<string | null>(routeId ?? null);
 
-  useEffect(() => {
+  function load() {
     if (!token) return;
+    setLoading(true);
     apiFetch<{ books: SidebarBook[] }>("/api/books")
-      .then(({ books }) => setBooks(books))
-      .catch((e) => console.error("[AuthorBooksSidebar] failed to load:", e))
+      .then(({ books }) => {
+        setBooks(books);
+        setError(null);
+      })
+      .catch((e: any) => setError(e.message || "Помилка завантаження"))
       .finally(() => setLoading(false));
-  }, [token]);
+  }
+
+  useEffect(load, [token]);
 
   useEffect(() => {
     if (routeId) setExpandedBookId(routeId);
@@ -128,6 +135,16 @@ export function AuthorBooksSidebar() {
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 rounded-lg bg-gray-100 animate-pulse" />
           ))}
+        </div>
+      ) : error ? (
+        <div className="p-4 text-center">
+          <p className="text-[0.75rem] text-red-500">Не вдалося завантажити книги</p>
+          <button
+            onClick={load}
+            className="mt-2 rounded border border-gray-300 px-2 py-1 text-[0.75rem] text-gray-600 hover:bg-gray-50"
+          >
+            Спробувати ще раз
+          </button>
         </div>
       ) : books.length === 0 ? (
         <div className="p-4 text-sm text-gray-400">Ще немає книг</div>

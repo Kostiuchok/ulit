@@ -25,15 +25,22 @@ export default function BooksPage() {
   const { apiFetch, token } = useApi();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
     if (!token) return;
+    setLoading(true);
     apiFetch<{ books: Book[] }>("/api/books")
-      .then(({ books }) => setBooks(books))
-      .catch((e) => console.error("[books] failed to load:", e))
+      .then(({ books }) => {
+        setBooks(books);
+        setError(null);
+      })
+      .catch((e: any) => setError(e.message || "Не вдалося завантажити книги"))
       .finally(() => setLoading(false));
-  }, [token]);
+  }
+
+  useEffect(load, [token]);
 
   async function handleDelete(id: string) {
     if (!confirm("Видалити книгу? Цю дію не можна скасувати.")) return;
@@ -70,6 +77,14 @@ export default function BooksPage() {
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-40 rounded-xl border bg-white animate-pulse" />
             ))}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-16 text-center">
+            <p className="text-red-700">Не вдалося завантажити книги</p>
+            <p className="mt-1 text-[0.75rem] text-red-500">{error}</p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={load}>
+              Спробувати ще раз
+            </Button>
           </div>
         ) : books.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-white py-20 text-center">
