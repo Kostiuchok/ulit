@@ -68,11 +68,11 @@ function NavRow({ item, bookId, pathname }: { item: SubNavItem; bookId: string; 
     return (
       <div
         title="Функція в розробці"
-        className="flex h-[32px] items-center gap-2.5 px-8 text-[14px] text-gray-300 cursor-not-allowed"
+        className="flex h-[32px] items-center gap-2.5 px-8 text-[0.875rem] text-gray-300 cursor-not-allowed"
       >
         {iconEl}
         <span className="flex-1">{item.label}</span>
-        <span className="rounded-sm bg-gray-200/60 px-1 py-px text-[11px] text-gray-400">скоро</span>
+        <span className="rounded-sm bg-gray-200/60 px-1 py-px text-[0.6875rem] text-gray-400">скоро</span>
       </div>
     );
   }
@@ -82,7 +82,7 @@ function NavRow({ item, bookId, pathname }: { item: SubNavItem; bookId: string; 
     <Link
       href={href}
       className={cn(
-        "flex h-[32px] items-center gap-2.5 px-8 text-[14px] font-medium transition-colors",
+        "flex h-[32px] items-center gap-2.5 px-8 text-[0.875rem] font-medium transition-colors",
         active ? "bg-[#e3e3e3] text-black" : "text-black hover:bg-[#e9e9e9]"
       )}
     >
@@ -94,7 +94,7 @@ function NavRow({ item, bookId, pathname }: { item: SubNavItem; bookId: string; 
 
 function GroupLabel({ label }: { label: string }) {
   return (
-    <div className="flex h-[32px] items-center gap-1 px-8 text-[14px] text-black">
+    <div className="flex h-[32px] items-center gap-1 px-8 text-[0.875rem] text-black">
       <ChevronDown size={12} className="shrink-0 text-gray-500" />
       {label}
     </div>
@@ -157,11 +157,11 @@ export function AuthorBooksSidebar() {
                     <Link
                       href={`/dashboard/books/${book.id}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="block truncate text-[15px] font-bold text-black hover:underline"
+                      className="block truncate text-[0.9375rem] font-bold text-black hover:underline"
                     >
                       {book.title}
                     </Link>
-                    <p className="text-[13px] text-black">{status.label}</p>
+                    <p className="text-[0.8125rem] text-black">{status.label}</p>
                   </div>
                 </div>
 

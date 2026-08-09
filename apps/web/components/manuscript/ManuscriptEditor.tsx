@@ -298,16 +298,16 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       <aside className="w-[260px] shrink-0 overflow-y-auto border-r border-gray-200 bg-[#f3f3f3]">
         <Link
           href={`/dashboard/books/${bookId}`}
-          className="flex items-center gap-2 px-8 py-3 text-[14px] font-medium text-black border-b border-gray-300 hover:bg-[#e9e9e9] transition-colors"
+          className="flex items-center gap-2 px-8 py-3 text-[0.875rem] font-medium text-black border-b border-gray-300 hover:bg-[#e9e9e9] transition-colors"
         >
           <ChevronLeft size={12} className="shrink-0 text-gray-500" />
           <img src="/figma/icon-text-edit.svg" alt="" className="h-3.5 w-3.5 shrink-0" />
           Рукопис
         </Link>
-        <p className="px-8 pt-3 pb-2 text-[15px] font-bold text-black">Зміст</p>
+        <p className="px-8 pt-3 pb-2 text-[0.9375rem] font-bold text-black">Зміст</p>
         <nav className="pb-4">
           {outline.length === 0 && (
-            <p className="px-8 text-[13px] text-gray-400">
+            <p className="px-8 text-[0.8125rem] text-gray-400">
               Позначте розділ/главу/заголовок через панель "Стилі тексту" праворуч — вони з'являться тут.
             </p>
           )}
@@ -316,7 +316,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               key={item.id}
               onClick={() => scrollToBlock(item.id)}
               style={{ paddingLeft: `${32 + item.tier * 14}px` }}
-              className="block w-full truncate py-1.5 pr-3 text-left text-[15px] text-black hover:bg-[#e3e3e3]"
+              className="block w-full truncate py-1.5 pr-3 text-left text-[0.9375rem] text-black hover:bg-[#e3e3e3]"
               title={item.text}
             >
               {item.text}
@@ -378,7 +378,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
             <AlignJustify size={15} />
           </ToolbarButton>
 
-          <div className="ml-auto text-[12px] text-gray-400">
+          <div className="ml-auto text-[0.75rem] text-gray-400">
             {saveState === "saving" && "Збереження…"}
             {saveState === "saved" && "✓ Збережено"}
           </div>
@@ -391,7 +391,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
       {/* Right — paragraph styles */}
       <aside className="w-[240px] shrink-0 overflow-y-auto border-l border-gray-200 bg-[#f3f3f3] p-4">
-        <p className="mb-3 text-[14px] font-medium text-black">Стилі тексту</p>
+        <p className="mb-3 text-[0.875rem] font-medium text-black">Стилі тексту</p>
         <div className="space-y-0.5">
           {(Object.keys(STYLE_LABELS) as StyledBlockStyleName[]).map((key) => {
             const isActive = styleOfCurrentBlock === key;
@@ -400,7 +400,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
                 <button
                   onClick={() => applyStyleToSelection(key)}
                   className={cn(
-                    "block flex-1 min-w-0 rounded px-2.5 py-1.5 text-left text-[14px] transition-colors",
+                    "block flex-1 min-w-0 rounded px-2.5 py-1.5 text-left text-[0.875rem] transition-colors",
                     isActive ? "bg-gray-900 text-white" : "text-black hover:bg-[#e3e3e3]"
                   )}
                 >
@@ -420,7 +420,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           })}
         </div>
 
-        <p className="mb-3 mt-6 text-[14px] font-medium text-black">Набір стилів</p>
+        <p className="mb-3 mt-6 text-[0.875rem] font-medium text-black">Набір стилів</p>
         <div className="space-y-2">
           {LAYOUT_TEMPLATES.map((tpl) => (
             <button
@@ -432,10 +432,10 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               )}
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase leading-tight text-black">{tpl.name}</p>
-                <span className="shrink-0 rounded-sm bg-gray-100 px-1 py-px text-[9px] text-gray-500">A5</span>
+                <p className="text-[0.6875rem] font-bold uppercase leading-tight text-black">{tpl.name}</p>
+                <span className="shrink-0 rounded-sm bg-gray-100 px-1 py-px text-[0.5625rem] text-gray-500">A5</span>
               </div>
-              <p className="mt-1 text-[11px] leading-snug text-gray-500">{tpl.description}</p>
+              <p className="mt-1 text-[0.6875rem] leading-snug text-gray-500">{tpl.description}</p>
               <div className="mt-2 flex gap-1.5">
                 <MiniPagePreview accent={tpl.accent} align={tpl.align} />
                 <MiniPagePreview accent={tpl.accent} align={tpl.align} />
@@ -446,7 +446,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         </div>
 
         <div className="mb-3 mt-6 flex items-center justify-between">
-          <p className="text-[14px] font-medium text-black">Мої набори стилів</p>
+          <p className="text-[0.875rem] font-medium text-black">Мої набори стилів</p>
           <button
             onClick={() => setShowSaveSetForm((v) => !v)}
             title="Зберегти поточне форматування як особистий набір стилів"
@@ -462,26 +462,26 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               value={newSetName}
               onChange={(e) => setNewSetName(e.target.value)}
               placeholder="Назва набору стилів"
-              className="w-full rounded border border-gray-200 px-2 py-1.5 text-[13px] outline-none focus:border-gray-900"
+              className="w-full rounded border border-gray-200 px-2 py-1.5 text-[0.8125rem] outline-none focus:border-gray-900"
             />
             <textarea
               value={newSetDescription}
               onChange={(e) => setNewSetDescription(e.target.value)}
               placeholder="Короткий опис (необов'язково)"
               rows={2}
-              className="w-full resize-none rounded border border-gray-200 px-2 py-1.5 text-[13px] outline-none focus:border-gray-900"
+              className="w-full resize-none rounded border border-gray-200 px-2 py-1.5 text-[0.8125rem] outline-none focus:border-gray-900"
             />
             <div className="flex gap-2">
               <button
                 onClick={submitSaveStyleSet}
                 disabled={!newSetName.trim() || savingSet}
-                className="flex-1 rounded bg-gray-900 py-1.5 text-[13px] text-white disabled:opacity-40"
+                className="flex-1 rounded bg-gray-900 py-1.5 text-[0.8125rem] text-white disabled:opacity-40"
               >
                 {savingSet ? "Збереження…" : "Зберегти"}
               </button>
               <button
                 onClick={() => setShowSaveSetForm(false)}
-                className="rounded border border-gray-200 px-3 py-1.5 text-[13px] text-black hover:bg-gray-50"
+                className="rounded border border-gray-200 px-3 py-1.5 text-[0.8125rem] text-black hover:bg-gray-50"
               >
                 Скасувати
               </button>
@@ -491,7 +491,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
         <div className="space-y-2">
           {authorStyleSets.length === 0 && !showSaveSetForm && (
-            <p className="text-[12px] text-gray-400">
+            <p className="text-[0.75rem] text-gray-400">
               Тут з'являться ваші збережені набори стилів — доступні для будь-якої вашої книги.
             </p>
           )}
@@ -501,8 +501,8 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               onClick={() => applyAuthorStyleSet(set)}
               className="block w-full rounded-md border border-gray-200 bg-white p-2.5 text-left transition-colors hover:border-gray-400"
             >
-              <p className="text-[11px] font-bold uppercase leading-tight text-black">{set.name}</p>
-              {set.description && <p className="mt-1 text-[11px] leading-snug text-gray-500">{set.description}</p>}
+              <p className="text-[0.6875rem] font-bold uppercase leading-tight text-black">{set.name}</p>
+              {set.description && <p className="mt-1 text-[0.6875rem] leading-snug text-gray-500">{set.description}</p>}
             </button>
           ))}
         </div>

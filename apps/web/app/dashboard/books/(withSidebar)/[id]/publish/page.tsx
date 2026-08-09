@@ -53,7 +53,7 @@ export default function PublishPage() {
     <div className="min-h-screen bg-white p-8">
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-[23px] font-bold text-black">{book?.title}</h1>
+          <h1 className="text-[1.4375rem] font-bold text-black">{book?.title}</h1>
           {isPublished && (
             <div className="flex flex-wrap gap-2.5">
               <Link

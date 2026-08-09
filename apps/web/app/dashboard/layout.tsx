@@ -1,6 +1,7 @@
 import { auth } from "../../auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { FontSizeControl } from "../../components/dashboard/FontSizeControl";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -15,9 +16,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="text-xs font-black tracking-tight text-black">ULIT</span>
           </Link>
           <div className="flex items-center gap-4">
+            <FontSizeControl />
             <div className="relative flex items-center">
               <img src="/figma/alert.svg" alt="Сповіщення" className="h-4 w-4" />
-              <span className="absolute -top-1.5 -right-2.5 rounded-sm bg-[#ff5900] px-1 py-px text-[7px] font-black leading-none text-white">
+              <span className="absolute -top-1.5 -right-2.5 rounded-sm bg-[#ff5900] px-1 py-px text-[0.4375rem] font-black leading-none text-white">
                 99+
               </span>
             </div>

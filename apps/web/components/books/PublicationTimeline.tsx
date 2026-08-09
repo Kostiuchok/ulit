@@ -63,7 +63,7 @@ function Row({
         />
       )}
       <div
-        className={cn("relative z-10 mt-0.5 flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-bold")}
+        className={cn("relative z-10 mt-0.5 flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-white text-[0.6875rem] font-bold")}
         style={done ? { color: ACCENT } : active ? { border: "2px solid #111" } : { border: "1px solid #d4d4d4", color: "#c4c4c4" }}
       >
         {done ? "✓" : ""}
@@ -79,7 +79,7 @@ function Row({
           {date && <span className="text-sm text-gray-500 shrink-0">/ {fmt(date)}</span>}
         </div>
         {tooltip && active && (
-          <div className="relative mt-2 inline-flex max-w-xs items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[13px] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
+          <div className="relative mt-2 inline-flex max-w-xs items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
             <span>📖</span>
             <span>
               Ми надамо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і відправимо до книжкової палати України
