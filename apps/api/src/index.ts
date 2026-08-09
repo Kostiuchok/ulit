@@ -53,6 +53,18 @@ async function bootstrap() {
   await app.register(rateLimit, {
     max: 100,
     timeWindow: "1 minute",
+    // API sits behind Next.js's server-side rewrite proxy, so request.ip is always
+    // that proxy's docker-internal address — never the real client. Key by the
+    // authenticated user instead so one noisy user/session can't exhaust the
+    // shared budget for every other visitor; anonymous requests fall back to IP.
+    keyGenerator: async (request) => {
+      try {
+        await request.jwtVerify();
+        return `user:${request.user.id}`;
+      } catch {
+        return `ip:${request.ip}`;
+      }
+    },
   });
 
   app.setErrorHandler((error, request, reply) => {
