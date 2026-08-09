@@ -168,6 +168,9 @@ importers:
       react-image-crop:
         specifier: ^11.0.7
         version: 11.0.10(react@18.3.1)
+      react-pageflip-enhanced:
+        specifier: ^2.2.3
+        version: 2.2.3
       react-reader:
         specifier: ^2.0.15
         version: 2.0.15(react@18.3.1)
@@ -3354,6 +3357,9 @@ packages:
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
+
+  react-pageflip-enhanced@2.2.3:
+    resolution: {integrity: sha512-Bkc7a/rkco2AHgMam9kjLvF5kbqx7ViMez+sMw5GKTxgepAjYJ5guO6brNn7YCWlmnzR/0Q3yei1iSlY309Mjw==}
 
   react-reader@2.0.15:
     resolution: {integrity: sha512-xc+Mm1GXUxRG1Aa8E2uc1Vku01mwgF+GrDYif0C/J/D0QCWgDqvQx6UDMwjaR5x8Z9gIej9lAs72Tklg7wLBGg==}
@@ -7399,6 +7405,8 @@ snapshots:
       react: 18.3.1
 
   react-is@16.13.1: {}
+
+  react-pageflip-enhanced@2.2.3: {}
 
   react-reader@2.0.15(react@18.3.1):
     dependencies:

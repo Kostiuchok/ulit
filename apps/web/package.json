@@ -29,6 +29,7 @@
     "react-dropzone": "^14.2.3",
     "react-hook-form": "^7.53.0",
     "react-image-crop": "^11.0.7",
+    "react-pageflip-enhanced": "^2.2.3",
     "react-reader": "^2.0.15",
     "shared-types": "workspace:*",
     "tailwind-merge": "^2.5.2",

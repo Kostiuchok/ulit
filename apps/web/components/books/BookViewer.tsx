@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import HTMLFlipBook from "react-pageflip-enhanced";
 import { BackCoverPage } from "./BackCoverPage";
 import { cn } from "../../lib/utils";
 
@@ -15,10 +16,6 @@ interface BackCoverData {
   avatarUrl?: string | null;
 }
 
-type SpreadEntry =
-  | { kind: "single"; content: "back-cover" }
-  | { kind: "spread"; left: PageEntry | null; right: PageEntry | null };
-
 type Tab = "cover" | "color" | "bw";
 
 interface Props {
@@ -31,47 +28,27 @@ interface Props {
   onClose: () => void;
 }
 
-function buildContentSpreads(pages: PageEntry[]): Array<{ left: PageEntry | null; right: PageEntry | null }> {
-  if (pages.length === 0) return [];
-  // Page 1 conventionally opens recto (right side), so the first spread
-  // pairs it with a blank left — matching how the printed book will look.
-  const spreads: Array<{ left: PageEntry | null; right: PageEntry | null }> = [
-    { left: null, right: pages[0] },
-  ];
-  for (let i = 1; i < pages.length; i += 2) {
-    spreads.push({ left: pages[i] ?? null, right: pages[i + 1] ?? null });
-  }
-  return spreads;
-}
-
-function PageImage({ page }: { page: PageEntry | null }) {
-  if (!page) {
-    return <div className="h-full aspect-[3/4] bg-white" />;
-  }
-  return (
-    <img
-      src={page.url}
-      alt={`Сторінка ${page.page}`}
-      className="h-full aspect-[3/4] object-cover bg-white"
-      loading="eager"
-    />
-  );
+interface FlipEvent {
+  data: number;
 }
 
 export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCover, pdfUrl, onClose }: Props) {
   const [tab, setTab] = useState<Tab>(coverUrl ? "cover" : "color");
-  const [current, setCurrent] = useState(0);
   const [is3D, setIs3D] = useState(true);
-  const [coverSide, setCoverSide] = useState<0 | 1>(0); // 0 = front, 1 = back
+  const [coverSide, setCoverSide] = useState<0 | 1>(0);
+  const [current, setCurrent] = useState(0);
+  const bookRef = useRef<{ pageFlip: () => any } | null>(null);
 
   const activePages = tab === "bw" ? pagesBw : pages;
 
-  const allSpreads: SpreadEntry[] = useMemo(() => {
-    const contentSpreads = buildContentSpreads(activePages).map(
-      (s): SpreadEntry => ({ kind: "spread", ...s })
-    );
-    return [...contentSpreads, { kind: "single", content: "back-cover" }];
-  }, [activePages]);
+  // Page 1 conventionally opens recto (right side) — a blank leaf up front
+  // reproduces that pairing without relying on the library's own hard-cover
+  // mode (which would also change how that leaf flips).
+  const flipPages: (PageEntry | null)[] = useMemo(
+    () => (activePages.length > 0 ? [null, ...activePages] : []),
+    [activePages]
+  );
+  const pageCount = flipPages.length > 0 ? flipPages.length + 1 : 0; // +1 for the back-cover leaf
 
   const changeTab = (t: Tab) => {
     setTab(t);
@@ -79,25 +56,21 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
     setCoverSide(0);
   };
 
-  const go = useCallback(
-    (delta: number) => {
-      setCurrent((c) => Math.max(0, Math.min(allSpreads.length - 1, c + delta)));
-    },
-    [allSpreads.length]
-  );
+  const goPrev = useCallback(() => bookRef.current?.pageFlip()?.flipPrev(), []);
+  const goNext = useCallback(() => bookRef.current?.pageFlip()?.flipNext(), []);
+  const goTo = useCallback((page: number) => bookRef.current?.pageFlip()?.flip(page), []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (tab === "cover") return;
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") go(1);
-      if (e.key === "ArrowLeft" || e.key === "ArrowUp") go(-1);
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") goNext();
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") goPrev();
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [go, onClose, tab]);
+  }, [goNext, goPrev, onClose, tab]);
 
-  const entry = allSpreads[current];
   const tilt = is3D ? { transform: "perspective(1400px) rotateY(-10deg)", transformStyle: "preserve-3d" as const } : { transform: "none" };
 
   return (
@@ -194,11 +167,11 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
         </>
       ) : (
         <>
-          {/* Spread area */}
+          {/* Flipbook area */}
           <div className="relative flex items-center justify-center bg-gray-50 py-10 px-4 min-h-[70vh]">
             {current > 0 && (
               <button
-                onClick={() => go(-1)}
+                onClick={goPrev}
                 aria-label="Попередня сторінка"
                 className="absolute left-2 z-10 text-gray-400 hover:text-gray-900 text-3xl px-3 py-6 rounded hover:bg-gray-100 transition-colors"
               >
@@ -206,33 +179,55 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
               </button>
             )}
 
-            <div className="h-[70vh] max-h-[720px] shadow-2xl rounded-sm overflow-hidden transition-transform duration-300" style={tilt}>
-              {entry?.kind === "single" && entry.content === "back-cover" && (
-                <div className="h-full aspect-[3/4]">
-                  <BackCoverPage
-                    authorName={backCover.authorName}
-                    bio={backCover.bio}
-                    avatarUrl={backCover.avatarUrl}
-                  />
-                </div>
-              )}
-              {entry?.kind === "spread" && (
-                <div className="h-full flex">
-                  <div className="relative">
-                    <PageImage page={entry.left} />
-                    <div className="absolute inset-y-0 right-0 w-3 bg-gradient-to-l from-black/15 to-transparent" />
+            {flipPages.length > 0 && (
+              <div className="shadow-2xl rounded-sm overflow-hidden transition-transform duration-300" style={tilt}>
+                <HTMLFlipBook
+                  key={tab}
+                  ref={bookRef}
+                  width={380}
+                  height={507}
+                  size="stretch"
+                  minWidth={240}
+                  maxWidth={500}
+                  minHeight={320}
+                  maxHeight={667}
+                  showCover={false}
+                  drawShadow
+                  maxShadowOpacity={0.3}
+                  flippingTime={600}
+                  mobileScrollSupport
+                  useMouseEvents
+                  onFlip={(e: FlipEvent) => setCurrent(e.data)}
+                  className="mx-auto"
+                >
+                  {flipPages.map((p, i) =>
+                    p ? (
+                      <div key={i} className="h-full w-full bg-white">
+                        <img
+                          src={p.url}
+                          alt={`Сторінка ${p.page}`}
+                          className="h-full w-full object-cover"
+                          loading="eager"
+                        />
+                      </div>
+                    ) : (
+                      <div key="blank" className="h-full w-full bg-white" />
+                    )
+                  )}
+                  <div key="back-cover" className="h-full w-full">
+                    <BackCoverPage
+                      authorName={backCover.authorName}
+                      bio={backCover.bio}
+                      avatarUrl={backCover.avatarUrl}
+                    />
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-black/15 to-transparent" />
-                    <PageImage page={entry.right} />
-                  </div>
-                </div>
-              )}
-            </div>
+                </HTMLFlipBook>
+              </div>
+            )}
 
-            {current < allSpreads.length - 1 && (
+            {current < pageCount - 1 && (
               <button
-                onClick={() => go(1)}
+                onClick={goNext}
                 aria-label="Наступна сторінка"
                 className="absolute right-2 z-10 text-gray-400 hover:text-gray-900 text-3xl px-3 py-6 rounded hover:bg-gray-100 transition-colors"
               >
@@ -247,13 +242,13 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
             <input
               type="range"
               min={0}
-              max={Math.max(0, allSpreads.length - 1)}
+              max={Math.max(0, pageCount - 1)}
               value={current}
-              onChange={(e) => setCurrent(Number(e.target.value))}
+              onChange={(e) => goTo(Number(e.target.value))}
               className="flex-1 accent-gray-900"
               aria-label="Навігація по сторінках"
             />
-            <span className="text-xs text-gray-400 w-6 shrink-0">{allSpreads.length}</span>
+            <span className="text-xs text-gray-400 w-6 shrink-0">{pageCount}</span>
           </div>
         </>
       )}
