@@ -715,6 +715,17 @@ export default function DistributePage() {
           label={book.isbn ? `Публікація у магазинах / ISBN: ${book.isbn}` : "Публікація у магазинах"}
           right={!book.isbn && <span className="text-xs text-gray-400">очікує ISBN</span>}
         >
+          <div className="flex items-center gap-1.5 py-2 text-sm">
+            <span style={book.isbn ? { color: ACCENT } : undefined} className={!book.isbn ? "text-gray-300" : undefined}>
+              {book.isbn ? "✓" : "○"}
+            </span>
+            <span style={book.isbn ? { color: ACCENT } : undefined} className={cn("font-medium", !book.isbn && "text-gray-400")}>
+              Ulit
+            </span>
+            {book.publicationTimeline?.contract_signed && (
+              <span className="text-gray-500">/ опубліковано {fmtDate(book.publicationTimeline.contract_signed)}</span>
+            )}
+          </div>
           <p className="mb-2 text-xs font-semibold text-gray-500">Розсилка файлів на зовнішні платформи</p>
           <div className="divide-y">
             {!isKdpSelect && (
