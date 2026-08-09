@@ -170,7 +170,8 @@ function extractOutline(editor: Editor): OutlineItem[] {
 export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides }: Props) {
   const { apiFetch } = useApi();
   const [outline, setOutline] = useState<OutlineItem[]>([]);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState("");
   const [styleOverrides, setStyleOverrides] = useState<Record<string, StyleOverride>>(initialStyleOverrides ?? {});
   const [selectedLayout, setSelectedLayout] = useState<string>(LAYOUT_TEMPLATES[0].id);
   const [authorStyleSets, setAuthorStyleSets] = useState<AuthorStyleSet[]>([]);
@@ -203,20 +204,24 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     immediatelyRender: false,
   });
 
+  async function performSave(content: any, overrides: Record<string, StyleOverride>) {
+    setSaveState("saving");
+    try {
+      await apiFetch(`/api/books/${bookId}/manuscript`, {
+        method: "PATCH",
+        body: JSON.stringify({ content, styleOverrides: overrides }),
+      });
+      setSaveState("saved");
+    } catch (e: any) {
+      setSaveError(e.message || "Помилка збереження");
+      setSaveState("error");
+    }
+  }
+
   function scheduleSave(content: any, overrides: Record<string, StyleOverride>) {
     setSaveState("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      try {
-        await apiFetch(`/api/books/${bookId}/manuscript`, {
-          method: "PATCH",
-          body: JSON.stringify({ content, styleOverrides: overrides }),
-        });
-        setSaveState("saved");
-      } catch {
-        setSaveState("idle");
-      }
-    }, 2000);
+    saveTimer.current = setTimeout(() => performSave(content, overrides), 2000);
   }
 
   function saveStyleOverride(style: StyledBlockStyleName) {
@@ -275,8 +280,11 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
   function saveNow() {
     if (!editor) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    scheduleSave(editor.getJSON(), styleOverrides);
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    performSave(editor.getJSON(), styleOverrides);
   }
 
   useEffect(() => {
@@ -378,9 +386,23 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
             <AlignJustify size={15} />
           </ToolbarButton>
 
-          <div className="ml-auto text-[0.75rem] text-gray-400">
-            {saveState === "saving" && "Збереження…"}
-            {saveState === "saved" && "✓ Збережено"}
+          <div className="ml-auto flex items-center gap-2 text-[0.75rem]">
+            <span className={cn(saveState === "error" ? "text-red-600" : "text-gray-400")}>
+              {saveState === "saving" && "Збереження…"}
+              {saveState === "saved" && "✓ Збережено"}
+              {saveState === "error" && `⚠ Не збережено — ${saveError}`}
+            </span>
+            <button
+              type="button"
+              onClick={saveNow}
+              disabled={saveState === "saving"}
+              className={cn(
+                "rounded px-2.5 py-1 font-medium transition-colors disabled:opacity-50",
+                saveState === "error" ? "bg-red-600 text-white hover:bg-red-700" : "bg-gray-900 text-white hover:bg-gray-700"
+              )}
+            >
+              {saveState === "error" ? "Повторити" : "Зберегти"}
+            </button>
           </div>
         </div>
 
