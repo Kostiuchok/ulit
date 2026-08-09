@@ -173,14 +173,20 @@ function BookRow({
               </button>
             </>
           )}
-          {(book.status === "REVIEW" || book.moderationStatus === "PENDING") && (
-            <button
-              onClick={() => onApprove(book.id)}
-              disabled={actionLoading === book.id + "_approve"}
-              className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              ✓ Схвалити
-            </button>
+          {book.moderationStatus === "APPROVED" ? (
+            <span className="rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+              ✓ Схвалено
+            </span>
+          ) : (
+            (book.status === "REVIEW" || book.moderationStatus === "PENDING") && (
+              <button
+                onClick={() => onApprove(book.id)}
+                disabled={actionLoading === book.id + "_approve"}
+                className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                ✓ Схвалити
+              </button>
+            )
           )}
           {book.status !== "DRAFT" && (
             <button

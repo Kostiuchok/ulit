@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../../../hooks/useApi";
 import { Button } from "../../../../../components/ui/button";
+import { cn } from "../../../../../lib/utils";
 
 interface Book {
   id: string;
@@ -52,6 +53,15 @@ const TIMELINE_STEPS = [
   { key: "review_2", label: "Повторна перевірка документів" },
   { key: "contract_signed", label: "Договір укладено" },
 ] as const;
+
+// Steps always visible in the main flow.
+const MAIN_STEPS = TIMELINE_STEPS.filter((s) => s.key === "submitted" || s.key === "review_done");
+// contract_pending/corrected/review_2/contract_signed are collapsed behind "Опублікувати
+// книгу" in the common case (T-1951 — the author already signs the platform contract once,
+// upfront, before a book can even be submitted, so admin no longer needs to manually walk
+// through these one at a time). They stay available as an advanced/manual override for the
+// rare re-verification case.
+const ADVANCED_STEPS = TIMELINE_STEPS.filter((s) => s.key !== "submitted" && s.key !== "review_done");
 
 const STATUS_OPTS = ["NOT_SENT", "SENT", "PUBLISHED", "ERROR"] as const;
 const STATUS_COLORS: Record<string, string> = {
@@ -371,6 +381,7 @@ export default function DistributePage() {
   const [rejecting, setRejecting] = useState(false);
   const [rejectDone, setRejectDone] = useState(false);
   const [savingStep, setSavingStep] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -564,7 +575,7 @@ export default function DistributePage() {
       <div className="rounded-xl border bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-gray-900 mb-1">Публікація та договір</h2>
         <p className="text-xs text-gray-400 mb-4">
-          Дата кожного кроку — вручну. Порожньо = крок ще не пройдено. Автор бачить цей таймлайн на сторінці книги.
+          Автор підписує договір з платформою один раз, у своєму профілі — тут лишається лише перевірка й публікація.
         </p>
 
         <TimelineRow
@@ -573,11 +584,10 @@ export default function DistributePage() {
           right={<span className="text-xs font-mono text-gray-400">{fmtDate(book.createdAt)}</span>}
         />
 
-        {TIMELINE_STEPS.map((step, i) => {
+        {MAIN_STEPS.map((step, i) => {
           const value = book.publicationTimeline?.[step.key];
           const dateValue = value ? value.slice(0, 10) : "";
           const done = !!value;
-          const isReview2 = step.key === "review_2";
           return (
             <TimelineRow
               key={step.key}
@@ -605,37 +615,99 @@ export default function DistributePage() {
                   )}
                 </div>
               }
-            >
-              {isReview2 && (
-                <div className="rounded-lg border border-gray-200 bg-white p-3 text-xs">
-                  <p className="mb-1.5 font-semibold text-gray-500">Платіжні реквізити автора (для перевірки)</p>
-                  {book.author.payoutDetailsSubmittedAt ? (
-                    <dl className="space-y-1 text-gray-700">
-                      <div className="flex gap-2">
-                        <dt className="w-28 shrink-0 text-gray-400">ІПН/РНОКПП:</dt>
-                        <dd className="font-mono">{book.author.taxId}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="w-28 shrink-0 text-gray-400">Паспорт/ФОП:</dt>
-                        <dd>{book.author.payoutDocument}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="w-28 shrink-0 text-gray-400">IBAN:</dt>
-                        <dd className="font-mono">{book.author.bankIban}</dd>
-                      </div>
-                      <div className="flex gap-2">
-                        <dt className="w-28 shrink-0 text-gray-400">Подано:</dt>
-                        <dd>{fmtDate(book.author.payoutDetailsSubmittedAt)}</dd>
-                      </div>
-                    </dl>
-                  ) : (
-                    <p className="text-gray-400">Автор ще не подав платіжні реквізити (підписує договір на /contract)</p>
-                  )}
-                </div>
-              )}
-            </TimelineRow>
+            />
           );
         })}
+
+        {/* ── One-click publish (replaces the old 4-step contract_pending → contract_signed
+            date entry — the contract itself is already signed by the author upfront) ── */}
+        <div className="ml-7 mb-4 -mt-2 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p className="text-xs font-semibold text-gray-500">Платіжні реквізити автора (для перевірки)</p>
+          {book.author.payoutDetailsSubmittedAt ? (
+            <dl className="space-y-1 text-xs text-gray-700">
+              <div className="flex gap-2">
+                <dt className="w-28 shrink-0 text-gray-400">ІПН/РНОКПП:</dt>
+                <dd className="font-mono">{book.author.taxId}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-28 shrink-0 text-gray-400">Паспорт/ФОП:</dt>
+                <dd>{book.author.payoutDocument}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-28 shrink-0 text-gray-400">IBAN:</dt>
+                <dd className="font-mono">{book.author.bankIban}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-28 shrink-0 text-gray-400">Подано:</dt>
+                <dd>{fmtDate(book.author.payoutDetailsSubmittedAt)}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="text-xs text-gray-400">
+              Автор ще не подав платіжні реквізити — договір підписується один раз у профілі автора (/dashboard/settings/contract).
+            </p>
+          )}
+
+          {book.publicationTimeline?.contract_signed ? (
+            <div className="rounded-md bg-green-100 px-3 py-2 text-xs font-medium text-green-800">
+              ✓ Опубліковано {fmtDate(book.publicationTimeline.contract_signed)}
+              {book.isbn && <> · ISBN: {book.isbn}</>}
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => saveTimelineStep("contract_signed", new Date().toISOString())}
+              loading={savingStep === "contract_signed"}
+              disabled={!book.publicationTimeline?.review_done}
+              title={!book.publicationTimeline?.review_done ? "Спочатку позначте перевірку завершеною" : undefined}
+            >
+              Опублікувати книгу
+            </Button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((v) => !v)}
+            className="block text-xs text-gray-400 underline hover:no-underline"
+          >
+            {advancedOpen ? "Сховати ручне керування датами" : "Ручне керування датами (виправлення, повторна перевірка)"}
+          </button>
+
+          {advancedOpen && (
+            <div className="space-y-1 border-t pt-3">
+              {ADVANCED_STEPS.map((step) => {
+                const value = book.publicationTimeline?.[step.key];
+                const dateValue = value ? value.slice(0, 10) : "";
+                return (
+                  <div key={step.key} className="flex items-center justify-between gap-3 py-1">
+                    <span className={cn("text-xs", value ? "font-semibold text-gray-700" : "text-gray-400")}>
+                      {step.label}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <input
+                        type="date"
+                        value={dateValue}
+                        disabled={savingStep === step.key}
+                        onChange={(e) => saveTimelineStep(step.key, e.target.value)}
+                        className="rounded-md border px-2 py-1 text-xs disabled:opacity-50"
+                      />
+                      {dateValue && (
+                        <button
+                          type="button"
+                          onClick={() => saveTimelineStep(step.key, "")}
+                          disabled={savingStep === step.key}
+                          className="text-xs text-gray-400 hover:text-red-600 disabled:opacity-50"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <TimelineRow
           done={!!book.isbn}

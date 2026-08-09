@@ -27,6 +27,7 @@ export default function AdminAuthorsPage() {
   const [contractFilter, setContractFilter] = useState<ContractFilter>("all");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -47,12 +48,22 @@ export default function AdminAuthorsPage() {
 
   async function handleDelete(id: string) {
     setDeletingId(id);
+    setDeleteError(null);
     try {
       await apiFetch(`/api/admin/users/${id}`, { method: "DELETE" });
       setAuthors((prev) => prev.filter((a) => a.id !== id));
+      setConfirmId(null);
+    } catch (e: any) {
+      // Requests here have been seen failing with a silent 401 (stale apiToken
+      // embedded in the NextAuth session — re-login re-signs a fresh one), which
+      // this used to swallow entirely: the row just stayed with no explanation.
+      setDeleteError(
+        e.code === "UNAUTHORIZED" || /401/.test(e.message || "")
+          ? "Сесія застаріла. Вийдіть і увійдіть знову, потім спробуйте видалити ще раз."
+          : e.message || "Помилка видалення автора"
+      );
     } finally {
       setDeletingId(null);
-      setConfirmId(null);
     }
   }
 
@@ -165,7 +176,7 @@ export default function AdminAuthorsPage() {
                           >
                             Підтвердити
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setConfirmId(null)}>
+                          <Button size="sm" variant="outline" onClick={() => { setConfirmId(null); setDeleteError(null); }}>
                             Скасувати
                           </Button>
                         </div>
@@ -174,12 +185,15 @@ export default function AdminAuthorsPage() {
                           size="sm"
                           variant="outline"
                           className="text-red-600 border-red-300 hover:bg-red-50"
-                          onClick={() => setConfirmId(author.id)}
+                          onClick={() => { setConfirmId(author.id); setDeleteError(null); }}
                         >
                           Видалити
                         </Button>
                       )}
                     </div>
+                    {confirmId === author.id && deleteError && (
+                      <p className="mt-1.5 text-xs text-red-600">{deleteError}</p>
+                    )}
                   </td>
                 </tr>
               ))}

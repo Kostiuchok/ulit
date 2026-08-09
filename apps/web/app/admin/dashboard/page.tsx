@@ -9,7 +9,31 @@ interface Stats {
   orders: Record<string, number>;
   revenue: number;
   pendingRoyalties: number;
-  recentReview: any[];
+  recentReview: ReviewBook[];
+}
+
+interface ReviewBook {
+  id: string;
+  title: string;
+  coverUrl?: string | null;
+  author: { name: string };
+  publicationTimeline?: Record<string, string> | null;
+}
+
+// §5.1 договору: "Усі Твори перед публікацією проходять модерацію Платформи
+// протягом 3 робочих днів" — тримаємо дедлайн черги синхронним з цією обіцянкою.
+const REVIEW_SLA_DAYS = 3;
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("uk-UA");
+}
+
+function reviewDeadline(book: ReviewBook): { submittedAt: string | null; daysLeft: number | null } {
+  const submittedAt = book.publicationTimeline?.submitted ?? null;
+  if (!submittedAt) return { submittedAt: null, daysLeft: null };
+  const deadline = new Date(submittedAt).getTime() + REVIEW_SLA_DAYS * 24 * 60 * 60 * 1000;
+  const daysLeft = Math.ceil((deadline - Date.now()) / (24 * 60 * 60 * 1000));
+  return { submittedAt, daysLeft };
 }
 
 function KpiCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
@@ -63,6 +87,63 @@ export default function AdminDashboard() {
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">Загальна статистика платформи</p>
       </div>
+
+      {/* Черга книжок для перевірки — перший блок, щоб адмін одразу бачив, що робити */}
+      {(stats?.recentReview?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-gray-900">Черга книжок для перевірки</h2>
+            <Link href="/admin/books?status=REVIEW" className="text-sm text-gray-500 hover:text-gray-900">
+              Всі →
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {stats!.recentReview.map((book) => {
+              const { submittedAt, daysLeft } = reviewDeadline(book);
+              return (
+                <div key={book.id} className="flex items-center justify-between gap-3 py-2 border-b border-yellow-100 last:border-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {book.coverUrl ? (
+                      <img src={book.coverUrl} alt="" className="h-10 w-7 rounded object-cover shrink-0" />
+                    ) : (
+                      <div className="h-10 w-7 shrink-0 rounded bg-gray-100 flex items-center justify-center text-sm">📖</div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
+                      <p className="text-xs text-gray-500">{book.author.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {submittedAt ? `Надіслано на перевірку: ${fmtDate(submittedAt)}` : "Дату надсилання не зафіксовано"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {daysLeft != null && (
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          daysLeft < 0
+                            ? "bg-red-100 text-red-700"
+                            : daysLeft === 0
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                        title={`Дедлайн перевірки — ${REVIEW_SLA_DAYS} робочих дні(в) з моменту надсилання (п. 5.1 договору)`}
+                      >
+                        {daysLeft < 0 ? `Прострочено на ${Math.abs(daysLeft)} дн.` : daysLeft === 0 ? "Дедлайн сьогодні" : `${daysLeft} дн. до дедлайну`}
+                      </span>
+                    )}
+                    <Link
+                      href={`/admin/books?id=${book.id}`}
+                      className="rounded-md bg-yellow-100 border border-yellow-300 px-3 py-1 text-xs font-medium text-yellow-900 hover:bg-yellow-200"
+                    >
+                      Переглянути
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -123,41 +204,6 @@ export default function AdminDashboard() {
           ))}
         </div>
       </div>
-
-      {/* Recent books under review */}
-      {(stats?.recentReview?.length ?? 0) > 0 && (
-        <div className="rounded-xl border bg-white shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-gray-900">На перевірці</h2>
-            <Link href="/admin/books?status=REVIEW" className="text-sm text-gray-500 hover:text-gray-900">
-              Всі →
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {stats!.recentReview.map((book: any) => (
-              <div key={book.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div className="flex items-center gap-3">
-                  {book.coverUrl ? (
-                    <img src={book.coverUrl} alt="" className="h-10 w-7 rounded object-cover" />
-                  ) : (
-                    <div className="h-10 w-7 rounded bg-gray-100 flex items-center justify-center text-sm">📖</div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{book.title}</p>
-                    <p className="text-xs text-gray-500">{book.author.name}</p>
-                  </div>
-                </div>
-                <Link
-                  href={`/admin/books?id=${book.id}`}
-                  className="rounded-md bg-yellow-50 border border-yellow-200 px-3 py-1 text-xs font-medium text-yellow-800 hover:bg-yellow-100"
-                >
-                  Переглянути
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Quick links */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
