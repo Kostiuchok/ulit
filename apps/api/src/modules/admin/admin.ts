@@ -183,7 +183,13 @@ export async function adminRoutes(app: FastifyInstance) {
 
       const now = new Date();
       const timeline = { ...((book.publicationTimeline as Record<string, string>) ?? {}) };
-      if (book.status === "REVIEW") timeline.review_done = now.toISOString();
+      if (book.status === "REVIEW") {
+        // A book can only reach REVIEW after being submitted — backfill `submitted`
+        // for legacy books that reached REVIEW before that step was tracked, so the
+        // author's timeline doesn't show review_done green with submitted still empty.
+        if (!timeline.submitted) timeline.submitted = now.toISOString();
+        timeline.review_done = now.toISOString();
+      }
 
       const updated = await prisma.book.update({
         where: { id },
