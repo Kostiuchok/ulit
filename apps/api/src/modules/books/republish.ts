@@ -2,13 +2,14 @@ import { FastifyInstance } from "fastify";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
-import { enqueueConversionJobs } from "../../services/publishing.service";
 
 // "Опублікувати із змінами" — the author re-uploaded a new .docx for an
 // already-PUBLISHED book (see upload.ts, which stages the file without
-// converting). This is the explicit confirmation that actually regenerates
-// EPUB/PDF/FB2/MOBI from the new file and swaps them in, while the book
-// stays PUBLISHED the whole time (no re-moderation — it already passed once).
+// converting) and wants it live. Per the Ridero reference (docs/
+// TECHNICAL-DECISIONS.md "Референс: республікація змін на Рідеро"), this
+// submits the change for admin re-moderation rather than publishing
+// instantly — the live book/files are untouched until an admin approves
+// via PATCH /api/admin/books/:id/republish (admin.ts).
 export async function republishRoute(app: FastifyInstance) {
   app.post(
     "/api/books/:id/republish",
@@ -24,6 +25,7 @@ export async function republishRoute(app: FastifyInstance) {
           originalDocxUrl: true,
           docxUpdatedAt: true,
           publishedAt: true,
+          republishRequestedAt: true,
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -39,13 +41,16 @@ export async function republishRoute(app: FastifyInstance) {
       if (!hasChanges) {
         throw new AppError("Немає нових змін для публікації", 400, "NO_CHANGES");
       }
-
-      await enqueueConversionJobs(id, book.originalDocxUrl, { setProcessing: false });
+      const alreadyPending =
+        book.republishRequestedAt && book.docxUpdatedAt && book.republishRequestedAt >= book.docxUpdatedAt;
+      if (alreadyPending) {
+        throw new AppError("Зміни вже надіслано на модерацію", 400, "ALREADY_PENDING");
+      }
 
       const updated = await prisma.book.update({
         where: { id },
-        data: { publishedAt: new Date() },
-        select: { id: true, status: true, publishedAt: true },
+        data: { republishRequestedAt: new Date() },
+        select: { id: true, status: true, republishRequestedAt: true },
       });
 
       return reply.send({ book: updated });

@@ -16,6 +16,7 @@ interface Book {
   genre?: string | null;
   language?: string;
   publishedAt?: string | null;
+  republishRequestedAt?: string | null;
   distributionStrategy?: string;
   d2dStatus: string;
   kdpStatus: string;
@@ -87,6 +88,8 @@ function BookRow({
   onApprove,
   onRejectClick,
   onFilesClick,
+  onApproveRepublish,
+  onRejectRepublish,
 }: {
   book: Book;
   rejected: boolean;
@@ -94,7 +97,10 @@ function BookRow({
   onApprove: (id: string) => void;
   onRejectClick: (id: string) => void;
   onFilesClick: (book: Book) => void;
+  onApproveRepublish: (id: string) => void;
+  onRejectRepublish: (id: string) => void;
 }) {
+  const pendingRepublish = book.status === "PUBLISHED" && !!book.republishRequestedAt;
   return (
     <tr className={`transition-colors ${rejected ? "bg-gray-50 text-gray-400 grayscale" : "hover:bg-gray-50"}`}>
       <td className="px-4 py-3">
@@ -120,6 +126,14 @@ function BookRow({
           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${rejected ? "bg-gray-200 text-gray-500" : MOD_COLORS[book.moderationStatus] ?? "bg-gray-100 text-gray-600"}`}>
             {book.moderationStatus}
           </span>
+          {pendingRepublish && (
+            <>
+              <br />
+              <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700" title="Автор надіслав зміни в опублікованій книзі">
+                ⏳ Зміни на модерації
+              </span>
+            </>
+          )}
         </div>
       </td>
       <td className="px-4 py-3">
@@ -140,6 +154,24 @@ function BookRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center justify-end gap-2 flex-wrap">
+          {pendingRepublish && (
+            <>
+              <button
+                onClick={() => onApproveRepublish(book.id)}
+                disabled={actionLoading === book.id + "_approveRepublish"}
+                className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                ✓ Схвалити зміни
+              </button>
+              <button
+                onClick={() => onRejectRepublish(book.id)}
+                disabled={actionLoading === book.id + "_rejectRepublish"}
+                className="rounded-md bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+              >
+                ✕ Відхилити зміни
+              </button>
+            </>
+          )}
           {(book.status === "REVIEW" || book.moderationStatus === "PENDING") && (
             <button
               onClick={() => onApprove(book.id)}
@@ -240,6 +272,34 @@ export default function AdminBooksPage() {
       await fetchBooks();
     } catch (e: any) {
       alert(`Помилка відхилення: ${e.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleApproveRepublish(id: string) {
+    setActionLoading(id + "_approveRepublish");
+    try {
+      await apiFetch(`/api/admin/books/${id}/republish`, { method: "PATCH", body: JSON.stringify({}) });
+      await fetchBooks();
+    } catch (e: any) {
+      alert(`Помилка схвалення змін: ${e.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleRejectRepublish(id: string) {
+    const reason = window.prompt("Причина відхилення змін (буде надіслана автору):") ?? "";
+    setActionLoading(id + "_rejectRepublish");
+    try {
+      await apiFetch(`/api/admin/books/${id}/republish/reject`, {
+        method: "PATCH",
+        body: JSON.stringify({ reason }),
+      });
+      await fetchBooks();
+    } catch (e: any) {
+      alert(`Помилка відхилення змін: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -353,6 +413,8 @@ export default function AdminBooksPage() {
                     onApprove={handleApprove}
                     onRejectClick={setRejectId}
                     onFilesClick={setFilesBook}
+                    onApproveRepublish={handleApproveRepublish}
+                    onRejectRepublish={handleRejectRepublish}
                   />
                 ))}
                 {rejectedBooks.length > 0 && (
@@ -374,6 +436,8 @@ export default function AdminBooksPage() {
                     onApprove={handleApprove}
                     onRejectClick={setRejectId}
                     onFilesClick={setFilesBook}
+                    onApproveRepublish={handleApproveRepublish}
+                    onRejectRepublish={handleRejectRepublish}
                   />
                 ))}
               </tbody>

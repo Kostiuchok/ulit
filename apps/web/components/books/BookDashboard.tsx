@@ -19,6 +19,7 @@ interface DashboardBook {
   genre?: string | null;
   originalDocxUrl?: string | null;
   docxUpdatedAt?: string | null;
+  republishRequestedAt?: string | null;
   manuscriptImportedAt?: string | null;
   manuscriptEditedAt?: string | null;
   pdfUrl?: string | null;
@@ -88,7 +89,10 @@ export function BookDashboard() {
                 bookId={id}
                 docxUpdatedAt={book?.docxUpdatedAt}
                 publishedAt={book?.publishedAt}
-                onRepublished={(publishedAt) => setBook((b) => (b ? { ...b, publishedAt } : b))}
+                republishRequestedAt={book?.republishRequestedAt}
+                onSubmitted={(republishRequestedAt) =>
+                  setBook((b) => (b ? { ...b, republishRequestedAt } : b))
+                }
               />
             ) : (
               <PublishButton

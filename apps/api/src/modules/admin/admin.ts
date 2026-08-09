@@ -12,6 +12,7 @@ import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
 import { assignIsbn } from "../../services/isbn.service";
 import { queuePublishedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
+import { enqueueConversionJobs } from "../../services/publishing.service";
 
 const KDP_SELECT_DAYS = 90;
 const WARN_BEFORE_DAYS = 7;
@@ -85,6 +86,9 @@ const BOOK_ADMIN_SELECT = {
   publishedAt: true,
   createdAt: true,
   publicationTimeline: true,
+  originalDocxUrl: true,
+  docxUpdatedAt: true,
+  republishRequestedAt: true,
   author: {
     select: {
       id: true,
@@ -378,6 +382,63 @@ export async function adminRoutes(app: FastifyInstance) {
       }
 
       return reply.send({ book });
+    }
+  );
+
+  // ─── Republish (post-publish changes) approval ───────────────────────────
+  // Author submitted a new .docx for an already-PUBLISHED book (T-1948/T-1949
+  // — re-moderation model per docs/TECHNICAL-DECISIONS.md "Референс:
+  // республікація змін на Рідеро"). The live book/files stay untouched until
+  // an admin reviews and approves here.
+  app.patch(
+    "/api/admin/books/:id/republish",
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const book = await prisma.book.findUnique({
+        where: { id },
+        select: { status: true, originalDocxUrl: true, republishRequestedAt: true },
+      });
+      if (!book) throw AppError.notFound("Book");
+      if (book.status !== "PUBLISHED" || !book.republishRequestedAt) {
+        throw new AppError("Немає змін, що очікують на модерацію", 400, "NO_PENDING_REPUBLISH");
+      }
+      if (!book.originalDocxUrl) throw new AppError("Немає файлу рукопису", 400, "NO_DOCX");
+
+      await enqueueConversionJobs(id, book.originalDocxUrl, { setProcessing: false });
+
+      const updated = await prisma.book.update({
+        where: { id },
+        data: { publishedAt: new Date(), republishRequestedAt: null },
+        select: BOOK_ADMIN_SELECT,
+      });
+
+      return reply.send({ book: updated });
+    }
+  );
+
+  app.patch(
+    "/api/admin/books/:id/republish/reject",
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const body = (request.body ?? {}) as { reason?: string };
+      const book = await prisma.book.findUnique({
+        where: { id },
+        select: { status: true, republishRequestedAt: true },
+      });
+      if (!book) throw AppError.notFound("Book");
+      if (book.status !== "PUBLISHED" || !book.republishRequestedAt) {
+        throw new AppError("Немає змін, що очікують на модерацію", 400, "NO_PENDING_REPUBLISH");
+      }
+
+      const updated = await prisma.book.update({
+        where: { id },
+        data: { republishRequestedAt: null, moderationNote: body.reason ?? null },
+        select: BOOK_ADMIN_SELECT,
+      });
+
+      return reply.send({ book: updated });
     }
   );
 

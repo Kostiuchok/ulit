@@ -117,6 +117,7 @@ model Book {
   backCoverUrl         String?
   originalDocxUrl      String?
   docxUpdatedAt        DateTime? // set whenever the source .docx changes; compared to publishedAt to know if a live book has unpublished file changes
+  republishRequestedAt DateTime? // author submitted post-publish changes for re-moderation; cleared once admin approves or rejects
   pdfUrl               String?
   epubUrl              String?
   fb2Url               String?
