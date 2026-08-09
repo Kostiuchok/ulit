@@ -83,7 +83,7 @@ function NavRow({
     return (
       <div
         title="Функція в розробці"
-        className="flex h-[32px] items-center gap-2.5 px-8 text-[0.875rem] text-gray-300 cursor-not-allowed"
+        className="flex h-[32px] items-center gap-2.5 pl-12 pr-8 text-[0.875rem] text-gray-300 cursor-not-allowed"
       >
         {iconEl}
         <span className="flex-1">{item.label}</span>
@@ -97,7 +97,7 @@ function NavRow({
       <button
         type="button"
         onClick={() => onDeleteClick(bookId)}
-        className="flex h-[32px] w-full items-center gap-2.5 px-8 text-left text-[0.875rem] font-medium text-black transition-colors hover:bg-[#e9e9e9]"
+        className="flex h-[32px] w-full items-center gap-2.5 pl-12 pr-8 text-left text-[0.875rem] font-medium text-black transition-colors hover:bg-[#e9e9e9]"
       >
         {iconEl}
         {item.label}
@@ -111,7 +111,7 @@ function NavRow({
     <Link
       href={href}
       className={cn(
-        "flex h-[32px] items-center gap-2.5 px-8 text-[0.875rem] font-medium transition-colors",
+        "flex h-[32px] items-center gap-2.5 pl-12 pr-8 text-[0.875rem] font-medium transition-colors",
         active ? "bg-[#e3e3e3] text-black" : "text-black hover:bg-[#e9e9e9]"
       )}
     >
