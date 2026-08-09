@@ -349,6 +349,11 @@ export function PublicationTimeline({
 
         {publishedDone && (
           <div className="ml-7 mt-1 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-sm">
+              <span style={{ color: ACCENT }}>✓</span>
+              <span style={{ color: ACCENT }} className="font-medium">Ulit</span>
+              {timeline?.contract_signed && <span className="text-black">/ опубліковано {fmt(timeline.contract_signed)}</span>}
+            </div>
             <button
               type="button"
               onClick={() => setChannelsExpanded((v) => !v)}
