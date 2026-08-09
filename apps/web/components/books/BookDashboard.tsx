@@ -8,6 +8,7 @@ import { RepublishButton } from "@/components/books/RepublishButton";
 import { UnpublishButton } from "@/components/books/UnpublishButton";
 import { RelistButton } from "@/components/books/RelistButton";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
+import { BookPromoSidebar } from "@/components/books/BookPromoSidebar";
 import { useBook } from "@/hooks/useBook";
 
 interface DashboardBook {
@@ -140,7 +141,7 @@ export function BookDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr_260px]">
           {/* Left: cover + price */}
           <div className="space-y-4">
             <TabletCoverFrame coverUrl={book?.coverUrl} />
@@ -192,6 +193,11 @@ export function BookDashboard() {
                 }}
               />
             )}
+          </div>
+
+          {/* Right sidebar: promo — scrolls with the page, not sticky */}
+          <div>
+            <BookPromoSidebar />
           </div>
         </div>
       </div>
