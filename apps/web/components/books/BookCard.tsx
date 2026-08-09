@@ -78,7 +78,7 @@ export function BookCard({ book, onDelete }: Props) {
               href={`/dashboard/books/${book.id}`}
               className="rounded-md px-3 py-1 text-sm font-medium border hover:bg-gray-50"
             >
-              Редагувати
+              Відкрити
             </Link>
             {onDelete && (
               <button

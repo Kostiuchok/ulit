@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getBookStatusLabel } from "../../lib/bookStatus";
 
@@ -248,7 +249,9 @@ export function PublicationTimeline({
       </div>
       {STEPS.map((step, i) => {
         const isSubmittedStep = step.key === "submitted";
+        const isContractStep = step.key === "contract_pending";
         const stepDone = !!timeline?.[step.key];
+        const stepActive = firstPendingIdx === i + 1;
         return (
           <div key={step.key} className="relative">
             {isSubmittedStep && (
@@ -259,8 +262,21 @@ export function PublicationTimeline({
             )}
             <Row
               done={stepDone}
-              active={firstPendingIdx === i + 1}
-              label={step.label}
+              active={stepActive}
+              label={
+                isContractStep && stepActive ? (
+                  <Link
+                    href={`/dashboard/books/${bookId}/contract`}
+                    className="inline-flex items-center gap-1.5 underline hover:no-underline"
+                    style={{ color: ACCENT }}
+                  >
+                    <FileText size={14} />
+                    {step.label}
+                  </Link>
+                ) : (
+                  step.label
+                )
+              }
               date={timeline?.[step.key]}
               hideLine={isSubmittedStep}
               tooltip={
