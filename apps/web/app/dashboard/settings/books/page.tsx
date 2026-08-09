@@ -2,6 +2,6 @@
 
 import { MyBooksList } from "@/components/books/MyBooksList";
 
-export default function BooksPage() {
+export default function ProfileBooksPage() {
   return <MyBooksList />;
 }

@@ -8,7 +8,7 @@ const TABS = [
   { href: "/dashboard/settings", label: "Профіль" },
   { href: "/dashboard/settings/royalties", label: "Авторські відрахування" },
   { href: "/dashboard/settings/stats", label: "Загальна статистика" },
-  { href: "/dashboard/books", label: "Мої книги" },
+  { href: "/dashboard/settings/books", label: "Мої книги" },
   { href: "/dashboard/settings/purchases", label: "Мої покупки" },
   { href: "/dashboard/settings/bonuses", label: "Мої бонуси" },
   { href: "/dashboard/settings/contract", label: "Договір на публікацію" },
