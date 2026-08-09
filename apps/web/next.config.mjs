@@ -17,6 +17,8 @@ const nextConfig = {
     return [
       { source: "/api/users/:path*",    destination: `${apiBase}/api/users/:path*` },
       { source: "/api/books/:path*",    destination: `${apiBase}/api/books/:path*` },
+      { source: "/api/style-sets/:path*", destination: `${apiBase}/api/style-sets/:path*` },
+      { source: "/api/style-sets",      destination: `${apiBase}/api/style-sets` },
       { source: "/api/store/:path*",    destination: `${apiBase}/api/store/:path*` },
       { source: "/api/admin/:path*",    destination: `${apiBase}/api/admin/:path*` },
       { source: "/api/orders/:path*",   destination: `${apiBase}/api/orders/:path*` },

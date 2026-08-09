@@ -48,18 +48,15 @@ export function BookCard({ book, onDelete }: Props) {
       <div className="flex flex-1 flex-col justify-between min-w-0">
         <div>
           <div className="flex items-start justify-between gap-2">
-            <Link
-              href={`/dashboard/books/${book.id}`}
-              className="font-semibold text-gray-900 hover:underline truncate"
-            >
-              {book.title}
+            <Link href={`/dashboard/books/${book.id}`} className="min-w-0 hover:underline">
+              <h2 className="truncate text-[1rem] font-bold text-gray-900">{book.title}</h2>
             </Link>
-            <span className={cn("flex-shrink-0 rounded-full px-2.5 py-0.5 text-sm font-medium", status.className)}>
+            <span className={cn("flex-shrink-0 rounded-full px-2.5 py-0.5 text-[0.8125rem] font-medium", status.className)}>
               {status.label}
             </span>
           </div>
 
-          {book.genre && <p className="mt-0.5 text-sm text-gray-400">{book.genre}</p>}
+          {book.genre && <h3 className="mt-0.5 text-[0.8125rem] font-normal text-gray-500">{book.genre}</h3>}
 
           {book.description && (
             <p className="mt-1.5 text-base text-gray-600 line-clamp-2">{book.description}</p>
@@ -67,7 +64,7 @@ export function BookCard({ book, onDelete }: Props) {
         </div>
 
         <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-sm text-gray-500">
+          <div className="flex items-center gap-3 text-[0.75rem] text-gray-500">
             {book.priceEbook && <span>Е-книга: {Number(book.priceEbook).toFixed(0)} грн</span>}
             {book.pricePrint && <span>Друк: {Number(book.pricePrint).toFixed(0)} грн</span>}
             {book.isbn && <span>ISBN: {book.isbn}</span>}

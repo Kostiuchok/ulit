@@ -157,11 +157,11 @@ export function AuthorBooksSidebar() {
                     <Link
                       href={`/dashboard/books/${book.id}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="block truncate text-[0.9375rem] font-bold text-black hover:underline"
+                      className="block truncate hover:underline"
                     >
-                      {book.title}
+                      <h2 className="truncate text-[1rem] font-bold text-black">{book.title}</h2>
                     </Link>
-                    <p className="text-[0.8125rem] text-black">{status.label}</p>
+                    <h3 className="text-[0.8125rem] font-normal text-gray-500">{status.label}</h3>
                   </div>
                 </div>
 
