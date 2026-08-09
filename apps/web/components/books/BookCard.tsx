@@ -79,7 +79,7 @@ export function BookCard({ book, onDelete }: Props) {
             >
               Редагувати
             </Link>
-            {onDelete && book.status !== "PUBLISHED" && (
+            {onDelete && (
               <button
                 onClick={() => onDelete(book.id)}
                 className="rounded-md px-3 py-1 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50"

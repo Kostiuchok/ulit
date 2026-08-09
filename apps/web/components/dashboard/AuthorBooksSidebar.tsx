@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import {
   Package,
   MessageSquare,
@@ -12,11 +12,14 @@ import {
   BarChart3,
   Users,
   Percent,
+  Trash2,
+  Info,
   ChevronDown,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { BOOK_STATUS_LABELS } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
+import { DeleteBookModal } from "@/components/books/DeleteBookModal";
 
 interface SidebarBook {
   id: string;
@@ -26,8 +29,9 @@ interface SidebarBook {
 }
 
 type SubNavItem =
-  | { label: string; href: (bookId: string) => string; icon?: React.ReactNode; disabled?: false }
-  | { label: string; icon?: React.ReactNode; disabled: true };
+  | { label: string; href: (bookId: string) => string; icon?: React.ReactNode; disabled?: false; action?: undefined }
+  | { label: string; icon?: React.ReactNode; disabled: true; action?: undefined }
+  | { label: string; icon?: React.ReactNode; action: "delete"; disabled?: false };
 
 const TOP_ITEMS: SubNavItem[] = [
   { label: "Замовити тираж", icon: <Package size={14} />, disabled: true },
@@ -47,10 +51,11 @@ const EDIT_GROUP: SubNavItem[] = [
   },
   { label: "Обкладинка", icon: <ImagePlus size={14} />, href: (id) => `/dashboard/books/${id}/cover` },
   { label: "Передперегляд", icon: <Eye size={14} />, href: (id) => `/dashboard/books/${id}/preview` },
+  { label: "Видалити", icon: <Trash2 size={14} />, action: "delete" },
+  { label: "Вихідні дані", icon: <Info size={14} />, href: (id) => `/dashboard/books/${id}/output-data` },
 ];
 
 const STORE_GROUP: SubNavItem[] = [
-  { label: "Вихідні дані", icon: <Package size={14} />, href: (id) => `/dashboard/books/${id}/output-data` },
   {
     label: "Публікація у магазинах",
     icon: <img src="/figma/icon-publication.svg" alt="" className="h-3.5 w-3.5" />,
@@ -61,7 +66,17 @@ const STORE_GROUP: SubNavItem[] = [
   { label: "Включити акцію на книгу", icon: <Percent size={14} />, disabled: true },
 ];
 
-function NavRow({ item, bookId, pathname }: { item: SubNavItem; bookId: string; pathname: string }) {
+function NavRow({
+  item,
+  bookId,
+  pathname,
+  onDeleteClick,
+}: {
+  item: SubNavItem;
+  bookId: string;
+  pathname: string;
+  onDeleteClick: (bookId: string) => void;
+}) {
   const iconEl = item.icon ? <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-gray-500">{item.icon}</span> : null;
 
   if (item.disabled) {
@@ -76,6 +91,20 @@ function NavRow({ item, bookId, pathname }: { item: SubNavItem; bookId: string; 
       </div>
     );
   }
+
+  if (item.action === "delete") {
+    return (
+      <button
+        type="button"
+        onClick={() => onDeleteClick(bookId)}
+        className="flex h-[32px] w-full items-center gap-2.5 px-8 text-left text-[0.875rem] font-medium text-black transition-colors hover:bg-[#e9e9e9]"
+      >
+        {iconEl}
+        {item.label}
+      </button>
+    );
+  }
+
   const href = item.href(bookId);
   const active = pathname === href || pathname.startsWith(href + "/");
   return (
@@ -104,11 +133,13 @@ function GroupLabel({ label }: { label: string }) {
 export function AuthorBooksSidebar() {
   const { apiFetch, token } = useApi();
   const pathname = usePathname();
+  const router = useRouter();
   const { id: routeId } = useParams<{ id?: string }>();
   const [books, setBooks] = useState<SidebarBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedBookId, setExpandedBookId] = useState<string | null>(routeId ?? null);
+  const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
 
   function load() {
     if (!token) return;
@@ -185,17 +216,17 @@ export function AuthorBooksSidebar() {
                 {isExpanded && (
                   <nav className="bg-[#f3f3f3] py-1">
                     {TOP_ITEMS.map((item) => (
-                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} />
+                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
                     ))}
 
                     <GroupLabel label="Редагувати книгу" />
                     {EDIT_GROUP.map((item) => (
-                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} />
+                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
                     ))}
 
                     <GroupLabel label="Ваша книга у магазинах" />
                     {STORE_GROUP.map((item) => (
-                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} />
+                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
                     ))}
                   </nav>
                 )}
@@ -203,6 +234,19 @@ export function AuthorBooksSidebar() {
             );
           })}
         </div>
+      )}
+
+      {deleteBookId && (
+        <DeleteBookModal
+          bookId={deleteBookId}
+          onClose={() => setDeleteBookId(null)}
+          onDeleted={() => {
+            const wasViewingDeleted = routeId === deleteBookId;
+            setDeleteBookId(null);
+            load();
+            if (wasViewingDeleted) router.push("/dashboard/books");
+          }}
+        />
       )}
     </aside>
   );

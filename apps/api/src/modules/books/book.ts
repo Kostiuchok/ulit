@@ -13,6 +13,7 @@ const BOOK_SELECT = {
   status: true,
   moderationStatus: true,
   moderationNote: true,
+  archivedAt: true,
   isbn: true,
   coverUrl: true,
   backCoverUrl: true,
@@ -156,16 +157,42 @@ export async function bookRoutes(app: FastifyInstance) {
     return reply.send({ book });
   });
 
-  // Delete book
+  // Delete book (soft — recoverable via /restore)
   app.delete("/api/books/:id", { preHandler: authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const existing = await assertOwnership(id, request.user.id);
 
-    if (existing.status === "PUBLISHED") {
-      throw new AppError("Published books cannot be deleted", 400, "BOOK_PUBLISHED");
+    if (existing.status === "ARCHIVED") {
+      throw new AppError("Book already deleted", 400, "ALREADY_ARCHIVED");
     }
 
-    await prisma.book.delete({ where: { id } });
+    await prisma.book.update({
+      where: { id },
+      data: { status: "ARCHIVED", previousStatus: existing.status, archivedAt: new Date() },
+    });
     return reply.status(204).send();
+  });
+
+  // Restore a soft-deleted book
+  app.post("/api/books/:id/restore", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await assertOwnership(id, request.user.id);
+
+    if (existing.status !== "ARCHIVED") {
+      throw new AppError("Book is not deleted", 400, "NOT_ARCHIVED");
+    }
+
+    const record = await prisma.book.findUnique({ where: { id }, select: { previousStatus: true } });
+    const book = await prisma.book.update({
+      where: { id },
+      data: {
+        status: (record?.previousStatus as any) || "DRAFT",
+        previousStatus: null,
+        archivedAt: null,
+      },
+      select: BOOK_SELECT,
+    });
+
+    return reply.send({ book });
   });
 }

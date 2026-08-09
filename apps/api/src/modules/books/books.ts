@@ -37,11 +37,20 @@ async function uniqueBookSlug(base: string): Promise<string> {
   return candidate;
 }
 
+const listQuerySchema = z.object({
+  includeArchived: z.coerce.boolean().optional(),
+});
+
 export async function booksRoutes(app: FastifyInstance) {
   // List author's books
   app.get("/api/books", { preHandler: authenticate }, async (request, reply) => {
+    const { includeArchived } = listQuerySchema.parse(request.query);
+
     const books = await prisma.book.findMany({
-      where: { authorId: request.user.id },
+      where: {
+        authorId: request.user.id,
+        ...(includeArchived ? {} : { status: { not: "ARCHIVED" } }),
+      },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -64,6 +73,7 @@ export async function booksRoutes(app: FastifyInstance) {
         googleStatus: true,
         createdAt: true,
         publishedAt: true,
+        archivedAt: true,
       },
     });
     return reply.send({ books });

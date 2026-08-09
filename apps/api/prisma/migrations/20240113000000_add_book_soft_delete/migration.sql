@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "previousStatus" TEXT;
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3);

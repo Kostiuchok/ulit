@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BookCard } from "@/components/books/BookCard";
+import { DeleteBookModal } from "@/components/books/DeleteBookModal";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/hooks/useApi";
 
@@ -20,6 +21,7 @@ interface Book {
   isbn?: string | null;
   createdAt: string;
   publishedAt?: string | null;
+  archivedAt?: string | null;
 }
 
 export default function BooksPage() {
@@ -27,12 +29,13 @@ export default function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState<string | null>(null);
 
   function load() {
     if (!token) return;
     setLoading(true);
-    apiFetch<{ books: Book[] }>("/api/books")
+    apiFetch<{ books: Book[] }>("/api/books?includeArchived=1")
       .then(({ books }) => {
         setBooks(books);
         setError(null);
@@ -43,18 +46,20 @@ export default function BooksPage() {
 
   useEffect(load, [token]);
 
-  async function handleDelete(id: string) {
-    if (!confirm("Видалити книгу? Цю дію не можна скасувати.")) return;
-    setDeleting(id);
+  async function handleRestore(id: string) {
+    setRestoring(id);
     try {
-      await apiFetch(`/api/books/${id}`, { method: "DELETE" });
-      setBooks((prev) => prev.filter((b) => b.id !== id));
+      const { book } = await apiFetch<{ book: Book }>(`/api/books/${id}/restore`, { method: "POST" });
+      setBooks((prev) => prev.map((b) => (b.id === id ? book : b)));
     } catch (e: any) {
-      alert(e.message || "Помилка видалення");
+      alert(e.message || "Помилка відновлення");
     } finally {
-      setDeleting(null);
+      setRestoring(null);
     }
   }
+
+  const activeBooks = books.filter((b) => b.status !== "ARCHIVED");
+  const archivedBooks = books.filter((b) => b.status === "ARCHIVED");
 
   return (
     <div className="p-8">
@@ -64,7 +69,7 @@ export default function BooksPage() {
             <h1 className="text-2xl font-bold text-gray-900">Мої книги</h1>
             {!loading && (
               <p className="text-sm text-gray-500 mt-0.5">
-                {books.length === 0 ? "Ще немає книг" : `${books.length} книг`}
+                {activeBooks.length === 0 ? "Ще немає книг" : `${activeBooks.length} книг`}
               </p>
             )}
           </div>
@@ -87,7 +92,7 @@ export default function BooksPage() {
               Спробувати ще раз
             </Button>
           </div>
-        ) : books.length === 0 ? (
+        ) : activeBooks.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-white py-20 text-center">
             <div className="text-5xl mb-4">📚</div>
             <h2 className="text-lg font-semibold text-gray-700">Поки немає книг</h2>
@@ -98,16 +103,47 @@ export default function BooksPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {books.map((book) => (
-              <BookCard
-                key={book.id}
-                book={book}
-                onDelete={deleting ? undefined : handleDelete}
-              />
+            {activeBooks.map((book) => (
+              <BookCard key={book.id} book={book} onDelete={setDeleteBookId} />
             ))}
           </div>
         )}
+
+        {archivedBooks.length > 0 && (
+          <div className="mt-10">
+            <h2 className="mb-3 text-base font-semibold text-gray-500">Видалені книги</h2>
+            <div className="space-y-2">
+              {archivedBooks.map((book) => (
+                <div
+                  key={book.id}
+                  className="flex items-center justify-between rounded-lg border border-dashed bg-gray-50 px-4 py-3"
+                >
+                  <span className="truncate text-sm text-gray-500">{book.title}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={restoring === book.id}
+                    onClick={() => handleRestore(book.id)}
+                  >
+                    Відновити
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {deleteBookId && (
+        <DeleteBookModal
+          bookId={deleteBookId}
+          onClose={() => setDeleteBookId(null)}
+          onDeleted={() => {
+            setDeleteBookId(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
