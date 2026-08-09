@@ -17,7 +17,10 @@ interface DashboardBook {
   priceEbook?: string | number | null;
   pricePrint?: string | number | null;
   pricePrintHardcover?: string | number | null;
+  genre?: string | null;
   originalDocxUrl?: string | null;
+  manuscriptImportedAt?: string | null;
+  manuscriptEditedAt?: string | null;
   pdfUrl?: string | null;
   createdAt: string;
   publicationTimeline?: any;
@@ -127,6 +130,7 @@ export function BookDashboard() {
           <div className="space-y-8">
             {book && (
               <PublicationTimeline
+                bookId={id}
                 createdAt={book.createdAt}
                 timeline={book.publicationTimeline}
                 isbn={book.isbn}
@@ -135,6 +139,16 @@ export function BookDashboard() {
                 d2d={{ status: book.d2dStatus, sentAt: book.d2dSentAt }}
                 kdp={{ status: book.kdpStatus, sentAt: book.kdpSentAt }}
                 google={{ status: book.googleStatus, sentAt: book.googleSentAt }}
+                creation={{
+                  title: book.title,
+                  genre: book.genre,
+                  originalDocxUrl: book.originalDocxUrl,
+                  manuscriptImportedAt: book.manuscriptImportedAt,
+                  manuscriptEditedAt: book.manuscriptEditedAt,
+                  priceEbook: book.priceEbook,
+                  pricePrint: book.pricePrint,
+                  pricePrintHardcover: book.pricePrintHardcover,
+                }}
               />
             )}
 

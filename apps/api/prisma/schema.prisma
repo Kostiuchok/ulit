@@ -145,6 +145,7 @@ model Book {
   publicationTimeline  Json?
   manuscriptContent    Json?
   manuscriptImportedAt DateTime?
+  manuscriptEditedAt   DateTime? // last author edit inside the manuscript editor (distinct from the initial docx import)
   manuscriptStyleOverrides Json?
 
   orderItems      OrderItem[]

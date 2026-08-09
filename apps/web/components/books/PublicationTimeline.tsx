@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "../../lib/utils";
 
 const STEPS = [
@@ -24,7 +25,19 @@ interface ChannelStatus {
   sentAt?: string | null;
 }
 
+interface CreationInfo {
+  title: string;
+  genre?: string | null;
+  originalDocxUrl?: string | null;
+  manuscriptImportedAt?: string | null;
+  manuscriptEditedAt?: string | null;
+  priceEbook?: string | number | null;
+  pricePrint?: string | number | null;
+  pricePrintHardcover?: string | number | null;
+}
+
 interface Props {
+  bookId: string;
   createdAt: string;
   timeline?: Record<string, string> | null;
   isbn?: string | null;
@@ -33,6 +46,7 @@ interface Props {
   d2d: ChannelStatus;
   kdp: ChannelStatus;
   google: ChannelStatus;
+  creation: CreationInfo;
 }
 
 function fmt(date: string) {
@@ -91,7 +105,33 @@ function Row({
   );
 }
 
+function CreationSubItem({
+  done,
+  label,
+  href,
+  date,
+}: {
+  done: boolean;
+  label: string;
+  href?: string;
+  date?: string | null;
+}) {
+  const inner = (
+    <div className="flex items-center gap-1.5 text-sm">
+      <span style={done ? { color: ACCENT } : undefined} className={!done ? "text-gray-300" : undefined}>
+        {done ? "✓" : "○"}
+      </span>
+      <span style={done ? { color: ACCENT } : undefined} className={cn(!done && (href ? "text-black underline" : "text-gray-400"))}>
+        {label}
+      </span>
+      {date && <span className="text-gray-500">/ {fmt(date)}</span>}
+    </div>
+  );
+  return href && !done ? <Link href={href}>{inner}</Link> : inner;
+}
+
 export function PublicationTimeline({
+  bookId,
   createdAt,
   timeline,
   isbn,
@@ -100,7 +140,14 @@ export function PublicationTimeline({
   d2d,
   kdp,
   google,
+  creation,
 }: Props) {
+  const hasBasicInfo = !!(creation.title && creation.genre);
+  const hasManuscript = !!creation.originalDocxUrl;
+  const manuscriptDate = creation.manuscriptEditedAt ?? creation.manuscriptImportedAt;
+  const hasPrice = !!(creation.priceEbook || creation.pricePrint || creation.pricePrintHardcover);
+  const hasDistribution = distributionChannels.length > 0;
+  const isSubmitted = bookStatus !== "DRAFT" && bookStatus !== "PROCESSING";
   const publishedDone = bookStatus === "PUBLISHED" && !!isbn;
   const doneFlags = [true, ...STEPS.map((s) => !!timeline?.[s.key]), publishedDone];
   const firstPendingIdx = doneFlags.findIndex((d) => !d);
@@ -110,6 +157,30 @@ export function PublicationTimeline({
   return (
     <div>
       <Row done label="Книга створена" date={createdAt} />
+      <div className="ml-7 mb-4 -mt-3 space-y-1.5">
+        <CreationSubItem
+          done={hasBasicInfo}
+          label="Основна інформація про книгу"
+          href={`/dashboard/books/${bookId}/output-data`}
+        />
+        <CreationSubItem
+          done={hasManuscript}
+          label="Завантажити рукопис"
+          href={`/dashboard/books/${bookId}/manuscript`}
+          date={hasManuscript ? manuscriptDate : undefined}
+        />
+        <CreationSubItem
+          done={hasPrice}
+          label="Ціна"
+          href={`/dashboard/books/${bookId}/output-data`}
+        />
+        <CreationSubItem
+          done={hasDistribution}
+          label="Платформи розповсюдження"
+          href={`/dashboard/books/${bookId}/output-data`}
+        />
+        <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
+      </div>
       {STEPS.map((step, i) => (
         <Row
           key={step.key}

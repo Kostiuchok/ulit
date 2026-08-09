@@ -73,7 +73,10 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
       }
 
       const data: Record<string, unknown> = {};
-      if (result.data.content !== undefined) data.manuscriptContent = result.data.content;
+      if (result.data.content !== undefined) {
+        data.manuscriptContent = result.data.content;
+        data.manuscriptEditedAt = new Date();
+      }
       if (result.data.styleOverrides !== undefined) data.manuscriptStyleOverrides = result.data.styleOverrides;
 
       await prisma.book.update({ where: { id }, data, select: { id: true } });

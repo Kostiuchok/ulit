@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
+import { DistributionChannelPicker } from "@/components/books/DistributionChannelPicker";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
@@ -368,6 +369,13 @@ export default function OutputDataPage() {
               Зберегти зміни
             </Button>
           </form>
+        </div>
+
+        {/* Distribution platforms */}
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <h2 className="text-base font-semibold mb-1">Платформи розповсюдження</h2>
+          <p className="text-xs text-gray-500 mb-4">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
+          <DistributionChannelPicker bookId={id} />
         </div>
 
         {/* Preview excerpt — only for books with EPUB */}
