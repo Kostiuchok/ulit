@@ -17,7 +17,7 @@ interface ManuscriptBook {
 type ManuscriptStatus =
   | { status: "NO_DOCX" }
   | { status: "PROCESSING" }
-  | { status: "DONE"; content: any };
+  | { status: "DONE"; content: any; styleOverrides: Record<string, any> };
 
 export default function ManuscriptEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -94,7 +94,7 @@ export default function ManuscriptEditorPage() {
 
   return (
     <div className="h-[calc(100vh-32px)]">
-      <ManuscriptEditor bookId={id} initialContent={manuscript.content} />
+      <ManuscriptEditor bookId={id} initialContent={manuscript.content} initialStyleOverrides={manuscript.styleOverrides} />
     </div>
   );
 }

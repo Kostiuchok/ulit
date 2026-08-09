@@ -34,9 +34,69 @@ interface OutlineItem {
   tier: number;
 }
 
+interface StyleOverride {
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  strike: boolean;
+  align: "left" | "center" | "right" | "justify";
+}
+
 interface Props {
   bookId: string;
   initialContent: any;
+  initialStyleOverrides?: Record<string, StyleOverride>;
+}
+
+interface AuthorStyleSet {
+  id: string;
+  name: string;
+  description?: string | null;
+  styleOverrides: Record<string, StyleOverride>;
+}
+
+interface LayoutTemplate {
+  id: string;
+  name: string;
+  description: string;
+  accent: string;
+  align: "justify" | "left";
+}
+
+const LAYOUT_TEMPLATES: LayoutTemplate[] = [
+  {
+    id: "business-regular",
+    name: "BUSINESS REGULAR",
+    description: "Поєднує в собі поміркований консерватизм з високим рівнем зручності.",
+    accent: "#f97316",
+    align: "justify",
+  },
+  {
+    id: "business-regular-left",
+    name: "BUSINESS REGULAR LEFT",
+    description: "Те саме, що й Business Regular, но з виключкой тексту вліво.",
+    accent: "#f97316",
+    align: "left",
+  },
+  {
+    id: "business-elegance",
+    name: "BUSINESS ELEGANCE",
+    description: "Легкий вишуканий макет без використання напівжирних шрифтів у заголовках.",
+    accent: "#22c55e",
+    align: "justify",
+  },
+];
+
+function MiniPagePreview({ accent, align }: { accent: string; align: "justify" | "left" }) {
+  const lineWidths = align === "left" ? ["70%", "55%", "60%"] : ["100%", "100%", "80%"];
+  return (
+    <div className="flex h-8 w-6 shrink-0 flex-col gap-[2px] rounded-[1px] border border-gray-300 bg-white p-[3px]">
+      <div className="h-[3px] w-2/3 rounded-[1px]" style={{ backgroundColor: accent }} />
+      {lineWidths.map((w, i) => (
+        <div key={i} className="h-[2px] rounded-[1px] bg-gray-300" style={{ width: w }} />
+      ))}
+    </div>
+  );
 }
 
 function ToolbarButton({
@@ -69,6 +129,30 @@ function ToolbarButton({
   );
 }
 
+const MARK_NAMES = ["bold", "italic", "underline", "strike"] as const;
+
+// Applies a captured formatting (marks + alignment) to every paragraph in the
+// document carrying the given style — the "update style to match selection"
+// behaviour: redefine a style once, every block using it updates immediately.
+function applyStyleFormatting(editor: Editor, style: StyledBlockStyleName, fmt: StyleOverride) {
+  const { state, view } = editor;
+  let tr = state.tr;
+  state.doc.descendants((node, pos) => {
+    if (node.type.name !== "paragraph" || node.attrs.style !== style) return;
+    tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: fmt.align });
+    const from = pos + 1;
+    const to = pos + node.nodeSize - 1;
+    if (to <= from) return;
+    for (const markName of MARK_NAMES) {
+      const markType = state.schema.marks[markName];
+      if (!markType) continue;
+      if (fmt[markName]) tr = tr.addMark(from, to, markType.create());
+      else tr = tr.removeMark(from, to, markType);
+    }
+  });
+  view.dispatch(tr);
+}
+
 function extractOutline(editor: Editor): OutlineItem[] {
   const items: OutlineItem[] = [];
   editor.state.doc.descendants((node) => {
@@ -83,12 +167,25 @@ function extractOutline(editor: Editor): OutlineItem[] {
   return items;
 }
 
-export function ManuscriptEditor({ bookId, initialContent }: Props) {
+export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides }: Props) {
   const { apiFetch } = useApi();
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [styleOverrides, setStyleOverrides] = useState<Record<string, StyleOverride>>(initialStyleOverrides ?? {});
+  const [selectedLayout, setSelectedLayout] = useState<string>(LAYOUT_TEMPLATES[0].id);
+  const [authorStyleSets, setAuthorStyleSets] = useState<AuthorStyleSet[]>([]);
+  const [showSaveSetForm, setShowSaveSetForm] = useState(false);
+  const [newSetName, setNewSetName] = useState("");
+  const [newSetDescription, setNewSetDescription] = useState("");
+  const [savingSet, setSavingSet] = useState(false);
   const [, forceTick] = useState(0);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ styleSets: AuthorStyleSet[] }>("/api/style-sets")
+      .then(({ styleSets }) => setAuthorStyleSets(styleSets))
+      .catch(() => {});
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -99,21 +196,21 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
     content: initialContent ?? { type: "doc", content: [{ type: "paragraph", attrs: { style: "normal" } }] },
     onUpdate: ({ editor }) => {
       setOutline(extractOutline(editor));
-      scheduleSave(editor.getJSON());
+      scheduleSave(editor.getJSON(), styleOverrides);
     },
     onSelectionUpdate: () => forceTick((t) => t + 1),
     onTransaction: () => forceTick((t) => t + 1),
     immediatelyRender: false,
   });
 
-  function scheduleSave(content: any) {
+  function scheduleSave(content: any, overrides: Record<string, StyleOverride>) {
     setSaveState("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       try {
         await apiFetch(`/api/books/${bookId}/manuscript`, {
           method: "PATCH",
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content, styleOverrides: overrides }),
         });
         setSaveState("saved");
       } catch {
@@ -122,10 +219,64 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
     }, 2000);
   }
 
+  function saveStyleOverride(style: StyledBlockStyleName) {
+    if (!editor) return;
+    const fmt: StyleOverride = {
+      bold: editor.isActive("bold"),
+      italic: editor.isActive("italic"),
+      underline: editor.isActive("underline"),
+      strike: editor.isActive("strike"),
+      align: (editor.getAttributes("paragraph").textAlign as StyleOverride["align"]) || "left",
+    };
+    applyStyleFormatting(editor, style, fmt);
+    const next = { ...styleOverrides, [style]: fmt };
+    setStyleOverrides(next);
+    scheduleSave(editor.getJSON(), next);
+  }
+
+  function applyStyleToSelection(style: StyledBlockStyleName) {
+    if (!editor) return;
+    editor.chain().focus().updateAttributes("paragraph", { style }).run();
+    const override = styleOverrides[style];
+    if (override) applyStyleFormatting(editor, style, override);
+  }
+
+  function applyAuthorStyleSet(set: AuthorStyleSet) {
+    if (!editor) return;
+    for (const [style, fmt] of Object.entries(set.styleOverrides)) {
+      applyStyleFormatting(editor, style as StyledBlockStyleName, fmt);
+    }
+    setStyleOverrides(set.styleOverrides);
+    scheduleSave(editor.getJSON(), set.styleOverrides);
+  }
+
+  async function submitSaveStyleSet() {
+    if (!newSetName.trim()) return;
+    setSavingSet(true);
+    try {
+      const { styleSet } = await apiFetch<{ styleSet: AuthorStyleSet }>("/api/style-sets", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newSetName.trim(),
+          description: newSetDescription.trim() || undefined,
+          styleOverrides,
+        }),
+      });
+      setAuthorStyleSets((prev) => [styleSet, ...prev]);
+      setShowSaveSetForm(false);
+      setNewSetName("");
+      setNewSetDescription("");
+    } catch {
+      // keep the form open so the author can retry
+    } finally {
+      setSavingSet(false);
+    }
+  }
+
   function saveNow() {
     if (!editor) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    scheduleSave(editor.getJSON());
+    scheduleSave(editor.getJSON(), styleOverrides);
   }
 
   useEffect(() => {
@@ -242,16 +393,116 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
       <aside className="w-[240px] shrink-0 overflow-y-auto border-l border-gray-200 bg-[#f3f3f3] p-4">
         <p className="mb-3 text-[14px] font-medium text-black">Стилі тексту</p>
         <div className="space-y-0.5">
-          {(Object.keys(STYLE_LABELS) as StyledBlockStyleName[]).map((key) => (
+          {(Object.keys(STYLE_LABELS) as StyledBlockStyleName[]).map((key) => {
+            const isActive = styleOfCurrentBlock === key;
+            return (
+              <div key={key} className="flex items-center gap-1">
+                <button
+                  onClick={() => applyStyleToSelection(key)}
+                  className={cn(
+                    "block flex-1 min-w-0 rounded px-2.5 py-1.5 text-left text-[14px] transition-colors",
+                    isActive ? "bg-gray-900 text-white" : "text-black hover:bg-[#e3e3e3]"
+                  )}
+                >
+                  {STYLE_LABELS[key]}
+                </button>
+                {isActive && (
+                  <button
+                    onClick={() => saveStyleOverride(key)}
+                    title="Зберегти новий стиль — застосувати поточне форматування до всього тексту з цим стилем"
+                    className="shrink-0 rounded p-1.5 text-gray-500 hover:bg-[#e3e3e3] hover:text-black"
+                  >
+                    <Save size={13} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="mb-3 mt-6 text-[14px] font-medium text-black">Набір стилів</p>
+        <div className="space-y-2">
+          {LAYOUT_TEMPLATES.map((tpl) => (
             <button
-              key={key}
-              onClick={() => editor.chain().focus().updateAttributes("paragraph", { style: key }).run()}
+              key={tpl.id}
+              onClick={() => setSelectedLayout(tpl.id)}
               className={cn(
-                "block w-full rounded px-2.5 py-1.5 text-left text-[14px] transition-colors",
-                styleOfCurrentBlock === key ? "bg-gray-900 text-white" : "text-black hover:bg-[#e3e3e3]"
+                "block w-full rounded-md border bg-white p-2.5 text-left transition-colors",
+                selectedLayout === tpl.id ? "border-gray-900 ring-1 ring-gray-900" : "border-gray-200 hover:border-gray-400"
               )}
             >
-              {STYLE_LABELS[key]}
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase leading-tight text-black">{tpl.name}</p>
+                <span className="shrink-0 rounded-sm bg-gray-100 px-1 py-px text-[9px] text-gray-500">A5</span>
+              </div>
+              <p className="mt-1 text-[11px] leading-snug text-gray-500">{tpl.description}</p>
+              <div className="mt-2 flex gap-1.5">
+                <MiniPagePreview accent={tpl.accent} align={tpl.align} />
+                <MiniPagePreview accent={tpl.accent} align={tpl.align} />
+                <MiniPagePreview accent={tpl.accent} align={tpl.align} />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-3 mt-6 flex items-center justify-between">
+          <p className="text-[14px] font-medium text-black">Мої набори стилів</p>
+          <button
+            onClick={() => setShowSaveSetForm((v) => !v)}
+            title="Зберегти поточне форматування як особистий набір стилів"
+            className="rounded p-1 text-gray-500 hover:bg-[#e3e3e3] hover:text-black"
+          >
+            <Save size={13} />
+          </button>
+        </div>
+
+        {showSaveSetForm && (
+          <div className="mb-2 space-y-2 rounded-md border border-gray-300 bg-white p-2.5">
+            <input
+              value={newSetName}
+              onChange={(e) => setNewSetName(e.target.value)}
+              placeholder="Назва набору стилів"
+              className="w-full rounded border border-gray-200 px-2 py-1.5 text-[13px] outline-none focus:border-gray-900"
+            />
+            <textarea
+              value={newSetDescription}
+              onChange={(e) => setNewSetDescription(e.target.value)}
+              placeholder="Короткий опис (необов'язково)"
+              rows={2}
+              className="w-full resize-none rounded border border-gray-200 px-2 py-1.5 text-[13px] outline-none focus:border-gray-900"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={submitSaveStyleSet}
+                disabled={!newSetName.trim() || savingSet}
+                className="flex-1 rounded bg-gray-900 py-1.5 text-[13px] text-white disabled:opacity-40"
+              >
+                {savingSet ? "Збереження…" : "Зберегти"}
+              </button>
+              <button
+                onClick={() => setShowSaveSetForm(false)}
+                className="rounded border border-gray-200 px-3 py-1.5 text-[13px] text-black hover:bg-gray-50"
+              >
+                Скасувати
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {authorStyleSets.length === 0 && !showSaveSetForm && (
+            <p className="text-[12px] text-gray-400">
+              Тут з'являться ваші збережені набори стилів — доступні для будь-якої вашої книги.
+            </p>
+          )}
+          {authorStyleSets.map((set) => (
+            <button
+              key={set.id}
+              onClick={() => applyAuthorStyleSet(set)}
+              className="block w-full rounded-md border border-gray-200 bg-white p-2.5 text-left transition-colors hover:border-gray-400"
+            >
+              <p className="text-[11px] font-bold uppercase leading-tight text-black">{set.name}</p>
+              {set.description && <p className="mt-1 text-[11px] leading-snug text-gray-500">{set.description}</p>}
             </button>
           ))}
         </div>

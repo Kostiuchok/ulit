@@ -78,9 +78,22 @@ model User {
   books     Book[]
   orders    Order[]
   royalties Royalty[]
+  styleSets AuthorStyleSet[]
 
   @@index([slug])
   @@index([email])
+}
+
+model AuthorStyleSet {
+  id             String   @id @default(cuid())
+  authorId       String
+  author         User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  styleOverrides Json
+  createdAt      DateTime @default(now())
+
+  @@index([authorId])
 }
 
 model Book {
@@ -131,6 +144,7 @@ model Book {
   publicationTimeline  Json?
   manuscriptContent    Json?
   manuscriptImportedAt DateTime?
+  manuscriptStyleOverrides Json?
 
   orderItems      OrderItem[]
   royalties       Royalty[]

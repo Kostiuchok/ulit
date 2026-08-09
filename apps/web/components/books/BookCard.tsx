@@ -54,20 +54,20 @@ export function BookCard({ book, onDelete }: Props) {
             >
               {book.title}
             </Link>
-            <span className={cn("flex-shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium", status.className)}>
+            <span className={cn("flex-shrink-0 rounded-full px-2.5 py-0.5 text-sm font-medium", status.className)}>
               {status.label}
             </span>
           </div>
 
-          {book.genre && <p className="mt-0.5 text-xs text-gray-400">{book.genre}</p>}
+          {book.genre && <p className="mt-0.5 text-sm text-gray-400">{book.genre}</p>}
 
           {book.description && (
-            <p className="mt-1.5 text-sm text-gray-600 line-clamp-2">{book.description}</p>
+            <p className="mt-1.5 text-base text-gray-600 line-clamp-2">{book.description}</p>
           )}
         </div>
 
         <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-3 text-sm text-gray-500">
             {book.priceEbook && <span>Е-книга: {Number(book.priceEbook).toFixed(0)} грн</span>}
             {book.pricePrint && <span>Друк: {Number(book.pricePrint).toFixed(0)} грн</span>}
             {book.isbn && <span>ISBN: {book.isbn}</span>}
@@ -76,14 +76,14 @@ export function BookCard({ book, onDelete }: Props) {
           <div className="flex items-center gap-2">
             <Link
               href={`/dashboard/books/${book.id}`}
-              className="rounded-md px-3 py-1 text-xs font-medium border hover:bg-gray-50"
+              className="rounded-md px-3 py-1 text-sm font-medium border hover:bg-gray-50"
             >
               Редагувати
             </Link>
             {onDelete && book.status !== "PUBLISHED" && (
               <button
                 onClick={() => onDelete(book.id)}
-                className="rounded-md px-3 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50"
+                className="rounded-md px-3 py-1 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50"
               >
                 Видалити
               </button>

@@ -5,8 +5,9 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { bookQueue } from "../../lib/queue";
 
-const contentSchema = z.object({
-  content: z.any(),
+const patchSchema = z.object({
+  content: z.any().optional(),
+  styleOverrides: z.any().optional(),
 });
 
 export async function bookManuscriptRoutes(app: FastifyInstance) {
@@ -23,6 +24,7 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
           originalDocxUrl: true,
           manuscriptImportedAt: true,
           manuscriptContent: true,
+          manuscriptStyleOverrides: true,
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -47,7 +49,11 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
         return reply.send({ status: "PROCESSING" });
       }
 
-      return reply.send({ status: "DONE", content: book.manuscriptContent });
+      return reply.send({
+        status: "DONE",
+        content: book.manuscriptContent,
+        styleOverrides: book.manuscriptStyleOverrides ?? {},
+      });
     }
   );
 
@@ -61,16 +67,16 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
       if (!book) throw AppError.notFound("Book");
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
 
-      const result = contentSchema.safeParse(request.body);
+      const result = patchSchema.safeParse(request.body);
       if (!result.success) {
         return reply.status(400).send({ error: result.error.errors[0].message });
       }
 
-      await prisma.book.update({
-        where: { id },
-        data: { manuscriptContent: result.data.content },
-        select: { id: true },
-      });
+      const data: Record<string, unknown> = {};
+      if (result.data.content !== undefined) data.manuscriptContent = result.data.content;
+      if (result.data.styleOverrides !== undefined) data.manuscriptStyleOverrides = result.data.styleOverrides;
+
+      await prisma.book.update({ where: { id }, data, select: { id: true } });
 
       return reply.send({ ok: true });
     }
