@@ -236,10 +236,6 @@ export function AuthorBooksSidebar() {
 
                 {isExpanded && (
                   <nav className="bg-[#f3f3f3] py-1">
-                    {TOP_ITEMS.map((item) => (
-                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
-                    ))}
-
                     <GroupLabel label="Редагувати книгу" expanded={editOpen} onClick={() => setEditOpen((v) => !v)} />
                     {editOpen && EDIT_GROUP.map((item) => (
                       <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
@@ -247,6 +243,10 @@ export function AuthorBooksSidebar() {
 
                     <GroupLabel label="Ваша книга у магазинах" expanded={storeOpen} onClick={() => setStoreOpen((v) => !v)} />
                     {storeOpen && STORE_GROUP.map((item) => (
+                      <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
+                    ))}
+
+                    {TOP_ITEMS.map((item) => (
                       <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
                     ))}
                   </nav>
