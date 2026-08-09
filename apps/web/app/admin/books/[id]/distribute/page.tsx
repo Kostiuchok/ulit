@@ -54,6 +54,56 @@ const STATUS_COLORS: Record<string, string> = {
   ERROR: "bg-red-100 text-red-700",
 };
 
+const ACCENT = "#50a406";
+
+function fmtDate(date: string) {
+  return new Date(date).toLocaleDateString("uk-UA");
+}
+
+function TimelineRow({
+  done,
+  active,
+  label,
+  right,
+  children,
+}: {
+  done: boolean;
+  active?: boolean;
+  label: React.ReactNode;
+  right?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <div className="absolute left-[9px] top-5 bottom-0 w-px" style={{ backgroundColor: done ? ACCENT : "#e5e5e5" }} />
+      <div className="relative flex items-start gap-3 pb-4">
+        <div
+          className="relative z-10 mt-0.5 flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-bold"
+          style={
+            done
+              ? { backgroundColor: ACCENT, color: "#fff" }
+              : active
+              ? { backgroundColor: "#fff", border: "2px solid #111" }
+              : { backgroundColor: "#fff", border: "1px solid #d4d4d4", color: "#c4c4c4" }
+          }
+        >
+          {done ? "✓" : ""}
+        </div>
+        <div className="flex-1 min-w-0 flex items-center justify-between gap-3 flex-wrap pt-0.5">
+          <span
+            className={`text-sm ${done ? "font-bold" : active ? "font-bold text-black" : "text-gray-400"}`}
+            style={done ? { color: ACCENT } : undefined}
+          >
+            {label}
+          </span>
+          {right}
+        </div>
+      </div>
+      {children && <div className="ml-7 -mt-2 pb-5">{children}</div>}
+    </div>
+  );
+}
+
 // ─── Platform requirements ────────────────────────────────────────────────────
 
 type CheckResult = "pass" | "fail" | "warn";
@@ -252,6 +302,52 @@ function PlatformSection({
   );
 }
 
+function ServiceRow({
+  name,
+  subtitle,
+  status,
+  sentAt,
+  saving,
+  onChange,
+}: {
+  name: string;
+  subtitle: string;
+  status: string;
+  sentAt?: string | null;
+  saving: boolean;
+  onChange: (status: string) => void;
+}) {
+  const ok = status === "SENT" || status === "PUBLISHED";
+  return (
+    <div className="py-2.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span style={ok ? { color: ACCENT } : undefined} className={!ok ? "text-gray-300" : undefined}>
+          {ok ? "✓" : status === "ERROR" ? "✕" : "○"}
+        </span>
+        <span className="text-sm font-medium text-gray-800">{name}</span>
+        <span className="text-xs text-gray-400">{subtitle}</span>
+        <span className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-medium ${STATUS_COLORS[status]}`}>{status}</span>
+        {sentAt && <span className="text-xs text-gray-400">/ {fmtDate(sentAt)}</span>}
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {STATUS_OPTS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onChange(s)}
+            disabled={saving || status === s}
+            className={`rounded-md px-2.5 py-1 text-[0.6875rem] font-medium transition-colors disabled:opacity-50 ${
+              status === s ? "bg-gray-900 text-white" : "border hover:bg-gray-50"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function DistributePage() {
@@ -358,6 +454,9 @@ export default function DistributePage() {
     setRejectReason(buildRejectionText(platforms));
   }
 
+  const doneFlags = [true, ...TIMELINE_STEPS.map((s) => !!book.publicationTimeline?.[s.key])];
+  const firstPendingIdx = doneFlags.findIndex((d) => !d);
+
   return (
     <div className="max-w-3xl space-y-6">
       {/* Breadcrumb */}
@@ -454,25 +553,30 @@ export default function DistributePage() {
         </div>
       )}
 
-      {/* ── Publication / contract timeline (T-1932) ──────────────────────────── */}
-      <div className="rounded-xl border bg-white p-5 shadow-sm space-y-1">
-        <h2 className="text-base font-semibold text-gray-900 mb-3">Статус публікації та договору</h2>
-        <p className="text-xs text-gray-400 mb-3">
+      {/* ── Publication / contract / distribution timeline ────────────────────── */}
+      <div className="rounded-xl border bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900 mb-1">Публікація та договір</h2>
+        <p className="text-xs text-gray-400 mb-4">
           Дата кожного кроку — вручну. Порожньо = крок ще не пройдено. Автор бачить цей таймлайн на сторінці книги.
         </p>
-        <div className="divide-y">
-          <div className="flex items-center justify-between py-2.5">
-            <span className="text-sm text-gray-500">Книга створена</span>
-            <span className="text-xs font-mono text-gray-400">
-              {new Date(book.createdAt).toLocaleDateString("uk-UA")}
-            </span>
-          </div>
-          {TIMELINE_STEPS.map((step) => {
-            const value = book.publicationTimeline?.[step.key];
-            const dateValue = value ? value.slice(0, 10) : "";
-            return (
-              <div key={step.key} className="flex items-center justify-between py-2.5 gap-3">
-                <span className="text-sm text-gray-700">{step.label}</span>
+
+        <TimelineRow
+          done
+          label="Книга створена"
+          right={<span className="text-xs font-mono text-gray-400">{fmtDate(book.createdAt)}</span>}
+        />
+
+        {TIMELINE_STEPS.map((step, i) => {
+          const value = book.publicationTimeline?.[step.key];
+          const dateValue = value ? value.slice(0, 10) : "";
+          const done = !!value;
+          return (
+            <TimelineRow
+              key={step.key}
+              done={done}
+              active={firstPendingIdx === i + 1}
+              label={step.label}
+              right={
                 <div className="flex items-center gap-2 shrink-0">
                   <input
                     type="date"
@@ -492,109 +596,49 @@ export default function DistributePage() {
                     </button>
                   )}
                 </div>
-              </div>
-            );
-          })}
-          <div className="flex items-center justify-between py-2.5">
-            <span className="text-sm text-gray-500">Публікація у магазинах</span>
-            <span className="text-xs font-mono text-gray-400">
-              {book.isbn ? `ISBN: ${book.isbn}` : "очікує ISBN"}
-            </span>
-          </div>
-        </div>
-      </div>
+              }
+            />
+          );
+        })}
 
-      {/* ── Distribution services ─────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <h2 className="text-base font-semibold text-gray-900">Статус дистрибуції</h2>
-
-        {/* D2D */}
-        {!isKdpSelect && (
-          <div className="rounded-xl border bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Draft2Digital (D2D)</h3>
-                <p className="text-xs text-gray-500">Apple Books, B&N, Kobo, Scribd та інші</p>
-              </div>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[d2d]}`}>{d2d}</span>
-            </div>
-            {book.d2dSentAt && (
-              <p className="text-xs text-gray-400 mb-3">Відправлено: {new Date(book.d2dSentAt).toLocaleString("uk-UA")}</p>
+        <TimelineRow
+          done={!!book.isbn}
+          active={firstPendingIdx === TIMELINE_STEPS.length + 1}
+          label={book.isbn ? `Публікація у магазинах / ISBN: ${book.isbn}` : "Публікація у магазинах"}
+          right={!book.isbn && <span className="text-xs text-gray-400">очікує ISBN</span>}
+        >
+          <p className="mb-2 text-xs font-semibold text-gray-500">Розсилка файлів на зовнішні платформи</p>
+          <div className="divide-y">
+            {!isKdpSelect && (
+              <ServiceRow
+                name="Draft2Digital"
+                subtitle="Apple Books, B&N, Kobo, Scribd"
+                status={d2d}
+                sentAt={book.d2dSentAt}
+                saving={saving === "d2d"}
+                onChange={(s) => saveService("d2d", s)}
+              />
             )}
-            <div className="flex gap-2 flex-wrap">
-              {STATUS_OPTS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => saveService("d2d", s)}
-                  disabled={saving === "d2d" || d2d === s}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                    d2d === s ? "bg-gray-900 text-white" : "border hover:bg-gray-50"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* KDP */}
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">Amazon KDP</h3>
-              <p className="text-xs text-gray-500">Kindle Direct Publishing</p>
-            </div>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[kdp]}`}>{kdp}</span>
-          </div>
-          {book.kdpSentAt && (
-            <p className="text-xs text-gray-400 mb-3">Відправлено: {new Date(book.kdpSentAt).toLocaleString("uk-UA")}</p>
-          )}
-          <div className="flex gap-2 flex-wrap">
-            {STATUS_OPTS.map((s) => (
-              <button
-                key={s}
-                onClick={() => saveService("kdp", s)}
-                disabled={saving === "kdp" || kdp === s}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                  kdp === s ? "bg-gray-900 text-white" : "border hover:bg-gray-50"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Google */}
-        {!isKdpSelect && (
-          <div className="rounded-xl border bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Google Play Books</h3>
-                <p className="text-xs text-gray-500">Google Books Partner Program</p>
-              </div>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[google]}`}>{google}</span>
-            </div>
-            {book.googleSentAt && (
-              <p className="text-xs text-gray-400 mb-3">Відправлено: {new Date(book.googleSentAt).toLocaleString("uk-UA")}</p>
+            <ServiceRow
+              name="Amazon KDP"
+              subtitle="Kindle Direct Publishing"
+              status={kdp}
+              sentAt={book.kdpSentAt}
+              saving={saving === "kdp"}
+              onChange={(s) => saveService("kdp", s)}
+            />
+            {!isKdpSelect && (
+              <ServiceRow
+                name="Google Play Books"
+                subtitle="Google Books Partner Program"
+                status={google}
+                sentAt={book.googleSentAt}
+                saving={saving === "google"}
+                onChange={(s) => saveService("google", s)}
+              />
             )}
-            <div className="flex gap-2 flex-wrap">
-              {STATUS_OPTS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => saveService("google", s)}
-                  disabled={saving === "google" || google === s}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                    google === s ? "bg-gray-900 text-white" : "border hover:bg-gray-50"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
           </div>
-        )}
+        </TimelineRow>
       </div>
     </div>
   );

@@ -80,6 +80,104 @@ function Checklist({ book }: { book: Book }) {
   );
 }
 
+function BookRow({
+  book,
+  rejected,
+  actionLoading,
+  onApprove,
+  onRejectClick,
+  onFilesClick,
+}: {
+  book: Book;
+  rejected: boolean;
+  actionLoading: string | null;
+  onApprove: (id: string) => void;
+  onRejectClick: (id: string) => void;
+  onFilesClick: (book: Book) => void;
+}) {
+  return (
+    <tr className={`transition-colors ${rejected ? "bg-gray-50 text-gray-400 grayscale" : "hover:bg-gray-50"}`}>
+      <td className="px-4 py-3">
+        <div className="flex items-start gap-3">
+          {book.coverUrl ? (
+            <img src={book.coverUrl} alt="" className="h-12 w-8 rounded object-cover shrink-0" />
+          ) : (
+            <div className="h-12 w-8 rounded bg-gray-100 flex items-center justify-center text-lg shrink-0">📖</div>
+          )}
+          <div className="min-w-0">
+            <p className={`font-medium truncate max-w-xs ${rejected ? "text-gray-500" : "text-gray-900"}`}>{book.title}</p>
+            <p className="text-xs text-gray-400">{book.author.name}</p>
+            {book.isbn && <p className="text-xs font-mono text-gray-400">{book.isbn}</p>}
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="space-y-1">
+          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${rejected ? "bg-gray-200 text-gray-500" : STATUS_COLORS[book.status] ?? "bg-gray-100 text-gray-600"}`}>
+            {book.status}
+          </span>
+          <br />
+          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${rejected ? "bg-gray-200 text-gray-500" : MOD_COLORS[book.moderationStatus] ?? "bg-gray-100 text-gray-600"}`}>
+            {book.moderationStatus}
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <Checklist book={book} />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex gap-2 text-xs font-medium">
+          <span className={rejected ? "text-gray-400" : EXT_COLORS[book.d2dStatus]} title="D2D">
+            {EXT_ICONS[book.d2dStatus]} D2D
+          </span>
+          <span className={rejected ? "text-gray-400" : EXT_COLORS[book.kdpStatus]} title="KDP">
+            {EXT_ICONS[book.kdpStatus]} KDP
+          </span>
+          <span className={rejected ? "text-gray-400" : EXT_COLORS[book.googleStatus]} title="Google">
+            {EXT_ICONS[book.googleStatus]} G
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          {(book.status === "REVIEW" || book.moderationStatus === "PENDING") && (
+            <button
+              onClick={() => onApprove(book.id)}
+              disabled={actionLoading === book.id + "_approve"}
+              className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              ✓ Схвалити
+            </button>
+          )}
+          {book.status !== "DRAFT" && (
+            <button
+              onClick={() => onRejectClick(book.id)}
+              className="rounded-md bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+            >
+              ✕ Відхилити
+            </button>
+          )}
+          {book.status === "PUBLISHED" && (
+            <Link
+              href={`/admin/books/${book.id}/distribute`}
+              className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+            >
+              📦 Розіслати
+            </Link>
+          )}
+          <button
+            onClick={() => onFilesClick(book)}
+            className="rounded-md border px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50"
+            title="Завантажити файли"
+          >
+            📁 Файли
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 function safeFilename(title: string) {
   return title.replace(/[\\/:*?"<>|]/g, "_").trim().slice(0, 80);
 }
@@ -97,6 +195,9 @@ export default function AdminBooksPage() {
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "");
   const [modFilter, setModFilter] = useState(searchParams.get("mod") ?? "");
   const [search, setSearch] = useState("");
+
+  const activeBooks = books.filter((b) => b.moderationStatus !== "REJECTED");
+  const rejectedBooks = books.filter((b) => b.moderationStatus === "REJECTED");
 
   const fetchBooks = useCallback(async () => {
     if (!token) return;
@@ -243,86 +344,37 @@ export default function AdminBooksPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {books.map((book) => (
-                  <tr key={book.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-start gap-3">
-                        {book.coverUrl ? (
-                          <img src={book.coverUrl} alt="" className="h-12 w-8 rounded object-cover shrink-0" />
-                        ) : (
-                          <div className="h-12 w-8 rounded bg-gray-100 flex items-center justify-center text-lg shrink-0">📖</div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="font-medium text-gray-900 truncate max-w-xs">{book.title}</p>
-                          <p className="text-xs text-gray-500">{book.author.name}</p>
-                          {book.isbn && <p className="text-xs font-mono text-gray-400">{book.isbn}</p>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="space-y-1">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[book.status] ?? "bg-gray-100 text-gray-600"}`}>
-                          {book.status}
-                        </span>
-                        <br />
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${MOD_COLORS[book.moderationStatus] ?? "bg-gray-100 text-gray-600"}`}>
-                          {book.moderationStatus}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Checklist book={book} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2 text-xs font-medium">
-                        <span className={EXT_COLORS[book.d2dStatus]} title="D2D">
-                          {EXT_ICONS[book.d2dStatus]} D2D
-                        </span>
-                        <span className={EXT_COLORS[book.kdpStatus]} title="KDP">
-                          {EXT_ICONS[book.kdpStatus]} KDP
-                        </span>
-                        <span className={EXT_COLORS[book.googleStatus]} title="Google">
-                          {EXT_ICONS[book.googleStatus]} G
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2 flex-wrap">
-                        {(book.status === "REVIEW" || book.moderationStatus === "PENDING") && (
-                          <button
-                            onClick={() => handleApprove(book.id)}
-                            disabled={actionLoading === book.id + "_approve"}
-                            className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                          >
-                            ✓ Схвалити
-                          </button>
-                        )}
-                        {book.status !== "DRAFT" && (
-                          <button
-                            onClick={() => setRejectId(book.id)}
-                            className="rounded-md bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
-                          >
-                            ✕ Відхилити
-                          </button>
-                        )}
-                        {book.status === "PUBLISHED" && (
-                          <Link
-                            href={`/admin/books/${book.id}/distribute`}
-                            className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                          >
-                            📦 Розіслати
-                          </Link>
-                        )}
-                        <button
-                          onClick={() => setFilesBook(book)}
-                          className="rounded-md border px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                          title="Завантажити файли"
-                        >
-                          📁 Файли
-                        </button>
+                {activeBooks.map((book) => (
+                  <BookRow
+                    key={book.id}
+                    book={book}
+                    rejected={false}
+                    actionLoading={actionLoading}
+                    onApprove={handleApprove}
+                    onRejectClick={setRejectId}
+                    onFilesClick={setFilesBook}
+                  />
+                ))}
+                {rejectedBooks.length > 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Відхилені</span>
+                        <div className="h-px flex-1 bg-gray-200" />
                       </div>
                     </td>
                   </tr>
+                )}
+                {rejectedBooks.map((book) => (
+                  <BookRow
+                    key={book.id}
+                    book={book}
+                    rejected
+                    actionLoading={actionLoading}
+                    onApprove={handleApprove}
+                    onRejectClick={setRejectId}
+                    onFilesClick={setFilesBook}
+                  />
                 ))}
               </tbody>
             </table>
