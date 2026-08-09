@@ -118,8 +118,10 @@ export default function AdminBooksPage() {
   async function handleApprove(id: string) {
     setActionLoading(id + "_approve");
     try {
-      await apiFetch(`/api/admin/books/${id}/approve`, { method: "PATCH" });
+      await apiFetch(`/api/admin/books/${id}/approve`, { method: "PATCH", body: JSON.stringify({}) });
       await fetchBooks();
+    } catch (e: any) {
+      alert(`Помилка схвалення: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -135,6 +137,8 @@ export default function AdminBooksPage() {
       setRejectId(null);
       setRejectReason("");
       await fetchBooks();
+    } catch (e: any) {
+      alert(`Помилка відхилення: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
