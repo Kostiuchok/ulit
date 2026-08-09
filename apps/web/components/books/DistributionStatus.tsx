@@ -175,6 +175,10 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
         </div>
       )}
 
+      {/* Post-publish per-channel status now lives in PublicationTimeline's
+          "Дата оновлення статистики продажів на зовнішніх майданчиках" block —
+          only preview the pre-publish selection/blocked state here. */}
+      {!isPublished && (
       <div className="mt-3 space-y-1">
         {(Object.entries(info.services) as [keyof typeof SERVICE_LABELS, ServiceInfo][]).map(([key, svc]) => {
           const cfg = getStatusConfig(svc.status, isPublished);
@@ -200,6 +204,7 @@ export function DistributionStatus({ bookId, bookStatus }: Props) {
           );
         })}
       </div>
+      )}
 
       {isPublished && (
         <div className="mt-4">

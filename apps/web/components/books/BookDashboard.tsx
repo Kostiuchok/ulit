@@ -2,7 +2,6 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { StepRow } from "@/components/books/StepRow";
 import { DistributionStatus } from "@/components/books/DistributionStatus";
 import { PublicationTimeline } from "@/components/books/PublicationTimeline";
 import { PublishButton } from "@/components/books/PublishButton";
@@ -48,11 +47,7 @@ export function BookDashboard() {
     );
   }
 
-  const hasManuscript = !!book?.originalDocxUrl;
-  const hasConversion = !!book?.pdfUrl;
-  const hasCover = !!book?.coverUrl;
   const isProcessing = book?.status === "PROCESSING";
-  const canPublish = hasManuscript && hasConversion && hasCover && !isProcessing;
   const isPublished = book?.status === "PUBLISHED";
 
   return (
@@ -148,6 +143,7 @@ export function BookDashboard() {
                   priceEbook: book.priceEbook,
                   pricePrint: book.pricePrint,
                   pricePrintHardcover: book.pricePrintHardcover,
+                  coverUrl: book.coverUrl,
                 }}
               />
             )}
@@ -156,31 +152,6 @@ export function BookDashboard() {
 
             {!isPublished && (
               <div className="rounded-xl border bg-white p-6 shadow-sm">
-                {!canPublish && (
-                  <div className="mb-5 space-y-0 divide-y rounded-lg border bg-gray-50 px-4">
-                    <StepRow
-                      num={1}
-                      done={hasManuscript}
-                      label="Завантажено рукопис (.docx)"
-                      hint="Перетягніть .docx файл у розділ «Рукопис»"
-                      action={{ label: "Рукопис", href: `/dashboard/books/${id}/manuscript` }}
-                    />
-                    <StepRow
-                      num={2}
-                      done={hasConversion}
-                      label="Конвертацію завершено"
-                      hint={isProcessing ? "Зачекайте завершення конвертації…" : "Буде автоматично після завантаження"}
-                    />
-                    <StepRow
-                      num={3}
-                      done={hasCover}
-                      label="Додано обкладинку"
-                      hint="Обкладинка потрібна для публікації в магазині"
-                      action={{ label: "Редагувати", href: `/dashboard/books/${id}/cover` }}
-                    />
-                  </div>
-                )}
-
                 {isProcessing ? (
                   <div className="flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
                     <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-500" />

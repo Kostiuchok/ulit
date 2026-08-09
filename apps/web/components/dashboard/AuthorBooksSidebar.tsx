@@ -14,7 +14,7 @@ import {
   Percent,
   Trash2,
   Info,
-  ChevronDown,
+  Plus,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { BOOK_STATUS_LABELS } from "@/lib/bookStatus";
@@ -34,13 +34,13 @@ type SubNavItem =
   | { label: string; icon?: React.ReactNode; action: "delete"; disabled?: false };
 
 const TOP_ITEMS: SubNavItem[] = [
-  { label: "Замовити тираж", icon: <Package size={14} />, disabled: true },
-  { label: "Обговорення книги", icon: <MessageSquare size={14} />, disabled: true },
   {
     label: "Завантажити файли",
     icon: <Download size={14} />,
     href: (id) => `/dashboard/books/${id}/published`,
   },
+  { label: "Замовити тираж", icon: <Package size={14} />, disabled: true },
+  { label: "Обговорення книги", icon: <MessageSquare size={14} />, disabled: true },
 ];
 
 const EDIT_GROUP: SubNavItem[] = [
@@ -121,12 +121,20 @@ function NavRow({
   );
 }
 
-function GroupLabel({ label }: { label: string }) {
+function GroupLabel({ label, expanded, onClick }: { label: string; expanded: boolean; onClick: () => void }) {
   return (
-    <div className="flex h-[32px] items-center gap-1 px-8 text-[0.875rem] text-black">
-      <ChevronDown size={12} className="shrink-0 text-gray-500" />
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-[32px] w-full items-center gap-1 px-8 text-left text-[0.875rem] text-black"
+    >
+      <img
+        src="/figma/chevron-collapse.svg"
+        alt=""
+        className={cn("h-2 w-3 shrink-0 transition-transform", expanded ? "rotate-180" : "rotate-90")}
+      />
       {label}
-    </div>
+    </button>
   );
 }
 
@@ -140,6 +148,8 @@ export function AuthorBooksSidebar() {
   const [error, setError] = useState<string | null>(null);
   const [expandedBookId, setExpandedBookId] = useState<string | null>(routeId ?? null);
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(true);
+  const [storeOpen, setStoreOpen] = useState(true);
 
   function load() {
     if (!token) return;
@@ -160,7 +170,18 @@ export function AuthorBooksSidebar() {
   }, [routeId]);
 
   return (
-    <aside className="w-[280px] shrink-0 border-r border-gray-200 bg-white sticky top-0 h-screen overflow-y-auto">
+    <aside className="flex h-screen w-[280px] shrink-0 flex-col border-r border-gray-200 bg-white sticky top-0">
+      <div className="shrink-0 border-b border-gray-200 p-4">
+        <Link
+          href="/dashboard/books/new"
+          className="flex h-[36px] items-center justify-center gap-1.5 rounded-md bg-[#50a406] text-[0.875rem] font-medium text-white hover:bg-[#458c05]"
+        >
+          <Plus size={14} />
+          Створити нову книжку
+        </Link>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
       {loading ? (
         <div className="p-4 space-y-3">
           {[1, 2, 3].map((i) => (
@@ -219,13 +240,13 @@ export function AuthorBooksSidebar() {
                       <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
                     ))}
 
-                    <GroupLabel label="Редагувати книгу" />
-                    {EDIT_GROUP.map((item) => (
+                    <GroupLabel label="Редагувати книгу" expanded={editOpen} onClick={() => setEditOpen((v) => !v)} />
+                    {editOpen && EDIT_GROUP.map((item) => (
                       <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
                     ))}
 
-                    <GroupLabel label="Ваша книга у магазинах" />
-                    {STORE_GROUP.map((item) => (
+                    <GroupLabel label="Ваша книга у магазинах" expanded={storeOpen} onClick={() => setStoreOpen((v) => !v)} />
+                    {storeOpen && STORE_GROUP.map((item) => (
                       <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
                     ))}
                   </nav>
@@ -235,6 +256,7 @@ export function AuthorBooksSidebar() {
           })}
         </div>
       )}
+      </div>
 
       {deleteBookId && (
         <DeleteBookModal

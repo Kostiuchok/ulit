@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { cn } from "../../lib/utils";
+import { BOOK_STATUS_LABELS } from "../../lib/bookStatus";
 
 const STEPS = [
   { key: "submitted", label: "Надішліть книгу на публікацію" },
@@ -34,6 +36,7 @@ interface CreationInfo {
   priceEbook?: string | number | null;
   pricePrint?: string | number | null;
   pricePrintHardcover?: string | number | null;
+  coverUrl?: string | null;
 }
 
 interface Props {
@@ -60,6 +63,7 @@ function Row({
   date,
   tooltip,
   isLast,
+  toggle,
 }: {
   done: boolean;
   active?: boolean;
@@ -67,6 +71,7 @@ function Row({
   date?: string | null;
   tooltip?: string;
   isLast?: boolean;
+  toggle?: { expanded: boolean; onClick: () => void };
 }) {
   return (
     <div className="relative flex items-start gap-3 pb-5">
@@ -91,6 +96,15 @@ function Row({
             {label}
           </span>
           {date && <span className="text-sm text-gray-500 shrink-0">/ {fmt(date)}</span>}
+          {toggle && (
+            <button type="button" onClick={toggle.onClick} title={toggle.expanded ? "Згорнути" : "Розгорнути"}>
+              <img
+                src="/figma/chevron-collapse.svg"
+                alt=""
+                className={cn("h-2.5 w-3.5 transition-transform", toggle.expanded ? "rotate-180" : "rotate-90")}
+              />
+            </button>
+          )}
         </div>
         {tooltip && active && (
           <div className="relative mt-2 inline-flex max-w-xs items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
@@ -142,10 +156,12 @@ export function PublicationTimeline({
   google,
   creation,
 }: Props) {
+  const [creationExpanded, setCreationExpanded] = useState(true);
   const hasBasicInfo = !!(creation.title && creation.genre);
   const hasManuscript = !!creation.originalDocxUrl;
   const manuscriptDate = creation.manuscriptEditedAt ?? creation.manuscriptImportedAt;
   const hasPrice = !!(creation.priceEbook || creation.pricePrint || creation.pricePrintHardcover);
+  const hasCover = !!creation.coverUrl;
   const hasDistribution = distributionChannels.length > 0;
   const isSubmitted = bookStatus !== "DRAFT" && bookStatus !== "PROCESSING";
   const publishedDone = bookStatus === "PUBLISHED" && !!isbn;
@@ -154,33 +170,48 @@ export function PublicationTimeline({
 
   const channelByKey: Record<string, ChannelStatus> = { D2D: d2d, KDP: kdp, GOOGLE: google };
 
+  const statusLabel = BOOK_STATUS_LABELS[bookStatus]?.label ?? bookStatus;
+
   return (
     <div>
-      <Row done label="Книга створена" date={createdAt} />
-      <div className="ml-7 mb-4 -mt-3 space-y-1.5">
-        <CreationSubItem
-          done={hasBasicInfo}
-          label="Основна інформація про книгу"
-          href={`/dashboard/books/${bookId}/output-data`}
-        />
-        <CreationSubItem
-          done={hasManuscript}
-          label="Завантажити рукопис"
-          href={`/dashboard/books/${bookId}/manuscript`}
-          date={hasManuscript ? manuscriptDate : undefined}
-        />
-        <CreationSubItem
-          done={hasPrice}
-          label="Ціна"
-          href={`/dashboard/books/${bookId}/output-data`}
-        />
-        <CreationSubItem
-          done={hasDistribution}
-          label="Платформи розповсюдження"
-          href={`/dashboard/books/${bookId}/output-data`}
-        />
-        <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
-      </div>
+      <p className="mb-4 text-sm font-bold uppercase text-black">Статус книжки: {statusLabel}</p>
+      <Row
+        done
+        label="Книга створена"
+        date={createdAt}
+        toggle={{ expanded: creationExpanded, onClick: () => setCreationExpanded((v) => !v) }}
+      />
+      {creationExpanded && (
+        <div className="ml-7 mb-4 -mt-3 space-y-1.5">
+          <CreationSubItem
+            done={hasBasicInfo}
+            label="Основна інформація про книгу"
+            href={`/dashboard/books/${bookId}/output-data`}
+          />
+          <CreationSubItem
+            done={hasManuscript}
+            label="Завантажити рукопис"
+            href={`/dashboard/books/${bookId}/manuscript`}
+            date={hasManuscript ? manuscriptDate : undefined}
+          />
+          <CreationSubItem
+            done={hasPrice}
+            label="Ціна"
+            href={`/dashboard/books/${bookId}/output-data`}
+          />
+          <CreationSubItem
+            done={hasCover}
+            label="Додано обкладинку"
+            href={`/dashboard/books/${bookId}/cover`}
+          />
+          <CreationSubItem
+            done={hasDistribution}
+            label="Платформи розповсюдження"
+            href={`/dashboard/books/${bookId}/output-data`}
+          />
+          <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
+        </div>
+      )}
       {STEPS.map((step, i) => (
         <Row
           key={step.key}

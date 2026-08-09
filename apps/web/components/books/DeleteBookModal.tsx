@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 
@@ -14,6 +15,11 @@ export function DeleteBookModal({ bookId, onClose, onDeleted }: Props) {
   const { apiFetch } = useApi();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   async function confirmDelete() {
     setDeleting(true);
@@ -27,7 +33,9 @@ export function DeleteBookModal({ bookId, onClose, onDeleted }: Props) {
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
         <button
@@ -62,6 +70,7 @@ export function DeleteBookModal({ bookId, onClose, onDeleted }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
