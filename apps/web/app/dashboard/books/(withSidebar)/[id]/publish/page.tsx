@@ -58,14 +58,14 @@ export default function PublishPage() {
             <div className="flex flex-wrap gap-2.5">
               <Link
                 href={`/dashboard/books/${id}/output-data`}
-                className="rounded-md border border-black px-4 py-2 text-xs text-black hover:bg-gray-50"
+                className="rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50"
               >
                 Редагувати
               </Link>
               <button
                 disabled
                 title="Скоро — повторна публікація змін"
-                className="rounded-md border border-gray-300 px-4 py-2 text-xs text-gray-300 cursor-not-allowed"
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-300 cursor-not-allowed"
               >
                 Опублікувати із змінами
               </button>
@@ -73,7 +73,7 @@ export default function PublishPage() {
                 href={`/books/${book.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-md border border-black px-4 py-2 text-xs text-black hover:bg-gray-50"
+                className="rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50"
               >
                 Сайт книги
               </a>
@@ -88,13 +88,13 @@ export default function PublishPage() {
 
             {(book?.priceEbook || book?.pricePrint) && (
               <div className="rounded-md border bg-white p-4 shadow-sm space-y-3">
-                <div className="space-y-1 text-xs text-black">
+                <div className="space-y-1 text-sm text-black">
                   {book?.pricePrint && <p>Друкована &nbsp;- {Number(book.pricePrint).toFixed(0)} грн</p>}
                   {book?.priceEbook && <p>Електронна - {Number(book.priceEbook).toFixed(0)} грн</p>}
                 </div>
                 <Link
                   href={`/dashboard/books/${id}/output-data`}
-                  className="block w-full rounded-md border border-black py-2 text-center text-xs text-black hover:bg-gray-50"
+                  className="block w-full rounded-md border border-black py-2 text-center text-sm text-black hover:bg-gray-50"
                 >
                   Змінити ціну
                 </Link>

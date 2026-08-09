@@ -63,7 +63,7 @@ function Row({
         />
       )}
       <div
-        className={cn("relative z-10 mt-0.5 flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold")}
+        className={cn("relative z-10 mt-0.5 flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-bold")}
         style={done ? { color: ACCENT } : active ? { border: "2px solid #111" } : { border: "1px solid #d4d4d4", color: "#c4c4c4" }}
       >
         {done ? "✓" : ""}
@@ -71,15 +71,15 @@ function Row({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span
-            className={cn("text-xs", done ? "font-bold" : active ? "font-bold text-black" : "text-gray-400")}
+            className={cn("text-sm", done ? "font-bold" : active ? "font-bold text-black" : "text-gray-400")}
             style={done ? { color: ACCENT } : undefined}
           >
             {label}
           </span>
-          {date && <span className="text-xs text-gray-500 shrink-0">/ {fmt(date)}</span>}
+          {date && <span className="text-sm text-gray-500 shrink-0">/ {fmt(date)}</span>}
         </div>
         {tooltip && active && (
-          <div className="relative mt-2 inline-flex max-w-xs items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[11px] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
+          <div className="relative mt-2 inline-flex max-w-xs items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[13px] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
             <span>📖</span>
             <span>
               Ми надамо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і відправимо до книжкової палати України
@@ -129,12 +129,12 @@ export function PublicationTimeline({
 
       {publishedDone && (
         <div className="ml-7 mt-1 space-y-1.5">
-          <p className="text-xs font-bold text-black">Дата оновлення статистики продажів на зовнішніх майданчиках</p>
+          <p className="text-sm font-bold text-black">Дата оновлення статистики продажів на зовнішніх майданчиках</p>
           {CHANNELS.filter((c) => distributionChannels.includes(c.key)).map((c) => {
             const st = channelByKey[c.key];
             const ok = st.status === "SENT" || st.status === "PUBLISHED";
             return (
-              <div key={c.key} className="flex items-center gap-1.5 text-xs">
+              <div key={c.key} className="flex items-center gap-1.5 text-sm">
                 <span style={ok ? { color: ACCENT } : undefined} className={!ok ? "text-gray-300" : undefined}>
                   {ok ? "✓" : "✕"}
                 </span>

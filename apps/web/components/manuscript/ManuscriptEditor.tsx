@@ -144,14 +144,14 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
     <div className="flex h-full">
       {/* Left — outline */}
       <aside className="w-[260px] shrink-0 overflow-y-auto border-r border-gray-200 bg-[#f3f3f3]">
-        <div className="flex items-center gap-2 px-4 py-3 text-[12px] font-medium text-black border-b border-gray-300">
+        <div className="flex items-center gap-2 px-4 py-3 text-[14px] font-medium text-black border-b border-gray-300">
           <ChevronRight size={12} className="text-gray-500" />
           Рукопис
         </div>
-        <p className="px-4 pt-3 pb-2 text-[14px] font-bold text-black">Зміст</p>
+        <p className="px-4 pt-3 pb-2 text-[15px] font-bold text-black">Зміст</p>
         <nav className="pb-4">
           {outline.length === 0 && (
-            <p className="px-4 text-[12px] text-gray-400">
+            <p className="px-4 text-[13px] text-gray-400">
               Позначте розділ/главу/заголовок через панель "Стилі тексту" праворуч — вони з'являться тут.
             </p>
           )}
@@ -160,7 +160,7 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
               key={item.id}
               onClick={() => scrollToBlock(item.id)}
               style={{ paddingLeft: `${16 + item.tier * 14}px` }}
-              className="block w-full truncate py-1.5 pr-3 text-left text-[14px] text-black hover:bg-[#e3e3e3]"
+              className="block w-full truncate py-1.5 pr-3 text-left text-[15px] text-black hover:bg-[#e3e3e3]"
               title={item.text}
             >
               {item.text}
@@ -222,7 +222,7 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
             <AlignJustify size={15} />
           </ToolbarButton>
 
-          <div className="ml-auto text-[11px] text-gray-400">
+          <div className="ml-auto text-[12px] text-gray-400">
             {saveState === "saving" && "Збереження…"}
             {saveState === "saved" && "✓ Збережено"}
           </div>
@@ -235,14 +235,14 @@ export function ManuscriptEditor({ bookId, initialContent }: Props) {
 
       {/* Right — paragraph styles */}
       <aside className="w-[240px] shrink-0 overflow-y-auto border-l border-gray-200 bg-[#f3f3f3] p-4">
-        <p className="mb-3 text-[12px] font-medium text-black">Стилі тексту</p>
+        <p className="mb-3 text-[14px] font-medium text-black">Стилі тексту</p>
         <div className="space-y-0.5">
           {(Object.keys(STYLE_LABELS) as StyledBlockStyleName[]).map((key) => (
             <button
               key={key}
               onClick={() => editor.chain().focus().updateAttributes("paragraph", { style: key }).run()}
               className={cn(
-                "block w-full rounded px-2.5 py-1.5 text-left text-[12px] transition-colors",
+                "block w-full rounded px-2.5 py-1.5 text-left text-[14px] transition-colors",
                 styleOfCurrentBlock === key ? "bg-gray-900 text-white" : "text-black hover:bg-[#e3e3e3]"
               )}
             >
