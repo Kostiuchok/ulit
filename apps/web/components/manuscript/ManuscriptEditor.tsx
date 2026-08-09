@@ -66,22 +66,22 @@ interface LayoutTemplate {
 const LAYOUT_TEMPLATES: LayoutTemplate[] = [
   {
     id: "business-regular",
-    name: "BUSINESS REGULAR",
-    description: "Поєднує в собі поміркований консерватизм з високим рівнем зручності.",
+    name: "Стандарт книжковий",
+    description: "Вирівнювання тексту по лівому краю з абзацами і відступом і заголовки по центру",
     accent: "#f97316",
     align: "justify",
   },
   {
     id: "business-regular-left",
-    name: "BUSINESS REGULAR LEFT",
-    description: "Те саме, що й Business Regular, но з виключкой тексту вліво.",
+    name: "Стандарт книжковий на всю ширину",
+    description: "Вирівнювання тексту по ширині сторінки з абзацами без відступу зліва",
     accent: "#f97316",
     align: "left",
   },
   {
     id: "business-elegance",
-    name: "BUSINESS ELEGANCE",
-    description: "Легкий вишуканий макет без використання напівжирних шрифтів у заголовках.",
+    name: "Збірка віршів",
+    description: "Форматування адаптоване для віршів з відступами між блоками і заголовками по центру",
     accent: "#22c55e",
     align: "justify",
   },
