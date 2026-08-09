@@ -73,15 +73,18 @@ export async function conversionStatusRoutes(app: FastifyInstance) {
         }
       }
 
-      // If all jobs done → move book to REVIEW
+      // If all jobs done → conversion finished, back to DRAFT so the author
+      // can review readiness (cover/price/etc.) and explicitly submit via
+      // POST /api/books/:id/publish. REVIEW is reserved for that deliberate
+      // submission — conversion alone must not put a book in the admin's
+      // moderation queue.
       const allJobs = await prisma.conversionJob.findMany({ where: { bookId: id } });
       const allDone = allJobs.every((j) => j.status === "DONE" || j.status === "FAILED");
-      const anyFailed = allJobs.some((j) => j.status === "FAILED");
 
       if (allDone) {
         await prisma.book.update({
           where: { id },
-          data: { status: anyFailed ? "DRAFT" : "REVIEW" },
+          data: { status: "DRAFT" },
           select: { id: true },
         });
       }
