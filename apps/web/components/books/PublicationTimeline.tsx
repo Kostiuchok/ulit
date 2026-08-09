@@ -66,6 +66,7 @@ function Row({
   date,
   tooltip,
   isLast,
+  hideLine,
   toggle,
 }: {
   done: boolean;
@@ -74,11 +75,12 @@ function Row({
   date?: string | null;
   tooltip?: React.ReactNode;
   isLast?: boolean;
+  hideLine?: boolean;
   toggle?: { expanded: boolean; onClick: () => void };
 }) {
   return (
     <div className="group/row relative flex items-start gap-3 pb-5">
-      {!isLast && (
+      {!isLast && !hideLine && (
         <div
           className="absolute left-[9px] top-5 bottom-0 w-px"
           style={{ backgroundColor: done ? ACCENT : "#e5e5e5" }}
@@ -203,52 +205,64 @@ export function PublicationTimeline({
   return (
     <div>
       <p className="mb-4 text-sm font-bold uppercase text-black">Статус книжки: {statusLabel}</p>
-      <Row
-        done
-        label="Книга створена"
-        date={createdAt}
-        toggle={{ expanded: creationExpanded, onClick: () => setCreationExpanded((v) => !v) }}
-      />
-      {creationExpanded && (
-        <div className="ml-7 mb-4 -mt-3 space-y-1.5">
-          <CreationSubItem
-            done={hasBasicInfo}
-            label="Основна інформація про книгу"
-            href={`/dashboard/books/${bookId}/output-data`}
-          />
-          <CreationSubItem
-            done={hasManuscript}
-            label="Завантажити рукопис"
-            href={`/dashboard/books/${bookId}/manuscript`}
-            date={hasManuscript ? manuscriptDate : undefined}
-          />
-          <CreationSubItem
-            done={hasPrice}
-            label="Ціна"
-            href={`/dashboard/books/${bookId}/output-data`}
-          />
-          <CreationSubItem
-            done={hasCover}
-            label="Додано обкладинку"
-            href={`/dashboard/books/${bookId}/cover`}
-          />
-          <CreationSubItem
-            done={hasDistribution}
-            label="Платформи розповсюдження"
-            href={`/dashboard/books/${bookId}/output-data`}
-          />
-          <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
-        </div>
-      )}
+      <div className="relative">
+        <div className="absolute left-[9px] top-5 bottom-0 w-px" style={{ backgroundColor: ACCENT }} />
+        <Row
+          done
+          label="Книга створена"
+          date={createdAt}
+          hideLine
+          toggle={{ expanded: creationExpanded, onClick: () => setCreationExpanded((v) => !v) }}
+        />
+        {creationExpanded && (
+          <div className="ml-7 mb-4 -mt-3 space-y-1.5">
+            <CreationSubItem
+              done={hasBasicInfo}
+              label="Основна інформація про книгу"
+              href={`/dashboard/books/${bookId}/output-data`}
+            />
+            <CreationSubItem
+              done={hasManuscript}
+              label="Завантажити рукопис"
+              href={`/dashboard/books/${bookId}/manuscript`}
+              date={hasManuscript ? manuscriptDate : undefined}
+            />
+            <CreationSubItem
+              done={hasPrice}
+              label="Ціна"
+              href={`/dashboard/books/${bookId}/output-data`}
+            />
+            <CreationSubItem
+              done={hasCover}
+              label="Додано обкладинку"
+              href={`/dashboard/books/${bookId}/cover`}
+            />
+            <CreationSubItem
+              done={hasDistribution}
+              label="Платформи розповсюдження"
+              href={`/dashboard/books/${bookId}/output-data`}
+            />
+            <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
+          </div>
+        )}
+      </div>
       {STEPS.map((step, i) => {
         const isSubmittedStep = step.key === "submitted";
+        const stepDone = !!timeline?.[step.key];
         return (
-          <div key={step.key}>
+          <div key={step.key} className="relative">
+            {isSubmittedStep && (
+              <div
+                className="absolute left-[9px] top-5 bottom-0 w-px"
+                style={{ backgroundColor: stepDone ? ACCENT : "#e5e5e5" }}
+              />
+            )}
             <Row
-              done={!!timeline?.[step.key]}
+              done={stepDone}
               active={firstPendingIdx === i + 1}
               label={step.label}
               date={timeline?.[step.key]}
+              hideLine={isSubmittedStep}
               tooltip={
                 isSubmittedStep ? (
                   <>
