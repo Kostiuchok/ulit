@@ -11,10 +11,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-screen flex flex-col">
       <header className="bg-[#d9d9d9]">
         <div className="h-8 flex items-center justify-between px-8">
-          <Link href="/dashboard/books" className="flex items-center gap-1">
-            <img src="/figma/logo-group.svg" alt="" className="h-[1.125rem] w-[1.125rem]" />
-            <span className="text-xs font-black tracking-tight text-black">ULIT</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard/books" className="flex items-center gap-1">
+              <img src="/figma/logo-group.svg" alt="" className="h-[1.125rem] w-[1.125rem]" />
+              <span className="text-xs font-black tracking-tight text-black">ULIT</span>
+            </Link>
+            <Link href="/" className="text-xs text-black/70 hover:text-black">
+              На сайт
+            </Link>
+          </div>
           <div className="flex items-center gap-4">
             <FontSizeControl />
             <div className="relative flex items-center">
