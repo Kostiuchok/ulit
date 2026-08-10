@@ -586,6 +586,19 @@ function isInFrontRange(left: number | undefined, layout: CoverLayout): boolean 
   return x >= layout.front.x - 0.01 && x < layout.front.x + layout.front.w;
 }
 
+// Roles are classified primarily by their semantic `data.role` tag, not by
+// raw canvas position — the "photo-slot" illustration can be freely panned
+// and zoomed by the author inside its locked clipPath crop, which can push
+// its actual Fabric `.left` far outside the visible front-panel x-range even
+// though it still renders cropped-and-correct on screen. Classifying it (and
+// every other system-drawn role) by position caused it to intermittently get
+// bucketed into back+spine instead of front, which is what desynced the
+// front/back/dashboard covers. Position is only used as a fallback for
+// objects with no recognized role, e.g. extra images/text the author added
+// freely with no fixed "panel" of their own.
+const FRONT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "band", "photo-slot"]);
+const BACK_SPINE_ROLES = new Set(["text-blurb", "text-bio", "text-spine", "barcode"]);
+
 // Splits a flat array of Fabric object JSON descriptors (background objects
 // already excluded by the caller) into front vs back+spine buckets. Front
 // positions come back relative to the front panel's own x-origin, since that
@@ -593,10 +606,16 @@ function isInFrontRange(left: number | undefined, layout: CoverLayout): boolean 
 // callers add the *current* format's front.x back on restore.
 function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
   const nonBg = objects.filter((o) => o.data?.role !== "accent" && o.data?.role !== "bg-image");
+  const isFront = (o: any) => {
+    const role = o.data?.role;
+    if (role && FRONT_ROLES.has(role)) return true;
+    if (role && BACK_SPINE_ROLES.has(role)) return false;
+    return isInFrontRange(o.left, layout);
+  };
   const front = nonBg
-    .filter((o) => isInFrontRange(o.left, layout))
+    .filter(isFront)
     .map((o) => ({ ...o, left: (o.left ?? 0) - layout.front.x }));
-  const backSpine = nonBg.filter((o) => !isInFrontRange(o.left, layout));
+  const backSpine = nonBg.filter((o) => !isFront(o));
   return { front, backSpine };
 }
 
