@@ -11,13 +11,15 @@
 |-----|-----------|
 | Frontend | Next.js 14 (App Router) + Tailwind CSS + shadcn/ui |
 | Backend | Node.js 20 + TypeScript + Fastify |
-| База даних | PostgreSQL 16 + Redis 7 |
+| База даних | PostgreSQL 16 + Redis 7 (Prisma ORM) |
+| Редактор рукопису | TipTap v3 / ProseMirror |
+| Редактор обкладинки | Fabric.js |
 | Конвертація | LibreOffice · Pandoc · Ghostscript · Calibre |
 | Черга | BullMQ + Redis |
 | Storage | MinIO (self-hosted S3) |
 | Auth | NextAuth.js v5 (Google OAuth + Email) |
 | Платежі | LiqPay (UA) · Stripe (міжнародні) |
-| Інфра | Docker + Nginx + Certbot · GitHub Actions CI/CD |
+| Інфра | Docker + Caddy (reverse proxy) · GitHub Actions CI/CD |
 
 ---
 
@@ -228,7 +230,7 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 | Файл | Опис |
 |------|------|
 | [`CLAUDE.md`](./CLAUDE.md) | Архітектура, стек, схема БД, API routes — для Claude Code |
-| [`docs/TASKS.md`](./docs/TASKS.md) | ~140 задач по 14 фазах розробки |
+| [`docs/TASKS.md`](./docs/TASKS.md) | Повний бэклог задач по фазах розробки (постійно росте, зараз — за 20 фаз) |
 | [`docs/TECHNICAL-DECISIONS.md`](./docs/TECHNICAL-DECISIONS.md) | Wiki рішень: юридика, договір з автором, дистрибуція |
 | [`docs/knyha-complete.html`](./docs/knyha-complete.html) | Повний UI прототип (24 екрани, відкрити у браузері) |
 
@@ -236,15 +238,13 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 
 ## 📋 Roadmap (фази)
 
-- **Фаза 0–2** — Monorepo, auth, профіль автора
-- **Фаза 3–5** — Dashboard, конвертація, редактор обкладинки
-- **Фаза 6–7** — KU/Wide вибір, ISBN, публікація
-- **Фаза 8–9** — Магазин, оплата LiqPay
-- **Фаза 10** — Preview/уривок
-- **Фаза 11–12** — Адмін-панель, юридика
-- **Фаза 13–14** — Деплой, тести
-
-Детально → [`docs/TASKS.md`](./docs/TASKS.md)
+MVP-фази (0–14: monorepo, auth, dashboard, конвертація, редактор обкладинки,
+ISBN, публікація, магазин, оплата, preview, адмінка, юридика, деплой, тести)
+— завершені. З фази 19 бэклог поповнюється по мірі аналізу референсів і
+живого тестування (редактор рукопису й обкладинки, вихідні дані, реєстрація
+в Книжковій палаті, observability тощо) — актуальний повний список задач і
+те, що вже зроблено, завжди дивитись у [`docs/TASKS.md`](./docs/TASKS.md),
+не тут.
 
 ---
 
