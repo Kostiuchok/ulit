@@ -8,6 +8,7 @@ import { RepublishButton } from "@/components/books/RepublishButton";
 import { UnpublishButton } from "@/components/books/UnpublishButton";
 import { RelistButton } from "@/components/books/RelistButton";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
+import { PrintedCoverFrame } from "@/components/books/PrintedCoverFrame";
 import { BookPromoSidebar } from "@/components/books/BookPromoSidebar";
 import { useBook } from "@/hooks/useBook";
 
@@ -144,7 +145,12 @@ export function BookDashboard() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr_260px]">
           {/* Left: cover + price */}
           <div className="space-y-4">
-            <TabletCoverFrame coverUrl={book?.coverUrl} />
+            {(book?.priceEbook || !(book?.pricePrint || book?.pricePrintHardcover)) && (
+              <TabletCoverFrame coverUrl={book?.coverUrl} />
+            )}
+            {(book?.pricePrint || book?.pricePrintHardcover) && (
+              <PrintedCoverFrame coverUrl={book?.coverUrl} />
+            )}
 
             {(book?.priceEbook || book?.pricePrint || book?.pricePrintHardcover) && (
               <div className="rounded-md border bg-white p-4 shadow-sm space-y-3">

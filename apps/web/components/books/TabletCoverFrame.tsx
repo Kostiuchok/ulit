@@ -6,7 +6,7 @@ interface Props {
 export function TabletCoverFrame({ coverUrl, className }: Props) {
   return (
     <div className={`relative aspect-[232/341] w-full ${className ?? ""}`}>
-      <div className="absolute inset-[1.5%_1.5%_5%_1.5%] overflow-hidden rounded-[10px] bg-gray-50">
+      <div className="absolute inset-[6%_4%_8%_4%] overflow-hidden rounded-[6px] bg-gray-50">
         {coverUrl ? (
           <img src={coverUrl} alt="" className="h-full w-full object-cover" />
         ) : (
