@@ -3,7 +3,18 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { fabric } from "fabric";
 import JsBarcode from "jsbarcode";
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify } from "lucide-react";
+import {
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { CoverTemplatesModal } from "./CoverTemplatesModal";
@@ -16,6 +27,15 @@ const EXPORT_SCALE = 1800 / DISPLAY_W; // ~5.14× → 1800×2700px per panel
 // T-1926 — minimum accepted size for a self-uploaded cover (matches print requirements: 150 DPI)
 const OWN_COVER_MIN_W = 915;
 const OWN_COVER_MIN_H = 1270;
+
+// Inset from a panel's raw edge for "safe zone" alignment — keeps text clear
+// of the trim/bleed area near the physical edge of a printed cover.
+const SAFE_MARGIN = 24;
+
+// Standard system fonts only — rendered by the viewer's own browser/OS (like
+// any CSS font-family), never embedded/redistributed as a file, so this
+// carries no font-licensing risk. All have solid Cyrillic coverage.
+const FONTS = ["Georgia", "Arial", "Helvetica", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New"];
 
 // DISPLAY_W (350px) represents a 6in / 1800px-at-300dpi trim width — used to
 // convert a real-world spine thickness (mm) into display px.
@@ -100,21 +120,61 @@ interface FrontTextStyle {
   titleColor: string;
   authorColor: string;
   bandColor: string;
+  bandOpacity: number;
 }
 
 // Always draws translucent bands behind title/author — necessary because the
 // whole front panel doubles as the photo/pattern slot, so text needs to stay
-// legible once a photo is placed there.
+// legible once a photo is placed there. The top band's height follows the
+// title/subtitle's actual wrapped height (fabric.Textbox computes line-wrap
+// height synchronously on construction, before it's added to the canvas) —
+// a long title that wraps to several lines no longer overlaps the subtitle.
 function drawFrontText(canvas: fabric.Canvas, front: PanelRect, ctx: TemplateCtx, style: FrontTextStyle) {
   const cx = front.x + front.w / 2;
+  const titleTop = front.y + front.h * 0.08;
+
+  const titleObj = new fabric.Textbox(ctx.title, {
+    left: cx,
+    top: titleTop,
+    fontSize: 28,
+    fill: style.titleColor,
+    fontFamily: style.font,
+    fontWeight: "bold",
+    textAlign: "center",
+    originX: "center",
+    width: front.w - 40,
+    data: { role: "text-title" },
+  });
+
+  let cursorY = titleTop + (titleObj.height ?? 34) + 12;
+  let subtitleObj: fabric.Textbox | null = null;
+  if (ctx.subtitle) {
+    subtitleObj = new fabric.Textbox(ctx.subtitle, {
+      left: cx,
+      top: cursorY,
+      fontSize: 14,
+      fill: style.titleColor,
+      fontFamily: style.font,
+      textAlign: "center",
+      originX: "center",
+      width: front.w - 60,
+      opacity: 0.85,
+      data: { role: "text-subtitle" },
+    });
+    cursorY += (subtitleObj.height ?? 18) + 10;
+  }
+
+  const bandTop = front.y + front.h * 0.04;
+  const topBandHeight = Math.max(cursorY - bandTop + 10, front.h * 0.18);
 
   canvas.add(
     new fabric.Rect({
       left: front.x,
-      top: front.y + front.h * 0.05,
+      top: bandTop,
       width: front.w,
-      height: ctx.subtitle ? front.h * 0.32 : front.h * 0.22,
+      height: topBandHeight,
       fill: style.bandColor,
+      opacity: style.bandOpacity,
       data: { role: "band" },
     })
   );
@@ -125,40 +185,14 @@ function drawFrontText(canvas: fabric.Canvas, front: PanelRect, ctx: TemplateCtx
       width: front.w,
       height: front.h * 0.14,
       fill: style.bandColor,
+      opacity: style.bandOpacity,
       data: { role: "band" },
     })
   );
 
-  canvas.add(
-    new fabric.Textbox(ctx.title, {
-      left: cx,
-      top: front.y + front.h * 0.1,
-      fontSize: 28,
-      fill: style.titleColor,
-      fontFamily: style.font,
-      fontWeight: "bold",
-      textAlign: "center",
-      originX: "center",
-      width: front.w - 40,
-      data: { role: "text-title" },
-    })
-  );
-  if (ctx.subtitle) {
-    canvas.add(
-      new fabric.Textbox(ctx.subtitle, {
-        left: cx,
-        top: front.y + front.h * 0.27,
-        fontSize: 14,
-        fill: style.titleColor,
-        fontFamily: style.font,
-        textAlign: "center",
-        originX: "center",
-        width: front.w - 60,
-        opacity: 0.85,
-        data: { role: "text-subtitle" },
-      })
-    );
-  }
+  canvas.add(titleObj);
+  if (subtitleObj) canvas.add(subtitleObj);
+
   canvas.add(
     new fabric.Textbox(ctx.author, {
       left: cx,
@@ -309,7 +343,7 @@ export const TEMPLATES: Template[] = [
     apply(canvas, ctx) {
       canvas.clear();
       addAccentBg(canvas, ctx.layout, "#1a1a2e");
-      const style = { font: "Georgia", titleColor: "#f5e6c8", authorColor: "#c9a96e", bandColor: "rgba(0,0,0,0.4)" };
+      const style = { font: "Georgia", titleColor: "#f5e6c8", authorColor: "#c9a96e", bandColor: "#000000", bandOpacity: 0.4 };
       drawFrontText(canvas, ctx.layout.front, ctx, style);
       drawBackAndSpine(canvas, ctx, { font: "Georgia", color: "#f5e6c8" });
     },
@@ -322,7 +356,7 @@ export const TEMPLATES: Template[] = [
     apply(canvas, ctx) {
       canvas.clear();
       addAccentBg(canvas, ctx.layout, "#fafafa");
-      const style = { font: "Helvetica", titleColor: "#1a1a1a", authorColor: "#444444", bandColor: "rgba(255,255,255,0.8)" };
+      const style = { font: "Helvetica", titleColor: "#1a1a1a", authorColor: "#444444", bandColor: "#ffffff", bandOpacity: 0.8 };
       drawFrontText(canvas, ctx.layout.front, ctx, style);
       drawBackAndSpine(canvas, ctx, { font: "Helvetica", color: "#1a1a1a" });
     },
@@ -335,7 +369,7 @@ export const TEMPLATES: Template[] = [
     apply(canvas, ctx) {
       canvas.clear();
       addAccentBg(canvas, ctx.layout, "#f2542d");
-      const style = { font: "Arial", titleColor: "#ffffff", authorColor: "#ffffff", bandColor: "rgba(0,0,0,0.3)" };
+      const style = { font: "Arial", titleColor: "#ffffff", authorColor: "#ffffff", bandColor: "#000000", bandOpacity: 0.3 };
       drawFrontText(canvas, ctx.layout.front, ctx, style);
       drawBackAndSpine(canvas, ctx, { font: "Arial", color: "#ffffff" });
     },
@@ -348,7 +382,7 @@ export const TEMPLATES: Template[] = [
     apply(canvas, ctx) {
       canvas.clear();
       addAccentBg(canvas, ctx.layout, "#241b40");
-      const style = { font: "Georgia", titleColor: "#e8d5b7", authorColor: "#a78bfa", bandColor: "rgba(15,12,41,0.55)" };
+      const style = { font: "Georgia", titleColor: "#e8d5b7", authorColor: "#a78bfa", bandColor: "#0f0c29", bandOpacity: 0.55 };
       drawFrontText(canvas, ctx.layout.front, ctx, style);
       drawBackAndSpine(canvas, ctx, { font: "Georgia", color: "#e8d5b7" });
     },
@@ -361,7 +395,7 @@ export const TEMPLATES: Template[] = [
     apply(canvas, ctx) {
       canvas.clear();
       addAccentBg(canvas, ctx.layout, "#065f46");
-      const style = { font: "Georgia", titleColor: "#ecfdf5", authorColor: "#6ee7b7", bandColor: "rgba(6,78,59,0.45)" };
+      const style = { font: "Georgia", titleColor: "#ecfdf5", authorColor: "#6ee7b7", bandColor: "#064e3b", bandOpacity: 0.45 };
       drawFrontText(canvas, ctx.layout.front, ctx, style);
       drawBackAndSpine(canvas, ctx, { font: "Georgia", color: "#ecfdf5" });
     },
@@ -670,6 +704,54 @@ export default function CoverDesignerCanvas({
     [updateSelected]
   );
 
+  const panelForObject = useCallback(
+    (obj: fabric.Object): PanelRect => {
+      const center = obj.getCenterPoint();
+      const panels = [ctx.layout.front, ctx.layout.back, ctx.layout.spine].filter((p): p is PanelRect => !!p);
+      return panels.find((p) => center.x >= p.x && center.x <= p.x + p.w) ?? ctx.layout.front;
+    },
+    [ctx.layout]
+  );
+
+  const alignSelected = useCallback(
+    (mode: "left" | "center" | "right") => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const objs = canvas.getActiveObjects();
+      if (objs.length === 0) return;
+      objs.forEach((obj) => {
+        const panel = panelForObject(obj);
+        const w = obj.getScaledWidth();
+        if (mode === "left") {
+          obj.set({ originX: "left", left: panel.x + SAFE_MARGIN });
+        } else if (mode === "right") {
+          obj.set({ originX: "left", left: panel.x + panel.w - SAFE_MARGIN - w });
+        } else {
+          obj.set({ originX: "center", left: panel.x + panel.w / 2 });
+        }
+        obj.setCoords();
+      });
+      canvas.requestRenderAll();
+      saveSnapshot();
+    },
+    [panelForObject, saveSnapshot]
+  );
+
+  const changeLayer = useCallback(
+    (action: "front" | "back" | "forward" | "backward") => {
+      const canvas = canvasRef.current;
+      const obj = canvas?.getActiveObject();
+      if (!canvas || !obj) return;
+      if (action === "front") canvas.bringToFront(obj);
+      else if (action === "back") canvas.sendToBack(obj);
+      else if (action === "forward") canvas.bringForward(obj);
+      else canvas.sendBackwards(obj);
+      canvas.requestRenderAll();
+      saveSnapshot();
+    },
+    [saveSnapshot]
+  );
+
   const recolor = useCallback((color: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -917,6 +999,108 @@ export default function CoverDesignerCanvas({
               title="На всю ширину"
             >
               <AlignJustify size={15} />
+            </button>
+          </div>
+        )}
+
+        {activeObj?.type === "textbox" && (
+          <select
+            value={(activeObj as fabric.Textbox).fontFamily || FONTS[0]}
+            onChange={(e) => updateSelected({ fontFamily: e.target.value })}
+            className="h-7 w-full max-w-xs rounded border border-gray-200 bg-white px-1.5 text-xs"
+            title="Шрифт"
+          >
+            {FONTS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {(activeObj as any)?.data?.role === "band" && (
+          <div className="flex w-full max-w-xs items-center gap-3 rounded-lg border bg-gray-50 p-2">
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs text-gray-500">Колір</label>
+              <input
+                type="color"
+                value={typeof (activeObj as any)?.fill === "string" ? ((activeObj as any).fill as string) : "#000000"}
+                onChange={(e) => updateSelected({ fill: e.target.value })}
+                className="h-6 w-8 cursor-pointer rounded border"
+              />
+            </div>
+            <div className="flex flex-1 items-center gap-1.5">
+              <label className="shrink-0 text-xs text-gray-500">Прозорість</label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round((activeObj?.opacity ?? 1) * 100)}
+                onChange={(e) => updateSelected({ opacity: Number(e.target.value) / 100 })}
+                className="flex-1"
+              />
+            </div>
+          </div>
+        )}
+
+        {activeObj && (
+          <div className="flex w-full max-w-xs items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">
+            <button
+              type="button"
+              onClick={() => alignSelected("left")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="До безпечної зони ліворуч"
+            >
+              <AlignHorizontalJustifyStart size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => alignSelected("center")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="По центру сторінки"
+            >
+              <AlignHorizontalJustifyCenter size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => alignSelected("right")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="До безпечної зони праворуч"
+            >
+              <AlignHorizontalJustifyEnd size={15} />
+            </button>
+            <div className="mx-1 h-5 w-px bg-gray-300" />
+            <button
+              type="button"
+              onClick={() => changeLayer("front")}
+              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
+              title="На передній план"
+            >
+              ⤒
+            </button>
+            <button
+              type="button"
+              onClick={() => changeLayer("forward")}
+              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
+              title="Перемістити вище"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              onClick={() => changeLayer("backward")}
+              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
+              title="Перемістити нижче"
+            >
+              ↓
+            </button>
+            <button
+              type="button"
+              onClick={() => changeLayer("back")}
+              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
+              title="На задній план"
+            >
+              ⤓
             </button>
           </div>
         )}
