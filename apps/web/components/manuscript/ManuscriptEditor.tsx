@@ -27,6 +27,7 @@ import {
   ImagePlus,
   ChevronLeft,
   ChevronDown,
+  Eye,
 } from "lucide-react";
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
 import { ResizableImage } from "./resizableImage";
@@ -397,6 +398,14 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           <ToolbarButton title="Зберегти" onClick={saveNow}>
             <Save size={15} />
           </ToolbarButton>
+          <Link
+            href={`/dashboard/books/${bookId}/preview`}
+            className="flex h-7 items-center gap-1.5 rounded px-2 text-[0.8125rem] text-gray-600 hover:bg-gray-100"
+            title="Передперегляд"
+          >
+            <Eye size={15} />
+            Передперегляд
+          </Link>
           <div className="mx-1 h-5 w-px bg-gray-200" />
           <ToolbarButton title="Скасувати" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
             <Undo2 size={15} />
