@@ -18,6 +18,12 @@ interface BackCoverData {
 
 type Tab = "cover" | "color" | "bw";
 
+type FlipLeaf =
+  | { kind: "blank" }
+  | { kind: "cover"; url: string }
+  | { kind: "page"; page: number; url: string }
+  | { kind: "backmatter" };
+
 interface Props {
   coverUrl?: string | null;
   backCoverUrl?: string | null;
@@ -41,14 +47,18 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
 
   const activePages = tab === "bw" ? pagesBw : pages;
 
-  // Page 1 conventionally opens recto (right side) — a blank leaf up front
-  // reproduces that pairing without relying on the library's own hard-cover
-  // mode (which would also change how that leaf flips).
-  const flipPages: (PageEntry | null)[] = useMemo(
-    () => (activePages.length > 0 ? [null, ...activePages] : []),
-    [activePages]
-  );
-  const pageCount = flipPages.length > 0 ? flipPages.length + 1 : 0; // +1 for the back-cover leaf
+  // Front cover is a real hard leaf (showCover) so opening it is an animated
+  // flip, not a tab swap. showCover only marks the first/last leaf as hard —
+  // the very next spread still pairs leaves 1+2, so a blank spacer right
+  // after the cover keeps page 1 landing on the right (recto), same as when
+  // there's no cover at all (blank leaf 0 does that job instead).
+  const flipPages: FlipLeaf[] = useMemo(() => {
+    if (activePages.length === 0) return [];
+    const body: FlipLeaf[] = activePages.map((p) => ({ kind: "page" as const, page: p.page, url: p.url }));
+    const lead: FlipLeaf[] = coverUrl ? [{ kind: "cover", url: coverUrl }, { kind: "blank" }] : [{ kind: "blank" }];
+    return [...lead, ...body, { kind: "backmatter" }];
+  }, [activePages, coverUrl]);
+  const pageCount = flipPages.length;
 
   const changeTab = (t: Tab) => {
     setTab(t);
@@ -191,7 +201,7 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
                   maxWidth={500}
                   minHeight={320}
                   maxHeight={667}
-                  showCover={false}
+                  showCover={!!coverUrl}
                   drawShadow
                   maxShadowOpacity={0.3}
                   flippingTime={600}
@@ -200,27 +210,39 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
                   onFlip={(e: FlipEvent) => setCurrent(e.data)}
                   className="mx-auto"
                 >
-                  {flipPages.map((p, i) =>
-                    p ? (
+                  {flipPages.map((leaf, i) => {
+                    if (leaf.kind === "blank") {
+                      return <div key={`blank-${i}`} className="h-full w-full bg-white" />;
+                    }
+                    if (leaf.kind === "cover") {
+                      return (
+                        <div key="cover" className="h-full w-full bg-white">
+                          <img src={leaf.url} alt="Обкладинка" className="h-full w-full object-cover" loading="eager" />
+                        </div>
+                      );
+                    }
+                    if (leaf.kind === "backmatter") {
+                      return (
+                        <div key="back-cover" className="h-full w-full">
+                          <BackCoverPage
+                            authorName={backCover.authorName}
+                            bio={backCover.bio}
+                            avatarUrl={backCover.avatarUrl}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
                       <div key={i} className="h-full w-full bg-white">
                         <img
-                          src={p.url}
-                          alt={`Сторінка ${p.page}`}
+                          src={leaf.url}
+                          alt={`Сторінка ${leaf.page}`}
                           className="h-full w-full object-cover"
                           loading="eager"
                         />
                       </div>
-                    ) : (
-                      <div key="blank" className="h-full w-full bg-white" />
-                    )
-                  )}
-                  <div key="back-cover" className="h-full w-full">
-                    <BackCoverPage
-                      authorName={backCover.authorName}
-                      bio={backCover.bio}
-                      avatarUrl={backCover.avatarUrl}
-                    />
-                  </div>
+                    );
+                  })}
                 </HTMLFlipBook>
               </div>
             )}
