@@ -598,6 +598,8 @@ export default function CoverDesignerCanvas({
   const ownCoverInputRef = useRef<HTMLInputElement>(null);
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef(-1);
+  const prevFormatRef = useRef<CoverFormat>(format);
+  const formatCacheRef = useRef<Partial<Record<CoverFormat, string>>>({});
   const pauseHistoryRef = useRef(false);
 
   const [canUndo, setCanUndo] = useState(false);
@@ -653,9 +655,23 @@ export default function CoverDesignerCanvas({
     canvas.on("selection:cleared", () => setActiveObj(null));
 
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      if (e.key === "z") { e.preventDefault(); undoCanvas(); }
-      if (e.key === "y") { e.preventDefault(); redoCanvas(); }
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === "z") { e.preventDefault(); undoCanvas(); }
+        if (e.key === "y") { e.preventDefault(); redoCanvas(); }
+        return;
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        const active = canvas.getActiveObject() as any;
+        if (!active || active.isEditing) return; // let text editing handle its own backspace
+        e.preventDefault();
+        canvas.getActiveObjects().forEach((obj) => {
+          const role = (obj as any).data?.role;
+          if (role === "accent" || role === "bg-image") return; // background isn't deletable
+          canvas.remove(obj);
+        });
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+      }
     };
     window.addEventListener("keydown", onKey);
 
@@ -673,21 +689,50 @@ export default function CoverDesignerCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Resize + re-apply current template whenever format/pageCount changes the layout
+  // Resize whenever format/pageCount changes the layout. Only re-apply the
+  // template (or restore a cached snapshot) when the FORMAT itself actually
+  // changed — previously this ran unconditionally, so switching Електронна
+  // -> М'яка -> Тверда -> Електронна silently discarded whatever the author
+  // had edited in "Електронна" the moment they switched away, even after a
+  // successful save (the save just uploads a PNG snapshot; it never
+  // preserved the editable per-format canvas state anywhere). Now each
+  // format's canvas JSON is cached in memory on the way out and restored on
+  // the way back in, instead of re-running template.apply() from scratch.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    const formatChanged = prevFormatRef.current !== format;
+    if (formatChanged) {
+      formatCacheRef.current[prevFormatRef.current] = JSON.stringify(canvas.toJSON(["data"]));
+    }
+
     canvas.setWidth(ctx.layout.totalW);
     canvas.setHeight(ctx.layout.totalH);
-    pauseHistoryRef.current = true;
-    template.apply(canvas, ctx);
-    canvas.renderAll();
-    pauseHistoryRef.current = false;
-    historyRef.current = [];
-    historyIndexRef.current = -1;
-    saveSnapshot();
+
+    if (formatChanged) {
+      pauseHistoryRef.current = true;
+      const finishSwap = () => {
+        canvas.renderAll();
+        pauseHistoryRef.current = false;
+        historyRef.current = [];
+        historyIndexRef.current = -1;
+        saveSnapshot();
+      };
+      const cached = formatCacheRef.current[format];
+      if (cached) {
+        canvas.loadFromJSON(cached, finishSwap);
+      } else {
+        template.apply(canvas, ctx);
+        finishSwap();
+      }
+    } else {
+      canvas.renderAll();
+    }
+
+    prevFormatRef.current = format;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx.layout.totalW, ctx.layout.totalH]);
+  }, [ctx.layout.totalW, ctx.layout.totalH, format]);
 
   const undoCanvas = useCallback(() => {
     const canvas = canvasRef.current;
