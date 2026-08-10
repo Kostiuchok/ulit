@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BuyButton } from "../../../../components/store/BuyButton";
 import { EpubReader } from "../../../../components/store/EpubReader";
+import { BookCoverCarousel } from "../../../../components/books/BookCoverCarousel";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -13,6 +14,7 @@ interface BookDetail {
   subtitle?: string | null;
   description?: string | null;
   coverUrl?: string | null;
+  backCoverUrl?: string | null;
   priceEbook?: string | null;
   pricePrint?: string | null;
   pricePrintHardcover?: string | null;
@@ -164,17 +166,20 @@ export default async function BookPage({ params }: Props) {
           {/* Cover */}
           <div className="md:col-span-1">
             <div className="sticky top-20">
-              {book.coverUrl ? (
-                <img
-                  src={book.coverUrl}
-                  alt={book.title}
-                  className="w-full max-w-xs mx-auto rounded-xl shadow-lg"
-                />
-              ) : (
-                <div className="flex aspect-[2/3] w-full max-w-xs mx-auto items-center justify-center rounded-xl bg-gray-100 text-7xl">
-                  📖
-                </div>
-              )}
+              <div className="w-full max-w-xs mx-auto">
+                {book.coverUrl ? (
+                  <BookCoverCarousel
+                    coverUrl={book.coverUrl}
+                    backCoverUrl={book.backCoverUrl}
+                    hasEbook={!!book.priceEbook}
+                    hasPrint={!!(book.pricePrint || book.pricePrintHardcover)}
+                  />
+                ) : (
+                  <div className="flex aspect-[2/3] w-full items-center justify-center rounded-xl bg-gray-100 text-7xl">
+                    📖
+                  </div>
+                )}
+              </div>
 
               {/* Read preview */}
               {book.epubUrl && (

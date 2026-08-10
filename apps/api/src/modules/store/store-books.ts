@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { getSignedUrl } from "../../services/storage.service";
+import { withCoverVersion } from "../../lib/coverVersion";
 
 const querySchema = z.object({
   q: z.string().optional(),
@@ -20,6 +21,8 @@ const BOOK_SELECT = {
   subtitle: true,
   description: true,
   coverUrl: true,
+  backCoverUrl: true,
+  updatedAt: true,
   priceEbook: true,
   pricePrint: true,
   pricePrintHardcover: true,
@@ -93,7 +96,7 @@ export async function storeBooksRoutes(app: FastifyInstance) {
     const page = hasMore ? books.slice(0, take) : books;
     const nextCursor = hasMore ? page[page.length - 1].id : null;
 
-    return reply.send({ books: page, nextCursor });
+    return reply.send({ books: page.map(withCoverVersion), nextCursor });
   });
 
   // T-802 — single book by slug
@@ -114,7 +117,7 @@ export async function storeBooksRoutes(app: FastifyInstance) {
       },
     });
     if (!book || book.status !== "PUBLISHED") throw AppError.notFound("Book");
-    return reply.send({ book });
+    return reply.send({ book: withCoverVersion(book) });
   });
 
   // T-803 — author public profile by slug
