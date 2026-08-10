@@ -1,14 +1,11 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState, type WheelEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import TextAlign from "@tiptap/extension-text-align";
+import HTMLFlipBook from "react-pageflip-enhanced";
 import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
-import { StyledParagraph } from "./styledParagraph";
-import { ResizableImage } from "./resizableImage";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
+import { useManuscriptPagination } from "./useManuscriptPagination";
 
 // A5 trim (148 x 210mm) — fixed at book creation, the only size this preview
 // supports today. Scale/margins are on-screen preview constants only, not
@@ -22,77 +19,74 @@ const MARGIN_BOTTOM = Math.round(20 * MM);
 const CONTENT_W = PAGE_W - MARGIN_X * 2;
 const CONTENT_H = PAGE_H - MARGIN_TOP - MARGIN_BOTTOM;
 
+const WHEEL_THROTTLE_MS = 550;
+
 interface Props {
   bookId: string;
   coverUrl?: string | null;
   manuscriptContent: any;
 }
 
-const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph", attrs: { style: "normal" } }] };
+interface FlipEvent {
+  data: number;
+}
+
+type FlipLeaf =
+  | { kind: "cover"; url: string }
+  | { kind: "blank" }
+  | { kind: "page"; html: string; blockId: string | null };
 
 export function ManuscriptPagePreview({ bookId, coverUrl, manuscriptContent }: Props) {
   const router = useRouter();
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [bodyPageCount, setBodyPageCount] = useState(1);
-  const [page, setPage] = useState(1);
+  const { pages } = useManuscriptPagination(manuscriptContent, CONTENT_W, CONTENT_H);
+  const bookRef = useRef<{ pageFlip: () => any } | null>(null);
+  const [current, setCurrent] = useState(0);
+  const lastWheel = useRef(0);
 
   const hasCover = !!coverUrl;
-  const totalPages = (hasCover ? 1 : 0) + bodyPageCount;
-  const bodyPageIndex = hasCover ? page - 2 : page - 1;
-  const onCoverPage = hasCover && page === 1;
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({ paragraph: false }),
-      TextAlign.configure({ types: ["paragraph"] }),
-      StyledParagraph,
-      ResizableImage,
-    ],
-    content: manuscriptContent ?? EMPTY_DOC,
-    editable: false,
-    immediatelyRender: false,
-  });
+  const flipLeaves: FlipLeaf[] = pages
+    ? [
+        ...(hasCover ? [{ kind: "cover" as const, url: coverUrl! }, { kind: "blank" as const }] : []),
+        ...pages.map((p) => ({ kind: "page" as const, html: p.html, blockId: p.blockId })),
+      ]
+    : [];
+  const totalPages = flipLeaves.length;
 
-  // Re-measure whenever the (read-only) content actually lays out — including
-  // async image loads reflowing the columns, which ResizeObserver catches.
-  useLayoutEffect(() => {
-    if (!editor) return;
-    const el = contentRef.current;
-    if (!el) return;
-    const measure = () => setBodyPageCount(Math.max(1, Math.ceil(el.scrollWidth / CONTENT_W)));
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [editor]);
+  const goPrev = useCallback(() => bookRef.current?.pageFlip()?.flipPrev(), []);
+  const goNext = useCallback(() => bookRef.current?.pageFlip()?.flipNext(), []);
+  const goTo = useCallback((index: number) => bookRef.current?.pageFlip()?.flip(index), []);
 
-  function goTo(next: number) {
-    setPage(Math.min(Math.max(1, next), Math.max(1, totalPages)));
-  }
-
-  function currentBlockId(): string | null {
-    const el = contentRef.current;
-    if (!el || bodyPageIndex < 0) return null;
-    for (const block of Array.from(el.querySelectorAll<HTMLElement>("[data-id]"))) {
-      if (Math.floor(block.offsetLeft / CONTENT_W) === bodyPageIndex) return block.getAttribute("data-id");
-    }
-    return null;
+  function handleWheel(e: WheelEvent) {
+    const now = Date.now();
+    if (now - lastWheel.current < WHEEL_THROTTLE_MS) return;
+    if (Math.abs(e.deltaY) < 4) return;
+    lastWheel.current = now;
+    if (e.deltaY > 0) goNext();
+    else goPrev();
   }
 
   function handleEdit() {
-    const id = currentBlockId();
-    router.push(`/dashboard/books/${bookId}/manuscript${id ? `?blockId=${id}` : ""}`);
+    const leaf = flipLeaves[current];
+    const blockId = leaf && leaf.kind === "page" ? leaf.blockId : null;
+    router.push(`/dashboard/books/${bookId}/manuscript${blockId ? `?blockId=${blockId}` : ""}`);
   }
 
-  if (!editor) return null;
+  if (!pages) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-gray-400">
+        Готуємо передперегляд…
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col items-center gap-5 overflow-y-auto bg-gray-100 py-8">
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => goTo(page - 1)}
-          disabled={page <= 1}
+          onClick={goPrev}
+          disabled={current <= 0}
           className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30"
         >
           <ChevronLeft size={16} />
@@ -102,8 +96,8 @@ export function ManuscriptPagePreview({ bookId, coverUrl, manuscriptContent }: P
             type="number"
             min={1}
             max={totalPages}
-            value={page}
-            onChange={(e) => goTo(Number(e.target.value))}
+            value={current + 1}
+            onChange={(e) => goTo(Math.min(Math.max(0, Number(e.target.value) - 1), Math.max(0, totalPages - 1)))}
             className="w-14 rounded border border-gray-300 px-2 py-1 text-center outline-none focus:border-gray-900"
             aria-label="Номер сторінки"
           />
@@ -111,8 +105,8 @@ export function ManuscriptPagePreview({ bookId, coverUrl, manuscriptContent }: P
         </div>
         <button
           type="button"
-          onClick={() => goTo(page + 1)}
-          disabled={page >= totalPages}
+          onClick={goNext}
+          disabled={current >= totalPages - 1}
           className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-30"
         >
           <ChevronRight size={16} />
@@ -127,49 +121,51 @@ export function ManuscriptPagePreview({ bookId, coverUrl, manuscriptContent }: P
         </button>
       </div>
 
-      <div
-        className="relative overflow-hidden border border-gray-300 bg-white shadow-sm"
-        style={{ width: PAGE_W, height: PAGE_H }}
-      >
-        {hasCover && (
-          <img
-            src={coverUrl!}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{ opacity: onCoverPage ? 1 : 0, pointerEvents: onCoverPage ? "auto" : "none" }}
-          />
-        )}
-        <div
-          className="absolute overflow-hidden"
-          style={{
-            left: MARGIN_X,
-            top: MARGIN_TOP,
-            width: CONTENT_W,
-            height: CONTENT_H,
-            visibility: onCoverPage ? "hidden" : "visible",
-          }}
-        >
-          <div
-            ref={contentRef}
-            className="manuscript-prose ms-preview-columns"
-            style={{
-              columnWidth: CONTENT_W,
-              columnGap: 0,
-              width: CONTENT_W,
-              height: CONTENT_H,
-              transform: `translateX(-${Math.max(0, bodyPageIndex) * CONTENT_W}px)`,
-            }}
+      <div onWheel={handleWheel} className="shadow-sm">
+        {flipLeaves.length > 0 && (
+          <HTMLFlipBook
+            ref={bookRef}
+            width={PAGE_W}
+            height={PAGE_H}
+            size="fixed"
+            minWidth={PAGE_W}
+            maxWidth={PAGE_W}
+            minHeight={PAGE_H}
+            maxHeight={PAGE_H}
+            showCover={hasCover}
+            drawShadow
+            maxShadowOpacity={0.3}
+            flippingTime={500}
+            mobileScrollSupport
+            useMouseEvents
+            onFlip={(e: FlipEvent) => setCurrent(e.data)}
+            className="mx-auto"
           >
-            <EditorContent editor={editor} />
-          </div>
-        </div>
+            {flipLeaves.map((leaf, i) => {
+              if (leaf.kind === "blank") {
+                return <div key={`blank-${i}`} className="h-full w-full bg-white" />;
+              }
+              if (leaf.kind === "cover") {
+                return (
+                  <div key="cover" className="h-full w-full bg-white">
+                    <img src={leaf.url} alt="" className="h-full w-full object-cover" loading="eager" />
+                  </div>
+                );
+              }
+              return (
+                <div key={i} className="relative h-full w-full overflow-hidden bg-white">
+                  <div
+                    className="manuscript-prose absolute overflow-hidden"
+                    style={{ left: MARGIN_X, top: MARGIN_TOP, width: CONTENT_W, height: CONTENT_H }}
+                    dangerouslySetInnerHTML={{ __html: leaf.html }}
+                  />
+                </div>
+              );
+            })}
+          </HTMLFlipBook>
+        )}
       </div>
 
-      <style jsx>{`
-        .ms-preview-columns {
-          column-fill: auto;
-        }
-      `}</style>
       <ManuscriptProseStyles />
     </div>
   );

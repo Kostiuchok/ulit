@@ -26,6 +26,14 @@ export function ManuscriptProseStyles() {
       .manuscript-prose p[data-style="poem"] { text-align: center; white-space: pre-line; }
       .manuscript-prose p[data-style="signature"] { text-align: right; font-size: 0.9rem; color: #666; }
 
+      .manuscript-prose div[data-type="page-break"] {
+        position: relative; height: 0; margin: 1.5em 0; border-top: 1px dashed #9ca3af;
+      }
+      .manuscript-prose div[data-type="page-break"]::after {
+        content: "Розрив сторінки"; position: absolute; top: -0.65em; left: 50%; transform: translateX(-50%);
+        background: #fff; padding: 0 0.5em; font-size: 0.6875rem; color: #9ca3af; white-space: nowrap;
+      }
+
       .manuscript-prose img { max-width: 100%; height: auto; display: block; }
       .manuscript-prose [data-resize-container] { max-width: 100%; }
       .manuscript-prose [data-resize-container]:has(img[data-align="left"]) {

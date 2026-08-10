@@ -29,9 +29,11 @@ import {
   ChevronLeft,
   ChevronDown,
   Eye,
+  SeparatorHorizontal,
 } from "lucide-react";
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
 import { ResizableImage } from "./resizableImage";
+import { PageBreak } from "./pageBreak";
 import { buildFrontMatterNodes, hasFrontMatter, type FrontMatterMeta } from "./frontMatter";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
 import { useApi } from "@/hooks/useApi";
@@ -218,6 +220,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       TextAlign.configure({ types: ["paragraph"] }),
       StyledParagraph,
       ResizableImage,
+      PageBreak,
     ],
     content: effectiveInitialContent,
     onUpdate: ({ editor }) => {
@@ -453,6 +456,13 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           </ToolbarButton>
           <ToolbarButton title="Збільшити відступ" onClick={() => editor.chain().focus().sinkListItem("listItem").run()}>
             <IndentIncrease size={15} />
+          </ToolbarButton>
+          <div className="mx-1 h-5 w-px bg-gray-200" />
+          <ToolbarButton
+            title="Вставити розрив сторінки"
+            onClick={() => editor.chain().focus().insertContent({ type: "pageBreak" }).run()}
+          >
+            <SeparatorHorizontal size={15} />
           </ToolbarButton>
           <div className="mx-1 h-5 w-px bg-gray-200" />
           <ToolbarButton title="По лівому краю" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
