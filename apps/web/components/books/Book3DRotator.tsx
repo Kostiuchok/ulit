@@ -7,7 +7,7 @@ interface Props {
   backCoverUrl?: string | null;
   title?: string;
   pageCount?: number;
-  onOpen: () => void;
+  onOpen?: () => void;
 }
 
 const W = 260; // front/back face width, px (on-screen preview scale, not print DPI)
@@ -30,12 +30,12 @@ export function Book3DRotator({ coverUrl, backCoverUrl, title, pageCount, onOpen
     <div className="flex flex-col items-center gap-6 py-10">
       <div style={{ perspective: 1400 }}>
         <div
-          role="button"
-          tabIndex={0}
+          role={onOpen ? "button" : undefined}
+          tabIndex={onOpen ? 0 : undefined}
           onClick={onOpen}
-          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
-          aria-label="Відкрити книгу"
-          className="relative cursor-pointer"
+          onKeyDown={(e) => onOpen && (e.key === "Enter" || e.key === " ") && onOpen()}
+          aria-label={onOpen ? "Відкрити книгу" : undefined}
+          className={onOpen ? "relative cursor-pointer" : "relative"}
           style={{
             width: W,
             height: H,
