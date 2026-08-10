@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
+import { withCoverVersion } from "../../lib/coverVersion";
 
 const createSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -60,6 +61,7 @@ export async function booksRoutes(app: FastifyInstance) {
         status: true,
         moderationStatus: true,
         coverUrl: true,
+        updatedAt: true,
         priceEbook: true,
         pricePrint: true,
         pricePrintHardcover: true,
@@ -77,7 +79,7 @@ export async function booksRoutes(app: FastifyInstance) {
         archivedAt: true,
       },
     });
-    return reply.send({ books });
+    return reply.send({ books: books.map(withCoverVersion) });
   });
 
   // Create draft book

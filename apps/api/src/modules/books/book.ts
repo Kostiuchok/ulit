@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
+import { withCoverVersion } from "../../lib/coverVersion";
 
 const BOOK_SELECT = {
   id: true,
@@ -107,7 +108,7 @@ export async function bookRoutes(app: FastifyInstance) {
     await assertOwnership(id, request.user.id);
 
     const book = await prisma.book.findUnique({ where: { id }, select: BOOK_SELECT });
-    return reply.send({ book });
+    return reply.send({ book: withCoverVersion(book) });
   });
 
   // Update book metadata
@@ -138,7 +139,7 @@ export async function bookRoutes(app: FastifyInstance) {
       select: BOOK_SELECT,
     });
 
-    return reply.send({ book });
+    return reply.send({ book: withCoverVersion(book) });
   });
 
   // PATCH /api/books/:id/preview — set excerpt range (allowed for any status)
@@ -162,7 +163,7 @@ export async function bookRoutes(app: FastifyInstance) {
       select: { id: true, previewStart: true, previewEnd: true, pageCount: true },
     });
 
-    return reply.send({ book });
+    return reply.send({ book: withCoverVersion(book) });
   });
 
   // Delete book (soft — recoverable via /restore)
@@ -201,7 +202,7 @@ export async function bookRoutes(app: FastifyInstance) {
       select: BOOK_SELECT,
     });
 
-    return reply.send({ book });
+    return reply.send({ book: withCoverVersion(book) });
   });
 
   // Unpublish (T-1950): take a PUBLISHED book off sale — hidden from the
@@ -224,7 +225,7 @@ export async function bookRoutes(app: FastifyInstance) {
       data: { status: "UNPUBLISHED", unpublishedAt: new Date() },
       select: BOOK_SELECT,
     });
-    return reply.send({ book });
+    return reply.send({ book: withCoverVersion(book) });
   });
 
   // Relist a previously unpublished book — same files/ISBN as before, goes
@@ -244,6 +245,6 @@ export async function bookRoutes(app: FastifyInstance) {
       data: { status: "PUBLISHED", unpublishedAt: null },
       select: BOOK_SELECT,
     });
-    return reply.send({ book });
+    return reply.send({ book: withCoverVersion(book) });
   });
 }
