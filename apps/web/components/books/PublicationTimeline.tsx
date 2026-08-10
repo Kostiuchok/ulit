@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, Info } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getBookStatusLabel } from "../../lib/bookStatus";
 
@@ -117,6 +117,15 @@ function Row({
           >
             {label}
           </span>
+          {tooltip && (
+            <span className="relative inline-flex shrink-0 items-center">
+              <Info size={14} className="text-gray-400" />
+              <div className="absolute left-0 top-full z-20 mt-2 hidden w-72 items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] group-hover/row:flex sm:left-full sm:top-1/2 sm:mt-0 sm:ml-2 sm:-translate-y-1/2">
+                <span>📖</span>
+                <span>{tooltip}</span>
+              </div>
+            </span>
+          )}
           {date && <span className="text-sm text-gray-500 shrink-0">/ {fmt(date)}</span>}
           {toggle && (
             <button type="button" onClick={toggle.onClick} title={toggle.expanded ? "Згорнути" : "Розгорнути"}>
@@ -128,12 +137,6 @@ function Row({
             </button>
           )}
         </div>
-        {tooltip && (
-          <div className="absolute left-0 top-full z-20 mt-2 hidden w-72 items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] group-hover/row:flex sm:left-full sm:top-0 sm:ml-3 sm:mt-0">
-            <span>📖</span>
-            <span>{tooltip}</span>
-          </div>
-        )}
       </div>
     </div>
   );
