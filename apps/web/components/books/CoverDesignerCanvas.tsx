@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { fabric } from "fabric";
 import JsBarcode from "jsbarcode";
+import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { CoverTemplatesModal } from "./CoverTemplatesModal";
@@ -114,8 +115,7 @@ function drawFrontText(canvas: fabric.Canvas, front: PanelRect, ctx: TemplateCtx
       width: front.w,
       height: ctx.subtitle ? front.h * 0.32 : front.h * 0.22,
       fill: style.bandColor,
-      selectable: false,
-      evented: false,
+      data: { role: "band" },
     })
   );
   canvas.add(
@@ -125,13 +125,12 @@ function drawFrontText(canvas: fabric.Canvas, front: PanelRect, ctx: TemplateCtx
       width: front.w,
       height: front.h * 0.14,
       fill: style.bandColor,
-      selectable: false,
-      evented: false,
+      data: { role: "band" },
     })
   );
 
   canvas.add(
-    new fabric.IText(ctx.title, {
+    new fabric.Textbox(ctx.title, {
       left: cx,
       top: front.y + front.h * 0.1,
       fontSize: 28,
@@ -146,7 +145,7 @@ function drawFrontText(canvas: fabric.Canvas, front: PanelRect, ctx: TemplateCtx
   );
   if (ctx.subtitle) {
     canvas.add(
-      new fabric.IText(ctx.subtitle, {
+      new fabric.Textbox(ctx.subtitle, {
         left: cx,
         top: front.y + front.h * 0.27,
         fontSize: 14,
@@ -161,7 +160,7 @@ function drawFrontText(canvas: fabric.Canvas, front: PanelRect, ctx: TemplateCtx
     );
   }
   canvas.add(
-    new fabric.IText(ctx.author, {
+    new fabric.Textbox(ctx.author, {
       left: cx,
       top: front.y + front.h - front.h * 0.1,
       fontSize: 15,
@@ -169,6 +168,7 @@ function drawFrontText(canvas: fabric.Canvas, front: PanelRect, ctx: TemplateCtx
       fontFamily: style.font,
       textAlign: "center",
       originX: "center",
+      width: front.w - 40,
       data: { role: "text-author" },
     })
   );
@@ -199,12 +199,14 @@ function drawBackAndSpine(canvas: fabric.Canvas, ctx: TemplateCtx, style: { font
   if (layout.spine && layout.spine.w >= 14) {
     const spine = layout.spine;
     canvas.add(
-      new fabric.IText(`${ctx.author}   •   ${ctx.title}`, {
+      new fabric.Textbox(`${ctx.author}   •   ${ctx.title}`, {
         left: spine.x + spine.w / 2,
         top: spine.y + spine.h / 2,
         fontSize: 12,
         fill: style.color,
         fontFamily: style.font,
+        textAlign: "center",
+        width: spine.h - 20,
         originX: "center",
         originY: "center",
         angle: -90,
@@ -215,7 +217,7 @@ function drawBackAndSpine(canvas: fabric.Canvas, ctx: TemplateCtx, style: { font
   if (layout.back) {
     const back = layout.back;
     canvas.add(
-      new fabric.IText(ctx.description || "Анотація до книги…", {
+      new fabric.Textbox(ctx.description || "Анотація до книги…", {
         left: back.x + 24,
         top: back.y + 30,
         fontSize: 12,
@@ -405,9 +407,13 @@ function replaceSlotObject(canvas: fabric.Canvas, obj: fabric.Object, slot: Pane
   obj.set({
     left: slot.x,
     top: slot.y,
-    selectable: false,
-    evented: false,
+    selectable: true,
+    evented: true,
+    lockUniScaling: true, // resize handles stay proportional — no stretching
     data: { role: "photo-slot" },
+    // absolutePositioned clipPath is anchored to canvas coordinates, not the
+    // object's own transform — so dragging/scaling the image inside it pans
+    // and zooms (crops) without ever spilling outside the slot.
     clipPath: new fabric.Rect({ left: slot.x, top: slot.y, width: slot.w, height: slot.h, absolutePositioned: true }),
   });
   const existing = canvas.getObjects().find((o: any) => o.data?.role === "photo-slot");
@@ -482,6 +488,7 @@ export default function CoverDesignerCanvas({
   const [uploading, setUploading] = useState(false);
   const [ownCoverError, setOwnCoverError] = useState("");
   const [ownCoverDims, setOwnCoverDims] = useState<{ w: number; h: number } | null>(null);
+  const [activeObj, setActiveObj] = useState<fabric.Object | null>(null);
 
   const ctx: TemplateCtx = useMemo(
     () => ({
@@ -518,6 +525,9 @@ export default function CoverDesignerCanvas({
     canvas.on("object:added", saveSnapshot);
     canvas.on("object:removed", saveSnapshot);
     canvas.on("object:modified", saveSnapshot);
+    canvas.on("selection:created", (e) => setActiveObj(e.selected?.[0] ?? null));
+    canvas.on("selection:updated", (e) => setActiveObj(e.selected?.[0] ?? null));
+    canvas.on("selection:cleared", () => setActiveObj(null));
 
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
@@ -593,6 +603,31 @@ export default function CoverDesignerCanvas({
       canvas.renderAll();
     },
     [ctx]
+  );
+
+  const updateSelected = useCallback((patch: Record<string, unknown>) => {
+    const canvas = canvasRef.current;
+    const obj = canvas?.getActiveObject();
+    if (!canvas || !obj) return;
+    obj.set(patch);
+    canvas.renderAll();
+    setActiveObj(obj);
+  }, []);
+
+  const toggleTextStyle = useCallback(
+    (key: "fontWeight" | "fontStyle" | "underline") => {
+      const canvas = canvasRef.current;
+      const obj = canvas?.getActiveObject() as fabric.IText | undefined;
+      if (!obj) return;
+      if (key === "underline") {
+        updateSelected({ underline: !obj.underline });
+      } else if (key === "fontWeight") {
+        updateSelected({ fontWeight: obj.fontWeight === "bold" ? "normal" : "bold" });
+      } else {
+        updateSelected({ fontStyle: obj.fontStyle === "italic" ? "normal" : "italic" });
+      }
+    },
+    [updateSelected]
   );
 
   const recolor = useCallback((color: string) => {
@@ -783,6 +818,69 @@ export default function CoverDesignerCanvas({
           <canvas ref={canvasEl} />
         </div>
         <p className="text-xs text-gray-400">Клікніть на назву, підзаголовок, автора чи анотацію, щоб редагувати текст прямо на обкладинці</p>
+
+        {activeObj?.type === "textbox" && (
+          <div className="flex w-full max-w-xs items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">
+            <button
+              type="button"
+              onClick={() => toggleTextStyle("fontWeight")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="Жирний"
+            >
+              <Bold size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleTextStyle("fontStyle")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="Курсив"
+            >
+              <Italic size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleTextStyle("underline")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="Підкреслення"
+            >
+              <Underline size={15} />
+            </button>
+            <div className="mx-1 h-5 w-px bg-gray-300" />
+            <button
+              type="button"
+              onClick={() => updateSelected({ textAlign: "left" })}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="По лівому краю"
+            >
+              <AlignLeft size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => updateSelected({ textAlign: "center" })}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="По центру"
+            >
+              <AlignCenter size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => updateSelected({ textAlign: "right" })}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="По правому краю"
+            >
+              <AlignRight size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => updateSelected({ textAlign: "justify" })}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="На всю ширину"
+            >
+              <AlignJustify size={15} />
+            </button>
+          </div>
+        )}
+
         <div className="flex w-full max-w-xs gap-2">
           <Button variant="outline" size="sm" onClick={undoCanvas} disabled={!canUndo} className="flex-1" title="Скасувати (Ctrl+Z)">
             ↩ Undo
