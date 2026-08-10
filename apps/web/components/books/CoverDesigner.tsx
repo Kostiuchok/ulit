@@ -18,6 +18,7 @@ interface Props {
   bookAuthor: string;
   subtitle?: string | null;
   description?: string | null;
+  authorBio?: string | null;
   isbn?: string | null;
   pageCount?: number | null;
   format: CoverFormat;

@@ -36,6 +36,7 @@ export default function CoverPage() {
   const { apiFetch, token } = useApi();
   const { data: session } = useSession();
   const [book, setBook] = useState<BookInfo | null>(null);
+  const [authorBio, setAuthorBio] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [format, setFormat] = useState<CoverFormat>("ebook");
   const [saved, setSaved] = useState(false);
@@ -46,6 +47,9 @@ export default function CoverPage() {
     apiFetch<{ book: BookInfo }>(`/api/books/${id}`)
       .then(({ book }) => setBook(book))
       .finally(() => setLoading(false));
+    apiFetch<{ user: { bio?: string | null } }>("/api/users/me")
+      .then(({ user }) => setAuthorBio(user.bio ?? null))
+      .catch(() => {});
   }, [token, id]);
 
   function handleSaved(patch: { coverUrl?: string; backCoverUrl?: string }) {
@@ -121,6 +125,7 @@ export default function CoverPage() {
             bookAuthor={session?.user?.name ?? "Автор"}
             subtitle={book?.subtitle}
             description={book?.description}
+            authorBio={authorBio}
             isbn={book?.isbn}
             pageCount={book?.pageCount}
             format={format}

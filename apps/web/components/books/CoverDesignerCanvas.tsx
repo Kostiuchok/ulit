@@ -90,6 +90,7 @@ export interface TemplateCtx {
   author: string;
   subtitle?: string;
   description?: string;
+  bio?: string;
   isbn?: string | null;
 }
 
@@ -250,18 +251,34 @@ function drawBackAndSpine(canvas: fabric.Canvas, ctx: TemplateCtx, style: { font
   }
   if (layout.back) {
     const back = layout.back;
-    canvas.add(
-      new fabric.Textbox(ctx.description || "Анотація до книги…", {
-        left: back.x + 24,
-        top: back.y + 30,
-        fontSize: 12,
-        fill: style.color,
-        fontFamily: style.font,
-        width: back.w - 48,
-        lineHeight: 1.3,
-        data: { role: "text-blurb" },
-      })
-    );
+    const blurbTop = back.y + 30;
+    const blurbObj = new fabric.Textbox(ctx.description || "Анотація до книги…", {
+      left: back.x + 24,
+      top: blurbTop,
+      fontSize: 12,
+      fill: style.color,
+      fontFamily: style.font,
+      width: back.w - 48,
+      lineHeight: 1.3,
+      data: { role: "text-blurb" },
+    });
+    canvas.add(blurbObj);
+
+    if (ctx.bio) {
+      canvas.add(
+        new fabric.Textbox(ctx.bio, {
+          left: back.x + 24,
+          top: blurbTop + (blurbObj.height ?? 0) + 20,
+          fontSize: 11,
+          fill: style.color,
+          fontFamily: style.font,
+          width: back.w - 48,
+          lineHeight: 1.3,
+          opacity: 0.85,
+          data: { role: "text-bio" },
+        })
+      );
+    }
     // Standardized colophon block: ISBN label above the barcode (bottom-left),
     // service logo + tagline to the right of the barcode.
     if (ctx.isbn) {
@@ -559,6 +576,58 @@ function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: s
   );
 }
 
+// ─── Cross-format shared state (front / back+spine / background) ──────────
+
+// Approximate "which panel is this object in" by its raw left coordinate —
+// panels are 350px wide, objects don't straddle the boundary in practice, so
+// this doesn't need origin-aware center-point math.
+function isInFrontRange(left: number | undefined, layout: CoverLayout): boolean {
+  const x = left ?? 0;
+  return x >= layout.front.x - 0.01 && x < layout.front.x + layout.front.w;
+}
+
+// Splits a flat array of Fabric object JSON descriptors (background objects
+// already excluded by the caller) into front vs back+spine buckets. Front
+// positions come back relative to the front panel's own x-origin, since that
+// offset differs between ebook (x=0) and print (x=DISPLAY_W+spineW) layouts —
+// callers add the *current* format's front.x back on restore.
+function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
+  const nonBg = objects.filter((o) => o.data?.role !== "accent" && o.data?.role !== "bg-image");
+  const front = nonBg
+    .filter((o) => isInFrontRange(o.left, layout))
+    .map((o) => ({ ...o, left: (o.left ?? 0) - layout.front.x }));
+  const backSpine = nonBg.filter((o) => !isInFrontRange(o.left, layout));
+  return { front, backSpine };
+}
+
+// Draws the given template on an offscreen scratch canvas to get "fresh"
+// front/back+spine object descriptors, for whichever panel isn't cached yet
+// (first time a given format is visited this session) — avoids duplicating
+// each template's font/color choices outside of its own apply() closure.
+function buildFreshPanelObjects(ctx: TemplateCtx, template: Template, layout: CoverLayout) {
+  const scratch = new fabric.StaticCanvas(undefined, { width: layout.totalW, height: layout.totalH });
+  template.apply(scratch as unknown as fabric.Canvas, ctx);
+  const all = ((scratch.toJSON(["data"]) as any).objects ?? []) as any[];
+  scratch.dispose();
+  return splitObjectsByPanel(all, layout);
+}
+
+// Regenerates the background (color + optional image) fresh at the current
+// layout's dimensions — reuses addAccentBg/applyBackgroundImage, which are
+// already parameterized by layout for exactly this reason, rather than
+// trying to reposition/rescale a cached background object across formats.
+function applyBackground(
+  canvas: fabric.Canvas,
+  layout: CoverLayout,
+  bg: { color: string; imageUrl?: string } | null,
+  fallbackColor: string
+) {
+  addAccentBg(canvas, layout, bg?.color ?? fallbackColor);
+  const accent = canvas.getObjects().find((o: any) => o.data?.role === "accent");
+  if (accent) canvas.sendToBack(accent);
+  if (bg?.imageUrl) applyBackgroundImage(canvas, layout, bg.imageUrl);
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 interface Props {
@@ -567,6 +636,7 @@ interface Props {
   bookAuthor: string;
   subtitle?: string | null;
   description?: string | null;
+  authorBio?: string | null;
   isbn?: string | null;
   pageCount?: number | null;
   format: CoverFormat;
@@ -583,6 +653,7 @@ export default function CoverDesignerCanvas({
   bookAuthor,
   subtitle,
   description,
+  authorBio,
   isbn,
   pageCount,
   format,
@@ -599,7 +670,20 @@ export default function CoverDesignerCanvas({
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef(-1);
   const prevFormatRef = useRef<CoverFormat>(format);
-  const formatCacheRef = useRef<Partial<Record<CoverFormat, string>>>({});
+  // Front design (image/title/author/subtitle/band) is ONE shared entity
+  // across all three formats; back+spine (blurb/bio/spine-label/barcode) is
+  // shared between softcover/hardcover only (ebook has no back). Both are
+  // cached as plain object-descriptor arrays (Fabric's own toJSON shape per
+  // object), positions for front stored relative to the front panel's own
+  // x-origin since that offset differs between ebook (x=0) and print
+  // (x=DISPLAY_W+spineW). Background (accent color + optional image) is
+  // tracked separately as a plain value, not Fabric JSON, and regenerated
+  // fresh at whatever the current format's dimensions are — reusing
+  // addAccentBg/applyBackgroundImage, which are already parameterized by
+  // layout for exactly this reason.
+  const frontStateRef = useRef<any[] | null>(null);
+  const backSpineStateRef = useRef<any[] | null>(null);
+  const backgroundRef = useRef<{ color: string; imageUrl?: string } | null>(null);
   const pauseHistoryRef = useRef(false);
 
   const [canUndo, setCanUndo] = useState(false);
@@ -622,9 +706,10 @@ export default function CoverDesignerCanvas({
       author: bookAuthor,
       subtitle: subtitle || undefined,
       description: description || undefined,
+      bio: authorBio || undefined,
       isbn,
     }),
-    [format, pageCount, bookTitle, bookAuthor, subtitle, description, isbn]
+    [format, pageCount, bookTitle, bookAuthor, subtitle, description, authorBio, isbn]
   );
 
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
@@ -681,6 +766,9 @@ export default function CoverDesignerCanvas({
     historyIndexRef.current = -1;
     saveSnapshot();
 
+    const initAccent = canvas.getObjects().find((o: any) => o.data?.role === "accent") as any;
+    backgroundRef.current = { color: (initAccent?.fill as string) ?? "#1a1a2e" };
+
     return () => {
       window.removeEventListener("keydown", onKey);
       canvas.dispose();
@@ -689,22 +777,34 @@ export default function CoverDesignerCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Resize whenever format/pageCount changes the layout. Only re-apply the
-  // template (or restore a cached snapshot) when the FORMAT itself actually
-  // changed — previously this ran unconditionally, so switching Електронна
-  // -> М'яка -> Тверда -> Електронна silently discarded whatever the author
-  // had edited in "Електронна" the moment they switched away, even after a
-  // successful save (the save just uploads a PNG snapshot; it never
-  // preserved the editable per-format canvas state anywhere). Now each
-  // format's canvas JSON is cached in memory on the way out and restored on
-  // the way back in, instead of re-running template.apply() from scratch.
+  // Resize whenever format/pageCount changes the layout. Only rebuild content
+  // when the FORMAT itself actually changed. The front panel (image/title/
+  // author/subtitle/band) is ONE shared design across all three formats; the
+  // back+spine panel (blurb/bio/spine-label/barcode) is shared between
+  // М'яка/Тверда; the background (color + optional image) is shared
+  // everywhere. Previously this unconditionally re-ran template.apply() (or,
+  // briefly today, cached a whole canvas PER format) — neither preserved the
+  // "edit the front once, it shows up everywhere" requirement; switching away
+  // from a format and back silently lost or diverged its design.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const formatChanged = prevFormatRef.current !== format;
+
     if (formatChanged) {
-      formatCacheRef.current[prevFormatRef.current] = JSON.stringify(canvas.toJSON(["data"]));
+      const leavingLayout = computeCoverLayout(prevFormatRef.current, pageCount);
+      const currentObjects = ((canvas.toJSON(["data"]) as any).objects ?? []) as any[];
+      const { front, backSpine } = splitObjectsByPanel(currentObjects, leavingLayout);
+      frontStateRef.current = front;
+      if (leavingLayout.back) backSpineStateRef.current = backSpine;
+
+      const accent = currentObjects.find((o: any) => o.data?.role === "accent") as any;
+      const bgImage = currentObjects.find((o: any) => o.data?.role === "bg-image") as any;
+      backgroundRef.current = {
+        color: (accent?.fill as string) ?? backgroundRef.current?.color ?? "#1a1a2e",
+        imageUrl: (bgImage?.src as string) ?? undefined,
+      };
     }
 
     canvas.setWidth(ctx.layout.totalW);
@@ -712,20 +812,22 @@ export default function CoverDesignerCanvas({
 
     if (formatChanged) {
       pauseHistoryRef.current = true;
-      const finishSwap = () => {
+
+      const needFresh = !frontStateRef.current || (!!ctx.layout.back && !backSpineStateRef.current);
+      const fresh = needFresh ? buildFreshPanelObjects(ctx, template, ctx.layout) : null;
+
+      const frontRelative = frontStateRef.current ?? fresh!.front;
+      const frontObjs = frontRelative.map((o: any) => ({ ...o, left: (o.left ?? 0) + ctx.layout.front.x }));
+      const backSpineObjs = ctx.layout.back ? (backSpineStateRef.current ?? fresh!.backSpine) : [];
+
+      canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
+        applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
         canvas.renderAll();
         pauseHistoryRef.current = false;
         historyRef.current = [];
         historyIndexRef.current = -1;
         saveSnapshot();
-      };
-      const cached = formatCacheRef.current[format];
-      if (cached) {
-        canvas.loadFromJSON(cached, finishSwap);
-      } else {
-        template.apply(canvas, ctx);
-        finishSwap();
-      }
+      });
     } else {
       canvas.renderAll();
     }
@@ -769,6 +871,8 @@ export default function CoverDesignerCanvas({
       setTemplateId(tpl.id);
       tpl.apply(canvas, ctx);
       canvas.renderAll();
+      const accent = canvas.getObjects().find((o: any) => o.data?.role === "accent") as any;
+      backgroundRef.current = { color: (accent?.fill as string) ?? "#1a1a2e" };
     },
     [ctx]
   );

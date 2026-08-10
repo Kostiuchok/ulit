@@ -142,7 +142,7 @@ export function BookDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr_260px]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[320px_1fr_260px]">
           {/* Left: cover + price */}
           <div className="space-y-4">
             <BookCoverCarousel
