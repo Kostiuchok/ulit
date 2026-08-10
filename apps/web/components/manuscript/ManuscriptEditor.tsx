@@ -21,10 +21,15 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  ImagePlus,
   ChevronLeft,
   ChevronDown,
 } from "lucide-react";
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
+import { ResizableImage } from "./resizableImage";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 
@@ -168,10 +173,12 @@ function extractOutline(editor: Editor): OutlineItem[] {
 }
 
 export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides }: Props) {
-  const { apiFetch } = useApi();
+  const { apiFetch, apiUpload } = useApi();
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
+  const [imageError, setImageError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [styleOverrides, setStyleOverrides] = useState<Record<string, StyleOverride>>(initialStyleOverrides ?? {});
   const [selectedLayout, setSelectedLayout] = useState<string>(LAYOUT_TEMPLATES[0].id);
   const [authorStyleSets, setAuthorStyleSets] = useState<AuthorStyleSet[]>([]);
@@ -193,6 +200,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       StarterKit.configure({ paragraph: false }),
       TextAlign.configure({ types: ["paragraph"] }),
       StyledParagraph,
+      ResizableImage,
     ],
     content: initialContent ?? { type: "doc", content: [{ type: "paragraph", attrs: { style: "normal" } }] },
     onUpdate: ({ editor }) => {
@@ -201,8 +209,45 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     },
     onSelectionUpdate: () => forceTick((t) => t + 1),
     onTransaction: () => forceTick((t) => t + 1),
+    editorProps: {
+      handleDrop: (_view, event, _slice, moved) => {
+        if (moved) return false;
+        const file = event.dataTransfer?.files?.[0];
+        if (!file || !file.type.startsWith("image/")) return false;
+        event.preventDefault();
+        uploadAndInsertImage(file);
+        return true;
+      },
+      handlePaste: (_view, event) => {
+        const file = Array.from(event.clipboardData?.items ?? [])
+          .find((item) => item.type.startsWith("image/"))
+          ?.getAsFile();
+        if (!file) return false;
+        event.preventDefault();
+        uploadAndInsertImage(file);
+        return true;
+      },
+    },
     immediatelyRender: false,
   });
+
+  async function uploadAndInsertImage(file: File) {
+    if (!editor) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setImageError("Підтримуються лише PNG, JPEG, WebP");
+      setTimeout(() => setImageError(""), 4000);
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { url } = await apiUpload<{ url: string }>(`/api/books/${bookId}/manuscript/images`, formData);
+      editor.chain().focus().setImage({ src: url }).run();
+    } catch (e: any) {
+      setImageError(e.message || "Не вдалося завантажити зображення");
+      setTimeout(() => setImageError(""), 4000);
+    }
+  }
 
   async function performSave(content: any, overrides: Record<string, StyleOverride>) {
     setSaveState("saving");
@@ -385,8 +430,50 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           <ToolbarButton title="По ширині" active={editor.isActive({ textAlign: "justify" })} onClick={() => editor.chain().focus().setTextAlign("justify").run()}>
             <AlignJustify size={15} />
           </ToolbarButton>
+          <div className="mx-1 h-5 w-px bg-gray-200" />
+          <ToolbarButton title="Вставити зображення" onClick={() => fileInputRef.current?.click()}>
+            <ImagePlus size={15} />
+          </ToolbarButton>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadAndInsertImage(file);
+              e.target.value = "";
+            }}
+          />
+          {editor.isActive("image") && (
+            <>
+              <div className="mx-1 h-5 w-px bg-gray-200" />
+              <ToolbarButton
+                title="Зображення ліворуч — текст обтікає"
+                active={editor.getAttributes("image").align === "left"}
+                onClick={() => editor.chain().focus().updateAttributes("image", { align: "left" }).run()}
+              >
+                <AlignHorizontalJustifyStart size={15} />
+              </ToolbarButton>
+              <ToolbarButton
+                title="Зображення по центру"
+                active={editor.getAttributes("image").align === "center"}
+                onClick={() => editor.chain().focus().updateAttributes("image", { align: "center" }).run()}
+              >
+                <AlignHorizontalJustifyCenter size={15} />
+              </ToolbarButton>
+              <ToolbarButton
+                title="Зображення праворуч — текст обтікає"
+                active={editor.getAttributes("image").align === "right"}
+                onClick={() => editor.chain().focus().updateAttributes("image", { align: "right" }).run()}
+              >
+                <AlignHorizontalJustifyEnd size={15} />
+              </ToolbarButton>
+            </>
+          )}
 
           <div className="ml-auto flex items-center gap-2 text-[0.75rem]">
+            {imageError && <span className="text-red-600">{imageError}</span>}
             <span className={cn(saveState === "error" ? "text-red-600" : "text-gray-400")}>
               {saveState === "saving" && "Збереження…"}
               {saveState === "saved" && "✓ Збережено"}
@@ -551,6 +638,29 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         }
         .manuscript-prose p[data-style="poem"] { text-align: center; white-space: pre-line; }
         .manuscript-prose p[data-style="signature"] { text-align: right; font-size: 0.9rem; color: #666; }
+
+        .manuscript-prose img { max-width: 100%; height: auto; display: block; }
+        .manuscript-prose [data-resize-container] { max-width: 100%; }
+        .manuscript-prose [data-resize-container]:has(img[data-align="left"]) {
+          float: left; display: inline-flex; margin: 0.25em 1.5em 1em 0; max-width: 60%;
+        }
+        .manuscript-prose [data-resize-container]:has(img[data-align="right"]) {
+          float: right; display: inline-flex; margin: 0.25em 0 1em 1.5em; max-width: 60%;
+        }
+        .manuscript-prose [data-resize-container]:has(img[data-align="center"]) {
+          display: flex; justify-content: center; margin: 1em auto;
+        }
+        .manuscript-prose [data-resize-handle] {
+          background: #fff; border: 1.5px solid #111827; border-radius: 2px; z-index: 20;
+        }
+        .manuscript-prose [data-resize-handle="left"],
+        .manuscript-prose [data-resize-handle="right"] { width: 9px; cursor: ew-resize; }
+        .manuscript-prose [data-resize-handle="top"],
+        .manuscript-prose [data-resize-handle="bottom"] { height: 9px; cursor: ns-resize; }
+        .manuscript-prose [data-resize-handle="top-left"],
+        .manuscript-prose [data-resize-handle="bottom-right"] { width: 9px; height: 9px; cursor: nwse-resize; }
+        .manuscript-prose [data-resize-handle="top-right"],
+        .manuscript-prose [data-resize-handle="bottom-left"] { width: 9px; height: 9px; cursor: nesw-resize; }
       `}</style>
     </div>
   );

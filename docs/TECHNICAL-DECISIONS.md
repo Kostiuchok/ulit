@@ -89,6 +89,24 @@ LibreOffice, Pandoc, Ghostscript і Calibre мають складні систе
 
 ---
 
+## ✍️ Редактор рукопису (текст + зображення)
+
+### Чому TipTap?
+
+`ManuscriptEditor` (`apps/web/components/manuscript/ManuscriptEditor.tsx`) на сторінці `/dashboard/books/[id]/manuscript` побудований на **TipTap v3** (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-text-align`, `@tiptap/extension-underline`) — найпоширеніший production rich-text редактор у React/Next.js екосистемі (обгортка над ProseMirror, MIT, активно підтримується). Контент зберігається як **ProseMirror JSON** (не HTML, не Markdown) у полі `Book.manuscriptContent` (`Json?` в Prisma), автозберігається через `PATCH /api/books/:id/manuscript` (`apps/api/src/modules/books/manuscript.ts`, приймає `content: z.any()` — бекенд не валідує структуру документа, тож нові типи нод не потребують міграції схеми).
+
+Кастомні атрибути додаються офіційним механізмом TipTap `Node.extend({ addAttributes() {...} })` — так само зроблено `StyledParagraph` (`apps/web/components/manuscript/styledParagraph.ts`, атрибут `style` для розділів/глав/цитат/віршів) і `ResizableImage` (нижче).
+
+### Зображення в тексті
+
+`apps/web/components/manuscript/resizableImage.ts` розширює **офіційний** `@tiptap/extension-image` (не сторонній/самописний пакет):
+- **Resize** — вбудована функція пакета (`resize: { enabled: true, directions, minWidth, minHeight, alwaysPreserveAspectRatio }`), рендерить ручки зміни розміру через `data-resize-handle` — стилізовано в `<style jsx global>` блоці `ManuscriptEditor.tsx`, логіка перетягування вся всередині пакета
+- **Позиціонування** (ліворуч/по центру/праворуч, з обтіканням текстом для лівого/правого) — власний атрибут `align`, рендериться як `data-align` на `<img>`; обтікання реалізоване чистим CSS (`float` + селектор `:has()` на `[data-resize-container]`), без кастомного node view
+- Кнопка "Вставити зображення" в тулбарі + drag&drop і paste прямо в текст (`editorProps.handleDrop`/`handlePaste`, офіційний API TipTap)
+- Завантаження файлу: `POST /api/books/:id/manuscript/images` (`apps/api/src/modules/books/manuscript-image.ts`, за зразком `cover.ts`) → MinIO `public/manuscripts/{bookId}/{uuid}.{ext}` → повертає `{ url }`, який вставляється в документ через `editor.commands.setImage({ src: url })`. URL зображення живе тільки всередині `manuscriptContent` JSON — окремого поля в `Book` не потрібно.
+
+---
+
 ## 🌍 Дистрибуція — ручна vs автоматична
 
 ### Поточна модель (MVP): повністю ручна

@@ -26,6 +26,7 @@ import { republishRoute } from "./modules/books/republish";
 import { authorStatsRoutes } from "./modules/books/stats";
 import { bookPagesRoutes } from "./modules/books/pages";
 import { bookManuscriptRoutes } from "./modules/books/manuscript";
+import { uploadManuscriptImageRoute } from "./modules/books/manuscript-image";
 import { authorStyleSetRoutes } from "./modules/books/style-sets";
 import { storeBooksRoutes } from "./modules/store/store-books";
 import { ordersRoutes } from "./modules/orders/orders";
@@ -112,6 +113,7 @@ async function bootstrap() {
   await app.register(republishRoute);
   await app.register(bookPagesRoutes);
   await app.register(bookManuscriptRoutes);
+  await app.register(uploadManuscriptImageRoute);
   await app.register(authorStyleSetRoutes);
   await app.register(authorStatsRoutes);
   await app.register(storeBooksRoutes);
