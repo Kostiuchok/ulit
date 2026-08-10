@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -32,6 +33,7 @@ import {
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
 import { ResizableImage } from "./resizableImage";
 import { buildFrontMatterNodes, hasFrontMatter, type FrontMatterMeta } from "./frontMatter";
+import { ManuscriptProseStyles } from "./manuscriptProseStyles";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 
@@ -177,6 +179,7 @@ function extractOutline(editor: Editor): OutlineItem[] {
 
 export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, bookMeta }: Props) {
   const { apiFetch, apiUpload } = useApi();
+  const searchParams = useSearchParams();
 
   // Prepend the Ridero-style title/copyright page (T-1953) the first time this
   // manuscript is opened — everything above the horizontalRule is "page 2",
@@ -355,6 +358,18 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  // Deep-link from the paginated preview's "Редагувати" button — jumps to the
+  // block currently shown on that preview page via the same data-id lookup
+  // the outline sidebar already uses (scrollToBlock above).
+  useEffect(() => {
+    if (!editor) return;
+    const blockId = searchParams.get("blockId");
+    if (!blockId) return;
+    const timer = setTimeout(() => scrollToBlock(blockId), 100);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, searchParams]);
+
   const styleOfCurrentBlock: StyledBlockStyleName = editor?.getAttributes("paragraph").style ?? "normal";
 
   if (!editor) return null;
@@ -399,7 +414,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
             <Save size={15} />
           </ToolbarButton>
           <Link
-            href={`/dashboard/books/${bookId}/preview`}
+            href={`/dashboard/books/${bookId}/manuscript/preview`}
             className="flex h-7 items-center gap-1.5 rounded px-2 text-[0.8125rem] text-gray-600 hover:bg-gray-100"
             title="Передперегляд"
           >
@@ -639,51 +654,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         </div>
       </aside>
 
-      <style jsx global>{`
-        .manuscript-prose { outline: none; }
-        .manuscript-prose p { margin: 0 0 0.9em; }
-        .manuscript-prose p[data-style="chapter"] {
-          font-size: 1.5rem; font-weight: 700; text-align: center; text-transform: uppercase;
-          letter-spacing: 0.03em; margin-top: 2.5em; margin-bottom: 1em;
-        }
-        .manuscript-prose p[data-style="section"] {
-          font-size: 1.25rem; font-weight: 700; text-align: center; margin-top: 2em; margin-bottom: 1em;
-        }
-        .manuscript-prose p[data-style="heading"] { font-size: 1.05rem; font-weight: 700; margin-top: 1.2em; }
-        .manuscript-prose p[data-style="subheading"] { font-size: 0.95rem; font-weight: 600; color: #444; }
-        .manuscript-prose p[data-style="normal"] { text-indent: 1.5em; text-align: justify; }
-        .manuscript-prose p[data-style="epigraph"] {
-          font-style: italic; text-align: right; margin-left: auto; max-width: 60%; color: #555;
-        }
-        .manuscript-prose p[data-style="quote"] {
-          font-style: italic; border-left: 2px solid #ccc; padding-left: 1em; color: #444;
-        }
-        .manuscript-prose p[data-style="poem"] { text-align: center; white-space: pre-line; }
-        .manuscript-prose p[data-style="signature"] { text-align: right; font-size: 0.9rem; color: #666; }
-
-        .manuscript-prose img { max-width: 100%; height: auto; display: block; }
-        .manuscript-prose [data-resize-container] { max-width: 100%; }
-        .manuscript-prose [data-resize-container]:has(img[data-align="left"]) {
-          float: left; display: inline-flex; margin: 0.25em 1.5em 1em 0; max-width: 60%;
-        }
-        .manuscript-prose [data-resize-container]:has(img[data-align="right"]) {
-          float: right; display: inline-flex; margin: 0.25em 0 1em 1.5em; max-width: 60%;
-        }
-        .manuscript-prose [data-resize-container]:has(img[data-align="center"]) {
-          display: flex; justify-content: center; margin: 1em auto;
-        }
-        .manuscript-prose [data-resize-handle] {
-          background: #fff; border: 1.5px solid #111827; border-radius: 2px; z-index: 20;
-        }
-        .manuscript-prose [data-resize-handle="left"],
-        .manuscript-prose [data-resize-handle="right"] { width: 9px; cursor: ew-resize; }
-        .manuscript-prose [data-resize-handle="top"],
-        .manuscript-prose [data-resize-handle="bottom"] { height: 9px; cursor: ns-resize; }
-        .manuscript-prose [data-resize-handle="top-left"],
-        .manuscript-prose [data-resize-handle="bottom-right"] { width: 9px; height: 9px; cursor: nwse-resize; }
-        .manuscript-prose [data-resize-handle="top-right"],
-        .manuscript-prose [data-resize-handle="bottom-left"] { width: 9px; height: 9px; cursor: nesw-resize; }
-      `}</style>
+      <ManuscriptProseStyles />
     </div>
   );
 }
