@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HTMLFlipBook from "react-pageflip-enhanced";
 import { BackCoverPage } from "./BackCoverPage";
+import { Book3DRotator } from "./Book3DRotator";
+import { PdfScrollView } from "./PdfScrollView";
 import { cn } from "../../lib/utils";
 
 interface PageEntry {
@@ -38,10 +40,9 @@ interface FlipEvent {
   data: number;
 }
 
-export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCover, pdfUrl, onClose }: Props) {
+export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCover, onClose }: Props) {
   const [tab, setTab] = useState<Tab>(coverUrl ? "cover" : "color");
-  const [is3D, setIs3D] = useState(true);
-  const [coverSide, setCoverSide] = useState<0 | 1>(0);
+  const [viewMode, setViewMode] = useState<"flip" | "pdf">("flip");
   const [current, setCurrent] = useState(0);
   const bookRef = useRef<{ pageFlip: () => any } | null>(null);
 
@@ -63,7 +64,7 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
   const changeTab = (t: Tab) => {
     setTab(t);
     setCurrent(0);
-    setCoverSide(0);
+    setViewMode("flip");
   };
 
   const goPrev = useCallback(() => bookRef.current?.pageFlip()?.flipPrev(), []);
@@ -80,8 +81,6 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [goNext, goPrev, onClose, tab]);
-
-  const tilt = is3D ? { transform: "perspective(1400px) rotateY(-10deg)", transformStyle: "preserve-3d" as const } : { transform: "none" };
 
   return (
     <div className="bg-white rounded-xl border shadow-sm">
@@ -116,65 +115,44 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
           ))}
         </div>
 
-        <div className="flex items-center rounded-full border bg-gray-50 p-0.5 text-xs font-medium">
-          <button
-            onClick={() => setIs3D(true)}
-            className={cn(
-              "px-3 py-1.5 rounded-full transition-colors",
-              is3D ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
-            )}
-          >
-            3D
-          </button>
-          {pdfUrl ? (
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setIs3D(false)}
+        {tab !== "cover" && (
+          <div className="flex items-center rounded-full border bg-gray-50 p-0.5 text-xs font-medium">
+            <button
+              onClick={() => setViewMode("flip")}
               className={cn(
                 "px-3 py-1.5 rounded-full transition-colors",
-                !is3D ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
+                viewMode === "flip" ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
+              )}
+            >
+              Гортання
+            </button>
+            <button
+              onClick={() => setViewMode("pdf")}
+              className={cn(
+                "px-3 py-1.5 rounded-full transition-colors",
+                viewMode === "pdf" ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
               )}
             >
               PDF
-            </a>
-          ) : (
-            <span className="px-3 py-1.5 rounded-full text-gray-300 cursor-not-allowed">PDF</span>
-          )}
-        </div>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Cover tab — single dedicated view */}
+      {/* Cover tab — 3D rotation, opens into the flip view on click */}
       {tab === "cover" && coverUrl ? (
-        <>
-          <div className="flex items-center justify-center bg-gray-50 py-10 px-4 min-h-[70vh]">
-            <div className="h-[70vh] max-h-[720px] shadow-2xl rounded-sm overflow-hidden transition-transform duration-300" style={tilt}>
-              <img
-                src={coverSide === 0 ? coverUrl : (backCoverUrl ?? coverUrl)}
-                alt={coverSide === 0 ? "Передня обкладинка" : "Задня обкладинка"}
-                className="h-full aspect-[3/4] object-cover"
-              />
-            </div>
-          </div>
-
-          {backCoverUrl && (
-            <div className="flex items-center gap-3 px-6 py-4 border-t">
-              <span className="text-xs text-gray-400 w-10 shrink-0">Перед</span>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={1}
-                value={coverSide}
-                onChange={(e) => setCoverSide(Number(e.target.value) as 0 | 1)}
-                className="flex-1 accent-gray-900"
-                aria-label="Перед / зад обкладинки"
-              />
-              <span className="text-xs text-gray-400 w-10 shrink-0 text-right">Зад</span>
-            </div>
-          )}
-        </>
+        <Book3DRotator
+          coverUrl={coverUrl}
+          backCoverUrl={backCoverUrl}
+          pageCount={pages.length}
+          onOpen={() => {
+            setTab("color");
+            setViewMode("flip");
+            setCurrent(0);
+          }}
+        />
+      ) : tab !== "cover" && viewMode === "pdf" ? (
+        <PdfScrollView pages={activePages} />
       ) : (
         <>
           {/* Flipbook area */}
@@ -190,7 +168,7 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], backCo
             )}
 
             {flipPages.length > 0 && (
-              <div className="shadow-2xl rounded-sm overflow-hidden transition-transform duration-300" style={tilt}>
+              <div className="shadow-2xl rounded-sm overflow-hidden">
                 <HTMLFlipBook
                   key={tab}
                   ref={bookRef}
