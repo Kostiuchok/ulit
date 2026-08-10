@@ -128,10 +128,7 @@ export function ManuscriptPagePreview({ bookId, coverUrl, manuscriptContent }: P
             width={PAGE_W}
             height={PAGE_H}
             size="fixed"
-            minWidth={PAGE_W}
-            maxWidth={PAGE_W}
-            minHeight={PAGE_H}
-            maxHeight={PAGE_H}
+            usePortrait={false}
             showCover={hasCover}
             drawShadow
             maxShadowOpacity={0.3}
