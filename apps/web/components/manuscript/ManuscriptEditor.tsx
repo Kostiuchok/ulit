@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
 import { ResizableImage } from "./resizableImage";
+import { buildFrontMatterNodes, hasFrontMatter, type FrontMatterMeta } from "./frontMatter";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,7 @@ interface Props {
   bookId: string;
   initialContent: any;
   initialStyleOverrides?: Record<string, StyleOverride>;
+  bookMeta?: FrontMatterMeta;
 }
 
 interface AuthorStyleSet {
@@ -172,8 +174,19 @@ function extractOutline(editor: Editor): OutlineItem[] {
   return items;
 }
 
-export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides }: Props) {
+export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, bookMeta }: Props) {
   const { apiFetch, apiUpload } = useApi();
+
+  // Prepend the Ridero-style title/copyright page (T-1953) the first time this
+  // manuscript is opened — everything above the horizontalRule is "page 2",
+  // pre-filled from Вихідні дані but freely editable afterwards. Computed once
+  // at mount: useEditor's `content` option only matters on creation.
+  const effectiveInitialContent = useMemo(() => {
+    const doc = initialContent ?? { type: "doc", content: [{ type: "paragraph", attrs: { style: "normal" } }] };
+    if (!bookMeta || hasFrontMatter(doc)) return doc;
+    return { type: "doc", content: [...buildFrontMatterNodes(bookMeta), ...(doc.content ?? [])] };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
@@ -202,7 +215,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       StyledParagraph,
       ResizableImage,
     ],
-    content: initialContent ?? { type: "doc", content: [{ type: "paragraph", attrs: { style: "normal" } }] },
+    content: effectiveInitialContent,
     onUpdate: ({ editor }) => {
       setOutline(extractOutline(editor));
       scheduleSave(editor.getJSON(), styleOverrides);

@@ -34,6 +34,7 @@ import { ordersRoutes } from "./modules/orders/orders";
 import { royaltiesMeRoutes } from "./modules/royalties/me";
 import { liqpayRoutes } from "./modules/payments/liqpay";
 import { adminRoutes } from "./modules/admin/admin";
+import { bookChamberRoutes } from "./modules/admin/book-chamber";
 import { startEmailWorker } from "./lib/email-queue";
 import { metricsRegistry } from "./lib/metrics";
 
@@ -123,6 +124,7 @@ async function bootstrap() {
   await app.register(royaltiesMeRoutes);
   await app.register(liqpayRoutes);
   await app.register(adminRoutes);
+  await app.register(bookChamberRoutes);
 
   // Auto-promote ADMIN_EMAIL to ADMIN role (safe: only upgrades AUTHOR, never downgrades)
   const adminEmail = process.env.ADMIN_EMAIL;

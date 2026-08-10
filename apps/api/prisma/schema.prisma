@@ -124,6 +124,10 @@ model Book {
   previousStatus       String? // status before soft-delete, restored on undo
   archivedAt           DateTime? // soft-delete timestamp ("Видалити книгу" — recoverable)
   isbn                 String?              @unique
+  udcCode              String? // УДК — Universal Decimal Classification index, assigned by Книжкова палата
+  bbkCode              String? // ББК — bibliotechno-bibliographic classification index
+  authorSign           String? // авторський знак — shelving code, assigned alongside УДК/ББК
+  bookChamberSubmittedAt DateTime? // admin marked the book as submitted to Книжкова палата for cataloguing
   coverUrl             String?
   backCoverUrl         String?
   coverImageLibrary    Json? // previously uploaded cover images the author can re-pick — [{url, uploadedAt}]

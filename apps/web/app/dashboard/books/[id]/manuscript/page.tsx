@@ -10,7 +10,17 @@ import { useApi } from "@/hooks/useApi";
 
 interface ManuscriptBook {
   title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  ageRating?: string | null;
+  isbn?: string | null;
+  udcCode?: string | null;
+  bbkCode?: string | null;
+  authorSign?: string | null;
+  pageCount?: number | null;
+  createdAt?: string | null;
   originalDocxUrl?: string | null;
+  author?: { name: string } | null;
 }
 
 type ManuscriptStatus =
@@ -114,7 +124,24 @@ export default function ManuscriptEditorPage() {
 
   return (
     <div className="h-full">
-      <ManuscriptEditor bookId={id} initialContent={manuscript.content} initialStyleOverrides={manuscript.styleOverrides} />
+      <ManuscriptEditor
+        bookId={id}
+        initialContent={manuscript.content}
+        initialStyleOverrides={manuscript.styleOverrides}
+        bookMeta={{
+          title: book?.title ?? "",
+          subtitle: book?.subtitle,
+          authorName: book?.author?.name,
+          description: book?.description,
+          ageRating: book?.ageRating,
+          isbn: book?.isbn,
+          udcCode: book?.udcCode,
+          bbkCode: book?.bbkCode,
+          authorSign: book?.authorSign,
+          pageCount: book?.pageCount,
+          createdAt: book?.createdAt,
+        }}
+      />
     </div>
   );
 }

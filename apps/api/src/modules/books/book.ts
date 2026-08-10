@@ -16,6 +16,9 @@ const BOOK_SELECT = {
   archivedAt: true,
   unpublishedAt: true,
   isbn: true,
+  udcCode: true,
+  bbkCode: true,
+  authorSign: true,
   coverUrl: true,
   backCoverUrl: true,
   coverImageLibrary: true,
@@ -58,7 +61,7 @@ const BOOK_SELECT = {
   publishedAt: true,
   authorId: true,
   publicationTimeline: true,
-  author: { select: { contractAcceptedAt: true } },
+  author: { select: { name: true, contractAcceptedAt: true } },
 } as const;
 
 const coAuthorSchema = z.object({

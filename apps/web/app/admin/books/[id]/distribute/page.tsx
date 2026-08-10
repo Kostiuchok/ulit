@@ -12,6 +12,10 @@ interface Book {
   title: string;
   description?: string | null;
   isbn?: string | null;
+  udcCode?: string | null;
+  bbkCode?: string | null;
+  authorSign?: string | null;
+  bookChamberSubmittedAt?: string | null;
   coverUrl?: string | null;
   epubUrl?: string | null;
   fb2Url?: string | null;
@@ -382,6 +386,12 @@ export default function DistributePage() {
   const [rejectDone, setRejectDone] = useState(false);
   const [savingStep, setSavingStep] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [bcIsbn, setBcIsbn] = useState("");
+  const [bcUdc, setBcUdc] = useState("");
+  const [bcBbk, setBcBbk] = useState("");
+  const [bcAuthorSign, setBcAuthorSign] = useState("");
+  const [savingBookChamber, setSavingBookChamber] = useState(false);
+  const [bookChamberError, setBookChamberError] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -391,6 +401,10 @@ export default function DistributePage() {
         setD2d(b.d2dStatus);
         setKdp(b.kdpStatus);
         setGoogle(b.googleStatus);
+        setBcIsbn(b.isbn ?? "");
+        setBcUdc(b.udcCode ?? "");
+        setBcBbk(b.bbkCode ?? "");
+        setBcAuthorSign(b.authorSign ?? "");
       })
       .finally(() => setLoading(false));
   }, [token, id]);
@@ -438,6 +452,22 @@ export default function DistributePage() {
       setBook(updated);
     } finally {
       setSavingStep(null);
+    }
+  }
+
+  async function saveBookChamber(patch: Record<string, string | null>) {
+    setSavingBookChamber(true);
+    setBookChamberError("");
+    try {
+      const { book: updated } = await apiFetch<{ book: Partial<Book> }>(
+        `/api/admin/books/${id}/book-chamber`,
+        { method: "PATCH", body: JSON.stringify(patch) }
+      );
+      setBook((b) => (b ? { ...b, ...updated } : b));
+    } catch (e: any) {
+      setBookChamberError(e.message || "Помилка збереження");
+    } finally {
+      setSavingBookChamber(false);
     }
   }
 
@@ -570,6 +600,97 @@ export default function DistributePage() {
           ✕ Книгу відхилено. Автора повідомлено.
         </div>
       )}
+
+      {/* ── Книжкова палата ─────────────────────────────────────────────────── */}
+      <div className="rounded-xl border bg-white p-5 shadow-sm space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація в Книжковій палаті</h2>
+          <p className="text-xs text-gray-400">
+            Публічного API в Книжкової палати немає — подання відбувається поза системою. Позначте дату подання,
+            а після отримання відповіді внесіть реальні ISBN/УДК/ББК/авторський знак нижче.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 text-sm">
+          {book.bookChamberSubmittedAt ? (
+            <>
+              <span className="text-gray-600">
+                Подано до Книжкової палати: <span className="font-mono">{fmtDate(book.bookChamberSubmittedAt)}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => saveBookChamber({ submittedAt: null })}
+                className="text-gray-400 hover:text-red-600"
+                title="Скасувати позначку"
+              >
+                ✕
+              </button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              loading={savingBookChamber}
+              onClick={() => saveBookChamber({ submittedAt: new Date().toISOString() })}
+            >
+              Позначити як подано
+            </Button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">ISBN</label>
+            <input
+              value={bcIsbn}
+              onChange={(e) => setBcIsbn(e.target.value)}
+              placeholder="978-XXX-XXXX-XX-X"
+              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Авторський знак</label>
+            <input
+              value={bcAuthorSign}
+              onChange={(e) => setBcAuthorSign(e.target.value)}
+              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">УДК</label>
+            <input
+              value={bcUdc}
+              onChange={(e) => setBcUdc(e.target.value)}
+              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">ББК</label>
+            <input
+              value={bcBbk}
+              onChange={(e) => setBcBbk(e.target.value)}
+              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+          </div>
+        </div>
+
+        {bookChamberError && <p className="text-sm text-red-500">{bookChamberError}</p>}
+
+        <Button
+          size="sm"
+          loading={savingBookChamber}
+          onClick={() =>
+            saveBookChamber({
+              isbn: bcIsbn.trim() || null,
+              udcCode: bcUdc.trim() || null,
+              bbkCode: bcBbk.trim() || null,
+              authorSign: bcAuthorSign.trim() || null,
+            })
+          }
+        >
+          Зберегти
+        </Button>
+      </div>
 
       {/* ── Publication / contract / distribution timeline ────────────────────── */}
       <div className="rounded-xl border bg-white p-5 shadow-sm">
