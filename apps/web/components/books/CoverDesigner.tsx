@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { CoverFormat } from "./CoverDesignerCanvas";
 
 const CoverDesignerCanvas = dynamic(() => import("./CoverDesignerCanvas"), {
   ssr: false,
@@ -15,8 +16,15 @@ interface Props {
   bookId: string;
   bookTitle: string;
   bookAuthor: string;
+  subtitle?: string | null;
+  description?: string | null;
+  isbn?: string | null;
+  pageCount?: number | null;
+  format: CoverFormat;
   existingCoverUrl?: string | null;
-  onSaved: (url: string) => void;
+  coverImageLibrary?: { url: string; uploadedAt: string }[];
+  onSaved: (patch: { coverUrl?: string; backCoverUrl?: string }) => void;
+  onLibraryChange?: (library: { url: string; uploadedAt: string }[]) => void;
   token?: string;
 }
 

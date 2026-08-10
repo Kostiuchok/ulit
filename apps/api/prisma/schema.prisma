@@ -126,6 +126,7 @@ model Book {
   isbn                 String?              @unique
   coverUrl             String?
   backCoverUrl         String?
+  coverImageLibrary    Json? // previously uploaded cover images the author can re-pick — [{url, uploadedAt}]
   originalDocxUrl      String?
   docxUpdatedAt        DateTime? // set whenever the source .docx changes; compared to publishedAt to know if a live book has unpublished file changes
   republishRequestedAt DateTime? // author submitted post-publish changes for re-moderation; cleared once admin approves or rejects
