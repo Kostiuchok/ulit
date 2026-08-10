@@ -605,7 +605,7 @@ function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
 // (first time a given format is visited this session) — avoids duplicating
 // each template's font/color choices outside of its own apply() closure.
 function buildFreshPanelObjects(ctx: TemplateCtx, template: Template, layout: CoverLayout) {
-  const scratch = new fabric.StaticCanvas(undefined, { width: layout.totalW, height: layout.totalH });
+  const scratch = new fabric.StaticCanvas(null, { width: layout.totalW, height: layout.totalH });
   template.apply(scratch as unknown as fabric.Canvas, ctx);
   const all = ((scratch.toJSON(["data"]) as any).objects ?? []) as any[];
   scratch.dispose();
