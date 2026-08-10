@@ -5,7 +5,7 @@
 export function ManuscriptProseStyles() {
   return (
     <style jsx global>{`
-      .manuscript-prose { outline: none; }
+      .manuscript-prose { outline: none; font-size: var(--ms-font-size, 1rem); }
       .manuscript-prose p { margin: 0 0 0.9em; }
       .manuscript-prose p[data-style="chapter"] {
         font-size: 1.5rem; font-weight: 700; text-align: center; text-transform: uppercase;

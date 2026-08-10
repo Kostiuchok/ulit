@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type WheelEvent } from "react";
+import { useCallback, useRef, useState, type CSSProperties, type WheelEvent } from "react";
 import { useRouter } from "next/navigation";
 import HTMLFlipBook from "react-pageflip-enhanced";
 import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
@@ -10,7 +10,7 @@ import { useManuscriptPagination } from "./useManuscriptPagination";
 // A5 trim (148 x 210mm) — fixed at book creation, the only size this preview
 // supports today. Scale/margins are on-screen preview constants only, not
 // tied to the real print pipeline (that's the separate T-1940 PDF job).
-const MM = 3.35;
+const MM = 5; // px per mm on-screen (~127 DPI zoom) — was 3.35, bumped so the preview and its text read at a comfortable size
 const PAGE_W = Math.round(148 * MM);
 const PAGE_H = Math.round(210 * MM);
 const MARGIN_X = Math.round(16 * MM);
@@ -18,6 +18,14 @@ const MARGIN_TOP = Math.round(18 * MM);
 const MARGIN_BOTTOM = Math.round(20 * MM);
 const CONTENT_W = PAGE_W - MARGIN_X * 2;
 const CONTENT_H = PAGE_H - MARGIN_TOP - MARGIN_BOTTOM;
+
+// Standard print-book body text is ~10-11pt at A5 trim; derive the on-screen
+// px equivalent from the same mm→px zoom used for the page itself, so text
+// stays true-to-scale (fed into .manuscript-prose via --ms-font-size, see
+// manuscriptProseStyles.tsx — scoped to the preview only, doesn't affect the
+// editor's own comfortable reading/editing size).
+const PRINT_BODY_PT = 11;
+const PRINT_BODY_PX = Math.round(PRINT_BODY_PT * (MM * 25.4 / 72) * 10) / 10;
 
 const WHEEL_THROTTLE_MS = 550;
 
@@ -38,7 +46,7 @@ type FlipLeaf =
 
 export function ManuscriptPagePreview({ bookId, coverUrl, manuscriptContent }: Props) {
   const router = useRouter();
-  const { pages } = useManuscriptPagination(manuscriptContent, CONTENT_W, CONTENT_H);
+  const { pages } = useManuscriptPagination(manuscriptContent, CONTENT_W, CONTENT_H, PRINT_BODY_PX);
   const bookRef = useRef<{ pageFlip: () => any } | null>(null);
   const [current, setCurrent] = useState(0);
   const lastWheel = useRef(0);
@@ -121,7 +129,7 @@ export function ManuscriptPagePreview({ bookId, coverUrl, manuscriptContent }: P
         </button>
       </div>
 
-      <div onWheel={handleWheel} className="shadow-sm">
+      <div onWheel={handleWheel} className="max-w-full overflow-x-auto shadow-sm">
         {flipLeaves.length > 0 && (
           <HTMLFlipBook
             ref={bookRef}
@@ -153,7 +161,13 @@ export function ManuscriptPagePreview({ bookId, coverUrl, manuscriptContent }: P
                 <div key={i} className="relative h-full w-full overflow-hidden bg-white">
                   <div
                     className="manuscript-prose absolute overflow-hidden"
-                    style={{ left: MARGIN_X, top: MARGIN_TOP, width: CONTENT_W, height: CONTENT_H }}
+                    style={{
+                      left: MARGIN_X,
+                      top: MARGIN_TOP,
+                      width: CONTENT_W,
+                      height: CONTENT_H,
+                      "--ms-font-size": `${PRINT_BODY_PX}px`,
+                    } as CSSProperties}
                     dangerouslySetInnerHTML={{ __html: leaf.html }}
                   />
                 </div>

@@ -20,12 +20,15 @@ export interface PageLeaf {
   blockId: string | null;
 }
 
+const HEADING_STYLES = new Set(["chapter", "section", "heading", "subheading"]);
+
 interface NodeMetric {
   top: number;
   height: number;
   id: string | null;
   html: string;
   isPageBreak: boolean;
+  isHeading: boolean;
 }
 
 const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph", attrs: { style: "normal" } }] };
@@ -77,6 +80,7 @@ function measureNodes(container: HTMLElement): NodeMetric[] {
       id: element.getAttribute("data-id"),
       html: element.outerHTML,
       isPageBreak: element.getAttribute("data-type") === "page-break",
+      isHeading: HEADING_STYLES.has(element.getAttribute("data-style") ?? ""),
     };
   });
 }
@@ -110,8 +114,19 @@ export function paginateNodes(nodes: NodeMetric[], pageHeight: number): PageLeaf
     }
     const bottom = node.top + node.height;
     if (current.length > 0 && bottom - pageStartY > pageHeight) {
-      flush();
-      pageStartY = node.top;
+      // Don't leave a heading alone as the last item on a page with the
+      // content it introduces pushed to the next page -- carry the heading
+      // forward so it lands together with what follows it.
+      const last = current[current.length - 1];
+      if (last.isHeading) {
+        current.pop();
+        flush();
+        pageStartY = last.top;
+        current.push(last);
+      } else {
+        flush();
+        pageStartY = node.top;
+      }
     }
     current.push(node);
   }
@@ -120,7 +135,12 @@ export function paginateNodes(nodes: NodeMetric[], pageHeight: number): PageLeaf
   return pages.length > 0 ? pages : [{ html: "", blockId: null }];
 }
 
-export async function paginateManuscript(content: any, contentWidth: number, contentHeight: number): Promise<PageLeaf[]> {
+export async function paginateManuscript(
+  content: any,
+  contentWidth: number,
+  contentHeight: number,
+  fontSizePx?: number
+): Promise<PageLeaf[]> {
   const doc = content ?? EMPTY_DOC;
   const resolvedDoc = await resolveImageDimensions(doc, contentWidth);
   const html = generateHTML(resolvedDoc, MANUSCRIPT_EXTENSIONS);
@@ -133,10 +153,19 @@ export async function paginateManuscript(content: any, contentWidth: number, con
   probe.style.width = `${contentWidth}px`;
   probe.style.height = "auto";
   probe.style.visibility = "hidden";
+  // Must match the font-size the leaf is actually rendered at (see
+  // --ms-font-size in manuscriptProseStyles.tsx) -- measuring at a different
+  // size than the real render undercounts/overcounts height and causes text
+  // to clip at the bottom of a page.
+  if (fontSizePx) probe.style.setProperty("--ms-font-size", `${fontSizePx}px`);
   probe.innerHTML = html;
   document.body.appendChild(probe);
   const nodes = measureNodes(probe);
   document.body.removeChild(probe);
 
-  return paginateNodes(nodes, contentHeight);
+  // 1px safety margin: browsers can round a wrapped line's height up by a
+  // sub-pixel amount between the probe measurement and the real leaf render,
+  // which previously accumulated across a page's paragraphs and clipped the
+  // last line of text at the bottom.
+  return paginateNodes(nodes, contentHeight - 1);
 }
