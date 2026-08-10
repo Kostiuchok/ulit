@@ -23,6 +23,7 @@ const BOOK_SELECT = {
   coverUrl: true,
   backCoverUrl: true,
   coverImageLibrary: true,
+  coverDesign: true,
   originalDocxUrl: true,
   docxUpdatedAt: true,
   republishRequestedAt: true,
@@ -87,6 +88,13 @@ const patchSchema = z.object({
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
   distributionChannels: z.array(z.enum(["ULIT", "D2D", "KDP", "GOOGLE"])).optional(),
   kdpSelectExpiry: z.string().datetime().nullable().optional(),
+  coverDesign: z
+    .object({
+      front: z.array(z.any()),
+      backSpine: z.array(z.any()),
+      background: z.object({ color: z.string(), imageUrl: z.string().optional() }),
+    })
+    .optional(),
 });
 
 const previewSchema = z.object({

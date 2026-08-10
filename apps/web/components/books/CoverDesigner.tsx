@@ -23,6 +23,7 @@ interface Props {
   pageCount?: number | null;
   format: CoverFormat;
   existingCoverUrl?: string | null;
+  savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string }[];
   onSaved: (patch: { coverUrl?: string; backCoverUrl?: string }) => void;
   onLibraryChange?: (library: { url: string; uploadedAt: string }[]) => void;

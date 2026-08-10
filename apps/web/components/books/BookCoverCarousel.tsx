@@ -33,8 +33,9 @@ export function BookCoverCarousel({ coverUrl, backCoverUrl, hasEbook, hasPrint }
   return (
     <div className="space-y-3">
       <div
-        className="relative flex w-full items-center justify-center"
+        className={`relative flex w-full items-center justify-center ${slides.length > 1 ? "cursor-pointer" : ""}`}
         style={{ aspectRatio: "232 / 341" }}
+        onClick={slides.length > 1 ? () => setActive((a) => (a + 1) % slides.length) : undefined}
       >
         <div key={slides[current].key} aria-label={slides[current].label} className="w-full">
           {slides[current].node}

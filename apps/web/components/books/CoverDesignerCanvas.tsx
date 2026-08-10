@@ -619,6 +619,25 @@ function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
   return { front, backSpine };
 }
 
+// Snapshots what should be persisted as the book's editable cover design.
+// Front and background always exist in the current live canvas regardless of
+// format, so they're read live; back+spine only exists in print layouts —
+// when saving from ebook (no back panel on canvas at all), fall back to
+// whatever back+spine was last cached this session instead of persisting an
+// empty back+spine and losing it.
+function captureDesignState(canvas: fabric.Canvas, layout: CoverLayout, cachedBackSpine: any[] | null) {
+  const currentObjects = ((canvas.toJSON(["data"]) as any).objects ?? []) as any[];
+  const { front, backSpine: liveBackSpine } = splitObjectsByPanel(currentObjects, layout);
+  const backSpine = layout.back ? liveBackSpine : (cachedBackSpine ?? []);
+  const accent = currentObjects.find((o: any) => o.data?.role === "accent") as any;
+  const bgImage = currentObjects.find((o: any) => o.data?.role === "bg-image") as any;
+  const background = {
+    color: (accent?.fill as string) ?? "#1a1a2e",
+    imageUrl: (bgImage?.src as string) ?? undefined,
+  };
+  return { front, backSpine, background };
+}
+
 // Draws the given template on an offscreen scratch canvas to get "fresh"
 // front/back+spine object descriptors, for whichever panel isn't cached yet
 // (first time a given format is visited this session) — avoids duplicating
@@ -660,6 +679,7 @@ interface Props {
   pageCount?: number | null;
   format: CoverFormat;
   existingCoverUrl?: string | null;
+  savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string }[];
   onSaved: (patch: { coverUrl?: string; backCoverUrl?: string }) => void;
   onLibraryChange?: (library: { url: string; uploadedAt: string }[]) => void;
@@ -676,6 +696,7 @@ export default function CoverDesignerCanvas({
   isbn,
   pageCount,
   format,
+  savedDesign,
   coverImageLibrary = [],
   onSaved,
   onLibraryChange,
@@ -714,6 +735,11 @@ export default function CoverDesignerCanvas({
   const [saveError, setSaveError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
+  // Remembers the last uploaded background image so it stays offered as a
+  // swatch next to the color options even after the author switches to a
+  // plain color -- lets them toggle back and forth instead of losing the
+  // upload the moment they pick a color.
+  const [bgImageUrl, setBgImageUrl] = useState<string | null>(null);
   const [ownCoverError, setOwnCoverError] = useState("");
   const [ownCoverDims, setOwnCoverDims] = useState<{ w: number; h: number } | null>(null);
   const [activeObj, setActiveObj] = useState<fabric.Object | null>(null);
@@ -779,14 +805,39 @@ export default function CoverDesignerCanvas({
     };
     window.addEventListener("keydown", onKey);
 
-    template.apply(canvas, ctx);
-    canvas.renderAll();
-    historyRef.current = [];
-    historyIndexRef.current = -1;
-    saveSnapshot();
+    if (savedDesign && (savedDesign.front.length > 0 || savedDesign.backSpine.length > 0)) {
+      // Restore the author's last-saved design instead of the blank
+      // template — same front/back+spine/background restore logic the
+      // format-switch effect below uses, seeded from the backend instead of
+      // an in-session ref.
+      frontStateRef.current = savedDesign.front;
+      backSpineStateRef.current = savedDesign.backSpine;
+      backgroundRef.current = savedDesign.background;
+      if (savedDesign.background.imageUrl) setBgImageUrl(savedDesign.background.imageUrl);
 
-    const initAccent = canvas.getObjects().find((o: any) => o.data?.role === "accent") as any;
-    backgroundRef.current = { color: (initAccent?.fill as string) ?? "#1a1a2e" };
+      const needFresh = !frontStateRef.current || (!!ctx.layout.back && !backSpineStateRef.current);
+      const fresh = needFresh ? buildFreshPanelObjects(ctx, template, ctx.layout) : null;
+      const frontRelative = frontStateRef.current ?? fresh!.front;
+      const frontObjs = frontRelative.map((o: any) => ({ ...o, left: (o.left ?? 0) + ctx.layout.front.x }));
+      const backSpineObjs = ctx.layout.back ? (backSpineStateRef.current ?? fresh!.backSpine) : [];
+
+      canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
+        applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
+        canvas.renderAll();
+        historyRef.current = [];
+        historyIndexRef.current = -1;
+        saveSnapshot();
+      });
+    } else {
+      template.apply(canvas, ctx);
+      canvas.renderAll();
+      historyRef.current = [];
+      historyIndexRef.current = -1;
+      saveSnapshot();
+
+      const initAccent = canvas.getObjects().find((o: any) => o.data?.role === "accent") as any;
+      backgroundRef.current = { color: (initAccent?.fill as string) ?? "#1a1a2e" };
+    }
 
     return () => {
       window.removeEventListener("keydown", onKey);
@@ -978,14 +1029,27 @@ export default function CoverDesignerCanvas({
     [saveSnapshot]
   );
 
+  // Picking a color switches the background back to solid -- the uploaded
+  // image (if any) stays remembered in bgImageUrl so its swatch keeps
+  // offering a one-click way back, it's just not the active layer anymore.
   const recolor = useCallback((color: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.getObjects().forEach((o: any) => {
       if (o.data?.role === "accent") o.set("fill", color);
     });
+    const bgImage = canvas.getObjects().find((o: any) => o.data?.role === "bg-image");
+    if (bgImage) canvas.remove(bgImage);
     canvas.renderAll();
-  }, []);
+    saveSnapshot();
+  }, [saveSnapshot]);
+
+  const selectBgImage = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !bgImageUrl) return;
+    applyBackgroundImage(canvas, ctx.layout, bgImageUrl);
+    saveSnapshot();
+  }, [bgImageUrl, ctx.layout, saveSnapshot]);
 
   const applyRandomPattern = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1013,8 +1077,12 @@ export default function CoverDesignerCanvas({
         const url = library[library.length - 1]?.url;
         const canvas = canvasRef.current;
         if (url && canvas) {
-          if (target === "background") applyBackgroundImage(canvas, ctx.layout, url);
-          else applyImageToSlot(canvas, url, ctx.layout.front);
+          if (target === "background") {
+            applyBackgroundImage(canvas, ctx.layout, url);
+            setBgImageUrl(url);
+          } else {
+            applyImageToSlot(canvas, url, ctx.layout.front);
+          }
         }
       } catch (e: any) {
         setSaveError(e.message || "Не вдалося завантажити зображення");
@@ -1162,13 +1230,23 @@ export default function CoverDesignerCanvas({
         patch.backCoverUrl = await uploadPanel(backDataUrl, "upload-back-cover", "backCoverUrl");
       }
 
+      const coverDesign = captureDesignState(canvas, ctx.layout, backSpineStateRef.current);
+      await fetch(`/api/books/${bookId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ coverDesign }),
+      });
+
       onSaved(patch);
     } catch (e: any) {
       setSaveError(e.message || "Помилка збереження обкладинки");
     } finally {
       setSaving(false);
     }
-  }, [ctx.layout, uploadPanel, onSaved]);
+  }, [ctx.layout, uploadPanel, onSaved, bookId, token]);
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row">
@@ -1385,32 +1463,70 @@ export default function CoverDesignerCanvas({
 
         {activeTab === "templates" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => applyTemplate(TEMPLATES[(templateIndex - 1 + TEMPLATES.length) % TEMPLATES.length])}
-                className="text-gray-400 hover:text-gray-900"
-                aria-label="Попередній шаблон"
-              >
-                ‹
-              </button>
-              <div className="flex flex-col items-center gap-1">
-                <div className={cn("h-24 w-16 rounded border-2 border-primary", template.thumbnail)} />
-                <span className="text-xs font-medium text-gray-700">{template.label}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => applyTemplate(TEMPLATES[(templateIndex + 1) % TEMPLATES.length])}
-                className="text-gray-400 hover:text-gray-900"
-                aria-label="Наступний шаблон"
-              >
-                ›
-              </button>
-            </div>
+            {(() => {
+              const prevTpl = TEMPLATES[(templateIndex - 1 + TEMPLATES.length) % TEMPLATES.length];
+              const nextTpl = TEMPLATES[(templateIndex + 1) % TEMPLATES.length];
+              return (
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(prevTpl)}
+                    className="text-gray-400 hover:text-gray-900"
+                    aria-label="Попередній шаблон"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(prevTpl)}
+                    className="flex flex-col items-center gap-1 opacity-40 transition-opacity hover:opacity-70"
+                    aria-label={`Попередній: ${prevTpl.label}`}
+                  >
+                    <div className={cn("h-16 w-11 rounded border border-gray-300", prevTpl.thumbnail)} />
+                  </button>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={cn("h-24 w-16 rounded border-2 border-primary", template.thumbnail)} />
+                    <span className="text-xs font-medium text-gray-700">{template.label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(nextTpl)}
+                    className="flex flex-col items-center gap-1 opacity-40 transition-opacity hover:opacity-70"
+                    aria-label={`Наступний: ${nextTpl.label}`}
+                  >
+                    <div className={cn("h-16 w-11 rounded border border-gray-300", nextTpl.thumbnail)} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyTemplate(nextTpl)}
+                    className="text-gray-400 hover:text-gray-900"
+                    aria-label="Наступний шаблон"
+                  >
+                    ›
+                  </button>
+                </div>
+              );
+            })()}
 
-            <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAllTemplates(true)}>
-              ▦ Список усіх макетів
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setShowAllTemplates((v) => !v)}
+            >
+              {showAllTemplates ? "✕ Приховати список" : "▦ Список усіх макетів"}
             </Button>
+            {showAllTemplates && (
+              <CoverTemplatesModal
+                templates={TEMPLATES}
+                selectedId={template.id}
+                onSelect={(tpl) => {
+                  applyTemplate(tpl);
+                  setShowAllTemplates(false);
+                }}
+                onClose={() => setShowAllTemplates(false)}
+              />
+            )}
 
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
             <Button size="sm" className="w-full" onClick={() => fileInputRef.current?.click()} loading={uploading}>
@@ -1453,6 +1569,17 @@ export default function CoverDesignerCanvas({
             <div className="space-y-1.5">
               <p className="text-xs text-gray-500">Колір фону</p>
               <div className="flex flex-wrap gap-1.5">
+                {bgImageUrl && (
+                  <button
+                    type="button"
+                    onClick={selectBgImage}
+                    className="h-6 w-6 overflow-hidden rounded border-2 border-gray-900"
+                    aria-label="Завантажене фонове зображення"
+                    title="Завантажене фонове зображення"
+                  >
+                    <img src={bgImageUrl} alt="" className="h-full w-full object-cover" />
+                  </button>
+                )}
                 {template.palette.map((color) => (
                   <button
                     key={color}
@@ -1467,18 +1594,17 @@ export default function CoverDesignerCanvas({
                   <input type="color" onChange={(e) => recolor(e.target.value)} className="h-0 w-0 opacity-0" />
                 </label>
               </div>
+              <input ref={bgFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgFileUpload} />
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => bgFileInputRef.current?.click()}
+                loading={uploadingBg}
+              >
+                Завантажити зображення для фону
+              </Button>
             </div>
-
-            <input ref={bgFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgFileUpload} />
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => bgFileInputRef.current?.click()}
-              loading={uploadingBg}
-            >
-              Завантажити зображення для фону
-            </Button>
           </div>
         )}
 
@@ -1516,18 +1642,6 @@ export default function CoverDesignerCanvas({
           </div>
         )}
       </div>
-
-      {showAllTemplates && (
-        <CoverTemplatesModal
-          templates={TEMPLATES}
-          selectedId={template.id}
-          onSelect={(tpl) => {
-            applyTemplate(tpl);
-            setShowAllTemplates(false);
-          }}
-          onClose={() => setShowAllTemplates(false)}
-        />
-      )}
     </div>
   );
 }

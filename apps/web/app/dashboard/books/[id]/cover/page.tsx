@@ -19,6 +19,7 @@ interface BookInfo {
   isbn?: string | null;
   coverUrl?: string | null;
   backCoverUrl?: string | null;
+  coverDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string }[] | null;
   pageCount?: number | null;
   moderationStatus?: string | null;
@@ -130,6 +131,7 @@ export default function CoverPage() {
             pageCount={book?.pageCount}
             format={format}
             existingCoverUrl={book?.coverUrl}
+            savedDesign={book?.coverDesign}
             coverImageLibrary={book?.coverImageLibrary ?? []}
             onSaved={handleSaved}
             onLibraryChange={handleLibraryChange}

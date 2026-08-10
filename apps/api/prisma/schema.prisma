@@ -131,6 +131,7 @@ model Book {
   coverUrl             String?
   backCoverUrl         String?
   coverImageLibrary    Json? // previously uploaded cover images the author can re-pick — [{url, uploadedAt}]
+  coverDesign          Json? // editable cover design state — {front, backSpine, background}, restored into the canvas on next open of /cover (T-1962 sibling; see coverVersion.ts for the exported-PNG cache-busting, this is the separate editable-state save)
   originalDocxUrl      String?
   docxUpdatedAt        DateTime? // set whenever the source .docx changes; compared to publishedAt to know if a live book has unpublished file changes
   republishRequestedAt DateTime? // author submitted post-publish changes for re-moderation; cleared once admin approves or rejects
