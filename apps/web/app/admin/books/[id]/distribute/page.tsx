@@ -606,14 +606,15 @@ export default function DistributePage() {
         <div>
           <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація в Книжковій палаті</h2>
           <p className="text-xs text-gray-400">
-            Публічного API в Книжкової палати немає — подання відбувається поза системою. Позначте дату подання,
-            а після отримання відповіді внесіть реальні ISBN/УДК/ББК/авторський знак нижче.
+            У Книжкової палати немає публічного API — цей блок нічого нікуди не відправляє автоматично. Подання
+            відбувається поза системою (адмін сам надсилає дані книги в Книжкову палату), а тут лише фіксується
+            дата, коли це було зроблено, і вносяться реальні ISBN/УДК/ББК/авторський знак після відповіді.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex flex-col gap-1.5 text-sm">
           {book.bookChamberSubmittedAt ? (
-            <>
+            <div className="flex items-center gap-3">
               <span className="text-gray-600">
                 Подано до Книжкової палати: <span className="font-mono">{fmtDate(book.bookChamberSubmittedAt)}</span>
               </span>
@@ -625,16 +626,23 @@ export default function DistributePage() {
               >
                 ✕
               </button>
-            </>
+            </div>
           ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              loading={savingBookChamber}
-              onClick={() => saveBookChamber({ submittedAt: new Date().toISOString() })}
-            >
-              Позначити як подано
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="self-start"
+                loading={savingBookChamber}
+                onClick={() => saveBookChamber({ submittedAt: new Date().toISOString() })}
+              >
+                Я вже подав(ла) цю книгу до Книжкової палати
+              </Button>
+              <p className="text-xs text-gray-400">
+                Натисніть після того, як самі надішлете дані книги до Книжкової палати зовнішнім каналом — кнопка
+                лише фіксує дату для відстеження, автоматичної відправки не відбувається.
+              </p>
+            </>
           )}
         </div>
 
