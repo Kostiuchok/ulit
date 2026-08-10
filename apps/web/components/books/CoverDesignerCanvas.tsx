@@ -1004,18 +1004,27 @@ export default function CoverDesignerCanvas({
         )}
 
         {activeObj?.type === "textbox" && (
-          <select
-            value={(activeObj as fabric.Textbox).fontFamily || FONTS[0]}
-            onChange={(e) => updateSelected({ fontFamily: e.target.value })}
-            className="h-7 w-full max-w-xs rounded border border-gray-200 bg-white px-1.5 text-xs"
-            title="Шрифт"
-          >
-            {FONTS.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
+          <div className="flex w-full max-w-xs items-center gap-2">
+            <select
+              value={(activeObj as fabric.Textbox).fontFamily || FONTS[0]}
+              onChange={(e) => updateSelected({ fontFamily: e.target.value })}
+              className="h-7 flex-1 rounded border border-gray-200 bg-white px-1.5 text-xs"
+              title="Шрифт"
+            >
+              {FONTS.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+            <input
+              type="color"
+              value={typeof (activeObj as any)?.fill === "string" ? ((activeObj as any).fill as string) : "#000000"}
+              onChange={(e) => updateSelected({ fill: e.target.value })}
+              className="h-7 w-9 shrink-0 cursor-pointer rounded border border-gray-200"
+              title="Колір тексту"
+            />
+          </div>
         )}
 
         {(activeObj as any)?.data?.role === "band" && (
