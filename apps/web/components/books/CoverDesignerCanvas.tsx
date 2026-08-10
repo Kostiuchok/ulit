@@ -512,6 +512,39 @@ function applyImageToSlot(canvas: fabric.Canvas, url: string, slot: PanelRect) {
   );
 }
 
+// Full-bleed background image behind everything (bands, photo-slot, text) —
+// locked in place (not selectable), so it can't be accidentally dragged like
+// the front-panel illustration can. Spans the whole canvas (back+spine+front)
+// the same way the solid accent color does.
+function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: string) {
+  const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" as const };
+  fabric.Image.fromURL(
+    url,
+    (img) => {
+      const iw = img.width ?? layout.totalW;
+      const ih = img.height ?? layout.totalH;
+      const scale = Math.max(layout.totalW / iw, layout.totalH / ih);
+      img.set({
+        originX: "left",
+        originY: "top",
+        left: -((iw * scale - layout.totalW) / 2),
+        top: -((ih * scale - layout.totalH) / 2),
+        scaleX: scale,
+        scaleY: scale,
+        selectable: false,
+        evented: false,
+        data: { role: "bg-image" },
+      });
+      const existing = canvas.getObjects().find((o: any) => o.data?.role === "bg-image");
+      if (existing) canvas.remove(existing);
+      canvas.add(img);
+      canvas.moveTo(img, 1); // above the solid accent color (index 0)
+      canvas.renderAll();
+    },
+    opts
+  );
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 interface Props {
@@ -547,6 +580,7 @@ export default function CoverDesignerCanvas({
   const canvasEl = useRef<HTMLCanvasElement>(null);
   const canvasRef = useRef<fabric.Canvas | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
   const ownCoverInputRef = useRef<HTMLInputElement>(null);
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef(-1);
@@ -560,6 +594,7 @@ export default function CoverDesignerCanvas({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadingBg, setUploadingBg] = useState(false);
   const [ownCoverError, setOwnCoverError] = useState("");
   const [ownCoverDims, setOwnCoverDims] = useState<{ w: number; h: number } | null>(null);
   const [activeObj, setActiveObj] = useState<fabric.Object | null>(null);
@@ -770,9 +805,9 @@ export default function CoverDesignerCanvas({
   }, [ctx.layout.front]);
 
   const uploadAndApplyImage = useCallback(
-    async (file: File) => {
+    async (file: File, target: "slot" | "background" = "slot") => {
       if (!token) return;
-      setUploading(true);
+      target === "background" ? setUploadingBg(true) : setUploading(true);
       try {
         const form = new FormData();
         form.append("file", file);
@@ -786,14 +821,17 @@ export default function CoverDesignerCanvas({
         onLibraryChange?.(library);
         const url = library[library.length - 1]?.url;
         const canvas = canvasRef.current;
-        if (url && canvas) applyImageToSlot(canvas, url, ctx.layout.front);
+        if (url && canvas) {
+          if (target === "background") applyBackgroundImage(canvas, ctx.layout, url);
+          else applyImageToSlot(canvas, url, ctx.layout.front);
+        }
       } catch (e: any) {
-        setSaveError(e.message || "Не вдалося завантажити ілюстрацію");
+        setSaveError(e.message || "Не вдалося завантажити зображення");
       } finally {
-        setUploading(false);
+        target === "background" ? setUploadingBg(false) : setUploading(false);
       }
     },
-    [bookId, token, ctx.layout.front, onLibraryChange]
+    [bookId, token, ctx.layout, onLibraryChange]
   );
 
   const removeLibraryImage = useCallback(
@@ -818,7 +856,16 @@ export default function CoverDesignerCanvas({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       e.target.value = "";
-      if (file) uploadAndApplyImage(file);
+      if (file) uploadAndApplyImage(file, "slot");
+    },
+    [uploadAndApplyImage]
+  );
+
+  const handleBgFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (file) uploadAndApplyImage(file, "background");
     },
     [uploadAndApplyImage]
   );
@@ -1213,7 +1260,7 @@ export default function CoverDesignerCanvas({
             )}
 
             <div className="space-y-1.5">
-              <p className="text-xs text-gray-500">Набір кольорового оформлення</p>
+              <p className="text-xs text-gray-500">Колір фону</p>
               <div className="flex flex-wrap gap-1.5">
                 {template.palette.map((color) => (
                   <button
@@ -1230,6 +1277,17 @@ export default function CoverDesignerCanvas({
                 </label>
               </div>
             </div>
+
+            <input ref={bgFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgFileUpload} />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => bgFileInputRef.current?.click()}
+              loading={uploadingBg}
+            >
+              Завантажити зображення для фону
+            </Button>
           </div>
         )}
 
