@@ -49,7 +49,7 @@ export default function ManuscriptEditorPage() {
   }, [id, apiFetch]);
 
   useEffect(() => {
-    if (!token || !book?.originalDocxUrl) return;
+    if (!token || !book?.originalDocxUrl || manuscript?.status === "DONE") return;
     poll();
     pollRef.current = setInterval(poll, 3000);
     setElapsed(0);
@@ -58,7 +58,7 @@ export default function ManuscriptEditorPage() {
       if (pollRef.current) clearInterval(pollRef.current);
       if (tickRef.current) clearInterval(tickRef.current);
     };
-  }, [token, book?.originalDocxUrl, poll]);
+  }, [token, book?.originalDocxUrl, poll, manuscript?.status]);
 
   useEffect(() => {
     if (manuscript?.status === "DONE" && tickRef.current) {
