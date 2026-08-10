@@ -4,41 +4,7 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-const PLATFORMS = [
-  {
-    key: "ULIT",
-    icon: "📚",
-    name: "Магазин Ulit",
-    royalty: "70%",
-    description: "Власний магазин платформи. Завжди увімкнений.",
-    locked: true,
-  },
-  {
-    key: "D2D",
-    icon: "🌐",
-    name: "Draft2Digital",
-    royalty: "60%",
-    description: "40+ ритейлерів: Barnes & Noble, Kobo, Apple Books та інші.",
-    locked: false,
-  },
-  {
-    key: "KDP",
-    icon: "🔶",
-    name: "Amazon KDP",
-    royalty: "35–70%",
-    description: "Amazon Kindle Store. Якщо обрано без D2D і Google — активується KDP Select (90 днів ексклюзивності).",
-    locked: false,
-  },
-  {
-    key: "GOOGLE",
-    icon: "🎮",
-    name: "Google Play Books",
-    royalty: "52%",
-    description: "Google Play Books Store.",
-    locked: false,
-  },
-] as const;
+import { DISTRIBUTION_PLATFORMS as PLATFORMS } from "@/lib/distributionPlatforms";
 
 interface DistributionInfo {
   distributionChannels: string[];

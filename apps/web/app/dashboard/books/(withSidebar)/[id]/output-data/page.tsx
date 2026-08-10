@@ -16,6 +16,7 @@ import { StepIndicator } from "@/components/books/StepIndicator";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
+import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
 import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,7 @@ const GENRES = [
   "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
 ];
 
-const AGE_RATINGS = ["0+", "6+", "12+", "16+", "18+"];
+const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"];
 
 const STEP_META = [
   { label: "Інформація" },
@@ -341,15 +342,15 @@ function OutputDataContent() {
                       </span>
                     ))}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <Input
                       value={newCoAuthorName}
                       onChange={(e) => setNewCoAuthorName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCoAuthor(); } }}
                       placeholder="Ім'я співавтора"
-                      className="h-9 text-sm"
+                      className="h-9 flex-1 min-w-0 text-sm"
                     />
-                    <Button type="button" variant="outline" size="sm" onClick={addCoAuthor}>
+                    <Button type="button" variant="outline" size="sm" onClick={addCoAuthor} className="shrink-0">
                       + Додати
                     </Button>
                   </div>
@@ -488,12 +489,52 @@ function OutputDataContent() {
             <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
               <Row label="Назва" value={book?.title || "—"} />
               <Row label="Жанр" value={book?.genre || "—"} />
+              <Row label="Кількість сторінок" value={book?.pageCount ? `${book.pageCount} ст.` : "—"} />
               <Row label="Рукопис" value={book?.originalDocxUrl ? "Завантажено" : "Не завантажено"} />
               <Row label="Е-книга" value={book?.priceEbook ? `${Number(book.priceEbook).toFixed(2)} грн` : "Не продається"} />
               <Row label="Друк, м'яка" value={book?.pricePrint ? `${Number(book.pricePrint).toFixed(2)} грн` : "Не продається"} />
               <Row label="Друк, тверда" value={book?.pricePrintHardcover ? `${Number(book.pricePrintHardcover).toFixed(2)} грн` : "Не продається"} />
               <Row label="Платформи" value={book?.distributionChannels?.length ? `${book.distributionChannels.length} обрано` : "Не обрано"} />
             </div>
+
+            {!!book?.distributionChannels?.length && (
+              <div className="rounded-xl border bg-white p-5 space-y-4 text-sm">
+                <div>
+                  <h2 className="text-base font-semibold">Орієнтовний прибуток по каналах</h2>
+                  <p className="text-xs text-gray-500">
+                    Сума за один проданий примірник, за вирахуванням комісії платформи. Ціна вказана за книжку — це
+                    вартість до відрахування цих комісій.
+                  </p>
+                </div>
+                {[
+                  { label: "Е-книга", price: book?.priceEbook },
+                  { label: "Друк, м'яка", price: book?.pricePrint },
+                  { label: "Друк, тверда", price: book?.pricePrintHardcover },
+                ]
+                  .filter((f) => f.price)
+                  .map((f) => {
+                    const price = Number(f.price);
+                    return (
+                      <div key={f.label} className="space-y-1.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                          {f.label} — {price.toFixed(2)} грн
+                        </p>
+                        <div className="space-y-1 pl-1">
+                          {book!.distributionChannels!.map((key) => {
+                            const platform = DISTRIBUTION_PLATFORMS.find((p) => p.key === key);
+                            if (!platform) return null;
+                            const min = price * platform.royaltyMin;
+                            const max = price * platform.royaltyMax;
+                            const value =
+                              min === max ? `${min.toFixed(2)} грн` : `${min.toFixed(2)}–${max.toFixed(2)} грн`;
+                            return <Row key={key} label={platform.name} value={value} />;
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
 
             {/* Preview excerpt — only for books with EPUB */}
             {book?.epubUrl && (

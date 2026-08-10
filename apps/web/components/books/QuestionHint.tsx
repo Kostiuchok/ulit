@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 
 interface Props {
@@ -9,14 +9,33 @@ interface Props {
   className?: string;
 }
 
+// Rough max height of the popup box — used only to decide whether it should
+// open upward instead of downward near the bottom of the viewport.
+const ESTIMATED_POPUP_HEIGHT = 160;
+
 // Small "?" marker for explanatory copy — shown on hover, stays open on click
 // (mirrors the always-visible ISBN tooltip in PublicationTimeline, but for
 // content that's too long to show inline by default).
 export function QuestionHint({ title, children, className }: Props) {
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const visible = open || hovered;
+
+  useLayoutEffect(() => {
+    if (!visible || !anchorRef.current) return;
+    const rect = anchorRef.current.getBoundingClientRect();
+    setOpenUp(rect.bottom + ESTIMATED_POPUP_HEIGHT > window.innerHeight);
+  }, [visible]);
 
   return (
-    <span className={cn("group relative inline-flex items-center", className)}>
+    <span
+      ref={anchorRef}
+      className={cn("relative inline-flex items-center", className)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -25,14 +44,16 @@ export function QuestionHint({ title, children, className }: Props) {
       >
         ?
       </button>
-      <span
-        className={cn(
-          "absolute left-0 top-[calc(100%+6px)] z-20 w-64 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]",
-          open ? "block" : "hidden group-hover:block"
-        )}
-      >
-        {children}
-      </span>
+      {visible && (
+        <span
+          className={cn(
+            "absolute left-0 z-20 w-80 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]",
+            openUp ? "bottom-[calc(100%+6px)]" : "top-[calc(100%+6px)]"
+          )}
+        >
+          {children}
+        </span>
+      )}
     </span>
   );
 }
