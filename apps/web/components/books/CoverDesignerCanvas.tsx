@@ -228,31 +228,71 @@ function drawBackAndSpine(canvas: fabric.Canvas, ctx: TemplateCtx, style: { font
         data: { role: "text-blurb" },
       })
     );
-    canvas.add(
-      new fabric.Text("ULIT", {
-        left: back.x + back.w - 24,
-        top: back.y + back.h - 30,
-        fontSize: 13,
-        fill: style.color,
-        fontFamily: style.font,
-        fontWeight: "bold",
-        originX: "right",
-        selectable: false,
-        evented: false,
-      })
-    );
+    // Standardized colophon block: ISBN label above the barcode (bottom-left),
+    // service logo + tagline to the right of the barcode.
     if (ctx.isbn) {
       const dataUrl = renderBarcodeDataUrl(ctx.isbn);
       if (dataUrl) {
+        const bottomMargin = 34;
         fabric.Image.fromURL(dataUrl, (img) => {
-          img.set({
-            left: back.x + 24,
-            top: back.y + back.h - 62,
-            selectable: false,
-            evented: false,
-            data: { role: "barcode" },
-          });
+          const barcodeW = img.width ?? 130;
+          const barcodeH = img.height ?? 46;
+          const barcodeX = back.x + 24;
+          const barcodeY = back.y + back.h - bottomMargin - barcodeH;
+
+          img.set({ left: barcodeX, top: barcodeY, selectable: false, evented: false, data: { role: "barcode" } });
           canvas.add(img);
+
+          canvas.add(
+            new fabric.Text(`ISBN ${ctx.isbn}`, {
+              left: barcodeX,
+              top: barcodeY - 16,
+              fontSize: 10,
+              fill: style.color,
+              fontFamily: style.font,
+              selectable: false,
+              evented: false,
+            })
+          );
+
+          const logoX = barcodeX + barcodeW + 20;
+          const logoRightBound = back.x + back.w - 24;
+          const logoTextW = Math.max(80, logoRightBound - logoX - 26);
+
+          fabric.Image.fromURL("/figma/logo-group.svg", (logoImg) => {
+            const s = 18 / (logoImg.width || 22);
+            logoImg.set({ left: logoX, top: barcodeY - 2, scaleX: s, scaleY: s, selectable: false, evented: false });
+            canvas.add(logoImg);
+            canvas.add(
+              new fabric.Text("ULIT", {
+                left: logoX + 24,
+                top: barcodeY - 3,
+                fontSize: 13,
+                fontWeight: "bold",
+                fill: style.color,
+                fontFamily: style.font,
+                selectable: false,
+                evented: false,
+              })
+            );
+            canvas.add(
+              new fabric.Textbox("Платформа самовидавництва для українських авторів", {
+                left: logoX,
+                top: barcodeY + 20,
+                width: logoTextW,
+                fontSize: 8,
+                lineHeight: 1.25,
+                fill: style.color,
+                fontFamily: style.font,
+                opacity: 0.85,
+                selectable: false,
+                evented: false,
+                editable: false,
+              })
+            );
+            canvas.renderAll();
+          });
+
           canvas.renderAll();
         });
       }
