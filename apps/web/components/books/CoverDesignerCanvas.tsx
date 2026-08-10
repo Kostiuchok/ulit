@@ -497,6 +497,20 @@ function replaceSlotObject(canvas: fabric.Canvas, obj: fabric.Object, slot: Pane
   canvas.renderAll();
 }
 
+// Background layers (accent color, bg-image) always sit contiguously at the
+// bottom of the stack — everything else must stay above this floor so text
+// and rects can never end up hidden behind the background.
+function backgroundFloorIndex(canvas: fabric.Canvas): number {
+  const objs = canvas.getObjects();
+  let floor = 0;
+  for (const o of objs) {
+    const role = (o as any).data?.role;
+    if (role === "accent" || role === "bg-image") floor++;
+    else break;
+  }
+  return floor;
+}
+
 function applyImageToSlot(canvas: fabric.Canvas, url: string, slot: PanelRect) {
   const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" as const };
   fabric.Image.fromURL(
@@ -777,10 +791,19 @@ export default function CoverDesignerCanvas({
       const canvas = canvasRef.current;
       const obj = canvas?.getActiveObject();
       if (!canvas || !obj) return;
-      if (action === "front") canvas.bringToFront(obj);
-      else if (action === "back") canvas.sendToBack(obj);
-      else if (action === "forward") canvas.bringForward(obj);
-      else canvas.sendBackwards(obj);
+      const role = (obj as any).data?.role;
+      if (role === "accent" || role === "bg-image") return; // background isn't reorderable
+
+      const floor = backgroundFloorIndex(canvas);
+      if (action === "front") {
+        canvas.bringToFront(obj);
+      } else if (action === "back") {
+        canvas.moveTo(obj, floor); // stop just above the background, never behind it
+      } else if (action === "forward") {
+        canvas.bringForward(obj);
+      } else if (canvas.getObjects().indexOf(obj) > floor) {
+        canvas.sendBackwards(obj);
+      }
       canvas.requestRenderAll();
       saveSnapshot();
     },
