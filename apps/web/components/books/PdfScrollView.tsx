@@ -7,6 +7,7 @@ interface Props {
   coverUrl?: string | null;
   backCoverUrl?: string | null;
   pages: PageEntry[];
+  grayscale?: boolean;
 }
 
 // Same on-screen width for every card regardless of each image's own native
@@ -20,7 +21,12 @@ const CARD_WIDTH = "w-full max-w-[420px]";
 // animation (currently hidden/unused elsewhere in this component). The back
 // cover (if the author designed one) closes out the scroll the same way it
 // closes out a physical book.
-export function PdfScrollView({ coverUrl, backCoverUrl, pages }: Props) {
+export function PdfScrollView({ coverUrl, backCoverUrl, pages, grayscale }: Props) {
+  // The page images themselves already come pre-rendered in grayscale
+  // (pagesBw, generated server-side) -- only the cover/back-cover have no
+  // separate B&W export, so desaturate those two in CSS to preview what the
+  // cheaper black-and-white print run would actually look like end to end.
+  const coverStyle = grayscale ? { filter: "grayscale(1)" } : undefined;
   return (
     <div className="flex max-h-[70vh] flex-col items-center gap-6 overflow-y-auto bg-gray-50 py-10">
       {coverUrl && (
@@ -29,6 +35,7 @@ export function PdfScrollView({ coverUrl, backCoverUrl, pages }: Props) {
             src={coverUrl}
             alt="Обкладинка"
             loading="eager"
+            style={coverStyle}
             className={`${CARD_WIDTH} rounded-sm border border-gray-200 bg-white shadow-md`}
           />
           <span className="text-xs text-gray-400">Обкладинка</span>
@@ -53,6 +60,7 @@ export function PdfScrollView({ coverUrl, backCoverUrl, pages }: Props) {
             src={backCoverUrl}
             alt="Задня обкладинка"
             loading="lazy"
+            style={coverStyle}
             className={`${CARD_WIDTH} rounded-sm border border-gray-200 bg-white shadow-md`}
           />
           <span className="text-xs text-gray-400">Задня обкладинка</span>
