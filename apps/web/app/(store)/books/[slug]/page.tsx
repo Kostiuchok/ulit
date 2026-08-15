@@ -90,6 +90,13 @@ const FORMAT_INFO: { key: keyof BookDetail; label: string; desc: string }[] = [
   { key: "printPdfUrl", label: "PDF (друк)", desc: "Висока якість для друку" },
 ];
 
+// Print trim size is a fixed platform-wide constant, not per-book -- same
+// 6in / 1800px-at-300dpi front-panel width the cover editor lays out from
+// (apps/web/components/books/CoverDesignerCanvas.tsx's DISPLAY_W/TRIM_WIDTH_MM),
+// at its DISPLAY_H/DISPLAY_W = 1.5 aspect ratio. Not an ISO/A-series size, so
+// labelled by its actual mm/inches rather than a (wrong) "A5" guess.
+const PRINT_TRIM_SIZE_LABEL = "152 × 229 мм (6 × 9″)";
+
 const LANGUAGE_NAMES: Record<string, string> = {
   uk: "Українська",
   en: "English",
@@ -103,6 +110,7 @@ export default async function BookPage({ params }: Props) {
   if (!book) notFound();
 
   const availableFormats = FORMAT_INFO.filter((f) => book[f.key]);
+  const hasAnyPrint = !!(book.pricePrint || book.pricePrintHardcover || book.pricePrintBw || book.pricePrintHardcoverBw);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -297,6 +305,12 @@ export default async function BookPage({ params }: Props) {
                       year: "numeric",
                     })}
                   </p>
+                </div>
+              )}
+              {hasAnyPrint && (
+                <div className="rounded-lg border bg-white p-3">
+                  <p className="text-xs text-gray-500">Розмір книги</p>
+                  <p className="text-sm font-semibold text-gray-900">{PRINT_TRIM_SIZE_LABEL}</p>
                 </div>
               )}
             </div>
