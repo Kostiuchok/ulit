@@ -680,9 +680,9 @@ interface Props {
   format: CoverFormat;
   existingCoverUrl?: string | null;
   savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
-  coverImageLibrary?: { url: string; uploadedAt: string }[];
+  coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   onSaved: (patch: { coverUrl?: string; backCoverUrl?: string }) => void;
-  onLibraryChange?: (library: { url: string; uploadedAt: string }[]) => void;
+  onLibraryChange?: (library: { url: string; uploadedAt: string; kind?: "slot" | "background" }[]) => void;
   token?: string;
 }
 
@@ -702,6 +702,14 @@ export default function CoverDesignerCanvas({
   onLibraryChange,
   token,
 }: Props) {
+  // Split the shared upload library by which button it came from -- an
+  // image uploaded for the background must re-apply to the background when
+  // picked again later, not to the front illustration (the only thing the
+  // single combined gallery used to do). Entries saved before `kind`
+  // existed default to "slot".
+  const slotLibrary = coverImageLibrary.filter((img) => (img.kind ?? "slot") === "slot");
+  const bgLibrary = coverImageLibrary.filter((img) => img.kind === "background");
+
   const canvasEl = useRef<HTMLCanvasElement>(null);
   const canvasRef = useRef<fabric.Canvas | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1066,7 +1074,7 @@ export default function CoverDesignerCanvas({
       try {
         const form = new FormData();
         form.append("file", file);
-        const res = await fetch(`/api/books/${bookId}/cover-images`, {
+        const res = await fetch(`/api/books/${bookId}/cover-images?kind=${target}`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: form,
@@ -1536,11 +1544,11 @@ export default function CoverDesignerCanvas({
               Випадковий паттерн
             </Button>
 
-            {coverImageLibrary.length > 0 && (
+            {slotLibrary.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-xs text-gray-500">Раніше завантажені зображення</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {coverImageLibrary.map((img) => (
+                  {slotLibrary.map((img) => (
                     <div key={img.url} className="group relative h-12 w-12 overflow-hidden rounded border">
                       <button
                         type="button"
@@ -1604,6 +1612,38 @@ export default function CoverDesignerCanvas({
               >
                 Завантажити зображення для фону
               </Button>
+
+              {bgLibrary.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-gray-500">Раніше завантажені фони</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {bgLibrary.map((img) => (
+                      <div key={img.url} className="group relative h-12 w-12 overflow-hidden rounded border">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const canvas = canvasRef.current;
+                            if (!canvas) return;
+                            applyBackgroundImage(canvas, ctx.layout, img.url);
+                            setBgImageUrl(img.url);
+                          }}
+                          className="h-full w-full"
+                        >
+                          <img src={img.url} alt="" className="h-full w-full object-cover" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeLibraryImage(img.url)}
+                          className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-bl bg-black/60 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          aria-label="Видалити"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

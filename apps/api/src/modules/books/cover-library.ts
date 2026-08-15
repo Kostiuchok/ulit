@@ -13,6 +13,14 @@ const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp"];
 interface CoverImageEntry {
   url: string;
   uploadedAt: string;
+  // "slot" (front illustration) or "background" (full-bleed cover
+  // background) -- which upload button this came from, so the frontend's
+  // "Раніше завантажені" gallery can re-apply it to the same place instead
+  // of always dropping it onto the front illustration. Absent on entries
+  // saved before this field existed -- the frontend treats a missing kind
+  // as "slot", the only one that existed before background images got
+  // their own gallery.
+  kind?: "slot" | "background";
 }
 
 export async function coverLibraryRoutes(app: FastifyInstance) {
@@ -21,6 +29,8 @@ export async function coverLibraryRoutes(app: FastifyInstance) {
     { preHandler: authenticate },
     async (request, reply) => {
       const { id } = request.params as { id: string };
+      const { kind } = request.query as { kind?: string };
+      const entryKind: CoverImageEntry["kind"] = kind === "background" ? "background" : "slot";
 
       const book = await prisma.book.findUnique({
         where: { id },
@@ -51,7 +61,7 @@ export async function coverLibraryRoutes(app: FastifyInstance) {
       const url = publicUrl(objectName);
 
       const existing = Array.isArray(book.coverImageLibrary) ? (book.coverImageLibrary as unknown as CoverImageEntry[]) : [];
-      const library = [...existing, { url, uploadedAt: new Date().toISOString() }];
+      const library = [...existing, { url, uploadedAt: new Date().toISOString(), kind: entryKind }];
 
       await prisma.book.update({
         where: { id },

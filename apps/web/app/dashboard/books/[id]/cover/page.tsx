@@ -20,7 +20,7 @@ interface BookInfo {
   coverUrl?: string | null;
   backCoverUrl?: string | null;
   coverDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
-  coverImageLibrary?: { url: string; uploadedAt: string }[] | null;
+  coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[] | null;
   pageCount?: number | null;
   moderationStatus?: string | null;
   moderationNote?: string | null;
@@ -60,7 +60,7 @@ export default function CoverPage() {
     setTimeout(() => setSaved(false), 3000);
   }
 
-  function handleLibraryChange(library: { url: string; uploadedAt: string }[]) {
+  function handleLibraryChange(library: { url: string; uploadedAt: string; kind?: "slot" | "background" }[]) {
     setBook((b) => (b ? { ...b, coverImageLibrary: library } : b));
   }
 
