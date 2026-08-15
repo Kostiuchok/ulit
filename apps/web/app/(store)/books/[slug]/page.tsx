@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { BuyButton } from "../../../../components/store/BuyButton";
+import { AddToCartButton } from "../../../../components/store/AddToCartButton";
 import { PrintPriceCard } from "../../../../components/store/PrintPriceCard";
 import { EpubReader } from "../../../../components/store/EpubReader";
 import { BookCoverCarousel } from "../../../../components/books/BookCoverCarousel";
@@ -210,6 +210,8 @@ export default async function BookPage({ params }: Props) {
                     bookTitle={book.title}
                     bookId={book.id}
                     bookPrice={book.priceEbook ? Number(book.priceEbook) : null}
+                    bookAuthor={book.author.name}
+                    coverUrl={book.coverUrl}
                   />
                 </div>
               )}
@@ -227,11 +229,15 @@ export default async function BookPage({ params }: Props) {
                         Е-книга
                       </span>
                     </div>
-                    <BuyButton
+                    <AddToCartButton
                       bookId={book.id}
                       format="EBOOK"
                       price={Number(book.priceEbook)}
-                      label="Купити е-книгу"
+                      title={book.title}
+                      author={book.author.name}
+                      coverUrl={book.coverUrl}
+                      formatLabel="Електронна книга (EPUB + FB2 + MOBI)"
+                      label="Додати в кошик"
                       variant="primary"
                     />
                   </div>
@@ -239,6 +245,9 @@ export default async function BookPage({ params }: Props) {
 
                 <PrintPriceCard
                   bookId={book.id}
+                  title={book.title}
+                  author={book.author.name}
+                  coverUrl={book.coverUrl}
                   bindingLabel="м'яка обкладинка"
                   colorPrice={book.pricePrint ? Number(book.pricePrint) : null}
                   bwPrice={book.pricePrintBw ? Number(book.pricePrintBw) : null}
@@ -248,6 +257,9 @@ export default async function BookPage({ params }: Props) {
 
                 <PrintPriceCard
                   bookId={book.id}
+                  title={book.title}
+                  author={book.author.name}
+                  coverUrl={book.coverUrl}
                   bindingLabel="тверда обкладинка"
                   colorPrice={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}
                   bwPrice={book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : null}

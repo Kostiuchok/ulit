@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { BuyButton } from "./BuyButton";
+import { AddToCartButton } from "./AddToCartButton";
 
 interface Props {
   bookId: string;
+  title: string;
+  author: string;
+  coverUrl?: string | null;
   bindingLabel: string;
   colorPrice?: number | null;
   bwPrice?: number | null;
@@ -17,7 +20,17 @@ interface Props {
 // an auto-computed discount. When the author has set both prices for a
 // binding, this toggle switches which one is shown/ordered; when only one is
 // set, it renders as a plain price card same as before.
-export function PrintPriceCard({ bookId, bindingLabel, colorPrice, bwPrice, colorFormat, bwFormat }: Props) {
+export function PrintPriceCard({
+  bookId,
+  title,
+  author,
+  coverUrl,
+  bindingLabel,
+  colorPrice,
+  bwPrice,
+  colorFormat,
+  bwFormat,
+}: Props) {
   const hasColor = !!colorPrice;
   const hasBw = !!bwPrice;
   const [mode, setMode] = useState<"color" | "bw">(hasColor ? "color" : "bw");
@@ -26,6 +39,7 @@ export function PrintPriceCard({ bookId, bindingLabel, colorPrice, bwPrice, colo
 
   const price = mode === "color" ? colorPrice! : bwPrice!;
   const format = mode === "color" ? colorFormat : bwFormat;
+  const formatLabel = `Друкована версія, ${bindingLabel}, ${mode === "color" ? "кольоровий" : "чорно-білий"} друк (PDF)`;
 
   return (
     <div className="rounded-xl border bg-white p-4 shadow-sm">
@@ -62,7 +76,17 @@ export function PrintPriceCard({ bookId, bindingLabel, colorPrice, bwPrice, colo
         </div>
       )}
 
-      <BuyButton bookId={bookId} format={format} price={price} label="Замовити друковану" variant="outline" />
+      <AddToCartButton
+        bookId={bookId}
+        format={format}
+        price={price}
+        title={title}
+        author={author}
+        coverUrl={coverUrl}
+        formatLabel={formatLabel}
+        label="Додати в кошик"
+        variant="outline"
+      />
     </div>
   );
 }

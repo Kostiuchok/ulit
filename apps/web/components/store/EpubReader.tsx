@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCartStore } from "@/lib/cartStore";
 
 const EpubReaderInner = dynamic(
   () => import("./EpubReaderInner").then((m) => m.EpubReaderInner),
@@ -20,9 +22,13 @@ interface Props {
   bookTitle: string;
   bookId: string;
   bookPrice?: number | null;
+  bookAuthor: string;
+  coverUrl?: string | null;
 }
 
-export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice }: Props) {
+export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice, bookAuthor, coverUrl }: Props) {
+  const router = useRouter();
+  const addItem = useCartStore((s) => s.addItem);
   const [config, setConfig] = useState<PreviewConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -55,8 +61,17 @@ export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice }: Props) {
 
   function handleBuy() {
     setOpen(false);
-    // Scroll to buy section or trigger BuyButton — dispatch a custom event
-    window.dispatchEvent(new CustomEvent("knyha:buy", { detail: { bookId, format: "EBOOK" } }));
+    if (bookPrice == null) return;
+    addItem({
+      bookId,
+      format: "EBOOK",
+      title: bookTitle,
+      author: bookAuthor,
+      coverUrl,
+      formatLabel: "Електронна книга (EPUB + FB2 + MOBI)",
+      price: bookPrice,
+    });
+    router.push("/cart");
   }
 
   return (

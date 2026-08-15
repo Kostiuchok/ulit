@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { CartIcon } from "../../components/store/CartIcon";
 
 export const metadata: Metadata = {
   title: {
@@ -43,6 +44,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             >
               🔍
             </Link>
+            <CartIcon />
           </div>
         </div>
       </header>
