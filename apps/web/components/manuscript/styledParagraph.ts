@@ -54,6 +54,17 @@ export const StyledParagraph = Paragraph.extend({
         parseHTML: (el: HTMLElement) => el.getAttribute("data-id"),
         renderHTML: (attrs: { id: string | null }) => ({ "data-id": attrs.id }),
       },
+      // Presentational-only override, independent of `style` -- used by the
+      // generated front-matter (T-1962) for title-page/colophon-specific
+      // treatments (imprint line, bold catalog code, footer) that have no
+      // business being pickable in the "Стилі тексту" panel alongside the
+      // author's real structural styles.
+      variant: {
+        default: null as string | null,
+        parseHTML: (el: HTMLElement) => el.getAttribute("data-variant"),
+        renderHTML: (attrs: { variant: string | null }) =>
+          attrs.variant ? { "data-variant": attrs.variant } : {},
+      },
     };
   },
 

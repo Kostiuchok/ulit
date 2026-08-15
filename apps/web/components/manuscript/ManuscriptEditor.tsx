@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
@@ -28,14 +28,39 @@ import {
   ImagePlus,
   ChevronLeft,
   ChevronDown,
+  ChevronUp,
   Eye,
   SeparatorHorizontal,
+  Eraser,
+  Search,
+  X,
+  BookOpenCheck,
 } from "lucide-react";
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
 import { ResizableImage } from "./resizableImage";
 import { PageBreak } from "./pageBreak";
 import { buildFrontMatterNodes, hasFrontMatter, type FrontMatterMeta } from "./frontMatter";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
+import { CONTENT_W, CONTENT_H, PRINT_BODY_PX } from "./manuscriptLayout";
+import {
+  type PageNumberPosition,
+  DEFAULT_PAGE_NUMBER_POSITION,
+  PAGE_NUMBER_POSITION_LABELS,
+  extractPageNumberPosition,
+  withPageNumberPosition,
+  stripPageNumberPosition,
+} from "./pageNumberPosition";
+import { useLivePageBreaks } from "./useLivePageBreaks";
+import { useManuscriptSearch } from "./useManuscriptSearch";
+import {
+  clearAllFormatting,
+  clearSelectionFormatting,
+  lowercaseSelection,
+  uppercaseSelection,
+  mergeSelectionIntoParagraph,
+  removeEmptyParagraphsInSelection,
+  splitHardBreaksInSelection,
+} from "./manuscriptCleanup";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 
@@ -198,7 +223,12 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   const [saveError, setSaveError] = useState("");
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [styleOverrides, setStyleOverrides] = useState<Record<string, StyleOverride>>(initialStyleOverrides ?? {});
+  const [styleOverrides, setStyleOverrides] = useState<Record<string, StyleOverride>>(
+    stripPageNumberPosition(initialStyleOverrides ?? {})
+  );
+  const [pageNumberPosition, setPageNumberPositionState] = useState<PageNumberPosition>(() =>
+    extractPageNumberPosition(initialStyleOverrides)
+  );
   const [selectedLayout, setSelectedLayout] = useState<string>(LAYOUT_TEMPLATES[0].id);
   const [authorStyleSets, setAuthorStyleSets] = useState<AuthorStyleSet[]>([]);
   const [showSaveSetForm, setShowSaveSetForm] = useState(false);
@@ -207,6 +237,9 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   const [savingSet, setSavingSet] = useState(false);
   const [, forceTick] = useState(0);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [a5Mode, setA5Mode] = useState(false);
+  const [cleanupMenuOpen, setCleanupMenuOpen] = useState(false);
+  const cleanupMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     apiFetch<{ styleSets: AuthorStyleSet[] }>("/api/style-sets")
@@ -225,7 +258,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     content: effectiveInitialContent,
     onUpdate: ({ editor }) => {
       setOutline(extractOutline(editor));
-      scheduleSave(editor.getJSON(), styleOverrides);
+      scheduleSave(editor.getJSON(), withPageNumberPosition(styleOverrides, pageNumberPosition));
     },
     onSelectionUpdate: () => forceTick((t) => t + 1),
     onTransaction: () => forceTick((t) => t + 1),
@@ -251,6 +284,20 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     immediatelyRender: false,
   });
 
+  const livePageBreaks = useLivePageBreaks(editor, a5Mode, CONTENT_H);
+  const search = useManuscriptSearch(editor);
+
+  useEffect(() => {
+    if (!cleanupMenuOpen) return;
+    function onClickOutside(e: MouseEvent) {
+      if (cleanupMenuRef.current && !cleanupMenuRef.current.contains(e.target as Node)) {
+        setCleanupMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [cleanupMenuOpen]);
+
   async function uploadAndInsertImage(file: File) {
     if (!editor) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
@@ -272,6 +319,12 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   async function performSave(content: any, overrides: Record<string, StyleOverride>) {
     setSaveState("saving");
     try {
+      // `overrides` here is expected to already carry the page-number
+      // position (via withPageNumberPosition at the call site) -- not
+      // re-derived from `pageNumberPosition` state here, since a caller that
+      // just changed the position in the same event (setPageNumberPosition)
+      // would otherwise race against React's batched state update and save
+      // the stale value.
       await apiFetch(`/api/books/${bookId}/manuscript`, {
         method: "PATCH",
         body: JSON.stringify({ content, styleOverrides: overrides }),
@@ -301,7 +354,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     applyStyleFormatting(editor, style, fmt);
     const next = { ...styleOverrides, [style]: fmt };
     setStyleOverrides(next);
-    scheduleSave(editor.getJSON(), next);
+    scheduleSave(editor.getJSON(), withPageNumberPosition(next, pageNumberPosition));
   }
 
   function applyStyleToSelection(style: StyledBlockStyleName) {
@@ -313,11 +366,20 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
   function applyAuthorStyleSet(set: AuthorStyleSet) {
     if (!editor) return;
-    for (const [style, fmt] of Object.entries(set.styleOverrides)) {
+    const overrides = stripPageNumberPosition(set.styleOverrides);
+    for (const [style, fmt] of Object.entries(overrides)) {
       applyStyleFormatting(editor, style as StyledBlockStyleName, fmt);
     }
-    setStyleOverrides(set.styleOverrides);
-    scheduleSave(editor.getJSON(), set.styleOverrides);
+    const newPosition = extractPageNumberPosition(set.styleOverrides);
+    setStyleOverrides(overrides);
+    setPageNumberPositionState(newPosition);
+    scheduleSave(editor.getJSON(), withPageNumberPosition(overrides, newPosition));
+  }
+
+  function setPageNumberPosition(position: PageNumberPosition) {
+    if (!editor) return;
+    setPageNumberPositionState(position);
+    scheduleSave(editor.getJSON(), withPageNumberPosition(styleOverrides, position));
   }
 
   async function submitSaveStyleSet() {
@@ -329,7 +391,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         body: JSON.stringify({
           name: newSetName.trim(),
           description: newSetDescription.trim() || undefined,
-          styleOverrides,
+          styleOverrides: withPageNumberPosition(styleOverrides, pageNumberPosition),
         }),
       });
       setAuthorStyleSets((prev) => [styleSet, ...prev]);
@@ -349,7 +411,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       clearTimeout(saveTimer.current);
       saveTimer.current = null;
     }
-    performSave(editor.getJSON(), styleOverrides);
+    performSave(editor.getJSON(), withPageNumberPosition(styleOverrides, pageNumberPosition));
   }
 
   useEffect(() => {
@@ -464,6 +526,63 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           >
             <SeparatorHorizontal size={15} />
           </ToolbarButton>
+          <button
+            type="button"
+            onClick={() => setA5Mode((v) => !v)}
+            title="Змінити розмір канвасу під А5 формат — перевірити, чи текст/зображення не 'втекли' на межі сторінки"
+            className={cn(
+              "flex h-7 items-center gap-1 rounded px-2 text-[0.75rem] font-medium transition-colors",
+              a5Mode ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-100"
+            )}
+          >
+            <BookOpenCheck size={14} />
+            A5
+          </button>
+          <ToolbarButton title="Пошук" onClick={() => (search.open ? search.closeSearch() : search.openSearch())} active={search.open}>
+            <Search size={15} />
+          </ToolbarButton>
+          <div className="relative" ref={cleanupMenuRef}>
+            <ToolbarButton title="Очистити текст" onClick={() => setCleanupMenuOpen((v) => !v)} active={cleanupMenuOpen}>
+              <Eraser size={15} />
+            </ToolbarButton>
+            {cleanupMenuOpen && (
+              <div className="absolute left-0 top-full z-30 mt-1 w-72 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                {[
+                  { label: "Скинути всі виділення (весь документ)", run: clearAllFormatting },
+                  { label: "Скинути виділення у фрагменті", run: clearSelectionFormatting },
+                  { label: "нижній регістр", run: lowercaseSelection },
+                  { label: "ВЕРХНІЙ РЕГІСТР", run: uppercaseSelection },
+                  { label: "Об'єднати фрагмент в один абзац", run: mergeSelectionIntoParagraph },
+                  { label: "Видалити порожні рядки у фрагменті", run: removeEmptyParagraphsInSelection },
+                  { label: "Замінити переноси рядків на абзаци", run: splitHardBreaksInSelection },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      item.run(editor);
+                      setCleanupMenuOpen(false);
+                    }}
+                    className="block w-full px-3 py-1.5 text-left text-[0.8125rem] text-gray-700 hover:bg-gray-100"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+                <div className="my-1 h-px bg-gray-200" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCleanupMenuOpen(false);
+                    search.openSearch();
+                  }}
+                  className="flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-[0.8125rem] text-gray-700 hover:bg-gray-100"
+                >
+                  <Search size={13} />
+                  Пошук
+                </button>
+              </div>
+            )}
+          </div>
           <div className="mx-1 h-5 w-px bg-gray-200" />
           <ToolbarButton title="По лівому краю" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
             <AlignLeft size={15} />
@@ -540,8 +659,47 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           </div>
         </div>
 
+        {search.open && (
+          <div className="flex items-center gap-2 border-b border-gray-200 bg-[#fafafa] px-3 py-1.5">
+            <Search size={14} className="shrink-0 text-gray-400" />
+            <input
+              autoFocus
+              value={search.query}
+              onChange={(e) => search.onQueryChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") search.next();
+                if (e.key === "Escape") search.closeSearch();
+              }}
+              placeholder="Пошук у тексті…"
+              className="w-64 rounded border border-gray-300 px-2 py-1 text-[0.8125rem] outline-none focus:border-gray-900"
+            />
+            <span className="text-[0.75rem] text-gray-400">
+              {search.query.trim() ? `${search.matches.length > 0 ? search.index + 1 : 0} з ${search.matches.length}` : ""}
+            </span>
+            <ToolbarButton title="Попередній" onClick={search.prev} disabled={search.matches.length === 0}>
+              <ChevronUp size={15} />
+            </ToolbarButton>
+            <ToolbarButton title="Наступний" onClick={search.next} disabled={search.matches.length === 0}>
+              <ChevronDown size={15} />
+            </ToolbarButton>
+            <ToolbarButton title="Закрити пошук" onClick={search.closeSearch}>
+              <X size={15} />
+            </ToolbarButton>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto bg-white px-16 py-10">
-          <EditorContent editor={editor} className="manuscript-prose mx-auto max-w-[680px]" />
+          <div className="relative mx-auto" style={a5Mode ? { width: CONTENT_W } : { maxWidth: 680 }}>
+            <EditorContent
+              editor={editor}
+              className="manuscript-prose"
+              style={a5Mode ? ({ "--ms-font-size": `${PRINT_BODY_PX}px` } as CSSProperties) : undefined}
+            />
+            {a5Mode &&
+              livePageBreaks.map((y, i) => (
+                <div key={i} className="manuscript-page-break-marker" style={{ top: y }} data-label={`— кінець сторінки ${i + 1} —`} />
+              ))}
+          </div>
         </div>
       </div>
 
@@ -575,6 +733,31 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
             );
           })}
         </div>
+
+        <p className="mb-3 mt-6 text-[0.875rem] font-medium text-black">Номери сторінок</p>
+        <div className="flex gap-1">
+          {(Object.keys(PAGE_NUMBER_POSITION_LABELS) as PageNumberPosition[]).map((pos) => {
+            const Icon = pos === "bottom-left" ? AlignLeft : pos === "bottom-right" ? AlignRight : AlignCenter;
+            const isActive = pageNumberPosition === pos;
+            return (
+              <button
+                key={pos}
+                type="button"
+                onClick={() => setPageNumberPosition(pos)}
+                title={PAGE_NUMBER_POSITION_LABELS[pos]}
+                className={cn(
+                  "flex h-8 flex-1 items-center justify-center rounded border transition-colors",
+                  isActive ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                )}
+              >
+                <Icon size={14} />
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-[0.6875rem] leading-snug text-gray-400">
+          Розташування номера сторінки в друкованому передперегляді. Зберігається разом із набором стилів.
+        </p>
 
         <p className="mb-3 mt-6 text-[0.875rem] font-medium text-black">Набір стилів</p>
         <div className="space-y-2">

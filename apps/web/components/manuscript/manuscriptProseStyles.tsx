@@ -36,6 +36,14 @@ export function ManuscriptProseStyles() {
 
       .manuscript-prose img { max-width: 100%; height: auto; display: block; }
       .manuscript-prose [data-resize-container] { max-width: 100%; }
+      /* Bare <img> direct children only -- this is what generateHTML() (the
+         pagination probe + read-only preview) renders, since it has no
+         NodeView wrapper. Scoped with ">" so it never doubles up with the
+         [data-resize-container] rules below, which target the live editor's
+         wrapped image instead (nested, not a direct child). */
+      .manuscript-prose > img[data-align="left"] { float: left; margin: 0.25em 1.5em 1em 0; max-width: 60%; }
+      .manuscript-prose > img[data-align="right"] { float: right; margin: 0.25em 0 1em 1.5em; max-width: 60%; }
+      .manuscript-prose > img[data-align="center"] { display: block; margin: 1em auto; }
       .manuscript-prose [data-resize-container]:has(img[data-align="left"]) {
         float: left; display: inline-flex; margin: 0.25em 1.5em 1em 0; max-width: 60%;
       }
@@ -56,6 +64,37 @@ export function ManuscriptProseStyles() {
       .manuscript-prose [data-resize-handle="bottom-right"] { width: 9px; height: 9px; cursor: nwse-resize; }
       .manuscript-prose [data-resize-handle="top-right"],
       .manuscript-prose [data-resize-handle="bottom-left"] { width: 9px; height: 9px; cursor: nesw-resize; }
+
+      /* Front-matter-only presentational treatments (T-1962) -- a separate
+         "variant" attribute from "style" so these never appear as pickable
+         options in the author-facing "Стилі тексту" panel. */
+      .manuscript-prose p[data-variant="titlepage-imprint"] {
+        text-align: center; font-size: 0.8rem; color: #888; margin-top: 8em; text-indent: 0;
+      }
+      .manuscript-prose p[data-variant="colophon-code"] {
+        font-weight: 700; font-size: 0.85rem; text-align: left; text-indent: 0;
+      }
+      .manuscript-prose p[data-variant="colophon-meta"] {
+        font-style: italic; font-size: 0.8rem; color: #666; text-align: left; text-indent: 0;
+      }
+      .manuscript-prose p[data-variant="colophon-footer"] {
+        text-align: center; font-size: 0.8rem; color: #888; margin-top: 3em;
+        padding-top: 0.75em; border-top: 1px solid #e5e7eb; text-indent: 0;
+      }
+
+      /* Live A5 page-break overlay (T-1961) -- computed client-side from the
+         editor's own DOM, distinct blue accent from the manually-inserted
+         pageBreak node's gray marker above so authors don't confuse "this is
+         where a page will end" (advisory) with "insert a break here" (a real
+         document node). Purely decorative: pointer-events none, not part of
+         the document flow. */
+      .manuscript-page-break-marker {
+        position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed #3b82f6; pointer-events: none;
+      }
+      .manuscript-page-break-marker::after {
+        content: attr(data-label); position: absolute; top: -0.65em; left: 50%; transform: translateX(-50%);
+        background: #fff; padding: 0 0.5em; font-size: 0.6875rem; color: #3b82f6; white-space: nowrap;
+      }
     `}</style>
   );
 }

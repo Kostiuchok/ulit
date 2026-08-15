@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ManuscriptPagePreview } from "@/components/manuscript/ManuscriptPagePreview";
+import { extractPageNumberPosition } from "@/components/manuscript/pageNumberPosition";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 
@@ -17,7 +18,7 @@ interface PreviewBook {
 type ManuscriptStatus =
   | { status: "NO_DOCX" }
   | { status: "PROCESSING" }
-  | { status: "DONE"; content: any };
+  | { status: "DONE"; content: any; styleOverrides?: Record<string, unknown> };
 
 export default function ManuscriptPreviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -72,7 +73,12 @@ export default function ManuscriptPreviewPage() {
     <div className="flex h-full flex-col">
       <div className="border-b border-gray-200">{backLink}</div>
       <div className="min-h-0 flex-1">
-        <ManuscriptPagePreview bookId={id} coverUrl={book.coverUrl} manuscriptContent={manuscript.content} />
+        <ManuscriptPagePreview
+          bookId={id}
+          coverUrl={book.coverUrl}
+          manuscriptContent={manuscript.content}
+          pageNumberPosition={extractPageNumberPosition(manuscript.styleOverrides)}
+        />
       </div>
     </div>
   );
