@@ -5,6 +5,8 @@
 // above Глава), "epigraph", "poem", "signature". Those blocks import as "normal" — the author
 // re-tags them manually via the style panel after import.
 
+type PandocAttr = [string, string[], [string, string][]];
+
 type PandocInline =
   | { t: "Str"; c: string }
   | { t: "Space" }
@@ -14,6 +16,7 @@ type PandocInline =
   | { t: "Strong"; c: PandocInline[] }
   | { t: "Underline"; c: PandocInline[] }
   | { t: "Strikeout"; c: PandocInline[] }
+  | { t: "Image"; c: [PandocAttr, PandocInline[], [string, string]] }
   | { t: string; c?: unknown };
 
 type PandocBlock =
@@ -65,6 +68,13 @@ function mapInlines(inlines: PandocInline[], activeMarks: EditorMark[] = []): Ed
       case "Strikeout":
         out.push(...mapInlines((inline as any).c, [...activeMarks, { type: "strike" }]));
         break;
+      case "Image":
+        // Handled separately by splitInlinesAroundImages (below) -- an Image's
+        // `c` is a 3-tuple ([Attr, altInlines, [src, title]]), not a plain
+        // inline array, so recursing into it here (the old "unknown inline"
+        // fallback did exactly that) produced garbage/dropped text instead of
+        // an image. Skip it in plain text mapping.
+        break;
       default:
         // Unknown inline (footnote, math, etc.) — recurse into its content if any, else skip.
         if (Array.isArray((inline as any).c)) {
@@ -73,6 +83,48 @@ function mapInlines(inlines: PandocInline[], activeMarks: EditorMark[] = []): Ed
     }
   }
   return out;
+}
+
+// Word images always live at their own anchor point inside whatever
+// paragraph contains them -- pandoc represents that as an Image inline
+// mixed in with the paragraph's other inlines (usually the *only* inline,
+// for a standalone figure). Our editor schema has no inline image node
+// (ResizableImage is block-level, like the base @tiptap/extension-image
+// default), so a paragraph containing an image must be split into: [text
+// run] [image node] [text run] [image node] ... -- each text run rendered
+// as its own "normal" paragraph, each image as its own top-level image node.
+function splitInlinesAroundImages(inlines: PandocInline[], mediaMap: Record<string, string>): EditorNode[] {
+  const nodes: EditorNode[] = [];
+  let run: PandocInline[] = [];
+
+  function flushRun() {
+    if (run.length === 0) return;
+    const text = mapInlines(run);
+    if (text.some((t) => t.text.trim() !== "")) {
+      nodes.push({ type: "paragraph", attrs: { style: "normal" }, content: text });
+    }
+    run = [];
+  }
+
+  for (const inline of inlines) {
+    if (inline.t !== "Image") {
+      run.push(inline);
+      continue;
+    }
+    flushRun();
+    const [, , target] = (inline as any).c as [PandocAttr, PandocInline[], [string, string]];
+    const [rawSrc] = target;
+    const src = mediaMap[rawSrc] ?? mediaMap[decodeURIComponent(rawSrc)];
+    if (src) {
+      nodes.push({ type: "image", attrs: { src, align: "center" } });
+    }
+    // If the extracted file couldn't be matched/uploaded, the image is
+    // silently dropped rather than left as a broken node -- same
+    // best-effort spirit as the rest of this importer (author fixes up
+    // anything the generic mapping couldn't handle).
+  }
+  flushRun();
+  return nodes;
 }
 
 // Editor-side, the styled node is a `Paragraph` extension that kept the name "paragraph"
@@ -93,43 +145,52 @@ function headerStyle(level: number): string {
   return "subheading"; // Підзаголовок
 }
 
-function mapBlock(block: PandocBlock): EditorNode | null {
+// Returns 0+ nodes per Pandoc block -- a Para/Plain containing one or more
+// images expands into multiple top-level nodes (see splitInlinesAroundImages
+// above), everything else maps 1:1 same as before.
+function mapBlock(block: PandocBlock, mediaMap: Record<string, string>): EditorNode[] {
   switch (block.t) {
     case "Header": {
       const [level, , inlines] = (block as any).c;
-      return styledBlock(headerStyle(level), inlines);
+      return [styledBlock(headerStyle(level), inlines)];
     }
     case "Para":
     case "Plain":
-      return styledBlock("normal", (block as any).c);
+      return splitInlinesAroundImages((block as any).c, mediaMap);
     case "BlockQuote": {
-      const inner = ((block as any).c as PandocBlock[]).map(mapBlock).filter(Boolean) as EditorNode[];
-      // Flatten nested blocks into a single "quote" styled block per paragraph.
-      return inner.length === 1 ? { ...inner[0], attrs: { ...inner[0].attrs, style: "quote" } } : {
-        type: "styledBlock",
-        attrs: { style: "quote", id: nextBlockId() },
-        content: inner.flatMap((n) => n.content ?? []),
-      };
+      const inner = ((block as any).c as PandocBlock[]).flatMap((b) => mapBlock(b, mediaMap));
+      if (inner.length === 0) return [];
+      // Flatten nested paragraphs into a single "quote" styled block; any
+      // image split out of the quote's text keeps its own node instead of
+      // being force-merged into the quote's text content.
+      const textNodes = inner.filter((n) => n.type === "paragraph");
+      const otherNodes = inner.filter((n) => n.type !== "paragraph");
+      if (textNodes.length === 0) return otherNodes;
+      const merged: EditorNode =
+        textNodes.length === 1
+          ? { ...textNodes[0], attrs: { ...textNodes[0].attrs, style: "quote" } }
+          : { type: "paragraph", attrs: { style: "quote", id: nextBlockId() }, content: textNodes.flatMap((n) => n.content ?? []) };
+      return [merged, ...otherNodes];
     }
     case "BulletList":
     case "OrderedList": {
       const itemsSource: PandocBlock[][] = block.t === "BulletList" ? (block as any).c : (block as any).c[1];
       const items: EditorNode[] = itemsSource.map((blocks) => ({
         type: "listItem",
-        content: blocks.map(mapBlock).filter(Boolean) as EditorNode[],
+        content: blocks.flatMap((b) => mapBlock(b, mediaMap)),
       }));
-      return { type: block.t === "BulletList" ? "bulletList" : "orderedList", content: items };
+      return [{ type: block.t === "BulletList" ? "bulletList" : "orderedList", content: items }];
     }
     case "HorizontalRule":
-      return null;
+      return [];
     default:
-      return null;
+      return [];
   }
 }
 
-export function pandocToEditorDoc(pandocJson: PandocDoc): EditorNode {
+export function pandocToEditorDoc(pandocJson: PandocDoc, mediaMap: Record<string, string> = {}): EditorNode {
   blockIdCounter = 0;
-  const content = pandocJson.blocks.map(mapBlock).filter((n): n is EditorNode => n !== null);
+  const content = pandocJson.blocks.flatMap((b) => mapBlock(b, mediaMap));
   return {
     type: "doc",
     content: content.length ? content : [styledBlock("normal", [])],
