@@ -35,11 +35,28 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
       }
 
       if (!book.manuscriptImportedAt) {
+        const jobId = `manuscript-${id}`;
+        // A re-import (POST /reimport resets manuscriptImportedAt to null)
+        // reuses this same deterministic jobId. BullMQ's add() treats an
+        // existing jobId as a no-op and hands back the old job instead of
+        // running a new one -- so a prior completed/failed run of this exact
+        // ID would otherwise silently swallow every re-import forever
+        // (manuscriptImportedAt never gets set, frontend polls indefinitely).
+        // Clear it out first so a fresh attempt actually gets queued; leave
+        // an active/waiting job alone so we don't duplicate in-flight work.
+        const existing = await bookQueue.getJob(jobId);
+        if (existing) {
+          const state = await existing.getState();
+          if (state === "completed" || state === "failed") {
+            await existing.remove();
+          }
+        }
+
         await bookQueue.add(
           "MANUSCRIPT_IMPORT",
           { bookId: id, format: "MANUSCRIPT_IMPORT", docxObjectName: book.originalDocxUrl },
           {
-            jobId: `manuscript-${id}`,
+            jobId,
             attempts: 2,
             backoff: { type: "exponential", delay: 5000 },
             removeOnComplete: { count: 10 },
