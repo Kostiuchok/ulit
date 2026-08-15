@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { BookPurchaseWidget } from "../../../../components/store/BookPurchaseWidget";
-import { EpubReader } from "../../../../components/store/EpubReader";
-import { BookCoverCarousel } from "../../../../components/books/BookCoverCarousel";
+import { BookCoverAndPurchase } from "../../../../components/store/BookCoverAndPurchase";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -186,49 +184,20 @@ export default async function BookPage({ params }: Props) {
           {/* Cover */}
           <div className="md:col-span-1">
             <div className="sticky top-20">
-              <div className="w-full max-w-xs mx-auto">
-                {book.coverUrl ? (
-                  <BookCoverCarousel
-                    coverUrl={book.coverUrl}
-                    backCoverUrl={book.backCoverUrl}
-                    hasEbook={!!book.priceEbook}
-                    hasPrint={!!(book.pricePrint || book.pricePrintHardcover || book.pricePrintBw || book.pricePrintHardcoverBw)}
-                  />
-                ) : (
-                  <div className="flex aspect-[2/3] w-full items-center justify-center rounded-xl bg-gray-100 text-7xl">
-                    📖
-                  </div>
-                )}
-              </div>
-
-              {/* Read preview */}
-              {book.epubUrl && (
-                <div className="mt-4 flex justify-center">
-                  <EpubReader
-                    bookSlug={book.slug}
-                    bookTitle={book.title}
-                    bookId={book.id}
-                    bookPrice={book.priceEbook ? Number(book.priceEbook) : null}
-                    bookAuthor={book.author.name}
-                    coverUrl={book.coverUrl}
-                  />
-                </div>
-              )}
-
-              {/* Pricing + buy */}
-              <div className="mt-6">
-                <BookPurchaseWidget
-                  bookId={book.id}
-                  title={book.title}
-                  author={book.author.name}
-                  coverUrl={book.coverUrl}
-                  priceEbook={book.priceEbook ? Number(book.priceEbook) : null}
-                  pricePrint={book.pricePrint ? Number(book.pricePrint) : null}
-                  pricePrintHardcover={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}
-                  pricePrintBw={book.pricePrintBw ? Number(book.pricePrintBw) : null}
-                  pricePrintHardcoverBw={book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : null}
-                />
-              </div>
+              <BookCoverAndPurchase
+                bookId={book.id}
+                bookSlug={book.slug}
+                title={book.title}
+                author={book.author.name}
+                coverUrl={book.coverUrl}
+                backCoverUrl={book.backCoverUrl}
+                epubUrl={book.epubUrl}
+                priceEbook={book.priceEbook ? Number(book.priceEbook) : null}
+                pricePrint={book.pricePrint ? Number(book.pricePrint) : null}
+                pricePrintHardcover={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}
+                pricePrintBw={book.pricePrintBw ? Number(book.pricePrintBw) : null}
+                pricePrintHardcoverBw={book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : null}
+              />
             </div>
           </div>
 

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/cartStore";
 
@@ -89,18 +90,20 @@ export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice, bookAuthor,
       </button>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
 
-      {open && config && (
-        <EpubReaderInner
-          url={config.previewUrl}
-          previewStart={config.previewStart}
-          previewEnd={config.previewEnd}
-          pageCount={config.pageCount}
-          bookTitle={bookTitle}
-          bookPrice={bookPrice}
-          onBuy={handleBuy}
-          onClose={() => setOpen(false)}
-        />
-      )}
+      {open && config &&
+        createPortal(
+          <EpubReaderInner
+            url={config.previewUrl}
+            previewStart={config.previewStart}
+            previewEnd={config.previewEnd}
+            pageCount={config.pageCount}
+            bookTitle={bookTitle}
+            bookPrice={bookPrice}
+            onBuy={handleBuy}
+            onClose={() => setOpen(false)}
+          />,
+          document.body
+        )}
     </>
   );
 }

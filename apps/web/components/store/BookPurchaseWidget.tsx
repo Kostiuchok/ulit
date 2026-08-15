@@ -16,6 +16,10 @@ interface Props {
   pricePrintHardcover?: number | null;
   pricePrintBw?: number | null;
   pricePrintHardcoverBw?: number | null;
+  // Controlled mode -- lets a parent (e.g. the cover carousel) stay in sync
+  // with the chosen format. Uncontrolled (internal state) when omitted.
+  format?: "ebook" | "print";
+  onFormatChange?: (format: "ebook" | "print") => void;
 }
 
 const BINDING_LABEL: Record<"softcover" | "hardcover", string> = {
@@ -37,13 +41,20 @@ export function BookPurchaseWidget({
   pricePrintHardcover,
   pricePrintBw,
   pricePrintHardcoverBw,
+  format: controlledFormat,
+  onFormatChange,
 }: Props) {
   const hasEbook = priceEbook != null;
   const hasSoftcover = pricePrint != null || pricePrintBw != null;
   const hasHardcover = pricePrintHardcover != null || pricePrintHardcoverBw != null;
   const hasPrint = hasSoftcover || hasHardcover;
 
-  const [format, setFormat] = useState<"ebook" | "print">(hasEbook ? "ebook" : "print");
+  const [internalFormat, setInternalFormat] = useState<"ebook" | "print">(hasEbook ? "ebook" : "print");
+  const format = controlledFormat ?? internalFormat;
+  const setFormat = (f: "ebook" | "print") => {
+    setInternalFormat(f);
+    onFormatChange?.(f);
+  };
   const [binding, setBinding] = useState<"softcover" | "hardcover">(hasSoftcover ? "softcover" : "hardcover");
   const [colorMode, setColorMode] = useState<"color" | "bw">("color");
 

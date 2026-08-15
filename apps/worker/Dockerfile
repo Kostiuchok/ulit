@@ -1,6 +1,12 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=production
+# Pandoc (GHC runtime) decodes argv using the process locale -- without a
+# UTF-8 locale, non-ASCII CLI args (e.g. --metadata title="...") get mangled
+# into U+FFFD even though file-based content (read as bytes) is unaffected.
+# glibc ships C.UTF-8 by default since 22.04, no `locales` package needed.
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # System deps: LibreOffice, Pandoc, Ghostscript, Calibre, Node 20
 # unzip -- reads word/document.xml straight out of an uploaded .docx to

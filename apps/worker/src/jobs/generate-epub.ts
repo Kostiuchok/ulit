@@ -1,5 +1,5 @@
 import { Job } from "bullmq";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -32,11 +32,16 @@ export async function generateEpub(job: Job<EpubData>) {
     const title = book?.title ?? "Untitled";
     const author = book?.author?.name ?? "Unknown";
 
-    execSync(
-      `pandoc "${docxPath}" -o "${epubPath}" ` +
-      `--metadata title="${title.replace(/"/g, '\\"')}" ` +
-      `--metadata author="${author.replace(/"/g, '\\"')}" ` +
-      `-f docx -t epub3`,
+    execFileSync(
+      "pandoc",
+      [
+        docxPath,
+        "-o", epubPath,
+        "--metadata", `title=${title}`,
+        "--metadata", `author=${author}`,
+        "-f", "docx",
+        "-t", "epub3",
+      ],
       { timeout: 120_000, stdio: "pipe" }
     );
 
