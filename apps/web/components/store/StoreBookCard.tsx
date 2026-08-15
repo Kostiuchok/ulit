@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { TabletCoverFrame } from "../books/TabletCoverFrame";
+import { PrintedCoverFrame } from "../books/PrintedCoverFrame";
 
 export interface StoreBook {
   id: string;
@@ -9,6 +11,8 @@ export interface StoreBook {
   priceEbook?: string | null;
   pricePrint?: string | null;
   pricePrintHardcover?: string | null;
+  pricePrintBw?: string | null;
+  pricePrintHardcoverBw?: string | null;
   genre?: string | null;
   language?: string;
   epubUrl?: string | null;
@@ -31,29 +35,38 @@ const FORMAT_BADGES: { key: keyof StoreBook; label: string }[] = [
   { key: "printPdfUrl", label: "Друк" },
 ];
 
-export function StoreBookCard({ book }: { book: StoreBook }) {
-  const lowestPrice = [book.priceEbook, book.pricePrint, book.pricePrintHardcover]
+interface Props {
+  book: StoreBook;
+  // Catalog format filter drives which presentation mockup the cover is
+  // shown in — "друковані" shows the physical printed-book widget, anything
+  // else (ebook formats, unfiltered) shows the tablet/e-reader frame — same
+  // two frame components already used on the book detail page carousel.
+  frame?: "print" | "tablet";
+}
+
+export function StoreBookCard({ book, frame = "tablet" }: Props) {
+  const lowestPrice = [
+    book.priceEbook,
+    book.pricePrint,
+    book.pricePrintHardcover,
+    book.pricePrintBw,
+    book.pricePrintHardcoverBw,
+  ]
     .filter(Boolean)
     .map(Number)
     .sort((a, b) => a - b)[0];
+  const CoverFrame = frame === "print" ? PrintedCoverFrame : TabletCoverFrame;
 
   return (
     <Link
       href={`/books/${book.slug}`}
       className="group flex flex-col rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden"
     >
-      <div className="relative aspect-[2/3] w-full bg-gray-100 overflow-hidden">
-        {book.coverUrl ? (
-          <img
-            src={book.coverUrl}
-            alt={book.title}
-            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-5xl text-gray-300">
-            📖
-          </div>
-        )}
+      <div className="relative w-full overflow-hidden bg-gray-100">
+        <CoverFrame
+          coverUrl={book.coverUrl}
+          className="group-hover:scale-105 transition-transform duration-300"
+        />
         {book.genre && (
           <span className="absolute top-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
             {book.genre}

@@ -60,6 +60,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
   const [{ books, nextCursor }, genres] = await Promise.all([fetchBooks(params), fetchGenres()]);
 
   const isFiltered = !!(q || genre || language || format);
+  const coverFrame = format === "PRINT" ? "print" : "tablet";
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
@@ -203,7 +204,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {books.map((book) => (
-                  <StoreBookCard key={book.id} book={book} />
+                  <StoreBookCard key={book.id} book={book} frame={coverFrame} />
                 ))}
               </div>
 
