@@ -58,11 +58,14 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
   const CoverFrame = frame === "print" ? PrintedCoverFrame : TabletCoverFrame;
 
   return (
-    <Link
-      href={`/books/${book.slug}`}
-      className="group flex flex-col rounded-xl border bg-white shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
-    >
-      <div className="relative w-full overflow-hidden bg-gray-100">
+    <Link href={`/books/${book.slug}`} className="group flex flex-col">
+      {/* Preview sits on its own -- no card/overflow-hidden wrapper around it,
+          since PrintedCoverFrame's box-shadow and TabletCoverFrame's device
+          frame art both need room to render past the cover's own bounds.
+          Boxing them in was clipping exactly the shadows that make the
+          mockups look good in isolation. Hover lifts the whole preview
+          slightly (position, not size) so the shadow reads as depth. */}
+      <div className="relative w-full transition-transform duration-300 ease-out group-hover:-translate-y-1.5">
         <CoverFrame coverUrl={book.coverUrl} />
         {book.genre && (
           <span className="absolute top-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
@@ -71,9 +74,13 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
         )}
       </div>
 
-      <div className="flex flex-col flex-1 p-3 gap-1">
+      {/* Detached, transparent -- no card background continuing under the
+          preview, just text on the page. */}
+      <div className="flex flex-col gap-1 pt-3 px-0.5">
         <p className="text-xs text-gray-500 truncate">{book.author.name}</p>
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">{book.title}</h3>
+        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight group-hover:underline decoration-gray-300 underline-offset-2">
+          {book.title}
+        </h3>
 
         <div className="flex flex-wrap gap-1 mt-1">
           {FORMAT_BADGES.filter((f) => book[f.key]).map((f) => (
@@ -86,7 +93,7 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
           ))}
         </div>
 
-        <div className="mt-auto pt-2">
+        <div className="mt-1">
           {lowestPrice != null ? (
             <p className="text-sm font-bold text-gray-900">
               від {lowestPrice.toFixed(2)} грн
