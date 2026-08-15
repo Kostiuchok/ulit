@@ -496,6 +496,25 @@ export const PATTERNS: { id: string; label: string; build: PatternBuilder }[] = 
 
 // ─── Photo-slot helpers ─────────────────────────────────────────────────────
 
+// Three independent background layers, bottom to top: solid accent color,
+// then an optional pattern, then an optional photo (either the front-panel
+// illustration slot or the separately-uploaded background photo -- both are
+// "the image" from the author's point of view, illustration just wins the
+// tie since it's the more deliberate choice). Each role is optional; any
+// combination can be present simultaneously. normalizeBackgroundStack pins
+// whichever of these exist to indices 0..n-1 in this order, leaving every
+// other object's relative order above them untouched.
+const BACKGROUND_LAYER_ORDER = ["accent", "pattern", "bg-image", "photo-slot"] as const;
+
+function normalizeBackgroundStack(canvas: fabric.Canvas) {
+  const objs = canvas.getObjects();
+  let idx = 0;
+  for (const role of BACKGROUND_LAYER_ORDER) {
+    const obj = objs.find((o: any) => o.data?.role === role);
+    if (obj) canvas.moveTo(obj, idx++);
+  }
+}
+
 function replaceSlotObject(canvas: fabric.Canvas, obj: fabric.Object, slot: PanelRect) {
   obj.set({
     left: slot.x,
@@ -512,19 +531,35 @@ function replaceSlotObject(canvas: fabric.Canvas, obj: fabric.Object, slot: Pane
   const existing = canvas.getObjects().find((o: any) => o.data?.role === "photo-slot");
   if (existing) canvas.remove(existing);
   canvas.add(obj);
-  canvas.moveTo(obj, 1); // just above the accent background (index 0), below text
+  normalizeBackgroundStack(canvas);
   canvas.renderAll();
 }
 
-// Background layers (accent color, bg-image) always sit contiguously at the
-// bottom of the stack — everything else must stay above this floor so text
-// and rects can never end up hidden behind the background.
+function replacePatternObject(canvas: fabric.Canvas, group: fabric.Object) {
+  group.set({ selectable: false, evented: false, data: { role: "pattern" } });
+  const existing = canvas.getObjects().find((o: any) => o.data?.role === "pattern");
+  if (existing) canvas.remove(existing);
+  canvas.add(group);
+  normalizeBackgroundStack(canvas);
+  canvas.renderAll();
+}
+
+function removeBackgroundLayer(canvas: fabric.Canvas, role: "pattern" | "bg-image") {
+  const obj = canvas.getObjects().find((o: any) => o.data?.role === role);
+  if (obj) canvas.remove(obj);
+  canvas.renderAll();
+}
+
+// Background layers (accent color, pattern, bg-image, photo-slot) always sit
+// contiguously at the bottom of the stack — everything else must stay above
+// this floor so text and rects can never end up hidden behind the
+// background.
 function backgroundFloorIndex(canvas: fabric.Canvas): number {
   const objs = canvas.getObjects();
   let floor = 0;
   for (const o of objs) {
     const role = (o as any).data?.role;
-    if (role === "accent" || role === "bg-image") floor++;
+    if ((BACKGROUND_LAYER_ORDER as readonly string[]).includes(role)) floor++;
     else break;
   }
   return floor;
@@ -578,7 +613,7 @@ function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: s
       const existing = canvas.getObjects().find((o: any) => o.data?.role === "bg-image");
       if (existing) canvas.remove(existing);
       canvas.add(img);
-      canvas.moveTo(img, 1); // above the solid accent color (index 0)
+      normalizeBackgroundStack(canvas);
       canvas.renderAll();
     },
     opts
@@ -1308,15 +1343,32 @@ export default function CoverDesignerCanvas({
   // Picking a color switches the background back to solid -- the uploaded
   // image (if any) stays remembered in bgImageUrl so its swatch keeps
   // offering a one-click way back, it's just not the active layer anymore.
+  // Color is its own independent layer now (T-9, three-layer background) --
+  // picking a swatch only ever touches the accent fill. It used to also
+  // remove the bg-image, which was the actual bug being fixed: the color
+  // is supposed to show through only where the layers above it don't cover
+  // it, not replace them.
   const recolor = useCallback((color: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.getObjects().forEach((o: any) => {
       if (o.data?.role === "accent") o.set("fill", color);
     });
-    const bgImage = canvas.getObjects().find((o: any) => o.data?.role === "bg-image");
-    if (bgImage) canvas.remove(bgImage);
     canvas.renderAll();
+    saveSnapshot();
+  }, [saveSnapshot]);
+
+  const removePattern = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    removeBackgroundLayer(canvas, "pattern");
+    saveSnapshot();
+  }, [saveSnapshot]);
+
+  const removeBgImage = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    removeBackgroundLayer(canvas, "bg-image");
     saveSnapshot();
   }, [saveSnapshot]);
 
@@ -1332,7 +1384,7 @@ export default function CoverDesignerCanvas({
     if (!canvas) return;
     const pattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
     const group = pattern.build(ctx.layout.front);
-    replaceSlotObject(canvas, group, ctx.layout.front);
+    replacePatternObject(canvas, group);
   }, [ctx.layout.front]);
 
   const uploadAndApplyImage = useCallback(
@@ -2042,9 +2094,19 @@ export default function CoverDesignerCanvas({
             <Button size="sm" className="w-full" onClick={() => fileInputRef.current?.click()} loading={uploading}>
               Завантажити ілюстрацію
             </Button>
-            <Button variant="outline" size="sm" className="w-full" onClick={applyRandomPattern}>
-              Випадковий паттерн
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={applyRandomPattern}>
+                Випадковий паттерн
+              </Button>
+              <button
+                type="button"
+                onClick={removePattern}
+                className="shrink-0 text-xs text-gray-400 hover:text-red-600"
+                title="Прибрати патерн"
+              >
+                ✕
+              </button>
+            </div>
 
             {slotLibrary.length > 0 && (
               <div className="space-y-1.5">
@@ -2080,15 +2142,26 @@ export default function CoverDesignerCanvas({
               <p className="text-xs text-gray-500">Колір фону</p>
               <div className="flex flex-wrap gap-1.5">
                 {bgImageUrl && (
-                  <button
-                    type="button"
-                    onClick={selectBgImage}
-                    className="h-6 w-6 overflow-hidden rounded border-2 border-gray-900"
-                    aria-label="Завантажене фонове зображення"
-                    title="Завантажене фонове зображення"
-                  >
-                    <img src={bgImageUrl} alt="" className="h-full w-full object-cover" />
-                  </button>
+                  <div className="relative h-6 w-6">
+                    <button
+                      type="button"
+                      onClick={selectBgImage}
+                      className="h-6 w-6 overflow-hidden rounded border-2 border-gray-900"
+                      aria-label="Завантажене фонове зображення"
+                      title="Завантажене фонове зображення"
+                    >
+                      <img src={bgImageUrl} alt="" className="h-full w-full object-cover" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removeBgImage}
+                      className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black/70 text-[9px] text-white hover:bg-red-600"
+                      aria-label="Прибрати фонове зображення"
+                      title="Прибрати фонове зображення"
+                    >
+                      ×
+                    </button>
+                  </div>
                 )}
                 {template.palette.map((color) => (
                   <button
