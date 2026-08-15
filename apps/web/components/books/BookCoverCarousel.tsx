@@ -21,7 +21,7 @@ export function BookCoverCarousel({ coverUrl, backCoverUrl, hasEbook, hasPrint }
     slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} /> });
   }
   if (backCoverUrl) {
-    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} /> });
+    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} mirror /> });
   }
   if (slides.length === 0) {
     slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} /> });
