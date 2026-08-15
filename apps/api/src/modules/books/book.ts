@@ -220,6 +220,35 @@ export async function bookRoutes(app: FastifyInstance) {
     return reply.send({ book: withCoverVersion(book) });
   });
 
+  // Permanently purge every archived (soft-deleted) book for this author --
+  // "Очистити список" in the "Видалені книги" section. Hard-deletes the Book
+  // row (ConversionJob cascades). Books that were ever actually sold keep
+  // OrderItem/Royalty rows pointing at them (no onDelete: Cascade on those
+  // relations, on purpose -- financial/order history must never disappear
+  // just because the book listing was cleaned up), so the DB rejects the
+  // delete with a foreign-key error; those are skipped and reported rather
+  // than failing the whole batch.
+  app.post("/api/books/purge-archived", { preHandler: authenticate }, async (request, reply) => {
+    const archived = await prisma.book.findMany({
+      where: { authorId: request.user.id, status: "ARCHIVED" },
+      select: { id: true, title: true },
+    });
+
+    const purged: string[] = [];
+    const skipped: { id: string; title: string }[] = [];
+
+    for (const book of archived) {
+      try {
+        await prisma.book.delete({ where: { id: book.id } });
+        purged.push(book.id);
+      } catch {
+        skipped.push({ id: book.id, title: book.title });
+      }
+    }
+
+    return reply.send({ purged, skipped });
+  });
+
   // Unpublish (T-1950): take a PUBLISHED book off sale — hidden from the
   // Ulit store and checkout (store/order queries filter on status ===
   // "PUBLISHED"), external marketplace removal stays the existing manual

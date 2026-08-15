@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BookCard } from "@/components/books/BookCard";
 import { DeleteBookModal } from "@/components/books/DeleteBookModal";
+import { PurgeArchivedModal } from "@/components/books/PurgeArchivedModal";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/hooks/useApi";
 
@@ -36,6 +37,8 @@ export function MyBooksList() {
   const [error, setError] = useState<string | null>(null);
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
   const [restoring, setRestoring] = useState<string | null>(null);
+  const [purging, setPurging] = useState(false);
+  const [purgeNotice, setPurgeNotice] = useState<string | null>(null);
 
   function load() {
     if (!token) return;
@@ -114,9 +117,24 @@ export function MyBooksList() {
           </div>
         )}
 
+        {purgeNotice && (
+          <div className="mt-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {purgeNotice}
+          </div>
+        )}
+
         {archivedBooks.length > 0 && (
           <div className="mt-10">
-            <h2 className="mb-3 text-base font-semibold text-gray-500">Видалені книги</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-500">Видалені книги</h2>
+              <button
+                type="button"
+                onClick={() => setPurging(true)}
+                className="text-xs font-medium text-red-600 hover:text-red-700"
+              >
+                Очистити список
+              </button>
+            </div>
             <div className="space-y-2">
               {archivedBooks.map((book) => (
                 <div
@@ -145,6 +163,24 @@ export function MyBooksList() {
           onClose={() => setDeleteBookId(null)}
           onDeleted={() => {
             setDeleteBookId(null);
+            load();
+          }}
+        />
+      )}
+
+      {purging && (
+        <PurgeArchivedModal
+          count={archivedBooks.length}
+          onClose={() => setPurging(false)}
+          onPurged={({ purged, skipped }) => {
+            setPurging(false);
+            setPurgeNotice(
+              skipped.length === 0
+                ? `Видалено остаточно: ${purged.length}.`
+                : `Видалено остаточно: ${purged.length}. Пропущено (є замовлення): ${skipped
+                    .map((b) => b.title)
+                    .join(", ")}.`
+            );
             load();
           }}
         />
