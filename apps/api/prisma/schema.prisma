@@ -94,6 +94,7 @@ model User {
   orders    Order[]
   royalties Royalty[]
   styleSets AuthorStyleSet[]
+  coverTemplates CoverTemplate[]
 
   @@index([slug])
   @@index([email])
@@ -107,6 +108,23 @@ model AuthorStyleSet {
   description    String?
   styleOverrides Json
   createdAt      DateTime @default(now())
+
+  @@index([authorId])
+}
+
+// Author-level saved cover design ("Зберегти як шаблон" / "Мої шаблони" in
+// CoverDesignerCanvas), reusable across any of the author's books -- distinct
+// from AuthorStyleSet (manuscript typography) and from Book.coverDesign
+// (per-book live editable state). `design` mirrors the same
+// {front, backSpine, background} shape captureDesignState() already
+// produces for Book.coverDesign.
+model CoverTemplate {
+  id        String   @id @default(cuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  name      String
+  design    Json
+  createdAt DateTime @default(now())
 
   @@index([authorId])
 }
