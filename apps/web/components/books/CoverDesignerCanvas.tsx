@@ -543,28 +543,35 @@ function applyImageToSlot(canvas: fabric.Canvas, url: string, slot: PanelRect) {
   );
 }
 
-// Full-bleed background image behind everything (bands, photo-slot, text) —
+// Background image behind the front panel only (bands, photo-slot, text) —
 // locked in place (not selectable), so it can't be accidentally dragged like
-// the front-panel illustration can. Spans the whole canvas (back+spine+front)
-// the same way the solid accent color does.
+// the front-panel illustration can. For ebook layouts the front panel IS the
+// whole canvas, so this covers everything same as before; for softcover/
+// hardcover it's clipped to the front panel (x=front.x..front.x+front.w) so
+// it doesn't bleed onto the spine/back — those keep only the solid accent
+// color (still full-width, drawn separately by addAccentBg) plus whatever
+// text the author places there. Uploading a cover photo is meant to dress up
+// the e-book/print-front face, not double as full print-wrap art.
 function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: string) {
+  const { front } = layout;
   const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" as const };
   fabric.Image.fromURL(
     url,
     (img) => {
-      const iw = img.width ?? layout.totalW;
-      const ih = img.height ?? layout.totalH;
-      const scale = Math.max(layout.totalW / iw, layout.totalH / ih);
+      const iw = img.width ?? front.w;
+      const ih = img.height ?? front.h;
+      const scale = Math.max(front.w / iw, front.h / ih);
       img.set({
         originX: "left",
         originY: "top",
-        left: -((iw * scale - layout.totalW) / 2),
-        top: -((ih * scale - layout.totalH) / 2),
+        left: front.x - (iw * scale - front.w) / 2,
+        top: front.y - (ih * scale - front.h) / 2,
         scaleX: scale,
         scaleY: scale,
         selectable: false,
         evented: false,
         data: { role: "bg-image" },
+        clipPath: new fabric.Rect({ left: front.x, top: front.y, width: front.w, height: front.h, absolutePositioned: true }),
       });
       const existing = canvas.getObjects().find((o: any) => o.data?.role === "bg-image");
       if (existing) canvas.remove(existing);
