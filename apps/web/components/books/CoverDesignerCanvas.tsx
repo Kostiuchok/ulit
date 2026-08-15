@@ -681,7 +681,7 @@ interface Props {
   existingCoverUrl?: string | null;
   savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
-  onSaved: (patch: { coverUrl?: string; backCoverUrl?: string }) => void;
+  onSaved: (patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) => void;
   onLibraryChange?: (library: { url: string; uploadedAt: string; kind?: "slot" | "background" }[]) => void;
   token?: string;
 }
@@ -1190,7 +1190,7 @@ export default function CoverDesignerCanvas({
   // ── Export & save ────────────────────────────────────────────────────────
 
   const uploadPanel = useCallback(
-    async (dataUrl: string, endpoint: string, field: "coverUrl" | "backCoverUrl") => {
+    async (dataUrl: string, endpoint: string, field: "coverUrl" | "backCoverUrl" | "spineUrl") => {
       const blob = await (await fetch(dataUrl)).blob();
       const form = new FormData();
       form.append("file", blob, `${field}.png`);
@@ -1213,8 +1213,8 @@ export default function CoverDesignerCanvas({
     setSaving(true);
     setSaveError("");
     try {
-      const { front, back } = ctx.layout;
-      const patch: { coverUrl?: string; backCoverUrl?: string } = {};
+      const { front, back, spine } = ctx.layout;
+      const patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string } = {};
 
       const frontDataUrl = canvas.toDataURL({
         format: "png",
@@ -1236,6 +1236,21 @@ export default function CoverDesignerCanvas({
           height: back.h,
         });
         patch.backCoverUrl = await uploadPanel(backDataUrl, "upload-back-cover", "backCoverUrl");
+      }
+
+      // Spine panel only exists for softcover/hardcover layouts -- exporting it
+      // separately is what lets the 3D preview show the real spine art/title
+      // instead of a generic placeholder (T-1963 sibling bug).
+      if (spine) {
+        const spineDataUrl = canvas.toDataURL({
+          format: "png",
+          multiplier: EXPORT_SCALE,
+          left: spine.x,
+          top: spine.y,
+          width: spine.w,
+          height: spine.h,
+        });
+        patch.spineUrl = await uploadPanel(spineDataUrl, "upload-spine", "spineUrl");
       }
 
       const coverDesign = captureDesignState(canvas, ctx.layout, backSpineStateRef.current);

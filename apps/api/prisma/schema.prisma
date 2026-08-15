@@ -130,6 +130,7 @@ model Book {
   bookChamberSubmittedAt DateTime? // admin marked the book as submitted to Книжкова палата for cataloguing
   coverUrl             String?
   backCoverUrl         String?
+  spineUrl             String? // exported crop of the spine panel (softcover/hardcover only) -- used by the 3D preview rotator
   coverImageLibrary    Json? // previously uploaded cover images the author can re-pick — [{url, uploadedAt}]
   coverDesign          Json? // editable cover design state — {front, backSpine, background}, restored into the canvas on next open of /cover (T-1962 sibling; see coverVersion.ts for the exported-PNG cache-busting, this is the separate editable-state save)
   originalDocxUrl      String?

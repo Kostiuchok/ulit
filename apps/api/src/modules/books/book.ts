@@ -22,6 +22,7 @@ const BOOK_SELECT = {
   authorSign: true,
   coverUrl: true,
   backCoverUrl: true,
+  spineUrl: true,
   coverImageLibrary: true,
   coverDesign: true,
   originalDocxUrl: true,

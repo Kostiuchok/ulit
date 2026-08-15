@@ -25,7 +25,7 @@ interface Props {
   existingCoverUrl?: string | null;
   savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
-  onSaved: (patch: { coverUrl?: string; backCoverUrl?: string }) => void;
+  onSaved: (patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) => void;
   onLibraryChange?: (library: { url: string; uploadedAt: string; kind?: "slot" | "background" }[]) => void;
   token?: string;
 }

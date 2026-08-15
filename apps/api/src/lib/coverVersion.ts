@@ -7,11 +7,12 @@
 export function withCoverVersion<T extends Record<string, any> | null>(record: T): T {
   if (!record) return record;
   const updatedAt = record.updatedAt instanceof Date ? record.updatedAt : null;
-  if (!updatedAt || (!record.coverUrl && !record.backCoverUrl)) return record;
+  if (!updatedAt || (!record.coverUrl && !record.backCoverUrl && !record.spineUrl)) return record;
   const v = updatedAt.getTime();
   return {
     ...record,
     coverUrl: record.coverUrl ? `${record.coverUrl}?v=${v}` : record.coverUrl,
     backCoverUrl: record.backCoverUrl ? `${record.backCoverUrl}?v=${v}` : record.backCoverUrl,
+    spineUrl: record.spineUrl ? `${record.spineUrl}?v=${v}` : record.spineUrl,
   };
 }

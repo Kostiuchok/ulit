@@ -21,6 +21,8 @@ type Tab = "color" | "bw" | "3d";
 interface Props {
   coverUrl?: string | null;
   backCoverUrl?: string | null;
+  spineUrl?: string | null;
+  title?: string;
   pages: PageEntry[];
   pagesBw?: PageEntry[];
   backCover: BackCoverData;
@@ -34,7 +36,7 @@ interface Props {
 // button, no mode-switching between them. The flip/showCover machinery and
 // Book3DRotator's onOpen-to-flip transition stay available in
 // Book3DRotator.tsx for whenever this gets revisited.
-export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], onClose }: Props) {
+export function BookViewer({ coverUrl, backCoverUrl, spineUrl, title, pages, pagesBw = [], onClose }: Props) {
   const [tab, setTab] = useState<Tab>("color");
   const activePages = tab === "bw" ? pagesBw : pages;
 
@@ -71,7 +73,7 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], onClos
       </div>
 
       {tab === "3d" && coverUrl ? (
-        <Book3DRotator coverUrl={coverUrl} backCoverUrl={backCoverUrl} pageCount={pages.length} />
+        <Book3DRotator coverUrl={coverUrl} backCoverUrl={backCoverUrl} spineUrl={spineUrl} title={title} pageCount={pages.length} />
       ) : (
         <PdfScrollView coverUrl={coverUrl} backCoverUrl={backCoverUrl} pages={activePages} />
       )}

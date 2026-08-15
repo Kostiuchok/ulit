@@ -19,6 +19,7 @@ interface BookInfo {
   isbn?: string | null;
   coverUrl?: string | null;
   backCoverUrl?: string | null;
+  spineUrl?: string | null;
   coverDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[] | null;
   pageCount?: number | null;
@@ -53,7 +54,7 @@ export default function CoverPage() {
       .catch(() => {});
   }, [token, id]);
 
-  function handleSaved(patch: { coverUrl?: string; backCoverUrl?: string }) {
+  function handleSaved(patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) {
     setBook((b) => (b ? { ...b, ...patch } : b));
     setSaved(true);
     setLocallyFixed(true);

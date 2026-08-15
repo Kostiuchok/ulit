@@ -7,7 +7,7 @@ import { BookViewer } from "@/components/books/BookViewer";
 
 interface PageEntry { page: number; url: string }
 interface BackCoverData { authorName: string; bio?: string | null; avatarUrl?: string | null }
-interface BookInfo { coverUrl?: string | null; backCoverUrl?: string | null; pdfUrl?: string | null; title: string }
+interface BookInfo { coverUrl?: string | null; backCoverUrl?: string | null; spineUrl?: string | null; pdfUrl?: string | null; title: string; pageCount?: number | null }
 
 type PagesResponse =
   | { status: "DONE"; pages: PageEntry[]; pagesBw: PageEntry[]; pdfUrl: string | null }
@@ -104,6 +104,8 @@ export default function PreviewPage() {
           <BookViewer
             coverUrl={book?.coverUrl}
             backCoverUrl={book?.backCoverUrl}
+            spineUrl={book?.spineUrl}
+            title={book?.title}
             pages={pages}
             pagesBw={pagesBw}
             backCover={backCover}
