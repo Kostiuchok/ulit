@@ -669,6 +669,19 @@ function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
 // when saving from ebook (no back panel on canvas at all), fall back to
 // whatever back+spine was last cached this session instead of persisting an
 // empty back+spine and losing it.
+// updateSelected/toggleAllCaps/toggleTextShadow/updateTextShadow all mutate
+// the active fabric.Object in place (fabric has no immutable-update API) and
+// hand the *same* reference back to setActiveObj. React's useState bails out
+// on a same-reference update, so sidebar controls bound to activeObj (e.g.
+// the stroke-width range input's `value`) never re-rendered -- the canvas
+// visibly updated (fabric's own renderAll, independent of React) but the
+// slider thumb stayed frozen. Cloning the reference (prototype preserved, so
+// .type / property reads still behave the same) gives React something new
+// to diff against.
+function touchActiveObj<T extends object>(obj: T): T {
+  return Object.assign(Object.create(Object.getPrototypeOf(obj)), obj);
+}
+
 function captureDesignState(canvas: fabric.Canvas, layout: CoverLayout, cachedBackSpine: any[] | null) {
   const currentObjects = ((canvas.toJSON(["data"]) as any).objects ?? []) as any[];
   const { front, backSpine: liveBackSpine } = splitObjectsByPanel(currentObjects, layout);
@@ -1059,7 +1072,7 @@ export default function CoverDesignerCanvas({
     if (!canvas || !obj) return;
     obj.set(patch);
     canvas.renderAll();
-    setActiveObj(obj);
+    setActiveObj(touchActiveObj(obj));
   }, []);
 
   const toggleTextStyle = useCallback(
@@ -1097,7 +1110,7 @@ export default function CoverDesignerCanvas({
       obj.set({ text: (obj.text ?? "").toUpperCase(), data: { ...data, allCaps: true, caseOriginal: obj.text } });
     }
     canvas.renderAll();
-    setActiveObj(obj);
+    setActiveObj(touchActiveObj(obj));
     saveSnapshot();
   }, [saveSnapshot]);
 
@@ -1107,7 +1120,7 @@ export default function CoverDesignerCanvas({
     if (!canvas || !obj) return;
     obj.set({ shadow: obj.shadow ? null : new fabric.Shadow({ color: "rgba(0,0,0,0.6)", blur: 6, offsetX: 2, offsetY: 2 }) });
     canvas.renderAll();
-    setActiveObj(obj);
+    setActiveObj(touchActiveObj(obj));
     saveSnapshot();
   }, [saveSnapshot]);
 
@@ -1121,7 +1134,7 @@ export default function CoverDesignerCanvas({
     const opacity = patch.opacity ?? currentOpacity;
     obj.set({ shadow: new fabric.Shadow({ color: `rgba(0,0,0,${opacity})`, blur, offsetX: 2, offsetY: 2 }) });
     canvas.renderAll();
-    setActiveObj(obj);
+    setActiveObj(touchActiveObj(obj));
   }, []);
 
   const addRectangle = useCallback(() => {
