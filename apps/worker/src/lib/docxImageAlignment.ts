@@ -28,6 +28,19 @@ const DRAWING_RE = /<w:drawing\b[^>]*>[\s\S]*?<\/w:drawing>/g;
 const WRAP_TEXT_RE = /wrapText="(bothSides|left|right|largest)"/;
 const ALIGN_RE = /<wp:align>(left|right|center|inside|outside)<\/wp:align>/;
 
+// DRAWING_RE matches any <w:drawing> element, not just pictures -- Word also
+// uses the same element for shapes, text boxes, charts, and SmartArt. A
+// leftover empty shape (no embedded picture, no media relationship) counts
+// as a drawing but never becomes a Pandoc Image inline, so treating it as an
+// image here would throw off the ordinal count against Pandoc's own AST.
+// <pic:pic> is the DrawingML picture-part element -- present in every real
+// embedded picture, absent from non-picture drawings -- and is the same
+// signal Pandoc's own docx reader keys off of to decide whether to emit an
+// Image inline at all.
+function isPictureDrawing(drawingXml: string): boolean {
+  return drawingXml.includes("<pic:pic");
+}
+
 function alignOfDrawing(drawingXml: string): ImageAlign {
   if (!drawingXml.includes("<wp:anchor")) return "center"; // <wp:inline> -- not floated, no side to detect
 
@@ -54,12 +67,18 @@ function alignOfDrawing(drawingXml: string): ImageAlign {
 
 /**
  * Real Word wrap-side per embedded image, in document order. Ordinal, not
- * ID-based: the Nth <w:drawing> found here is assumed to correspond to the
- * Nth Image inline Pandoc produced. The caller (import-manuscript.ts) only
- * trusts this list if its length exactly matches Pandoc's own image count
- * -- a mismatch (a legacy <w:pict> VML image, an image inside a text box,
- * etc.) would otherwise silently misalign every image after the gap, which
- * is worse than the uniform "center" default.
+ * ID-based: the Nth picture-bearing <w:drawing> found here is assumed to
+ * correspond to the Nth Image inline Pandoc produced (non-picture drawings
+ * -- shapes, text-box frames, charts -- are filtered out by
+ * isPictureDrawing() above precisely so they don't throw this off). The
+ * caller (import-manuscript.ts / pandocToEditorDoc.ts) only trusts this
+ * list if its length exactly matches Pandoc's own image count -- a
+ * remaining mismatch (a legacy <w:pict> VML image, or a picture nested
+ * inside a text box's <w:txbxContent>, which this regex-based extraction
+ * doesn't attempt to unwrap) would otherwise silently misalign every image
+ * after the gap, which is worse than the uniform "center" default. Not
+ * observed in real manuscripts tested against so far -- accepted as a
+ * residual limitation rather than solved with a full XML parser.
  */
 export function extractImageAlignments(docxPath: string): ImageAlign[] {
   const xml = readDocumentXml(docxPath);
@@ -69,6 +88,7 @@ export function extractImageAlignments(docxPath: string): ImageAlign[] {
   let match: RegExpExecArray | null;
   DRAWING_RE.lastIndex = 0;
   while ((match = DRAWING_RE.exec(xml)) !== null) {
+    if (!isPictureDrawing(match[0])) continue;
     alignments.push(alignOfDrawing(match[0]));
   }
   return alignments;

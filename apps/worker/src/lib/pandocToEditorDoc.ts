@@ -42,11 +42,12 @@ function nextBlockId() {
   return `b${Date.now().toString(36)}${blockIdCounter}`;
 }
 
-// Real per-image wrap-side from the raw docx XML (docxImageAlignment.ts),
-// consumed in the same document order Pandoc itself produces Image inlines
-// in. Reset alongside blockIdCounter at the start of pandocToEditorDoc();
-// only ever non-empty when the caller already verified its length matches
-// Pandoc's own image count (see pandocToEditorDoc below).
+// Real per-image wrap-side from the raw docx XML (docxImageAlignment.ts,
+// already filtered to picture-bearing <w:drawing> blocks only), consumed in
+// the same document order Pandoc itself produces Image inlines in. Reset
+// alongside blockIdCounter at the start of pandocToEditorDoc(); only ever
+// non-empty when the caller already verified its length matches Pandoc's
+// own image count (see pandocToEditorDoc below).
 let imageAlignments: string[] = [];
 let imageAlignmentCursor = 0;
 function nextImageAlign(): string {
