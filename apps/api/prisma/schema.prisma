@@ -224,6 +224,10 @@ model OrderItem {
   bookId  String
   book    Book    @relation(fields: [bookId], references: [id])
   format  String
+  // Which ebook file formats (EPUB/FB2/MOBI) the buyer chose to receive --
+  // only meaningful when format == "EBOOK". Empty means "all available"
+  // (covers orders placed before this field existed).
+  formats String[] @default([])
   price   Decimal @db.Decimal(10, 2)
 
   @@index([orderId])

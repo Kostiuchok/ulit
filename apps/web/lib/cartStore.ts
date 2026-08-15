@@ -16,6 +16,9 @@ export interface CartItem {
   coverUrl?: string | null;
   formatLabel: string;
   price: number;
+  // Which ebook sub-formats (EPUB/FB2/MOBI) to include -- only meaningful
+  // when format === "EBOOK". Empty/omitted means "all available".
+  formats?: string[];
 }
 
 interface CartState {

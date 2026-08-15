@@ -18,6 +18,10 @@ const createOrderSchema = z.object({
           "PRINT_SOFTCOVER_BW",
           "PRINT_HARDCOVER_BW",
         ]),
+        // Which ebook files (EPUB/FB2/MOBI) the buyer wants -- ignored for
+        // print formats. Omitted/empty means "all available" (the buyer
+        // never opened the picker, or JS is stale) rather than "none".
+        formats: z.array(z.enum(["EPUB", "FB2", "MOBI"])).optional(),
       })
     )
     .min(1)
@@ -34,6 +38,14 @@ const FORMAT_TO_URLS: Record<string, (keyof typeof BOOK_URL_FIELDS)[]> = {
   PRINT_HARDCOVER: ["printPdfUrl"],
   PRINT_SOFTCOVER_BW: ["printPdfUrl"],
   PRINT_HARDCOVER_BW: ["printPdfUrl"],
+};
+
+// Ebook sub-format -> book URL field, for narrowing EBOOK downloads to only
+// what the buyer picked at checkout (OrderItem.formats).
+const EBOOK_FORMAT_TO_FIELD: Record<string, keyof typeof BOOK_URL_FIELDS> = {
+  EPUB: "epubUrl",
+  FB2: "fb2Url",
+  MOBI: "mobiUrl",
 };
 
 // Which book price field each print format is billed against.
@@ -61,13 +73,21 @@ type OrderItemBook = {
 // Shared by GET /api/orders/:id and GET /api/orders (list mine) — builds
 // {bookId: [{label, url}]} signed-download-link maps for an order's items.
 async function buildDownloadLinks(
-  items: { bookId: string; format: string; book: OrderItemBook }[]
+  items: { bookId: string; format: string; formats: string[]; book: OrderItemBook }[]
 ): Promise<Record<string, { label: string; url: string }[]>> {
   const downloads: Record<string, { label: string; url: string }[]> = {};
 
   for (const item of items) {
     const links: { label: string; url: string }[] = [];
-    const urlFields = FORMAT_TO_URLS[item.format] ?? [];
+    let urlFields = FORMAT_TO_URLS[item.format] ?? [];
+
+    // Narrow EBOOK downloads to the buyer's chosen sub-formats. Empty
+    // formats[] means either a pre-migration order or "all available" --
+    // keep every field in that case.
+    if (item.format === "EBOOK" && item.formats.length > 0) {
+      const chosen = new Set(item.formats.map((f) => EBOOK_FORMAT_TO_FIELD[f]).filter(Boolean));
+      urlFields = urlFields.filter((f) => chosen.has(f));
+    }
 
     for (const field of urlFields) {
       const objectName = item.book[field as keyof typeof item.book] as string | null;
@@ -126,7 +146,7 @@ export async function ordersRoutes(app: FastifyInstance) {
       const bookMap = new Map(books.map((b) => [b.id, b]));
 
       // Build order items with pricing
-      type OrderItemInput = { bookId: string; format: string; price: number };
+      type OrderItemInput = { bookId: string; format: string; formats: string[]; price: number };
       const orderItems: OrderItemInput[] = [];
 
       for (const item of items) {
@@ -137,11 +157,16 @@ export async function ordersRoutes(app: FastifyInstance) {
           if (!book.priceEbook) {
             return reply.status(400).send({ error: `Book "${book.title}" has no ebook price` });
           }
-          // Check at least one ebook format is available
-          if (!book.epubUrl && !book.fb2Url && !book.mobiUrl) {
+          const available: Record<string, boolean> = { EPUB: !!book.epubUrl, FB2: !!book.fb2Url, MOBI: !!book.mobiUrl };
+          // Empty/omitted formats[] from the client means "all available" --
+          // otherwise narrow to whatever the buyer actually picked,
+          // dropping any they picked that the book doesn't have.
+          const requested = item.formats && item.formats.length > 0 ? item.formats : Object.keys(available);
+          const formats = requested.filter((f) => available[f]);
+          if (formats.length === 0) {
             return reply.status(400).send({ error: `Book "${book.title}" has no ebook files yet` });
           }
-          orderItems.push({ bookId: item.bookId, format: "EBOOK", price: Number(book.priceEbook) });
+          orderItems.push({ bookId: item.bookId, format: "EBOOK", formats, price: Number(book.priceEbook) });
         } else {
           const priceField = PRINT_FORMAT_PRICE_FIELD[item.format as keyof typeof PRINT_FORMAT_PRICE_FIELD];
           const price = book[priceField];
@@ -151,7 +176,7 @@ export async function ordersRoutes(app: FastifyInstance) {
           if (!book.printPdfUrl) {
             return reply.status(400).send({ error: `Book "${book.title}" has no print file yet` });
           }
-          orderItems.push({ bookId: item.bookId, format: item.format, price: Number(price) });
+          orderItems.push({ bookId: item.bookId, format: item.format, formats: [], price: Number(price) });
         }
       }
 
@@ -167,6 +192,7 @@ export async function ordersRoutes(app: FastifyInstance) {
             create: orderItems.map((i) => ({
               bookId: i.bookId,
               format: i.format,
+              formats: i.formats,
               price: i.price,
             })),
           },

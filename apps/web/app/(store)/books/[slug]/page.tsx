@@ -192,6 +192,8 @@ export default async function BookPage({ params }: Props) {
                 coverUrl={book.coverUrl}
                 backCoverUrl={book.backCoverUrl}
                 epubUrl={book.epubUrl}
+                fb2Url={book.fb2Url}
+                mobiUrl={book.mobiUrl}
                 priceEbook={book.priceEbook ? Number(book.priceEbook) : null}
                 pricePrint={book.pricePrint ? Number(book.pricePrint) : null}
                 pricePrintHardcover={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}

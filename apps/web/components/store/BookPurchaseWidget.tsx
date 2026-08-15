@@ -16,11 +16,17 @@ interface Props {
   pricePrintHardcover?: number | null;
   pricePrintBw?: number | null;
   pricePrintHardcoverBw?: number | null;
+  epubUrl?: string | null;
+  fb2Url?: string | null;
+  mobiUrl?: string | null;
   // Controlled mode -- lets a parent (e.g. the cover carousel) stay in sync
   // with the chosen format. Uncontrolled (internal state) when omitted.
   format?: "ebook" | "print";
   onFormatChange?: (format: "ebook" | "print") => void;
 }
+
+const EBOOK_FORMATS = ["EPUB", "FB2", "MOBI"] as const;
+type EbookFormat = (typeof EBOOK_FORMATS)[number];
 
 const BINDING_LABEL: Record<"softcover" | "hardcover", string> = {
   softcover: "м'яка обкладинка",
@@ -41,6 +47,9 @@ export function BookPurchaseWidget({
   pricePrintHardcover,
   pricePrintBw,
   pricePrintHardcoverBw,
+  epubUrl,
+  fb2Url,
+  mobiUrl,
   format: controlledFormat,
   onFormatChange,
 }: Props) {
@@ -58,6 +67,23 @@ export function BookPurchaseWidget({
   const [binding, setBinding] = useState<"softcover" | "hardcover">(hasSoftcover ? "softcover" : "hardcover");
   const [colorMode, setColorMode] = useState<"color" | "bw">("color");
 
+  const availableEbookFormats = EBOOK_FORMATS.filter(
+    (f) => (f === "EPUB" && epubUrl) || (f === "FB2" && fb2Url) || (f === "MOBI" && mobiUrl)
+  );
+  // Defaults to everything the book actually has -- the picker only exists
+  // to let a buyer skip formats they don't want, not to start empty.
+  const [selectedEbookFormats, setSelectedEbookFormats] = useState<EbookFormat[]>(availableEbookFormats);
+
+  function toggleEbookFormat(f: EbookFormat) {
+    setSelectedEbookFormats((prev) => {
+      if (prev.includes(f)) {
+        // Never let the buyer end up with zero formats selected.
+        return prev.length === 1 ? prev : prev.filter((x) => x !== f);
+      }
+      return [...prev, f];
+    });
+  }
+
   if (!hasEbook && !hasPrint) return null;
 
   if (format === "ebook") {
@@ -70,6 +96,31 @@ export function BookPurchaseWidget({
           format={format}
           onChange={setFormat}
         />
+
+        {availableEbookFormats.length > 1 && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-gray-500">Формати для завантаження</p>
+            <div className="flex gap-1.5">
+              {availableEbookFormats.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  aria-pressed={selectedEbookFormats.includes(f)}
+                  onClick={() => toggleEbookFormat(f)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                    selectedEbookFormats.includes(f)
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  )}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <PriceAndCta
           price={priceEbook!}
           label="Додати в кошик"
@@ -80,7 +131,8 @@ export function BookPurchaseWidget({
             title,
             author,
             coverUrl,
-            formatLabel: "Електронна книга (EPUB + FB2 + MOBI)",
+            formatLabel: `Електронна книга (${selectedEbookFormats.join(" + ")})`,
+            formats: selectedEbookFormats,
           }}
         />
       </div>

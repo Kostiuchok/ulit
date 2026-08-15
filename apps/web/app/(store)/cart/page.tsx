@@ -34,7 +34,7 @@ export default function CartPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          items: items.map((i) => ({ bookId: i.bookId, format: i.format })),
+          items: items.map((i) => ({ bookId: i.bookId, format: i.format, formats: i.formats })),
         }),
       });
 

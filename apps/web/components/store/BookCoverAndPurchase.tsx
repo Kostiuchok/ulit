@@ -13,6 +13,8 @@ interface Props {
   coverUrl?: string | null;
   backCoverUrl?: string | null;
   epubUrl?: string | null;
+  fb2Url?: string | null;
+  mobiUrl?: string | null;
   priceEbook?: number | null;
   pricePrint?: number | null;
   pricePrintHardcover?: number | null;
@@ -31,6 +33,8 @@ export function BookCoverAndPurchase({
   coverUrl,
   backCoverUrl,
   epubUrl,
+  fb2Url,
+  mobiUrl,
   priceEbook,
   pricePrint,
   pricePrintHardcover,
@@ -79,6 +83,9 @@ export function BookCoverAndPurchase({
           title={title}
           author={author}
           coverUrl={coverUrl}
+          epubUrl={epubUrl}
+          fb2Url={fb2Url}
+          mobiUrl={mobiUrl}
           priceEbook={priceEbook}
           pricePrint={pricePrint}
           pricePrintHardcover={pricePrintHardcover}

@@ -13,6 +13,7 @@ interface Props {
   formatLabel: string;
   label: string;
   variant?: "primary" | "outline";
+  formats?: string[];
 }
 
 export function AddToCartButton({
@@ -25,6 +26,7 @@ export function AddToCartButton({
   formatLabel,
   label,
   variant = "primary",
+  formats,
 }: Props) {
   const addItem = useCartStore((s) => s.addItem);
   const inCart = useCartStore((s) => s.items.some((i) => i.bookId === bookId && i.format === format));
@@ -50,7 +52,7 @@ export function AddToCartButton({
 
   return (
     <button
-      onClick={() => addItem({ bookId, format, title, author, coverUrl, formatLabel, price })}
+      onClick={() => addItem({ bookId, format, title, author, coverUrl, formatLabel, price, formats })}
       className={`${baseClass} ${variantClass}`}
     >
       {label} · {price.toFixed(2)} грн
