@@ -1698,7 +1698,29 @@ export default function CoverDesignerCanvas({
       {/* Canvas */}
       <div className="flex flex-1 min-w-0 flex-col items-center gap-3">
         <div className="max-w-full overflow-x-auto rounded-lg border-2 border-gray-200 shadow-md">
-          <canvas ref={canvasEl} />
+          <div className="relative" style={{ width: ctx.layout.totalW, height: ctx.layout.totalH }}>
+            <canvas ref={canvasEl} />
+            {/* Non-printing guides marking the spine (торець книжки) fold lines,
+                so the author can judge its real thickness and whether text fits
+                there -- a plain DOM overlay rather than fabric objects, so it
+                never has to be re-added after every loadFromJSON (format
+                switch, undo/redo, template apply) and can never leak into an
+                export (fabric's excludeFromExport is respected by toJSON but
+                not by toDataURL, so a canvas object here would need explicit
+                removal before every render). */}
+            {format === "hardcover" && ctx.layout.spine && ctx.layout.spine.w > 0 && (
+              <>
+                <div
+                  className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-pink-500/70"
+                  style={{ left: ctx.layout.spine.x }}
+                />
+                <div
+                  className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-pink-500/70"
+                  style={{ left: ctx.layout.spine.x + ctx.layout.spine.w }}
+                />
+              </>
+            )}
+          </div>
         </div>
         <p className="text-xs text-gray-400">Клікніть на назву, підзаголовок, автора чи анотацію, щоб редагувати текст прямо на обкладинці</p>
 
