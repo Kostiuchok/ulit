@@ -612,3 +612,21 @@ git checkout origin/<branch> -- apps/api/package.json pnpm-lock.yaml
 **Важливо для діагностики**: якщо після деплою фіксу флуд все одно триває — перевірити, чи немає **старої фонової вкладки браузера**, відкритої до деплою: вона й далі виконує старий JS у пам'яті (сторінка не підхоплює новий код без перезавантаження) і продовжить генерувати трафік, поки її не оновити (F5) чи закрити.
 
 **Правило**: будь-яка функція, що повертається з хука і потрапляє в масив залежностей `useEffect`/`useCallback` (як `apiFetch` з `useApi()`), має бути стабільною (`useCallback`) — інакше будь-який ефект, залежний від неї, ризикує перезапускатись щорендеру.
+
+---
+
+### 9. Signed MinIO URL → `Mixed Content` (внутрішній `minio:9000` віддається браузеру)
+
+**Симптом**: кнопка "Читати уривок" на сторінці книги — помилка "error loading book". Консоль браузера:
+```
+Mixed Content: The page at 'https://ulit.render.ua/...' was loaded over HTTPS,
+but requested an insecure XMLHttpRequest endpoint 'http://minio:9000/knyha-books/...'.
+This request has been blocked; the content must be served over HTTPS.
+```
+Стосується всього, що йде через `getSignedUrl()` — прев'ю EPUB (`/api/store/books/:slug/preview`), файли замовлень (48-год посилання), приватні документи (`identity`).
+
+**Причина**: `minio.presignedGetObject()` (MinIO SDK) підписує URL проти endpoint'у, яким сконфігурований клієнт (`MINIO_ENDPOINT`/`MINIO_PORT` = `minio:9000`, внутрішній Docker-хост, без SSL) — і повертає його як є. Відданий браузеру напряму — це і Mixed Content (блокується на HTTPS-сайті), і взагалі недосяжний хост ззовні Docker-мережі.
+
+**Рішення**: `getSignedUrl()` (`apps/api/src/services/storage.service.ts`) переписує origin присвоєного URL на `MINIO_PUBLIC_URL_BASE` (той самий `/storage`-проксі з `next.config.mjs`, яким уже користується `publicUrl()` для публічних файлів), прибираючи сегмент бакета зі шляху — він вже вшитий у ціль проксі. Підпис лишається валідним, бо `/storage`-rewrite при проксіюванні відтворює точно той самий шлях і `Host: minio:9000`, тож MinIO бачить той самий запит, що й підписував.
+
+**Правило**: будь-яка НОВА функція, що генерує presigned/signed URL напряму через MinIO SDK (а не через `getSignedUrl()`/`publicUrl()`), матиме той самий баг — завжди йти через ці дві функції, ніколи не викликати `minio.presignedGetObject`/`minio.presignedPutObject` напряму в інших модулях.
