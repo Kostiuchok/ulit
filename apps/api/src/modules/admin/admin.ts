@@ -123,7 +123,7 @@ const BOOK_ADMIN_SELECT = {
 export async function adminRoutes(app: FastifyInstance) {
   // ─── Stats ────────────────────────────────────────────────────────────────
   app.get("/api/admin/stats", { preHandler: requireAdmin }, async (_request, reply) => {
-    const [bookCounts, orderCounts, revenueAgg, royaltiesAgg, recentReview] = await Promise.all([
+    const [bookCounts, orderCounts, revenueAgg, royaltiesAgg, recentReview, pendingRepublish] = await Promise.all([
       prisma.book.groupBy({ by: ["status"], _count: { id: true } }),
       prisma.order.groupBy({ by: ["status"], _count: { id: true } }),
       prisma.order.aggregate({
@@ -137,7 +137,20 @@ export async function adminRoutes(app: FastifyInstance) {
       prisma.book.findMany({
         where: { status: "REVIEW" },
         select: BOOK_ADMIN_SELECT,
-        orderBy: { publishedAt: "desc" },
+        // Books here are never published yet, so publishedAt is normally
+        // null -- sorting by it was a no-op. createdAt actually orders the
+        // review queue meaningfully (oldest submissions surface, which is
+        // also closer to the SLA-deadline urgency the dashboard shows).
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+      // Books already PUBLISHED whose author submitted post-publish changes
+      // (RepublishButton.tsx) -- distinct queue from recentReview above,
+      // both feed the dashboard's "Книги" action block.
+      prisma.book.findMany({
+        where: { status: "PUBLISHED", republishRequestedAt: { not: null } },
+        select: BOOK_ADMIN_SELECT,
+        orderBy: { republishRequestedAt: "desc" },
         take: 10,
       }),
     ]);
@@ -161,6 +174,7 @@ export async function adminRoutes(app: FastifyInstance) {
       revenue: Number(revenueAgg._sum.total ?? 0),
       pendingRoyalties: Number(royaltiesAgg._sum.amount ?? 0),
       recentReview,
+      pendingRepublish,
     });
   });
 

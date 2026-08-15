@@ -57,6 +57,39 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
     }
   );
 
+  // Explicit, author-triggered re-import from the currently staged
+  // originalDocxUrl -- manuscriptContent is otherwise never touched again
+  // after the first import (re-uploading a new .docx, and admin approving a
+  // republish, both intentionally leave it alone so in-editor edits aren't
+  // silently clobbered by a background job). The author must opt in here,
+  // after being warned client-side that this replaces their current
+  // manuscriptContent. Reuses the exact same "no manuscriptImportedAt yet"
+  // path GET already has, so the frontend's existing PROCESSING/poll UI
+  // (manuscript/page.tsx) handles this the same way it does a first import.
+  app.post(
+    "/api/books/:id/manuscript/reimport",
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      const book = await prisma.book.findUnique({
+        where: { id },
+        select: { authorId: true, originalDocxUrl: true },
+      });
+      if (!book) throw AppError.notFound("Book");
+      if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
+      if (!book.originalDocxUrl) throw new AppError("No manuscript file uploaded", 400, "NO_DOCX");
+
+      await prisma.book.update({
+        where: { id },
+        data: { manuscriptImportedAt: null },
+        select: { id: true },
+      });
+
+      return reply.send({ ok: true });
+    }
+  );
+
   app.patch(
     "/api/books/:id/manuscript",
     { preHandler: authenticate },

@@ -9,15 +9,17 @@ interface Stats {
   orders: Record<string, number>;
   revenue: number;
   pendingRoyalties: number;
-  recentReview: ReviewBook[];
+  recentReview: ActionBook[];
+  pendingRepublish: ActionBook[];
 }
 
-interface ReviewBook {
+interface ActionBook {
   id: string;
   title: string;
   coverUrl?: string | null;
   author: { name: string };
   publicationTimeline?: Record<string, string> | null;
+  republishRequestedAt?: string | null;
 }
 
 // §5.1 договору: "Усі Твори перед публікацією проходять модерацію Платформи
@@ -28,12 +30,44 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("uk-UA");
 }
 
-function reviewDeadline(book: ReviewBook): { submittedAt: string | null; daysLeft: number | null } {
+function reviewDeadline(book: ActionBook): { submittedAt: string | null; daysLeft: number | null } {
   const submittedAt = book.publicationTimeline?.submitted ?? null;
   if (!submittedAt) return { submittedAt: null, daysLeft: null };
   const deadline = new Date(submittedAt).getTime() + REVIEW_SLA_DAYS * 24 * 60 * 60 * 1000;
   const daysLeft = Math.ceil((deadline - Date.now()) / (24 * 60 * 60 * 1000));
   return { submittedAt, daysLeft };
+}
+
+// One row shared by both "needs action" sub-lists in the Книги block --
+// only the trailing badge differs (SLA countdown for review, a static
+// amber "Зміни на модерації" tag for republish, matching the badge already
+// used on /admin/books, see BookRow in admin/books/page.tsx).
+function ActionBookRow({ book, dateLabel, trailingBadge }: { book: ActionBook; dateLabel: string; trailingBadge: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
+      <div className="flex items-center gap-3 min-w-0">
+        {book.coverUrl ? (
+          <img src={book.coverUrl} alt="" className="h-10 w-7 rounded object-cover shrink-0" />
+        ) : (
+          <div className="h-10 w-7 shrink-0 rounded bg-gray-100 flex items-center justify-center text-sm">📖</div>
+        )}
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
+          <p className="text-xs text-gray-500">{book.author.name}</p>
+          <p className="text-xs text-gray-400">{dateLabel}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {trailingBadge}
+        <Link
+          href={`/admin/books/${book.id}/distribute`}
+          className="rounded-md bg-white border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Переглянути
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 function KpiCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
@@ -88,60 +122,75 @@ export default function AdminDashboard() {
         <p className="text-sm text-gray-500 mt-1">Загальна статистика платформи</p>
       </div>
 
-      {/* Черга книжок для перевірки — перший блок, щоб адмін одразу бачив, що робити */}
-      {(stats?.recentReview?.length ?? 0) > 0 && (
+      {/* Книги — всі книжки, що потребують дій адміна, в одному місці:
+          на первинній модерації (REVIEW) і на повторній модерації змін
+          (RepublishButton.tsx, вже опубліковані книги з новим docx/метаданими).
+          Перший блок, щоб адмін одразу бачив, що робити. */}
+      {((stats?.recentReview?.length ?? 0) > 0 || (stats?.pendingRepublish?.length ?? 0) > 0) && (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-gray-900">Черга книжок для перевірки</h2>
+            <h2 className="text-base font-semibold text-gray-900">Книги — потребують дій</h2>
             <Link href="/admin/books?status=REVIEW" className="text-sm text-gray-500 hover:text-gray-900">
               Всі →
             </Link>
           </div>
-          <div className="space-y-3">
-            {stats!.recentReview.map((book) => {
-              const { submittedAt, daysLeft } = reviewDeadline(book);
-              return (
-                <div key={book.id} className="flex items-center justify-between gap-3 py-2 border-b border-yellow-100 last:border-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {book.coverUrl ? (
-                      <img src={book.coverUrl} alt="" className="h-10 w-7 rounded object-cover shrink-0" />
-                    ) : (
-                      <div className="h-10 w-7 shrink-0 rounded bg-gray-100 flex items-center justify-center text-sm">📖</div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
-                      <p className="text-xs text-gray-500">{book.author.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {submittedAt ? `Надіслано на перевірку: ${fmtDate(submittedAt)}` : "Дату надсилання не зафіксовано"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {daysLeft != null && (
+
+          {(stats?.recentReview?.length ?? 0) > 0 && (
+            <div className="mb-4">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">На перевірці</p>
+              <div>
+                {stats!.recentReview.map((book) => {
+                  const { submittedAt, daysLeft } = reviewDeadline(book);
+                  return (
+                    <ActionBookRow
+                      key={book.id}
+                      book={book}
+                      dateLabel={submittedAt ? `Надіслано на перевірку: ${fmtDate(submittedAt)}` : "Дату надсилання не зафіксовано"}
+                      trailingBadge={
+                        daysLeft != null && (
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              daysLeft < 0
+                                ? "bg-red-100 text-red-700"
+                                : daysLeft === 0
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-green-100 text-green-700"
+                            }`}
+                            title={`Дедлайн перевірки — ${REVIEW_SLA_DAYS} робочих дні(в) з моменту надсилання (п. 5.1 договору)`}
+                          >
+                            {daysLeft < 0 ? `Прострочено на ${Math.abs(daysLeft)} дн.` : daysLeft === 0 ? "Дедлайн сьогодні" : `${daysLeft} дн. до дедлайну`}
+                          </span>
+                        )
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {(stats?.pendingRepublish?.length ?? 0) > 0 && (
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Зміни на модерації</p>
+              <div>
+                {stats!.pendingRepublish.map((book) => (
+                  <ActionBookRow
+                    key={book.id}
+                    book={book}
+                    dateLabel={book.republishRequestedAt ? `Надіслано зміни: ${fmtDate(book.republishRequestedAt)}` : "Дату надсилання не зафіксовано"}
+                    trailingBadge={
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          daysLeft < 0
-                            ? "bg-red-100 text-red-700"
-                            : daysLeft === 0
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                        title={`Дедлайн перевірки — ${REVIEW_SLA_DAYS} робочих дні(в) з моменту надсилання (п. 5.1 договору)`}
+                        className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700"
+                        title="Автор надіслав зміни в опублікованій книзі"
                       >
-                        {daysLeft < 0 ? `Прострочено на ${Math.abs(daysLeft)} дн.` : daysLeft === 0 ? "Дедлайн сьогодні" : `${daysLeft} дн. до дедлайну`}
+                        ⏳ Зміни на модерації
                       </span>
-                    )}
-                    <Link
-                      href={`/admin/books/${book.id}/distribute`}
-                      className="rounded-md bg-yellow-100 border border-yellow-300 px-3 py-1 text-xs font-medium text-yellow-900 hover:bg-yellow-200"
-                    >
-                      Переглянути
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

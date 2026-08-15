@@ -20,6 +20,8 @@ interface ManuscriptBook {
   pageCount?: number | null;
   createdAt?: string | null;
   originalDocxUrl?: string | null;
+  docxUpdatedAt?: string | null;
+  manuscriptImportedAt?: string | null;
   author?: { name: string } | null;
 }
 
@@ -32,11 +34,33 @@ export default function ManuscriptEditorPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { apiFetch, token } = useApi();
-  const { book, setBook, loading } = useBook<ManuscriptBook>(id);
+  const { book, setBook, loading, refetch } = useBook<ManuscriptBook>(id);
   const [manuscript, setManuscript] = useState<ManuscriptStatus | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [showReimportConfirm, setShowReimportConfirm] = useState(false);
+  const [reimporting, setReimporting] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // A newer .docx was uploaded (DocxUploader / RepublishButton flow) after
+  // the manuscript editor's content was last imported -- manuscriptContent
+  // is otherwise never re-synced automatically (would silently clobber any
+  // in-editor edits), so surface it and let the author opt in explicitly.
+  const needsReimport =
+    !!book?.docxUpdatedAt &&
+    !!book?.manuscriptImportedAt &&
+    new Date(book.docxUpdatedAt).getTime() > new Date(book.manuscriptImportedAt).getTime();
+
+  async function confirmReimport() {
+    setReimporting(true);
+    try {
+      await apiFetch(`/api/books/${id}/manuscript/reimport`, { method: "POST" });
+      setShowReimportConfirm(false);
+      setManuscript(null); // re-enters the PROCESSING/poll screen below, same as a first import
+    } finally {
+      setReimporting(false);
+    }
+  }
 
   const poll = useCallback(async () => {
     const res = await apiFetch<ManuscriptStatus>(`/api/books/${id}/manuscript`).catch(() => null);
@@ -65,6 +89,15 @@ export default function ManuscriptEditorPage() {
       clearInterval(tickRef.current);
       tickRef.current = null;
     }
+  }, [manuscript?.status]);
+
+  // Keep book.manuscriptImportedAt/docxUpdatedAt current once an import
+  // finishes -- otherwise needsReimport above would keep computing off the
+  // stale value fetched before this import even started, and the banner
+  // wouldn't clear after the author's own reimport.
+  useEffect(() => {
+    if (manuscript?.status === "DONE") refetch({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manuscript?.status]);
 
   if (loading) {
@@ -123,25 +156,72 @@ export default function ManuscriptEditorPage() {
   }
 
   return (
-    <div className="h-full">
-      <ManuscriptEditor
-        bookId={id}
-        initialContent={manuscript.content}
-        initialStyleOverrides={manuscript.styleOverrides}
-        bookMeta={{
-          title: book?.title ?? "",
-          subtitle: book?.subtitle,
-          authorName: book?.author?.name,
-          description: book?.description,
-          ageRating: book?.ageRating,
-          isbn: book?.isbn,
-          udcCode: book?.udcCode,
-          bbkCode: book?.bbkCode,
-          authorSign: book?.authorSign,
-          pageCount: book?.pageCount,
-          createdAt: book?.createdAt,
-        }}
-      />
+    <div className="flex h-full flex-col">
+      {needsReimport && (
+        <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5">
+          <p className="text-sm text-amber-900">
+            Ви завантажили новіший файл рукопису (.docx). Текст у редакторі нижче — досі зі старого файлу.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowReimportConfirm(true)}
+            className="shrink-0 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+          >
+            Оновити текст з нового файлу
+          </button>
+        </div>
+      )}
+
+      {showReimportConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h2 className="text-base font-semibold text-gray-900">Оновити текст з нового файлу?</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Поточний текст і правки в цьому редакторі буде <strong>замінено</strong> текстом з
+              щойно завантаженого .docx. Скасувати цю дію після підтвердження не можна.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowReimportConfirm(false)}
+                disabled={reimporting}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Скасувати
+              </button>
+              <button
+                type="button"
+                onClick={confirmReimport}
+                disabled={reimporting}
+                className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                {reimporting ? "Оновлення…" : "Так, замінити текст"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-0 flex-1">
+        <ManuscriptEditor
+          bookId={id}
+          initialContent={manuscript.content}
+          initialStyleOverrides={manuscript.styleOverrides}
+          bookMeta={{
+            title: book?.title ?? "",
+            subtitle: book?.subtitle,
+            authorName: book?.author?.name,
+            description: book?.description,
+            ageRating: book?.ageRating,
+            isbn: book?.isbn,
+            udcCode: book?.udcCode,
+            bbkCode: book?.bbkCode,
+            authorSign: book?.authorSign,
+            pageCount: book?.pageCount,
+            createdAt: book?.createdAt,
+          }}
+        />
+      </div>
     </div>
   );
 }
