@@ -5,6 +5,7 @@ interface PageEntry {
 
 interface Props {
   coverUrl?: string | null;
+  backCoverUrl?: string | null;
   pages: PageEntry[];
 }
 
@@ -16,8 +17,10 @@ const CARD_WIDTH = "w-full max-w-[420px]";
 
 // Continuous vertical scroll through the cover + every page, each its own
 // bordered/numbered card — like a PDF reader, as opposed to a flip
-// animation (currently hidden/unused elsewhere in this component).
-export function PdfScrollView({ coverUrl, pages }: Props) {
+// animation (currently hidden/unused elsewhere in this component). The back
+// cover (if the author designed one) closes out the scroll the same way it
+// closes out a physical book.
+export function PdfScrollView({ coverUrl, backCoverUrl, pages }: Props) {
   return (
     <div className="flex max-h-[70vh] flex-col items-center gap-6 overflow-y-auto bg-gray-50 py-10">
       {coverUrl && (
@@ -44,6 +47,17 @@ export function PdfScrollView({ coverUrl, pages }: Props) {
           </span>
         </div>
       ))}
+      {backCoverUrl && (
+        <div className="flex flex-col items-center gap-2">
+          <img
+            src={backCoverUrl}
+            alt="Задня обкладинка"
+            loading="lazy"
+            className={`${CARD_WIDTH} rounded-sm border border-gray-200 bg-white shadow-md`}
+          />
+          <span className="text-xs text-gray-400">Задня обкладинка</span>
+        </div>
+      )}
     </div>
   );
 }

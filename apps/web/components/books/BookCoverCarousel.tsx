@@ -19,9 +19,9 @@ export function BookCoverCarousel({ coverUrl, backCoverUrl, hasEbook, hasPrint }
   }
   if (hasPrint) {
     slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} /> });
-    if (backCoverUrl) {
-      slides.push({ key: "print-back", label: "Друкована — задня сторона", node: <PrintedCoverFrame coverUrl={backCoverUrl} /> });
-    }
+  }
+  if (backCoverUrl) {
+    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} /> });
   }
   if (slides.length === 0) {
     slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} /> });

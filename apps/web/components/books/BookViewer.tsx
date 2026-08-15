@@ -73,7 +73,7 @@ export function BookViewer({ coverUrl, backCoverUrl, pages, pagesBw = [], onClos
       {tab === "3d" && coverUrl ? (
         <Book3DRotator coverUrl={coverUrl} backCoverUrl={backCoverUrl} pageCount={pages.length} />
       ) : (
-        <PdfScrollView coverUrl={coverUrl} pages={activePages} />
+        <PdfScrollView coverUrl={coverUrl} backCoverUrl={backCoverUrl} pages={activePages} />
       )}
     </div>
   );
