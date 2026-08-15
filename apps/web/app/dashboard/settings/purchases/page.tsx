@@ -6,7 +6,7 @@ import { cn } from "../../../../lib/utils";
 
 interface OrderItemView {
   bookId: string;
-  format: "EBOOK" | "PRINT_SOFTCOVER" | "PRINT_HARDCOVER";
+  format: "EBOOK" | "PRINT_SOFTCOVER" | "PRINT_HARDCOVER" | "PRINT_SOFTCOVER_BW" | "PRINT_HARDCOVER_BW";
   price: number;
   book: { title: string; slug: string; coverUrl: string | null };
 }
@@ -33,7 +33,7 @@ const FILTERS = [
 function matchesFilter(format: OrderItemView["format"], filter: (typeof FILTERS)[number]["key"]) {
   if (filter === "ALL") return true;
   if (filter === "EBOOK") return format === "EBOOK";
-  return format === "PRINT_SOFTCOVER" || format === "PRINT_HARDCOVER";
+  return format !== "EBOOK";
 }
 
 function fmtDate(date: string) {

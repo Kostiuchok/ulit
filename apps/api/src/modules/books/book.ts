@@ -38,6 +38,8 @@ const BOOK_SELECT = {
   priceEbook: true,
   pricePrint: true,
   pricePrintHardcover: true,
+  pricePrintBw: true,
+  pricePrintHardcoverBw: true,
   genre: true,
   subtitle: true,
   ageRating: true,
@@ -85,6 +87,8 @@ const patchSchema = z.object({
   priceEbook: z.number().positive().nullable().optional(),
   pricePrint: z.number().positive().nullable().optional(),
   pricePrintHardcover: z.number().positive().nullable().optional(),
+  pricePrintBw: z.number().positive().nullable().optional(),
+  pricePrintHardcoverBw: z.number().positive().nullable().optional(),
   pageCount: z.number().int().positive().nullable().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
   distributionChannels: z.array(z.enum(["ULIT", "D2D", "KDP", "GOOGLE"])).optional(),
@@ -138,6 +142,8 @@ export async function bookRoutes(app: FastifyInstance) {
         priceEbook: data.priceEbook !== undefined ? (data.priceEbook ?? undefined) : undefined,
         pricePrint: data.pricePrint !== undefined ? (data.pricePrint ?? undefined) : undefined,
         pricePrintHardcover: data.pricePrintHardcover !== undefined ? (data.pricePrintHardcover ?? undefined) : undefined,
+        pricePrintBw: data.pricePrintBw !== undefined ? (data.pricePrintBw ?? undefined) : undefined,
+        pricePrintHardcoverBw: data.pricePrintHardcoverBw !== undefined ? (data.pricePrintHardcoverBw ?? undefined) : undefined,
         kdpSelectExpiry: data.kdpSelectExpiry !== undefined
           ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
           : undefined,

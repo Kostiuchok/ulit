@@ -36,6 +36,8 @@ const priceSchema = z.object({
   priceEbook: z.coerce.number().positive().optional().or(z.literal("")),
   pricePrint: z.coerce.number().positive().optional().or(z.literal("")),
   pricePrintHardcover: z.coerce.number().positive().optional().or(z.literal("")),
+  pricePrintBw: z.coerce.number().positive().optional().or(z.literal("")),
+  pricePrintHardcoverBw: z.coerce.number().positive().optional().or(z.literal("")),
 });
 type PriceForm = z.infer<typeof priceSchema>;
 
@@ -70,6 +72,8 @@ interface MetadataBook {
   priceEbook?: number | string | null;
   pricePrint?: number | string | null;
   pricePrintHardcover?: number | string | null;
+  pricePrintBw?: number | string | null;
+  pricePrintHardcoverBw?: number | string | null;
   aiGenerated?: boolean;
   aiGeneratedNote?: string | null;
   coAuthors?: CoAuthor[] | null;
@@ -137,6 +141,8 @@ function OutputDataContent() {
       priceEbook: book.priceEbook ? Number(book.priceEbook) : "",
       pricePrint: book.pricePrint ? Number(book.pricePrint) : "",
       pricePrintHardcover: book.pricePrintHardcover ? Number(book.pricePrintHardcover) : "",
+      pricePrintBw: book.pricePrintBw ? Number(book.pricePrintBw) : "",
+      pricePrintHardcoverBw: book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book]);
@@ -190,6 +196,8 @@ function OutputDataContent() {
           priceEbook: data.priceEbook ? Number(data.priceEbook) : null,
           pricePrint: data.pricePrint ? Number(data.pricePrint) : null,
           pricePrintHardcover: data.pricePrintHardcover ? Number(data.pricePrintHardcover) : null,
+          pricePrintBw: data.pricePrintBw ? Number(data.pricePrintBw) : null,
+          pricePrintHardcoverBw: data.pricePrintHardcoverBw ? Number(data.pricePrintHardcoverBw) : null,
         }),
       });
       setBook(updated);
@@ -454,6 +462,43 @@ function OutputDataContent() {
                 </div>
               </div>
 
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-2">
+                  Чорно-білий друк (дешевше в типографії) — заповніть, якщо хочете запропонувати покупцю
+                  дешевший варіант поруч із кольоровим
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pricePrintBw">Друк ч/б, м'яка (грн)</Label>
+                    <Input
+                      id="pricePrintBw"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...priceForm.register("pricePrintBw")}
+                      placeholder="149.99"
+                    />
+                    {priceForm.formState.errors.pricePrintBw && (
+                      <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintBw.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pricePrintHardcoverBw">Друк ч/б, тверда (грн)</Label>
+                    <Input
+                      id="pricePrintHardcoverBw"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...priceForm.register("pricePrintHardcoverBw")}
+                      placeholder="229.99"
+                    />
+                    {priceForm.formState.errors.pricePrintHardcoverBw && (
+                      <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintHardcoverBw.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {priceError && (
                 <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{priceError}</div>
               )}
@@ -492,8 +537,10 @@ function OutputDataContent() {
               <Row label="Кількість сторінок" value={book?.pageCount ? `${book.pageCount} ст.` : "—"} />
               <Row label="Рукопис" value={book?.originalDocxUrl ? "Завантажено" : "Не завантажено"} />
               <Row label="Е-книга" value={book?.priceEbook ? `${Number(book.priceEbook).toFixed(2)} грн` : "Не продається"} />
-              <Row label="Друк, м'яка" value={book?.pricePrint ? `${Number(book.pricePrint).toFixed(2)} грн` : "Не продається"} />
-              <Row label="Друк, тверда" value={book?.pricePrintHardcover ? `${Number(book.pricePrintHardcover).toFixed(2)} грн` : "Не продається"} />
+              <Row label="Друк, м'яка (кольор.)" value={book?.pricePrint ? `${Number(book.pricePrint).toFixed(2)} грн` : "Не продається"} />
+              <Row label="Друк, тверда (кольор.)" value={book?.pricePrintHardcover ? `${Number(book.pricePrintHardcover).toFixed(2)} грн` : "Не продається"} />
+              <Row label="Друк, м'яка (ч/б)" value={book?.pricePrintBw ? `${Number(book.pricePrintBw).toFixed(2)} грн` : "Не продається"} />
+              <Row label="Друк, тверда (ч/б)" value={book?.pricePrintHardcoverBw ? `${Number(book.pricePrintHardcoverBw).toFixed(2)} грн` : "Не продається"} />
               <Row label="Платформи" value={book?.distributionChannels?.length ? `${book.distributionChannels.length} обрано` : "Не обрано"} />
             </div>
 
@@ -508,8 +555,10 @@ function OutputDataContent() {
                 </div>
                 {[
                   { label: "Е-книга", price: book?.priceEbook },
-                  { label: "Друк, м'яка", price: book?.pricePrint },
-                  { label: "Друк, тверда", price: book?.pricePrintHardcover },
+                  { label: "Друк, м'яка (кольор.)", price: book?.pricePrint },
+                  { label: "Друк, тверда (кольор.)", price: book?.pricePrintHardcover },
+                  { label: "Друк, м'яка (ч/б)", price: book?.pricePrintBw },
+                  { label: "Друк, тверда (ч/б)", price: book?.pricePrintHardcoverBw },
                 ]
                   .filter((f) => f.price)
                   .map((f) => {

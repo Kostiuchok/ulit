@@ -162,8 +162,12 @@ export default function OrderPage() {
                   {item.format === "EBOOK"
                     ? "Електронна книга (EPUB + FB2 + MOBI)"
                     : item.format === "PRINT_HARDCOVER"
-                    ? "Друкована версія, тверда обкладинка (PDF)"
-                    : "Друкована версія, м'яка обкладинка (PDF)"}
+                    ? "Друкована версія, тверда обкладинка, кольоровий друк (PDF)"
+                    : item.format === "PRINT_HARDCOVER_BW"
+                    ? "Друкована версія, тверда обкладинка, чорно-білий друк (PDF)"
+                    : item.format === "PRINT_SOFTCOVER_BW"
+                    ? "Друкована версія, м'яка обкладинка, чорно-білий друк (PDF)"
+                    : "Друкована версія, м'яка обкладинка, кольоровий друк (PDF)"}
                 </p>
                 <p className="text-sm font-medium text-gray-900 mt-1">{Number(item.price).toFixed(2)} грн</p>
 

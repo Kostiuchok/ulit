@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 interface Props {
   bookId: string;
-  format: "EBOOK" | "PRINT_SOFTCOVER" | "PRINT_HARDCOVER";
+  format: "EBOOK" | "PRINT_SOFTCOVER" | "PRINT_HARDCOVER" | "PRINT_SOFTCOVER_BW" | "PRINT_HARDCOVER_BW";
   price: number;
   label: string;
   variant?: "primary" | "outline";

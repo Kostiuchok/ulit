@@ -11,20 +11,38 @@ const createOrderSchema = z.object({
     .array(
       z.object({
         bookId: z.string(),
-        format: z.enum(["EBOOK", "PRINT_SOFTCOVER", "PRINT_HARDCOVER"]),
+        format: z.enum([
+          "EBOOK",
+          "PRINT_SOFTCOVER",
+          "PRINT_HARDCOVER",
+          "PRINT_SOFTCOVER_BW",
+          "PRINT_HARDCOVER_BW",
+        ]),
       })
     )
     .min(1)
     .max(10),
 });
 
-// Map order item format to book URL fields for download — both print bindings
-// ship the same PDF/X-3 file, cover type only affects the print vendor's bindery.
+// Map order item format to book URL fields for download — all print bindings
+// ship the same PDF/X-3 file for now (no separate black-and-white print-ready
+// PDF pipeline exists yet in the worker), cover type/color only affects price
+// and the print vendor's bindery instructions.
 const FORMAT_TO_URLS: Record<string, (keyof typeof BOOK_URL_FIELDS)[]> = {
   EBOOK: ["epubUrl", "fb2Url", "mobiUrl"],
   PRINT_SOFTCOVER: ["printPdfUrl"],
   PRINT_HARDCOVER: ["printPdfUrl"],
+  PRINT_SOFTCOVER_BW: ["printPdfUrl"],
+  PRINT_HARDCOVER_BW: ["printPdfUrl"],
 };
+
+// Which book price field each print format is billed against.
+const PRINT_FORMAT_PRICE_FIELD = {
+  PRINT_SOFTCOVER: "pricePrint",
+  PRINT_HARDCOVER: "pricePrintHardcover",
+  PRINT_SOFTCOVER_BW: "pricePrintBw",
+  PRINT_HARDCOVER_BW: "pricePrintHardcoverBw",
+} as const;
 
 const BOOK_URL_FIELDS = {
   epubUrl: true,
@@ -96,6 +114,8 @@ export async function ordersRoutes(app: FastifyInstance) {
           priceEbook: true,
           pricePrint: true,
           pricePrintHardcover: true,
+          pricePrintBw: true,
+          pricePrintHardcoverBw: true,
           epubUrl: true,
           fb2Url: true,
           mobiUrl: true,
@@ -123,7 +143,8 @@ export async function ordersRoutes(app: FastifyInstance) {
           }
           orderItems.push({ bookId: item.bookId, format: "EBOOK", price: Number(book.priceEbook) });
         } else {
-          const price = item.format === "PRINT_HARDCOVER" ? book.pricePrintHardcover : book.pricePrint;
+          const priceField = PRINT_FORMAT_PRICE_FIELD[item.format as keyof typeof PRINT_FORMAT_PRICE_FIELD];
+          const price = book[priceField];
           if (!price) {
             return reply.status(400).send({ error: `Book "${book.title}" has no print price` });
           }

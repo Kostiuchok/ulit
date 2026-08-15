@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BuyButton } from "../../../../components/store/BuyButton";
+import { PrintPriceCard } from "../../../../components/store/PrintPriceCard";
 import { EpubReader } from "../../../../components/store/EpubReader";
 import { BookCoverCarousel } from "../../../../components/books/BookCoverCarousel";
 
@@ -18,6 +19,8 @@ interface BookDetail {
   priceEbook?: string | null;
   pricePrint?: string | null;
   pricePrintHardcover?: string | null;
+  pricePrintBw?: string | null;
+  pricePrintHardcoverBw?: string | null;
   genre?: string | null;
   ageRating?: string | null;
   aiGenerated?: boolean;
@@ -147,6 +150,24 @@ export default async function BookPage({ params }: Props) {
             name: "Друкована книга, тверда обкладинка",
           }]
         : []),
+      ...(book.pricePrintBw
+        ? [{
+            "@type": "Offer",
+            price: Number(book.pricePrintBw).toFixed(2),
+            priceCurrency: "UAH",
+            availability: "https://schema.org/InStock",
+            name: "Друкована книга, м'яка обкладинка, чорно-білий друк",
+          }]
+        : []),
+      ...(book.pricePrintHardcoverBw
+        ? [{
+            "@type": "Offer",
+            price: Number(book.pricePrintHardcoverBw).toFixed(2),
+            priceCurrency: "UAH",
+            availability: "https://schema.org/InStock",
+            name: "Друкована книга, тверда обкладинка, чорно-білий друк",
+          }]
+        : []),
     ],
   };
 
@@ -172,7 +193,7 @@ export default async function BookPage({ params }: Props) {
                     coverUrl={book.coverUrl}
                     backCoverUrl={book.backCoverUrl}
                     hasEbook={!!book.priceEbook}
-                    hasPrint={!!(book.pricePrint || book.pricePrintHardcover)}
+                    hasPrint={!!(book.pricePrint || book.pricePrintHardcover || book.pricePrintBw || book.pricePrintHardcoverBw)}
                   />
                 ) : (
                   <div className="flex aspect-[2/3] w-full items-center justify-center rounded-xl bg-gray-100 text-7xl">
@@ -216,47 +237,23 @@ export default async function BookPage({ params }: Props) {
                   </div>
                 )}
 
-                {book.pricePrint && (
-                  <div className="rounded-xl border bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-xs text-gray-500">Друкована, м'яка обкладинка</p>
-                        <p className="text-2xl font-bold text-gray-900">{Number(book.pricePrint).toFixed(2)} грн</p>
-                      </div>
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-                        Друк
-                      </span>
-                    </div>
-                    <BuyButton
-                      bookId={book.id}
-                      format="PRINT_SOFTCOVER"
-                      price={Number(book.pricePrint)}
-                      label="Замовити друковану"
-                      variant="outline"
-                    />
-                  </div>
-                )}
+                <PrintPriceCard
+                  bookId={book.id}
+                  bindingLabel="м'яка обкладинка"
+                  colorPrice={book.pricePrint ? Number(book.pricePrint) : null}
+                  bwPrice={book.pricePrintBw ? Number(book.pricePrintBw) : null}
+                  colorFormat="PRINT_SOFTCOVER"
+                  bwFormat="PRINT_SOFTCOVER_BW"
+                />
 
-                {book.pricePrintHardcover && (
-                  <div className="rounded-xl border bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-xs text-gray-500">Друкована, тверда обкладинка</p>
-                        <p className="text-2xl font-bold text-gray-900">{Number(book.pricePrintHardcover).toFixed(2)} грн</p>
-                      </div>
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-                        Друк
-                      </span>
-                    </div>
-                    <BuyButton
-                      bookId={book.id}
-                      format="PRINT_HARDCOVER"
-                      price={Number(book.pricePrintHardcover)}
-                      label="Замовити друковану"
-                      variant="outline"
-                    />
-                  </div>
-                )}
+                <PrintPriceCard
+                  bookId={book.id}
+                  bindingLabel="тверда обкладинка"
+                  colorPrice={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}
+                  bwPrice={book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : null}
+                  colorFormat="PRINT_HARDCOVER"
+                  bwFormat="PRINT_HARDCOVER_BW"
+                />
               </div>
             </div>
           </div>

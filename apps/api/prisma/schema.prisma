@@ -143,8 +143,10 @@ model Book {
   mobiUrl              String?
   printPdfUrl          String?
   priceEbook           Decimal?             @db.Decimal(10, 2) // Е-книга
-  pricePrint           Decimal?             @db.Decimal(10, 2) // Друк, м'яка обкладинка
-  pricePrintHardcover  Decimal?             @db.Decimal(10, 2) // Друк, тверда обкладинка
+  pricePrint           Decimal?             @db.Decimal(10, 2) // Друк, м'яка обкладинка, кольоровий друк
+  pricePrintHardcover  Decimal?             @db.Decimal(10, 2) // Друк, тверда обкладинка, кольоровий друк
+  pricePrintBw         Decimal?             @db.Decimal(10, 2) // Друк, м'яка обкладинка, чорно-білий друк -- дешевше в типографії
+  pricePrintHardcoverBw Decimal?            @db.Decimal(10, 2) // Друк, тверда обкладинка, чорно-білий друк
   genre                String?
   subtitle             String?
   ageRating            String?
