@@ -7,6 +7,8 @@ import {
   Bold,
   Italic,
   Underline,
+  Strikethrough,
+  CaseUpper,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -675,6 +677,13 @@ function applyBackground(
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+interface CoverTemplateEntry {
+  id: string;
+  name: string;
+  createdAt: string;
+  design: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } };
+}
+
 interface Props {
   bookId: string;
   bookTitle: string;
@@ -740,10 +749,21 @@ export default function CoverDesignerCanvas({
   const backSpineStateRef = useRef<any[] | null>(null);
   const backgroundRef = useRef<{ color: string; imageUrl?: string } | null>(null);
   const pauseHistoryRef = useRef(false);
+  // Crop mode: temporarily removes the photo-slot image's clipPath so the
+  // full image is visible/draggable beyond the slot, with a dashed outline
+  // (a real fabric.Rect, excludeFromExport: true so it never leaks into
+  // undo history/coverDesign JSON) marking where the clip will snap back to.
+  const cropSlotRef = useRef<PanelRect | null>(null);
+  const cropTargetRef = useRef<fabric.Object | null>(null);
+  const cropOutlineRef = useRef<fabric.Rect | null>(null);
 
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [activeTab, setActiveTab] = useState<"templates" | "own">("templates");
+  const [activeTab, setActiveTab] = useState<"templates" | "own" | "mine">("templates");
+  const [myTemplates, setMyTemplates] = useState<CoverTemplateEntry[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [applyingTemplateId, setApplyingTemplateId] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState(TEMPLATES[0].id);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -758,6 +778,7 @@ export default function CoverDesignerCanvas({
   const [ownCoverError, setOwnCoverError] = useState("");
   const [ownCoverDims, setOwnCoverDims] = useState<{ w: number; h: number } | null>(null);
   const [activeObj, setActiveObj] = useState<fabric.Object | null>(null);
+  const [croppingSlot, setCroppingSlot] = useState(false);
 
   const ctx: TemplateCtx = useMemo(
     () => ({
@@ -795,9 +816,25 @@ export default function CoverDesignerCanvas({
     canvas.on("object:added", saveSnapshot);
     canvas.on("object:removed", saveSnapshot);
     canvas.on("object:modified", saveSnapshot);
-    canvas.on("selection:created", (e) => setActiveObj(e.selected?.[0] ?? null));
-    canvas.on("selection:updated", (e) => setActiveObj(e.selected?.[0] ?? null));
-    canvas.on("selection:cleared", () => setActiveObj(null));
+    // Selecting something else while mid-crop would strand the image
+    // unclipped with a stray outline rect -- snap crop mode closed first.
+    const exitCropIfSelectingElsewhere = (next: fabric.Object | null) => {
+      if (cropTargetRef.current && next !== cropTargetRef.current) exitCropMode();
+    };
+    canvas.on("selection:created", (e) => {
+      const next = e.selected?.[0] ?? null;
+      exitCropIfSelectingElsewhere(next);
+      setActiveObj(next);
+    });
+    canvas.on("selection:updated", (e) => {
+      const next = e.selected?.[0] ?? null;
+      exitCropIfSelectingElsewhere(next);
+      setActiveObj(next);
+    });
+    canvas.on("selection:cleared", () => {
+      exitCropIfSelectingElsewhere(null);
+      setActiveObj(null);
+    });
 
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -972,12 +1009,14 @@ export default function CoverDesignerCanvas({
   }, []);
 
   const toggleTextStyle = useCallback(
-    (key: "fontWeight" | "fontStyle" | "underline") => {
+    (key: "fontWeight" | "fontStyle" | "underline" | "linethrough") => {
       const canvas = canvasRef.current;
       const obj = canvas?.getActiveObject() as fabric.IText | undefined;
       if (!obj) return;
       if (key === "underline") {
         updateSelected({ underline: !obj.underline });
+      } else if (key === "linethrough") {
+        updateSelected({ linethrough: !obj.linethrough });
       } else if (key === "fontWeight") {
         updateSelected({ fontWeight: obj.fontWeight === "bold" ? "normal" : "bold" });
       } else {
@@ -987,6 +1026,74 @@ export default function CoverDesignerCanvas({
     [updateSelected]
   );
 
+  // Fabric has no CSS-like text-transform -- "all caps" has to mutate the
+  // actual string. Keeps the real casing in data.caseOriginal so toggling
+  // back off restores it; editing the text while caps is on only affects
+  // what's visible (the newly typed part won't have a separately-tracked
+  // "true" casing) -- an accepted simplification, not a full case-tracking
+  // text engine.
+  const toggleAllCaps = useCallback(() => {
+    const canvas = canvasRef.current;
+    const obj = canvas?.getActiveObject() as fabric.Textbox | undefined;
+    if (!canvas || !obj || obj.type !== "textbox") return;
+    const data = (obj as any).data ?? {};
+    if (data.allCaps) {
+      obj.set({ text: data.caseOriginal ?? obj.text, data: { ...data, allCaps: false, caseOriginal: null } });
+    } else {
+      obj.set({ text: (obj.text ?? "").toUpperCase(), data: { ...data, allCaps: true, caseOriginal: obj.text } });
+    }
+    canvas.renderAll();
+    setActiveObj(obj);
+    saveSnapshot();
+  }, [saveSnapshot]);
+
+  const toggleTextShadow = useCallback(() => {
+    const canvas = canvasRef.current;
+    const obj = canvas?.getActiveObject() as any;
+    if (!canvas || !obj) return;
+    obj.set({ shadow: obj.shadow ? null : new fabric.Shadow({ color: "rgba(0,0,0,0.6)", blur: 6, offsetX: 2, offsetY: 2 }) });
+    canvas.renderAll();
+    setActiveObj(obj);
+    saveSnapshot();
+  }, [saveSnapshot]);
+
+  const updateTextShadow = useCallback((patch: { blur?: number; opacity?: number }) => {
+    const canvas = canvasRef.current;
+    const obj = canvas?.getActiveObject() as any;
+    if (!canvas || !obj || !obj.shadow) return;
+    const blur = patch.blur ?? obj.shadow.blur ?? 6;
+    const match = /rgba?\([^,]+,[^,]+,[^,]+,?\s*([\d.]+)?\)/.exec(obj.shadow.color || "");
+    const currentOpacity = match?.[1] ? Number(match[1]) : 0.6;
+    const opacity = patch.opacity ?? currentOpacity;
+    obj.set({ shadow: new fabric.Shadow({ color: `rgba(0,0,0,${opacity})`, blur, offsetX: 2, offsetY: 2 }) });
+    canvas.renderAll();
+    setActiveObj(obj);
+  }, []);
+
+  const addRectangle = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const panel = ctx.layout.front;
+    const w = Math.min(140, panel.w * 0.4);
+    const h = Math.min(90, panel.h * 0.25);
+    const rect = new fabric.Rect({
+      left: panel.x + panel.w / 2 - w / 2,
+      top: panel.y + panel.h / 2 - h / 2,
+      width: w,
+      height: h,
+      fill: "#ffffff",
+      stroke: "#111111",
+      strokeWidth: 1,
+      opacity: 1,
+      data: { role: "shape" },
+    });
+    canvas.add(rect);
+    canvas.setActiveObject(rect);
+    canvas.renderAll();
+    setActiveObj(rect);
+    saveSnapshot();
+  }, [ctx.layout, saveSnapshot]);
+
   const panelForObject = useCallback(
     (obj: fabric.Object): PanelRect => {
       const center = obj.getCenterPoint();
@@ -995,6 +1102,141 @@ export default function CoverDesignerCanvas({
     },
     [ctx.layout]
   );
+
+  // Center-snap guides while dragging -- an object magnetizes to the
+  // horizontal/vertical center of whichever panel (front/back/spine) it's
+  // currently over, same "center" the alignSelected buttons target, with a
+  // thin guide line while snapped. Drawn on canvas.contextTop (Fabric's own
+  // overlay context, meant exactly for this kind of transient UI) instead of
+  // as real fabric objects -- guides must never leak into saveSnapshot()/
+  // undo history or the exported front/back/spine PNG crops.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const SNAP = 6;
+    // contextTop/clearContext exist on fabric.Canvas at runtime but aren't
+    // in the bundled type defs -- narrow cast at the boundary.
+    const fCanvas = canvas as any;
+
+    function clearGuides() {
+      fCanvas.clearContext(fCanvas.contextTop);
+    }
+
+    function drawGuides(snapX: boolean, snapY: boolean, panel: PanelRect) {
+      clearGuides();
+      const c = fCanvas.contextTop as CanvasRenderingContext2D;
+      c.save();
+      c.strokeStyle = "#ff3d9a";
+      c.lineWidth = 1;
+      c.setLineDash([4, 4]);
+      if (snapX) {
+        const x = panel.x + panel.w / 2;
+        c.beginPath();
+        c.moveTo(x, panel.y);
+        c.lineTo(x, panel.y + panel.h);
+        c.stroke();
+      }
+      if (snapY) {
+        const y = panel.y + panel.h / 2;
+        c.beginPath();
+        c.moveTo(panel.x, y);
+        c.lineTo(panel.x + panel.w, y);
+        c.stroke();
+      }
+      c.restore();
+    }
+
+    function onMoving(e: fabric.IEvent) {
+      const obj = e.target;
+      if (!obj) return;
+      const panel = panelForObject(obj);
+      const center = obj.getCenterPoint();
+      const dx = panel.x + panel.w / 2 - center.x;
+      const dy = panel.y + panel.h / 2 - center.y;
+      const snapX = Math.abs(dx) < SNAP;
+      const snapY = Math.abs(dy) < SNAP;
+      if (snapX) obj.left = (obj.left ?? 0) + dx;
+      if (snapY) obj.top = (obj.top ?? 0) + dy;
+      if (snapX || snapY) {
+        obj.setCoords();
+        drawGuides(snapX, snapY, panel);
+      } else {
+        clearGuides();
+      }
+    }
+
+    canvas.on("object:moving", onMoving);
+    canvas.on("mouse:up", clearGuides);
+
+    return () => {
+      canvas.off("object:moving", onMoving);
+      canvas.off("mouse:up", clearGuides);
+      clearGuides();
+    };
+  }, [panelForObject]);
+
+  const exitCropMode = useCallback(() => {
+    const canvas = canvasRef.current;
+    const obj = cropTargetRef.current as any;
+    const slot = cropSlotRef.current;
+    if (canvas && obj && slot) {
+      obj.set({
+        clipPath: new fabric.Rect({ left: slot.x, top: slot.y, width: slot.w, height: slot.h, absolutePositioned: true }),
+      });
+    }
+    if (canvas && cropOutlineRef.current) {
+      canvas.remove(cropOutlineRef.current);
+      cropOutlineRef.current = null;
+    }
+    cropSlotRef.current = null;
+    cropTargetRef.current = null;
+    canvas?.renderAll();
+    setCroppingSlot(false);
+  }, []);
+
+  const toggleCropMode = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (croppingSlot) {
+      exitCropMode();
+      saveSnapshot();
+      return;
+    }
+
+    const obj = canvas.getActiveObject() as any;
+    if (!obj || obj.data?.role !== "photo-slot") return;
+
+    const clip = obj.clipPath as fabric.Rect | undefined;
+    const slot: PanelRect = clip
+      ? { x: clip.left ?? 0, y: clip.top ?? 0, w: clip.width ?? 0, h: clip.height ?? 0 }
+      : panelForObject(obj);
+    cropSlotRef.current = slot;
+    cropTargetRef.current = obj;
+    obj.set({ clipPath: undefined });
+
+    const outline = new fabric.Rect({
+      left: slot.x,
+      top: slot.y,
+      width: slot.w,
+      height: slot.h,
+      fill: "transparent",
+      stroke: "#ff3d9a",
+      strokeWidth: 2,
+      strokeDashArray: [6, 4],
+      selectable: false,
+      evented: false,
+      excludeFromExport: true,
+      data: { role: "crop-outline" },
+    });
+    canvas.add(outline);
+    canvas.bringToFront(outline);
+    cropOutlineRef.current = outline;
+
+    canvas.renderAll();
+    setCroppingSlot(true);
+  }, [croppingSlot, panelForObject, exitCropMode, saveSnapshot]);
 
   const alignSelected = useCallback(
     (mode: "left" | "center" | "right") => {
@@ -1217,6 +1459,7 @@ export default function CoverDesignerCanvas({
   const saveToBook = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    if (croppingSlot) exitCropMode(); // outline is excludeFromExport but toDataURL rasterizes it anyway
     setSaving(true);
     setSaveError("");
     try {
@@ -1276,7 +1519,95 @@ export default function CoverDesignerCanvas({
     } finally {
       setSaving(false);
     }
-  }, [ctx.layout, uploadPanel, onSaved, bookId, token]);
+  }, [ctx.layout, uploadPanel, onSaved, bookId, token, croppingSlot, exitCropMode]);
+
+  // Author-level cover templates (distinct from the built-in TEMPLATES array
+  // and from AuthorStyleSet, which is manuscript typography, not covers) --
+  // "Мої шаблони": a design an author already built once, reusable across
+  // any of their other books. Stores the same {front, backSpine, background}
+  // shape captureDesignState already produces for Book.coverDesign.
+  const loadMyTemplates = useCallback(async () => {
+    if (!token) return;
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch("/api/cover-templates", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const { templates } = await res.json();
+      setMyTemplates(templates);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (activeTab === "mine" && myTemplates.length === 0 && !loadingTemplates) {
+      loadMyTemplates();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  const saveAsTemplate = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !token) return;
+    // Must restore the photo-slot clipPath before capturing -- otherwise a
+    // template saved mid-crop would paste the image unclipped into whatever
+    // book it's later applied to.
+    if (croppingSlot) exitCropMode();
+    const name = window.prompt("Назва шаблону:");
+    if (!name || !name.trim()) return;
+    setSavingTemplate(true);
+    setSaveError("");
+    try {
+      const design = captureDesignState(canvas, ctx.layout, backSpineStateRef.current);
+      const res = await fetch("/api/cover-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: name.trim(), design }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Помилка збереження шаблону");
+      const { template } = await res.json();
+      setMyTemplates((prev) => [template, ...prev]);
+    } catch (e: any) {
+      setSaveError(e.message || "Помилка збереження шаблону");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }, [ctx.layout, token, croppingSlot, exitCropMode]);
+
+  const applyStoredDesign = useCallback(
+    (design: CoverTemplateEntry["design"]) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return Promise.resolve();
+      frontStateRef.current = design.front;
+      backSpineStateRef.current = design.backSpine;
+      backgroundRef.current = design.background;
+      if (design.background.imageUrl) setBgImageUrl(design.background.imageUrl);
+
+      const frontObjs = design.front.map((o: any) => ({ ...o, left: (o.left ?? 0) + ctx.layout.front.x }));
+      const backSpineObjs = ctx.layout.back ? design.backSpine : [];
+
+      pauseHistoryRef.current = true;
+      return new Promise<void>((resolve) => {
+        canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
+          applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
+          canvas.renderAll();
+          pauseHistoryRef.current = false;
+          saveSnapshot();
+          resolve();
+        });
+      });
+    },
+    [ctx.layout, saveSnapshot]
+  );
+
+  const deleteTemplate = useCallback(
+    async (id: string) => {
+      if (!token) return;
+      await fetch(`/api/cover-templates/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      setMyTemplates((prev) => prev.filter((t) => t.id !== id));
+    },
+    [token]
+  );
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row">
@@ -1286,92 +1617,6 @@ export default function CoverDesignerCanvas({
           <canvas ref={canvasEl} />
         </div>
         <p className="text-xs text-gray-400">Клікніть на назву, підзаголовок, автора чи анотацію, щоб редагувати текст прямо на обкладинці</p>
-
-        {activeObj?.type === "textbox" && (
-          <div className="flex w-full max-w-xs items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">
-            <button
-              type="button"
-              onClick={() => toggleTextStyle("fontWeight")}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="Жирний"
-            >
-              <Bold size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleTextStyle("fontStyle")}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="Курсив"
-            >
-              <Italic size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleTextStyle("underline")}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="Підкреслення"
-            >
-              <Underline size={15} />
-            </button>
-            <div className="mx-1 h-5 w-px bg-gray-300" />
-            <button
-              type="button"
-              onClick={() => updateSelected({ textAlign: "left" })}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="По лівому краю"
-            >
-              <AlignLeft size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => updateSelected({ textAlign: "center" })}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="По центру"
-            >
-              <AlignCenter size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => updateSelected({ textAlign: "right" })}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="По правому краю"
-            >
-              <AlignRight size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => updateSelected({ textAlign: "justify" })}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="На всю ширину"
-            >
-              <AlignJustify size={15} />
-            </button>
-          </div>
-        )}
-
-        {activeObj?.type === "textbox" && (
-          <div className="flex w-full max-w-xs items-center gap-2">
-            <select
-              value={(activeObj as fabric.Textbox).fontFamily || FONTS[0]}
-              onChange={(e) => updateSelected({ fontFamily: e.target.value })}
-              className="h-7 flex-1 rounded border border-gray-200 bg-white px-1.5 text-xs"
-              title="Шрифт"
-            >
-              {FONTS.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
-            <input
-              type="color"
-              value={typeof (activeObj as any)?.fill === "string" ? ((activeObj as any).fill as string) : "#000000"}
-              onChange={(e) => updateSelected({ fill: e.target.value })}
-              className="h-7 w-9 shrink-0 cursor-pointer rounded border border-gray-200"
-              title="Колір тексту"
-            />
-          </div>
-        )}
 
         {(activeObj as any)?.data?.role === "band" && (
           <div className="flex w-full max-w-xs items-center gap-3 rounded-lg border bg-gray-50 p-2">
@@ -1471,13 +1716,180 @@ export default function CoverDesignerCanvas({
         <Button onClick={saveToBook} loading={saving} className="w-full max-w-xs">
           Зберегти обкладинку
         </Button>
+        <Button
+          variant="outline"
+          onClick={saveAsTemplate}
+          loading={savingTemplate}
+          className="w-full max-w-xs"
+          title="Зберегти поточний дизайн, щоб застосувати його до інших своїх книжок"
+        >
+          Зберегти як шаблон
+        </Button>
         {saveError && <p className="text-sm text-red-500">{saveError}</p>}
       </div>
 
       {/* Right panel */}
       <div className="w-full space-y-4 lg:w-[300px] lg:shrink-0">
+        {activeObj?.type === "textbox" && (
+          <div className="space-y-2 rounded-lg border bg-gray-50 p-2">
+            <p className="text-xs font-medium text-gray-500">Текст</p>
+            <div className="flex flex-wrap items-center gap-1">
+              <button type="button" onClick={() => toggleTextStyle("fontWeight")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Жирний">
+                <Bold size={15} />
+              </button>
+              <button type="button" onClick={() => toggleTextStyle("fontStyle")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Курсив">
+                <Italic size={15} />
+              </button>
+              <button type="button" onClick={() => toggleTextStyle("underline")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Підкреслення">
+                <Underline size={15} />
+              </button>
+              <button type="button" onClick={() => toggleTextStyle("linethrough")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Закреслення">
+                <Strikethrough size={15} />
+              </button>
+              <button type="button" onClick={toggleAllCaps} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Всі літери великі">
+                <CaseUpper size={15} />
+              </button>
+              <div className="mx-0.5 h-5 w-px bg-gray-300" />
+              <button type="button" onClick={() => updateSelected({ textAlign: "left" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По лівому краю">
+                <AlignLeft size={15} />
+              </button>
+              <button type="button" onClick={() => updateSelected({ textAlign: "center" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По центру">
+                <AlignCenter size={15} />
+              </button>
+              <button type="button" onClick={() => updateSelected({ textAlign: "right" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По правому краю">
+                <AlignRight size={15} />
+              </button>
+              <button type="button" onClick={() => updateSelected({ textAlign: "justify" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="На всю ширину">
+                <AlignJustify size={15} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={(activeObj as fabric.Textbox).fontFamily || FONTS[0]}
+                onChange={(e) => updateSelected({ fontFamily: e.target.value })}
+                className="h-7 flex-1 rounded border border-gray-200 bg-white px-1.5 text-xs"
+                title="Шрифт"
+              >
+                {FONTS.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="color"
+                value={typeof (activeObj as any)?.fill === "string" ? ((activeObj as any).fill as string) : "#000000"}
+                onChange={(e) => updateSelected({ fill: e.target.value })}
+                className="h-7 w-9 shrink-0 cursor-pointer rounded border border-gray-200"
+                title="Колір тексту"
+              />
+            </div>
+
+            <div className="space-y-1.5 border-t pt-2">
+              <button
+                type="button"
+                onClick={toggleTextShadow}
+                className="w-full rounded-md border bg-white py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+              >
+                {(activeObj as any)?.shadow ? "✕ Прибрати тінь" : "Тінь тексту"}
+              </button>
+              {(activeObj as any)?.shadow && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <label className="w-20 shrink-0 text-xs text-gray-500">Розмитість</label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={20}
+                      step={1}
+                      value={(activeObj as any).shadow?.blur ?? 6}
+                      onChange={(e) => updateTextShadow({ blur: Number(e.target.value) })}
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="w-20 shrink-0 text-xs text-gray-500">Прозорість</label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={
+                        /rgba?\([^,]+,[^,]+,[^,]+,?\s*([\d.]+)?\)/.exec((activeObj as any).shadow?.color || "")?.[1]
+                          ? Number(/rgba?\([^,]+,[^,]+,[^,]+,?\s*([\d.]+)?\)/.exec((activeObj as any).shadow?.color || "")![1])
+                          : 0.6
+                      }
+                      onChange={(e) => updateTextShadow({ opacity: Number(e.target.value) })}
+                      className="flex-1"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeObj?.type === "rect" && (activeObj as any)?.data?.role === "shape" && (
+          <div className="space-y-2 rounded-lg border bg-gray-50 p-2">
+            <p className="text-xs font-medium text-gray-500">Прямокутник</p>
+            <div className="flex items-center gap-2">
+              <label className="w-20 shrink-0 text-xs text-gray-500">Заливка</label>
+              <input
+                type="color"
+                value={typeof (activeObj as any).fill === "string" ? (activeObj as any).fill : "#ffffff"}
+                onChange={(e) => updateSelected({ fill: e.target.value })}
+                className="h-7 w-9 cursor-pointer rounded border border-gray-200"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="w-20 shrink-0 text-xs text-gray-500">Обводка</label>
+              <input
+                type="color"
+                value={typeof (activeObj as any).stroke === "string" ? (activeObj as any).stroke : "#000000"}
+                onChange={(e) => updateSelected({ stroke: e.target.value })}
+                className="h-7 w-9 cursor-pointer rounded border border-gray-200"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="w-20 shrink-0 text-xs text-gray-500">Товщина</label>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={(activeObj as any).strokeWidth ?? 0}
+                onChange={(e) => updateSelected({ strokeWidth: Number(e.target.value) })}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="w-20 shrink-0 text-xs text-gray-500">Прозорість</label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={(activeObj as any).opacity ?? 1}
+                onChange={(e) => updateSelected({ opacity: Number(e.target.value) })}
+                className="flex-1"
+              />
+            </div>
+          </div>
+        )}
+
+        {((activeObj as any)?.data?.role === "photo-slot" || croppingSlot) && (
+          <Button variant="outline" size="sm" className="w-full" onClick={toggleCropMode}>
+            {croppingSlot ? "✓ Застосувати кадрування" : "Кадрувати зображення"}
+          </Button>
+        )}
+
+        <Button variant="outline" size="sm" className="w-full" onClick={addRectangle}>
+          + Додати фігуру
+        </Button>
+
         <div className="flex gap-1 rounded-lg border p-1 bg-gray-50">
-          {(["templates", "own"] as const).map((tab) => (
+          {(["templates", "mine", "own"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1486,10 +1898,59 @@ export default function CoverDesignerCanvas({
                 activeTab === tab ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
               )}
             >
-              {tab === "templates" ? "Шаблони" : "Своя обкладинка"}
+              {tab === "templates" ? "Шаблони" : tab === "mine" ? "Мої шаблони" : "Своя обкладинка"}
             </button>
           ))}
         </div>
+
+        {activeTab === "mine" && (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">
+              Дизайни, які ви зберегли з кнопки «Зберегти як шаблон» — застосуйте до цієї книжки в один клік.
+            </p>
+            {loadingTemplates ? (
+              <p className="text-xs text-gray-400">Завантаження…</p>
+            ) : myTemplates.length === 0 ? (
+              <p className="text-xs text-gray-400">Поки немає збережених шаблонів.</p>
+            ) : (
+              <div className="space-y-2">
+                {myTemplates.map((tpl) => (
+                  <div key={tpl.id} className="flex items-center justify-between gap-2 rounded-lg border p-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900">{tpl.name}</p>
+                      <p className="text-[11px] text-gray-400">
+                        {new Date(tpl.createdAt).toLocaleDateString("uk-UA")}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={applyingTemplateId === tpl.id}
+                        onClick={async () => {
+                          setApplyingTemplateId(tpl.id);
+                          await applyStoredDesign(tpl.design);
+                          setApplyingTemplateId(null);
+                        }}
+                      >
+                        Застосувати
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => deleteTemplate(tpl.id)}
+                        className="px-1.5 text-gray-400 hover:text-red-600"
+                        aria-label="Видалити шаблон"
+                        title="Видалити шаблон"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === "templates" && (
           <div className="space-y-4">
@@ -1692,10 +2153,10 @@ export default function CoverDesignerCanvas({
             <div className="rounded-lg border p-3 space-y-2">
               <p className="text-xs font-semibold text-gray-700">Редагувати офлайн у Photoshop</p>
               <p className="text-xs text-gray-400">
-                PSD-шаблони з полями обрізу (bleed) та safe zone для поліграфії. Готуються — з'являться найближчим часом.
+                PSD-шаблони з полями обрізу (bleed) та safe zone для поліграфії. Готуються — з’являться найближчим часом.
               </p>
               <Button size="sm" variant="outline" disabled className="w-full text-xs cursor-not-allowed">
-                Завантажити PSD-шаблон (м'яка обкладинка)
+                Завантажити PSD-шаблон (м’яка обкладинка)
               </Button>
               <Button size="sm" variant="outline" disabled className="w-full text-xs cursor-not-allowed">
                 Завантажити PSD-шаблон (тверда обкладинка)
