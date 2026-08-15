@@ -45,7 +45,21 @@ export async function uploadFile(
 }
 
 export async function getSignedUrl(objectName: string): Promise<string> {
-  return minio.presignedGetObject(BUCKET, objectName, SIGNED_URL_EXPIRY);
+  const raw = await minio.presignedGetObject(BUCKET, objectName, SIGNED_URL_EXPIRY);
+  // presignedGetObject signs a URL against the internal MinIO endpoint
+  // (http://minio:9000/...) -- served as-is, the browser blocks it as mixed
+  // content on the HTTPS site. Same fix as publicUrl(): rewrite to the
+  // public /storage proxy. The presign signature covers the request path
+  // (and, per X-Amz-SignedHeaders=host, the Host header), so this only
+  // works because next.config.mjs's /storage rewrite reconstructs the exact
+  // same path (bucket + key) and proxies server-side with Host: minio:9000
+  // -- i.e. MinIO ends up seeing the identical request it signed, just
+  // arriving via the proxy instead of directly.
+  const base = process.env.MINIO_PUBLIC_URL_BASE;
+  if (!base) return raw;
+  const url = new URL(raw);
+  const pathWithoutBucket = url.pathname.replace(new RegExp(`^/${BUCKET}/`), "/");
+  return `${base}${pathWithoutBucket}${url.search}`;
 }
 
 export async function deleteFile(objectName: string): Promise<void> {
