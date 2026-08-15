@@ -17,6 +17,10 @@ const nextConfig = {
     return [
       { source: "/api/users/:path*",    destination: `${apiBase}/api/users/:path*` },
       { source: "/api/books/:path*",    destination: `${apiBase}/api/books/:path*` },
+      { source: "/api/cover-templates", destination: `${apiBase}/api/cover-templates` },
+      { source: "/api/cover-templates/:path*", destination: `${apiBase}/api/cover-templates/:path*` },
+      { source: "/api/authors/:path*",  destination: `${apiBase}/api/authors/:path*` },
+      { source: "/api/royalties/:path*", destination: `${apiBase}/api/royalties/:path*` },
       { source: "/api/style-sets/:path*", destination: `${apiBase}/api/style-sets/:path*` },
       { source: "/api/style-sets",      destination: `${apiBase}/api/style-sets` },
       { source: "/api/store/:path*",    destination: `${apiBase}/api/store/:path*` },
