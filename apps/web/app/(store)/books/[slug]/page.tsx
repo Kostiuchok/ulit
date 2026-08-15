@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { AddToCartButton } from "../../../../components/store/AddToCartButton";
-import { PrintPriceCard } from "../../../../components/store/PrintPriceCard";
+import { BookPurchaseWidget } from "../../../../components/store/BookPurchaseWidget";
 import { EpubReader } from "../../../../components/store/EpubReader";
 import { BookCoverCarousel } from "../../../../components/books/BookCoverCarousel";
 
@@ -217,54 +216,17 @@ export default async function BookPage({ params }: Props) {
               )}
 
               {/* Pricing + buy */}
-              <div className="mt-6 space-y-3">
-                {book.priceEbook && (
-                  <div className="rounded-xl border bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-xs text-gray-500">Електронна книга</p>
-                        <p className="text-2xl font-bold text-gray-900">{Number(book.priceEbook).toFixed(2)} грн</p>
-                      </div>
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                        Е-книга
-                      </span>
-                    </div>
-                    <AddToCartButton
-                      bookId={book.id}
-                      format="EBOOK"
-                      price={Number(book.priceEbook)}
-                      title={book.title}
-                      author={book.author.name}
-                      coverUrl={book.coverUrl}
-                      formatLabel="Електронна книга (EPUB + FB2 + MOBI)"
-                      label="Додати в кошик"
-                      variant="primary"
-                    />
-                  </div>
-                )}
-
-                <PrintPriceCard
+              <div className="mt-6">
+                <BookPurchaseWidget
                   bookId={book.id}
                   title={book.title}
                   author={book.author.name}
                   coverUrl={book.coverUrl}
-                  bindingLabel="м'яка обкладинка"
-                  colorPrice={book.pricePrint ? Number(book.pricePrint) : null}
-                  bwPrice={book.pricePrintBw ? Number(book.pricePrintBw) : null}
-                  colorFormat="PRINT_SOFTCOVER"
-                  bwFormat="PRINT_SOFTCOVER_BW"
-                />
-
-                <PrintPriceCard
-                  bookId={book.id}
-                  title={book.title}
-                  author={book.author.name}
-                  coverUrl={book.coverUrl}
-                  bindingLabel="тверда обкладинка"
-                  colorPrice={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}
-                  bwPrice={book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : null}
-                  colorFormat="PRINT_HARDCOVER"
-                  bwFormat="PRINT_HARDCOVER_BW"
+                  priceEbook={book.priceEbook ? Number(book.priceEbook) : null}
+                  pricePrint={book.pricePrint ? Number(book.pricePrint) : null}
+                  pricePrintHardcover={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}
+                  pricePrintBw={book.pricePrintBw ? Number(book.pricePrintBw) : null}
+                  pricePrintHardcoverBw={book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : null}
                 />
               </div>
             </div>
