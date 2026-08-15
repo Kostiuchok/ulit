@@ -4,16 +4,14 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 import { downloadToFile, uploadFromFile, publicUrl } from "../lib/minio";
 import { prisma } from "../lib/prisma";
 import { pandocToEditorDoc } from "../lib/pandocToEditorDoc";
+import { extractImageAlignments } from "../lib/docxImageAlignment";
 
-// Browser-renderable raster formats only. Word can also embed EMF/WMF
-// (vector clipart/SmartArt) and TIFF -- pandoc happily extracts those too,
-// but no mainstream browser renders an <img> pointed at one, so uploading
-// them would just produce a broken-image icon instead of no image at all;
-// skipped in extractAndUploadMedia below.
-const IMAGE_CONTENT_TYPES: Record<string, string> = {
+// Formats every browser renders natively via <img> -- uploaded as-is.
+const DIRECT_IMAGE_CONTENT_TYPES: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -21,6 +19,10 @@ const IMAGE_CONTENT_TYPES: Record<string, string> = {
   ".gif": "image/gif",
   ".bmp": "image/bmp",
 };
+
+// Not browser-renderable -- rasterized to PNG before upload (see below).
+const TIFF_EXTENSIONS = new Set([".tiff", ".tif"]);
+const VECTOR_EXTENSIONS = new Set([".emf", ".wmf"]); // Word SmartArt/clipart
 
 // Pandoc's docx reader anchors every embedded image at its own Image inline
 // in the AST, but --extract-media is what actually writes the image bytes
@@ -36,14 +38,55 @@ async function extractAndUploadMedia(mediaDir: string, bookId: string): Promise<
   const mediaSubdir = path.join(mediaDir, "media");
   if (!fs.existsSync(mediaSubdir)) return map;
 
-  for (const filename of fs.readdirSync(mediaSubdir)) {
-    const ext = path.extname(filename).toLowerCase();
-    const contentType = IMAGE_CONTENT_TYPES[ext];
-    if (!contentType) continue; // unsupported/vector format pandoc couldn't convert -- skip rather than upload garbage
+  const files = fs.readdirSync(mediaSubdir);
 
-    const filePath = path.join(mediaSubdir, filename);
-    const objectName = `public/manuscripts/${bookId}/${randomUUID()}${ext}`;
-    await uploadFromFile(objectName, filePath, contentType);
+  // EMF/WMF can't be rendered as <img> in any browser -- rasterize them to
+  // PNG via the same LibreOffice headless binary the docx->PDF pipeline
+  // already depends on (convert-docx-to-pdf.ts). Batched into one
+  // invocation: soffice's own startup cost, not the per-file conversion,
+  // dominates its runtime.
+  const vectorFiles = files.filter((f) => VECTOR_EXTENSIONS.has(path.extname(f).toLowerCase()));
+  if (vectorFiles.length > 0) {
+    try {
+      const args = vectorFiles.map((f) => `"${path.join(mediaSubdir, f)}"`).join(" ");
+      execSync(`soffice --headless --convert-to png --outdir "${mediaSubdir}" ${args}`, {
+        timeout: 120_000,
+        stdio: "pipe",
+      });
+    } catch (err: any) {
+      // Best-effort: a failed batch conversion means these files fall
+      // through to "still unsupported" below and are dropped individually,
+      // not that the whole import fails.
+      console.error(`[worker] EMF/WMF rasterization failed for book ${bookId}:`, err.message);
+    }
+  }
+
+  for (const filename of files) {
+    const ext = path.extname(filename).toLowerCase();
+    let uploadPath = path.join(mediaSubdir, filename);
+    let contentType = DIRECT_IMAGE_CONTENT_TYPES[ext];
+
+    if (!contentType && TIFF_EXTENSIONS.has(ext)) {
+      try {
+        const pngPath = path.join(mediaSubdir, `${path.parse(filename).name}.converted.png`);
+        await sharp(uploadPath).png().toFile(pngPath);
+        uploadPath = pngPath;
+        contentType = "image/png";
+      } catch (err: any) {
+        console.error(`[worker] TIFF conversion failed for ${filename} (book ${bookId}):`, err.message);
+        continue;
+      }
+    } else if (!contentType && VECTOR_EXTENSIONS.has(ext)) {
+      const convertedPath = path.join(mediaSubdir, `${path.parse(filename).name}.png`);
+      if (!fs.existsSync(convertedPath)) continue; // rasterization above failed or skipped this file
+      uploadPath = convertedPath;
+      contentType = "image/png";
+    }
+
+    if (!contentType) continue; // still-unsupported format -- drop rather than upload a broken image
+
+    const objectName = `public/manuscripts/${bookId}/${randomUUID()}${path.extname(uploadPath).toLowerCase()}`;
+    await uploadFromFile(objectName, uploadPath, contentType);
     map[`media/${filename}`] = publicUrl(objectName);
   }
   return map;
@@ -70,8 +113,9 @@ export async function importManuscript(job: Job<ManuscriptImportData>) {
     }).toString("utf-8");
 
     const mediaMap = await extractAndUploadMedia(mediaDir, bookId);
+    const imageAlignments = extractImageAlignments(docxPath);
     const pandocDoc = JSON.parse(jsonOutput);
-    const editorDoc = pandocToEditorDoc(pandocDoc, mediaMap);
+    const editorDoc = pandocToEditorDoc(pandocDoc, mediaMap, imageAlignments);
 
     await prisma.book.update({
       where: { id: bookId },

@@ -3,8 +3,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=production
 
 # System deps: LibreOffice, Pandoc, Ghostscript, Calibre, Node 20
+# unzip -- reads word/document.xml straight out of an uploaded .docx to
+# recover real Word image wrap-side info Pandoc's own AST drops (see
+# apps/worker/src/lib/docxImageAlignment.ts)
 RUN apt-get update && apt-get install -y \
-    curl libreoffice pandoc ghostscript calibre redis-tools \
+    curl libreoffice pandoc ghostscript calibre redis-tools unzip \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g pnpm@9 \

@@ -42,6 +42,19 @@ function nextBlockId() {
   return `b${Date.now().toString(36)}${blockIdCounter}`;
 }
 
+// Real per-image wrap-side from the raw docx XML (docxImageAlignment.ts),
+// consumed in the same document order Pandoc itself produces Image inlines
+// in. Reset alongside blockIdCounter at the start of pandocToEditorDoc();
+// only ever non-empty when the caller already verified its length matches
+// Pandoc's own image count (see pandocToEditorDoc below).
+let imageAlignments: string[] = [];
+let imageAlignmentCursor = 0;
+function nextImageAlign(): string {
+  const align = imageAlignments[imageAlignmentCursor] ?? "center";
+  imageAlignmentCursor += 1;
+  return align;
+}
+
 function mapInlines(inlines: PandocInline[], activeMarks: EditorMark[] = []): EditorText[] {
   const out: EditorText[] = [];
   for (const inline of inlines) {
@@ -115,8 +128,14 @@ function splitInlinesAroundImages(inlines: PandocInline[], mediaMap: Record<stri
     const [, , target] = (inline as any).c as [PandocAttr, PandocInline[], [string, string]];
     const [rawSrc] = target;
     const src = mediaMap[rawSrc] ?? mediaMap[decodeURIComponent(rawSrc)];
+    // Always consume one alignment slot here, whether or not this specific
+    // image ends up with a resolved src -- the cursor must stay in lockstep
+    // with the total Image-inline count the safety check in
+    // pandocToEditorDoc() below counted, or every image after a dropped one
+    // would silently read the wrong alignment.
+    const align = nextImageAlign();
     if (src) {
-      nodes.push({ type: "image", attrs: { src, align: "center" } });
+      nodes.push({ type: "image", attrs: { src, align } });
     }
     // If the extracted file couldn't be matched/uploaded, the image is
     // silently dropped rather than left as a broken node -- same
@@ -188,8 +207,45 @@ function mapBlock(block: PandocBlock, mediaMap: Record<string, string>): EditorN
   }
 }
 
-export function pandocToEditorDoc(pandocJson: PandocDoc, mediaMap: Record<string, string> = {}): EditorNode {
+// Mirrors exactly which blocks/inlines splitInlinesAroundImages actually
+// scans for Image inlines (top-level of Para/Plain, recursing the same way
+// through BlockQuote/lists) -- must stay in lockstep with that traversal or
+// the safety check below is comparing two different counts.
+function countImageInlines(blocks: PandocBlock[]): number {
+  let count = 0;
+  for (const block of blocks) {
+    switch (block.t) {
+      case "Para":
+      case "Plain":
+        count += ((block as any).c as PandocInline[]).filter((i) => i.t === "Image").length;
+        break;
+      case "BlockQuote":
+        count += countImageInlines((block as any).c as PandocBlock[]);
+        break;
+      case "BulletList":
+        for (const item of (block as any).c as PandocBlock[][]) count += countImageInlines(item);
+        break;
+      case "OrderedList":
+        for (const item of (block as any).c[1] as PandocBlock[][]) count += countImageInlines(item);
+        break;
+      default:
+        break;
+    }
+  }
+  return count;
+}
+
+export function pandocToEditorDoc(
+  pandocJson: PandocDoc,
+  mediaMap: Record<string, string> = {},
+  wordImageAlignments: string[] = []
+): EditorNode {
   blockIdCounter = 0;
+  imageAlignmentCursor = 0;
+  // Only trust the XML-derived alignments if the count matches exactly --
+  // see docxImageAlignment.ts for why a mismatch is worse than the uniform
+  // "center" default.
+  imageAlignments = wordImageAlignments.length === countImageInlines(pandocJson.blocks) ? wordImageAlignments : [];
   const content = pandocJson.blocks.flatMap((b) => mapBlock(b, mediaMap));
   return {
     type: "doc",
