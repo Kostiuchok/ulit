@@ -60,13 +60,10 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
   return (
     <Link
       href={`/books/${book.slug}`}
-      className="group flex flex-col rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+      className="group flex flex-col rounded-xl border bg-white shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
     >
       <div className="relative w-full overflow-hidden bg-gray-100">
-        <CoverFrame
-          coverUrl={book.coverUrl}
-          className="group-hover:scale-105 transition-transform duration-300"
-        />
+        <CoverFrame coverUrl={book.coverUrl} />
         {book.genre && (
           <span className="absolute top-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
             {book.genre}
