@@ -749,6 +749,7 @@ export default function CoverDesignerCanvas({
   const backSpineStateRef = useRef<any[] | null>(null);
   const backgroundRef = useRef<{ color: string; imageUrl?: string } | null>(null);
   const pauseHistoryRef = useRef(false);
+  const snapshotScheduledRef = useRef(false);
   // Crop mode: temporarily removes the photo-slot image's clipPath so the
   // full image is visible/draggable beyond the slot, with a dashed outline
   // (a real fabric.Rect, excludeFromExport: true so it never leaks into
@@ -796,15 +797,33 @@ export default function CoverDesignerCanvas({
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
   const templateIndex = TEMPLATES.findIndex((t) => t.id === template.id);
 
+  // A single user gesture often fires more than one fabric event that each
+  // want a snapshot -- e.g. recolor() both removes the bg-image object
+  // (object:removed listener below) AND calls saveSnapshot() itself, or
+  // loadFromJSON-based restores add several objects in a row. Without
+  // coalescing, those push multiple near-duplicate history entries per
+  // gesture, so one Undo click can land on a snapshot that's identical to
+  // the one before it and look like nothing happened -- reported as "Undo
+  // doesn't undo one step at a time" on softcover/hardcover, where the
+  // back+spine panel makes multi-object operations more common. Batch every
+  // saveSnapshot() call within the same synchronous burst (any handler
+  // chain, not just React state) into a single history entry via a
+  // microtask, since a later, separate user gesture can never run inside
+  // that same microtask flush.
   const saveSnapshot = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || pauseHistoryRef.current) return;
-    const json = JSON.stringify(canvas.toJSON(["data"]));
-    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
-    historyRef.current.push(json);
-    historyIndexRef.current = historyRef.current.length - 1;
-    setCanUndo(historyIndexRef.current > 0);
-    setCanRedo(false);
+    if (pauseHistoryRef.current || snapshotScheduledRef.current) return;
+    snapshotScheduledRef.current = true;
+    queueMicrotask(() => {
+      snapshotScheduledRef.current = false;
+      const canvas = canvasRef.current;
+      if (!canvas || pauseHistoryRef.current) return;
+      const json = JSON.stringify(canvas.toJSON(["data"]));
+      historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+      historyRef.current.push(json);
+      historyIndexRef.current = historyRef.current.length - 1;
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(false);
+    });
   }, []);
 
   // Init canvas once
