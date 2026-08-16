@@ -342,7 +342,7 @@ export async function paginateManuscriptWithToc(
 
   const combinedDoc = {
     type: "doc",
-    content: [...front, ...tocContent, { type: "pageBreak" }, ...body],
+    content: [...frontWithBreak, ...tocContent, { type: "pageBreak" }, ...body],
   };
   return paginateManuscript(combinedDoc, contentWidth, contentHeight, fontSizePx);
 }
