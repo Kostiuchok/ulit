@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type CSSProperties, type WheelEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type WheelEvent } from "react";
 import { useRouter } from "next/navigation";
 import HTMLFlipBook from "react-pageflip-enhanced";
 import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
@@ -44,12 +44,49 @@ export function ManuscriptPagePreview({
   const bookRef = useRef<{ pageFlip: () => any } | null>(null);
   const [current, setCurrent] = useState(0);
   const lastWheel = useRef(0);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  // Fit the whole spread (both pages, side by side in usePortrait=false mode
+  // -- 2x PAGE_W) inside whatever space is actually available, so flipping a
+  // page never also requires scrolling the surrounding page to see the
+  // bottom of the book. Scales the rendered box down via CSS transform
+  // (crisp at any zoom) rather than shrinking width/height props, which
+  // would re-run the whole DOM pagination pass at a different content box.
+  useEffect(() => {
+    function recompute() {
+      if (!outerRef.current) return;
+      const outerStyle = getComputedStyle(outerRef.current);
+      const vPadding = parseFloat(outerStyle.paddingTop) + parseFloat(outerStyle.paddingBottom);
+      const controlsH = controlsRef.current?.offsetHeight ?? 0;
+      const gap = 20; // matches the flex column's gap-5
+      const availableH = outerRef.current.clientHeight - vPadding - controlsH - gap;
+      const availableW = outerRef.current.clientWidth - 32;
+      const spreadW = PAGE_W * 2; // usePortrait=false always renders a two-page spread
+      const next = Math.min(availableW / spreadW, availableH / PAGE_H, 1);
+      setScale(next > 0 ? next : 1);
+    }
+    recompute();
+    window.addEventListener("resize", recompute);
+    return () => window.removeEventListener("resize", recompute);
+  }, []);
 
   const hasCover = !!coverUrl;
 
+  // Bookbinding convention: the interior block's page 1 always falls on the
+  // RIGHT (recto) side of the first real spread, never the left -- a closed
+  // book's front cover is "page 1" on its own, so pages 2+3 are the first
+  // true spread, with page 2 (left/verso) blank. This blank leaf achieves
+  // that regardless of whether a cover is set: with a cover, leaf 0 (cover)
+  // is shown alone and leaf 1 (this blank) becomes the first verso; without
+  // one, this blank leaf is itself the first leaf, still pushing the title
+  // page onto the first recto. See Figma nodes 14:657/14:841 for the
+  // reference spread this reproduces.
   const flipLeaves: FlipLeaf[] = pages
     ? [
-        ...(hasCover ? [{ kind: "cover" as const, url: coverUrl! }, { kind: "blank" as const }] : []),
+        ...(hasCover ? [{ kind: "cover" as const, url: coverUrl! }] : []),
+        { kind: "blank" as const },
         ...pages.map((p) => ({ kind: "page" as const, html: p.html, blockId: p.blockId })),
       ]
     : [];
@@ -88,8 +125,8 @@ export function ManuscriptPagePreview({
   }
 
   return (
-    <div className="flex h-full flex-col items-center gap-5 overflow-y-auto bg-gray-100 py-8">
-      <div className="flex items-center gap-3">
+    <div ref={outerRef} className="flex h-full flex-col items-center gap-5 overflow-y-auto bg-gray-100 py-8">
+      <div ref={controlsRef} className="flex items-center gap-3">
         <button
           type="button"
           onClick={goPrev}
@@ -128,8 +165,13 @@ export function ManuscriptPagePreview({
         </button>
       </div>
 
-      <div onWheel={handleWheel} className="max-w-full overflow-x-auto shadow-sm">
+      <div
+        onWheel={handleWheel}
+        className="max-w-full shadow-sm"
+        style={{ width: PAGE_W * 2 * scale, height: PAGE_H * scale, overflow: "hidden" }}
+      >
         {flipLeaves.length > 0 && (
+          <div style={{ width: PAGE_W * 2, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: "top left" }}>
           <HTMLFlipBook
             ref={bookRef}
             width={PAGE_W}
@@ -186,6 +228,7 @@ export function ManuscriptPagePreview({
               );
             })}
           </HTMLFlipBook>
+          </div>
         )}
       </div>
 

@@ -36,6 +36,11 @@ interface NodeMetric {
   isPageBreak: boolean;
   isHeading: boolean;
   isFloatedImage: boolean;
+  // Ridero-style convention (T-1963 follow-up, Figma node 14:841): an
+  // epigraph/dedication paragraph always gets a page to itself -- forced
+  // page boundary both before and after it, regardless of surrounding
+  // content's height, not just "when it doesn't fit".
+  isEpigraph: boolean;
 }
 
 // Detects a left/right-aligned (text-wrapped) image node, whether it's a bare
@@ -100,6 +105,7 @@ export function measureNodes(container: HTMLElement): NodeMetric[] {
       isPageBreak: element.getAttribute("data-type") === "page-break",
       isHeading: HEADING_STYLES.has(element.getAttribute("data-style") ?? ""),
       isFloatedImage: floatAlignOf(element) !== null,
+      isEpigraph: element.getAttribute("data-style") === "epigraph",
     };
   });
 }
@@ -129,6 +135,15 @@ export function paginateNodes(nodes: NodeMetric[], pageHeight: number): PageLeaf
 
   for (const node of nodes) {
     if (node.isPageBreak) {
+      flush();
+      pageStartY = node.top + node.height;
+      continue;
+    }
+    if (node.isEpigraph) {
+      // Always its own page -- cut off whatever came before, place it alone,
+      // then cut off again so the next node starts fresh too.
+      flush();
+      current.push(node);
       flush();
       pageStartY = node.top + node.height;
       continue;
