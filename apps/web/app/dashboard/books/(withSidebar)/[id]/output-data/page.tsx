@@ -41,6 +41,42 @@ const priceSchema = z.object({
 });
 type PriceForm = z.infer<typeof priceSchema>;
 
+type PrintCost =
+  | { status: "DONE"; softcoverCost: number; hardcoverCost: number }
+  | { status: "NO_PAGE_COUNT" }
+  | { status: "NO_SETTINGS" };
+
+function PrintCostHint({
+  cost,
+  field,
+  price,
+}: {
+  cost: PrintCost | null;
+  field: "softcoverCost" | "hardcoverCost";
+  price?: string | number;
+}) {
+  if (cost?.status === "DONE") {
+    const priceNum = Number(price);
+    const profit = Number.isFinite(priceNum) && priceNum > 0 ? priceNum - cost[field] : null;
+    return (
+      <div className="space-y-0.5">
+        <p className="text-xs text-gray-400">Собівартість виготовлення: ~{cost[field].toFixed(2)} грн</p>
+        {profit !== null && (
+          <p className={cn("text-xs font-medium", profit < 0 ? "text-red-500" : "text-green-600")}>
+            {profit < 0
+              ? `Ціна нижча за собівартість на ${Math.abs(profit).toFixed(2)} грн`
+              : `Заробите: ~${profit.toFixed(2)} грн`}
+          </p>
+        )}
+      </div>
+    );
+  }
+  if (cost?.status === "NO_SETTINGS") {
+    return <p className="text-xs text-gray-400">Собівартість друку ще не налаштована адміном</p>;
+  }
+  return <p className="text-xs text-gray-400">Завантажте рукопис, щоб побачити собівартість</p>;
+}
+
 interface CoAuthor {
   name: string;
 }
@@ -116,6 +152,12 @@ function OutputDataContent() {
 
   const [priceSaved, setPriceSaved] = useState(false);
   const [priceError, setPriceError] = useState("");
+  const [printCost, setPrintCost] = useState<PrintCost | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    apiFetch<PrintCost>(`/api/books/${id}/print-cost`).then(setPrintCost).catch(() => {});
+  }, [id]);
 
   const infoForm = useForm<InfoForm>({ resolver: zodResolver(infoSchema) });
   const priceForm = useForm<PriceForm>({ resolver: zodResolver(priceSchema) });
@@ -445,6 +487,7 @@ function OutputDataContent() {
                   {priceForm.formState.errors.pricePrint && (
                     <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrint.message}</p>
                   )}
+                  <PrintCostHint cost={printCost} field="softcoverCost" price={priceForm.watch("pricePrint")} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="pricePrintHardcover">Друк, тверда (грн)</Label>
@@ -459,6 +502,7 @@ function OutputDataContent() {
                   {priceForm.formState.errors.pricePrintHardcover && (
                     <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintHardcover.message}</p>
                   )}
+                  <PrintCostHint cost={printCost} field="hardcoverCost" price={priceForm.watch("pricePrintHardcover")} />
                 </div>
               </div>
 

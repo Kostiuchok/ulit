@@ -425,7 +425,7 @@ export function BookWizard() {
                 {step3.formState.errors.pricePrint && (
                   <p className="text-xs text-red-500">{step3.formState.errors.pricePrint.message}</p>
                 )}
-                <PrintCostHint cost={printCost} field="softcoverCost" onGoToUpload={() => setStep(1)} />
+                <PrintCostHint cost={printCost} field="softcoverCost" price={step3.watch("pricePrint")} onGoToUpload={() => setStep(1)} />
               </div>
             </div>
 
@@ -448,7 +448,7 @@ export function BookWizard() {
                 {step3.formState.errors.pricePrintHardcover && (
                   <p className="text-xs text-red-500">{step3.formState.errors.pricePrintHardcover.message}</p>
                 )}
-                <PrintCostHint cost={printCost} field="hardcoverCost" onGoToUpload={() => setStep(1)} />
+                <PrintCostHint cost={printCost} field="hardcoverCost" price={step3.watch("pricePrintHardcover")} onGoToUpload={() => setStep(1)} />
               </div>
             </div>
           </div>
@@ -638,17 +638,30 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
 function PrintCostHint({
   cost,
   field,
+  price,
   onGoToUpload,
 }: {
   cost: PrintCost | null;
   field: "softcoverCost" | "hardcoverCost";
+  price?: string | number;
   onGoToUpload: () => void;
 }) {
   if (cost?.status === "DONE") {
+    const priceNum = Number(price);
+    const profit = Number.isFinite(priceNum) && priceNum > 0 ? priceNum - cost[field] : null;
     return (
-      <p className="text-xs text-gray-400">
-        Собівартість виготовлення: ~{cost[field].toFixed(2)} грн
-      </p>
+      <div className="space-y-0.5">
+        <p className="text-xs text-gray-400">
+          Собівартість виготовлення: ~{cost[field].toFixed(2)} грн
+        </p>
+        {profit !== null && (
+          <p className={cn("text-xs font-medium", profit < 0 ? "text-red-500" : "text-green-600")}>
+            {profit < 0
+              ? `Ціна нижча за собівартість на ${Math.abs(profit).toFixed(2)} грн`
+              : `Заробите: ~${profit.toFixed(2)} грн`}
+          </p>
+        )}
+      </div>
     );
   }
   if (cost?.status === "NO_SETTINGS") {
