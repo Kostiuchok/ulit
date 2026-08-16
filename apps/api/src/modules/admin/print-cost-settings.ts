@@ -5,10 +5,20 @@ import { requireAdmin } from "../../lib/jwt.middleware";
 
 const SETTINGS_ID = "singleton";
 
+const bulkTierSchema = z.object({
+  minQuantity: z.coerce.number().int().positive(),
+  baseCostSoftcover: z.coerce.number().nonnegative(),
+  baseCostHardcover: z.coerce.number().nonnegative(),
+  costPerPage: z.coerce.number().nonnegative(),
+});
+
 const patchSchema = z.object({
   baseCostSoftcover: z.coerce.number().nonnegative(),
   baseCostHardcover: z.coerce.number().nonnegative(),
   costPerPage: z.coerce.number().nonnegative(),
+  // Optional тираж (print run) volume-discount steps beyond the single-copy
+  // defaults above -- most authors never set any of these.
+  bulkTiers: z.array(bulkTierSchema).default([]),
 });
 
 // Single platform-wide row -- print trim size is fixed for every book, so one
@@ -32,12 +42,13 @@ export async function printCostSettingsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
       }
 
-      const { baseCostSoftcover, baseCostHardcover, costPerPage } = result.data;
+      const { baseCostSoftcover, baseCostHardcover, costPerPage, bulkTiers } = result.data;
+      const sortedTiers = [...bulkTiers].sort((a, b) => a.minQuantity - b.minQuantity);
 
       const settings = await prisma.printCostSettings.upsert({
         where: { id: SETTINGS_ID },
-        create: { id: SETTINGS_ID, baseCostSoftcover, baseCostHardcover, costPerPage },
-        update: { baseCostSoftcover, baseCostHardcover, costPerPage },
+        create: { id: SETTINGS_ID, baseCostSoftcover, baseCostHardcover, costPerPage, bulkTiers: sortedTiers },
+        update: { baseCostSoftcover, baseCostHardcover, costPerPage, bulkTiers: sortedTiers },
       });
 
       return reply.send({ settings });

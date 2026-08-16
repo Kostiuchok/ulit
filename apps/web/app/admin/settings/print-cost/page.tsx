@@ -3,10 +3,18 @@
 import { useEffect, useState } from "react";
 import { useApi } from "../../../../hooks/useApi";
 
+interface BulkTier {
+  minQuantity: number | string;
+  baseCostSoftcover: number | string;
+  baseCostHardcover: number | string;
+  costPerPage: number | string;
+}
+
 interface PrintCostSettings {
   baseCostSoftcover: string;
   baseCostHardcover: string;
   costPerPage: string;
+  bulkTiers: BulkTier[];
 }
 
 export default function PrintCostSettingsPage() {
@@ -19,6 +27,7 @@ export default function PrintCostSettingsPage() {
   const [baseCostSoftcover, setBaseCostSoftcover] = useState("");
   const [baseCostHardcover, setBaseCostHardcover] = useState("");
   const [costPerPage, setCostPerPage] = useState("");
+  const [bulkTiers, setBulkTiers] = useState<BulkTier[]>([]);
 
   useEffect(() => {
     if (!token) return;
@@ -28,11 +37,24 @@ export default function PrintCostSettingsPage() {
           setBaseCostSoftcover(settings.baseCostSoftcover);
           setBaseCostHardcover(settings.baseCostHardcover);
           setCostPerPage(settings.costPerPage);
+          setBulkTiers(settings.bulkTiers ?? []);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);
+
+  function addTier() {
+    setBulkTiers((prev) => [...prev, { minQuantity: "", baseCostSoftcover: "", baseCostHardcover: "", costPerPage: "" }]);
+  }
+
+  function removeTier(index: number) {
+    setBulkTiers((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateTier(index: number, field: keyof BulkTier, value: string) {
+    setBulkTiers((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
+  }
 
   async function handleSave() {
     setError("");
@@ -41,7 +63,7 @@ export default function PrintCostSettingsPage() {
     try {
       await apiFetch("/api/admin/print-cost-settings", {
         method: "PATCH",
-        body: JSON.stringify({ baseCostSoftcover, baseCostHardcover, costPerPage }),
+        body: JSON.stringify({ baseCostSoftcover, baseCostHardcover, costPerPage, bulkTiers }),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -106,6 +128,80 @@ export default function PrintCostSettingsPage() {
                 onChange={(e) => setCostPerPage(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
+            </div>
+
+            <div className="border-t pt-5 space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Ціни за тиражем (опційно)</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Дешевше за примірник при друку кількох копій одразу. Без жодного рядка тут — завжди діють
+                  базові ставки вище, незалежно від тиражу.
+                </p>
+              </div>
+
+              {bulkTiers.map((tier, i) => (
+                <div key={i} className="flex items-end gap-2 rounded-lg border border-gray-200 p-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Від, прим.</label>
+                    <input
+                      type="number"
+                      min="2"
+                      step="1"
+                      value={tier.minQuantity}
+                      onChange={(e) => updateTier(i, "minQuantity", e.target.value)}
+                      className="h-9 w-20 rounded-md border border-input bg-background px-2 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">М&apos;яка (грн)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={tier.baseCostSoftcover}
+                      onChange={(e) => updateTier(i, "baseCostSoftcover", e.target.value)}
+                      className="h-9 w-24 rounded-md border border-input bg-background px-2 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Тверда (грн)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={tier.baseCostHardcover}
+                      onChange={(e) => updateTier(i, "baseCostHardcover", e.target.value)}
+                      className="h-9 w-24 rounded-md border border-input bg-background px-2 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">За сторінку (грн)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.0001"
+                      value={tier.costPerPage}
+                      onChange={(e) => updateTier(i, "costPerPage", e.target.value)}
+                      className="h-9 w-24 rounded-md border border-input bg-background px-2 text-sm"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeTier(i)}
+                    className="h-9 rounded-md px-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Видалити
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addTier}
+                className="rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                + Додати рівень тиражу
+              </button>
             </div>
 
             {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}

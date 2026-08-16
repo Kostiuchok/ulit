@@ -1,0 +1,1 @@
+ALTER TABLE "PrintCostSettings" ADD COLUMN IF NOT EXISTS "bulkTiers" JSONB NOT NULL DEFAULT '[]';

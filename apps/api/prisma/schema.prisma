@@ -270,8 +270,13 @@ model ConversionJob {
 // to every book: baseCost(cover type) + printPageCount * costPerPage.
 model PrintCostSettings {
   id                String   @id @default("singleton")
-  baseCostSoftcover Decimal  @db.Decimal(10, 2)
+  baseCostSoftcover Decimal  @db.Decimal(10, 2) // тираж = 1 (за замовчуванням для більшості авторів)
   baseCostHardcover Decimal  @db.Decimal(10, 2)
   costPerPage       Decimal  @db.Decimal(10, 4)
+  // Optional volume-discount steps for larger print runs (тираж), beyond the
+  // single-copy defaults above -- [{minQuantity, baseCostSoftcover,
+  // baseCostHardcover, costPerPage}], sorted by minQuantity ascending. Empty
+  // by default; most authors print one copy at a time and never need this.
+  bulkTiers         Json     @default("[]")
   updatedAt         DateTime @updatedAt
 }
