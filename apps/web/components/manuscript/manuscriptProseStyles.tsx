@@ -34,14 +34,19 @@ export function ManuscriptProseStyles() {
         background: #fff; padding: 0 0.5em; font-size: 0.6875rem; color: #9ca3af; white-space: nowrap;
       }
 
+      .manuscript-prose p[data-variant="toc-title"] {
+        font-size: calc(var(--ms-font-size, 1rem) + 2pt); font-weight: 700;
+        text-align: left; text-indent: 0; margin-bottom: 0.8em;
+      }
       .manuscript-prose div[data-type="toc-entry"] {
         display: flex; align-items: baseline; margin: 0 0 0.5em;
+        font-size: calc(var(--ms-font-size, 1rem) + 2pt);
         border-bottom: 1px dotted #ccc; padding-bottom: 0.15em;
       }
       .manuscript-prose div[data-type="toc-entry"][data-tier="0"] { font-weight: 700; margin-top: 1em; }
       .manuscript-prose div[data-type="toc-entry"][data-tier="1"] { font-weight: 600; margin-left: 1em; }
       .manuscript-prose div[data-type="toc-entry"][data-tier="2"] { margin-left: 2em; }
-      .manuscript-prose div[data-type="toc-entry"][data-tier="3"] { margin-left: 3em; font-size: 0.92em; color: #444; }
+      .manuscript-prose div[data-type="toc-entry"][data-tier="3"] { margin-left: 3em; color: #444; }
       .manuscript-prose .toc-entry-text {
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto;
       }

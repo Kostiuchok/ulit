@@ -265,7 +265,7 @@ function findPageIndexOfId(pages: PageLeaf[], id: string): number | null {
 
 function buildTocContent(outline: OutlineItem[], pageOf: (id: string) => number | null): any[] {
   return [
-    { type: "paragraph", attrs: { style: "heading" }, content: [{ type: "text", text: "Зміст" }] },
+    { type: "paragraph", attrs: { style: "normal", variant: "toc-title" }, content: [{ type: "text", text: "Зміст" }] },
     ...outline.map((item) => ({
       type: "tocEntry",
       attrs: { text: item.text, page: pageOf(item.id), tier: item.tier },
