@@ -33,7 +33,15 @@ export async function uploadFromFile(
   await minio.putObject(BUCKET, objectName, stream, stat.size, { "Content-Type": contentType });
 }
 
+// Mirrors apps/api/src/services/storage.service.ts's publicUrl() -- this
+// worker-local copy was missing the MINIO_PUBLIC_URL_BASE rewrite, so every
+// URL it produced (manuscript-imported images) pointed at the internal
+// Docker-network `minio:9000` host, unreachable from the browser and (on
+// the HTTPS site) blocked as mixed content -- images silently never
+// rendered even though the map/lookup logic upstream was fully correct.
 export function publicUrl(objectName: string): string {
+  const base = process.env.MINIO_PUBLIC_URL_BASE;
+  if (base) return `${base}/${objectName}`;
   const endpoint = process.env.MINIO_ENDPOINT || "localhost";
   const port = process.env.MINIO_PORT || "9000";
   const protocol = process.env.MINIO_USE_SSL === "true" ? "https" : "http";
