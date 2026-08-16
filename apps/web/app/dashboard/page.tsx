@@ -67,7 +67,7 @@ export default function DashboardPage() {
         <p className="mt-1 text-gray-500">Ваш кабінет автора на платформі Knyha.</p>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatTile label="Книги" value={totalBooks} loading={loading} />
+          <StatTile label="Книги" value={totalBooks} loading={loading} href="/dashboard/books" />
           <StatTile label="Продажі" value={unitsSold} loading={loading} />
           <StatTile label="Роялті (грн)" value={royaltyTotal.toFixed(2)} loading={loading} />
         </div>
