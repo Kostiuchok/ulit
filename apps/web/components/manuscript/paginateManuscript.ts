@@ -1,9 +1,10 @@
 import { generateHTML } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
-import { StyledParagraph } from "./styledParagraph";
+import { StyledParagraph, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
 import { ResizableImage } from "./resizableImage";
 import { PageBreak } from "./pageBreak";
+import { TocEntry } from "./tocEntry";
 
 // Same extension set as ManuscriptEditor.tsx / ManuscriptPagePreview.tsx --
 // guarantees generateHTML() output matches the live editor's own rendering.
@@ -13,6 +14,7 @@ export const MANUSCRIPT_EXTENSIONS: any[] = [
   StyledParagraph,
   ResizableImage,
   PageBreak,
+  TocEntry,
 ];
 
 export interface PageLeaf {
@@ -194,4 +196,126 @@ export async function paginateManuscript(
   // which previously accumulated across a page's paragraphs and clipped the
   // last line of text at the bottom.
   return paginateNodes(nodes, contentHeight - 1);
+}
+
+export interface OutlineItem {
+  id: string;
+  text: string;
+  tier: number;
+}
+
+function textContentOf(node: any): string {
+  if (!node) return "";
+  if (node.type === "text") return node.text ?? "";
+  if (Array.isArray(node.content)) return node.content.map(textContentOf).join("");
+  return "";
+}
+
+// Same tiers/detection as ManuscriptEditor.tsx's extractOutline(), but
+// operating on plain JSON (no live TipTap Editor instance available here).
+function extractOutlineFromDoc(nodes: any[]): OutlineItem[] {
+  const items: OutlineItem[] = [];
+  function walk(node: any) {
+    if (!node || typeof node !== "object") return;
+    if (node.type === "paragraph") {
+      const style = node.attrs?.style as StyledBlockStyleName | undefined;
+      const tierIdx = style ? OUTLINE_TIERS.indexOf(style) : -1;
+      if (tierIdx !== -1) {
+        const text = textContentOf(node).trim();
+        // No id yet (content saved before StyledParagraph's id-backfill
+        // plugin last ran) -- can't reliably locate its page, so skip it
+        // rather than link the wrong entry.
+        if (text && node.attrs?.id) items.push({ id: node.attrs.id, text, tier: tierIdx });
+      }
+    }
+    if (Array.isArray(node.content)) node.content.forEach(walk);
+  }
+  nodes.forEach(walk);
+  return items;
+}
+
+// T-1953/T-1962 front matter always ends in a horizontalRule sentinel --
+// the TOC belongs after it (and after the title/colophon pages it produced),
+// not before.
+function splitFrontMatter(content: any[]): { front: any[]; body: any[] } {
+  const ruleIdx = content.slice(0, 15).findIndex((n) => n?.type === "horizontalRule");
+  if (ruleIdx === -1) return { front: [], body: content };
+  return { front: content.slice(0, ruleIdx + 1), body: content.slice(ruleIdx + 1) };
+}
+
+function findPageIndexOfId(pages: PageLeaf[], id: string): number | null {
+  const idx = pages.findIndex((p) => p.html.includes(`data-id="${id}"`));
+  return idx === -1 ? null : idx;
+}
+
+function buildTocContent(outline: OutlineItem[], pageOf: (id: string) => number | null): any[] {
+  return [
+    { type: "paragraph", attrs: { style: "heading" }, content: [{ type: "text", text: "Зміст" }] },
+    ...outline.map((item) => ({
+      type: "tocEntry",
+      attrs: { text: item.text, page: pageOf(item.id), tier: item.tier },
+    })),
+  ];
+}
+
+// Same as paginateManuscript(), but auto-generates a "Зміст" page (or pages)
+// right after front matter from the document's own Розділ/Глава/Заголовок/
+// Підзаголовок headings, with real page numbers, forcing the body to start
+// on a fresh page after it. The TOC itself is never persisted to
+// manuscriptContent -- rebuilt fresh on every pagination pass here, so it
+// can never go stale as the author edits.
+export async function paginateManuscriptWithToc(
+  content: any,
+  contentWidth: number,
+  contentHeight: number,
+  fontSizePx?: number
+): Promise<PageLeaf[]> {
+  const doc = content ?? EMPTY_DOC;
+  const allContent: any[] = doc.content ?? [];
+  const { front, body } = splitFrontMatter(allContent);
+  const outline = extractOutlineFromDoc(body);
+
+  if (outline.length === 0) {
+    return paginateManuscript(doc, contentWidth, contentHeight, fontSizePx);
+  }
+
+  // Pass 1: paginate the document exactly as it stands today (no TOC) to
+  // learn which page each heading lands on -- front matter's own page count
+  // is already correctly baked into this; only the TOC's own (not yet
+  // known) page count still needs adding on top.
+  const basePages = await paginateManuscript(doc, contentWidth, contentHeight, fontSizePx);
+  const basePageOfId = (id: string) => {
+    const idx = findPageIndexOfId(basePages, id);
+    return idx === null ? null : idx + 1;
+  };
+
+  // Pass 2: converge on how many pages the TOC itself takes. Inserting it
+  // shifts every heading's printed number by exactly that count, and the
+  // count can itself change once those (now shifted, possibly wider) numbers
+  // are typeset into the TOC -- so iterate instead of assuming one page.
+  let tocPageCount = 1;
+  let tocContent = buildTocContent(outline, (id) => {
+    const base = basePageOfId(id);
+    return base === null ? null : base + tocPageCount;
+  });
+  for (let i = 0; i < 4; i++) {
+    const tocPages = await paginateManuscript(
+      { type: "doc", content: tocContent },
+      contentWidth,
+      contentHeight,
+      fontSizePx
+    );
+    if (tocPages.length === tocPageCount) break;
+    tocPageCount = tocPages.length;
+    tocContent = buildTocContent(outline, (id) => {
+      const base = basePageOfId(id);
+      return base === null ? null : base + tocPageCount;
+    });
+  }
+
+  const combinedDoc = {
+    type: "doc",
+    content: [...front, ...tocContent, { type: "pageBreak" }, ...body],
+  };
+  return paginateManuscript(combinedDoc, contentWidth, contentHeight, fontSizePx);
 }

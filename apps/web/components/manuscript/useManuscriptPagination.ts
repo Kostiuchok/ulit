@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { paginateManuscript, type PageLeaf } from "./paginateManuscript";
+import { paginateManuscriptWithToc, type PageLeaf } from "./paginateManuscript";
 
 interface Result {
   pages: PageLeaf[] | null;
@@ -21,7 +21,7 @@ export function useManuscriptPagination(
   useEffect(() => {
     let cancelled = false;
     setPages(null);
-    paginateManuscript(content, contentWidth, contentHeight, fontSizePx).then((result) => {
+    paginateManuscriptWithToc(content, contentWidth, contentHeight, fontSizePx).then((result) => {
       if (!cancelled) setPages(result);
     });
     return () => {

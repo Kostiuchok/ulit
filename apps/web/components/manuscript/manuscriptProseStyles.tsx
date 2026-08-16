@@ -34,6 +34,19 @@ export function ManuscriptProseStyles() {
         background: #fff; padding: 0 0.5em; font-size: 0.6875rem; color: #9ca3af; white-space: nowrap;
       }
 
+      .manuscript-prose div[data-type="toc-entry"] {
+        display: flex; align-items: baseline; margin: 0 0 0.5em;
+        border-bottom: 1px dotted #ccc; padding-bottom: 0.15em;
+      }
+      .manuscript-prose div[data-type="toc-entry"][data-tier="0"] { font-weight: 700; margin-top: 1em; }
+      .manuscript-prose div[data-type="toc-entry"][data-tier="1"] { font-weight: 600; margin-left: 1em; }
+      .manuscript-prose div[data-type="toc-entry"][data-tier="2"] { margin-left: 2em; }
+      .manuscript-prose div[data-type="toc-entry"][data-tier="3"] { margin-left: 3em; font-size: 0.92em; color: #444; }
+      .manuscript-prose .toc-entry-text {
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto;
+      }
+      .manuscript-prose .toc-entry-page { flex: none; margin-left: 0.75em; }
+
       .manuscript-prose img { max-width: 100%; height: auto; display: block; }
       .manuscript-prose [data-resize-container] { max-width: 100%; }
       /* Bare <img> direct children only -- this is what generateHTML() (the
