@@ -39,7 +39,7 @@ export async function enqueueConversionJobs(
 export async function getConversionStatus(bookId: string) {
   return prisma.conversionJob.findMany({
     where: { bookId },
-    select: { format: true, status: true, error: true, updatedAt: true },
+    select: { format: true, status: true, error: true, updatedAt: true, bullJobId: true },
     orderBy: { format: "asc" },
   });
 }

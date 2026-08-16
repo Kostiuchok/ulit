@@ -4,6 +4,7 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { getConversionStatus } from "../../services/publishing.service";
+import { bookQueue } from "../../lib/queue";
 
 const updateStatusSchema = z.object({
   format: z.string(),
@@ -36,7 +37,17 @@ export async function conversionStatusRoutes(app: FastifyInstance) {
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
 
       const jobs = await getConversionStatus(id);
-      return reply.send({ bookStatus: book.status, jobs });
+      const jobsWithProgress = await Promise.all(
+        jobs.map(async ({ bullJobId, ...j }) => {
+          if ((j.status === "PENDING" || j.status === "PROCESSING") && bullJobId) {
+            const bullJob = await bookQueue.getJob(bullJobId);
+            const progress = typeof bullJob?.progress === "number" ? bullJob.progress : undefined;
+            return { ...j, progress };
+          }
+          return j;
+        })
+      );
+      return reply.send({ bookStatus: book.status, jobs: jobsWithProgress });
     }
   );
 

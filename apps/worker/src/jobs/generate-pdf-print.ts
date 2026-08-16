@@ -18,15 +18,18 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
 
   try {
     await notifyJobStatus(bookId, "PRINT_PDF", "PROCESSING");
+    await job.updateProgress(5);
 
     const docxPath = path.join(tmpDir, "original.docx");
     await downloadToFile(docxObjectName, docxPath);
+    await job.updateProgress(15);
 
     // Step 1: LibreOffice → PDF
     execSync(
       `libreoffice --headless --convert-to pdf --outdir "${tmpDir}" "${docxPath}"`,
       { timeout: 120_000, stdio: "pipe" }
     );
+    await job.updateProgress(55);
 
     const sourcePdf = path.join(tmpDir, "original.pdf");
     if (!fs.existsSync(sourcePdf)) throw new Error("LibreOffice did not produce a PDF");
@@ -48,6 +51,7 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
         { timeout: 180_000, stdio: "pipe" }
       );
     }
+    await job.updateProgress(85);
 
     if (!fs.existsSync(outputPdf)) throw new Error("Ghostscript did not produce a print PDF");
 
@@ -65,9 +69,11 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
     } catch {
       // Non-fatal -- cost estimate falls back to the online pageCount.
     }
+    await job.updateProgress(95);
 
     const objectName = `private/books/${bookId}/print.pdf`;
     await uploadFromFile(objectName, outputPdf, "application/pdf");
+    await job.updateProgress(100);
 
     await notifyJobStatus(bookId, "PRINT_PDF", "DONE", { outputObjectName: objectName, printPageCount });
   } catch (err: any) {

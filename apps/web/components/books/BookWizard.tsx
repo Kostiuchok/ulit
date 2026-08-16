@@ -65,11 +65,13 @@ interface BookDraft {
 interface ConversionJobStatus {
   format: string;
   status: "PENDING" | "PROCESSING" | "DONE" | "FAILED";
+  progress?: number;
 }
 
 type PrintCost =
   | { status: "DONE"; softcoverCost: number; hardcoverCost: number }
-  | { status: "NO_PAGE_COUNT" };
+  | { status: "NO_PAGE_COUNT" }
+  | { status: "NO_SETTINGS" };
 
 type ManuscriptStage = "idle" | "polling" | "done" | "failed" | "skipped";
 
@@ -84,6 +86,7 @@ export function BookWizard() {
 
   const [manuscriptStage, setManuscriptStage] = useState<ManuscriptStage>("idle");
   const [printCost, setPrintCost] = useState<PrintCost | null>(null);
+  const [printProgress, setPrintProgress] = useState(0);
   const [pollElapsed, setPollElapsed] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -103,7 +106,10 @@ export function BookWizard() {
     try {
       const { jobs } = await apiFetch<{ jobs: ConversionJobStatus[] }>(`/api/books/${bookId}/conversion-status`);
       const printJob = jobs.find((j) => j.format === "PRINT_PDF");
-      if (printJob?.status !== "DONE" && printJob?.status !== "FAILED") return;
+      if (printJob?.status !== "DONE" && printJob?.status !== "FAILED") {
+        if (typeof printJob?.progress === "number") setPrintProgress(printJob.progress);
+        return;
+      }
 
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
       if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
@@ -124,6 +130,7 @@ export function BookWizard() {
     if (!draft) return;
     setManuscriptStage("polling");
     setPollElapsed(0);
+    setPrintProgress(0);
     checkPrintConversion(draft.id);
     pollRef.current = setInterval(() => checkPrintConversion(draft.id), 3000);
     tickRef.current = setInterval(() => setPollElapsed((s) => s + 1), 1000);
@@ -320,9 +327,17 @@ export function BookWizard() {
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border bg-gray-50 p-12 text-center">
             <p className="text-sm text-gray-700">Готуємо друковану версію, щоб порахувати сторінки…</p>
             <div className="relative h-1.5 w-64 overflow-hidden rounded-full bg-gray-200">
-              <div className="progress-indeterminate-bar absolute top-0 h-full rounded-full bg-gray-900" />
+              {printProgress > 0 ? (
+                <div
+                  className="absolute top-0 h-full rounded-full bg-gray-900 transition-all duration-500"
+                  style={{ width: `${printProgress}%` }}
+                />
+              ) : (
+                <div className="progress-indeterminate-bar absolute top-0 h-full rounded-full bg-gray-900" />
+              )}
             </div>
             <p className="text-xs text-gray-400">
+              {printProgress > 0 ? `${printProgress}% — ` : ""}
               {pollElapsed}с — зазвичай це займає менше хвилини
               {pollElapsed >= 45 && " (великий файл може тривати довше)"}
             </p>
@@ -625,7 +640,7 @@ function PrintCostHint({
   field,
   onGoToUpload,
 }: {
-  cost: { status: "DONE"; softcoverCost: number; hardcoverCost: number } | { status: "NO_PAGE_COUNT" } | null;
+  cost: PrintCost | null;
   field: "softcoverCost" | "hardcoverCost";
   onGoToUpload: () => void;
 }) {
@@ -635,6 +650,9 @@ function PrintCostHint({
         Собівартість виготовлення: ~{cost[field].toFixed(2)} грн
       </p>
     );
+  }
+  if (cost?.status === "NO_SETTINGS") {
+    return <p className="text-xs text-gray-400">Собівартість друку ще не налаштована адміном</p>;
   }
   return (
     <button type="button" onClick={onGoToUpload} className="text-xs text-gray-400 underline hover:text-gray-600">

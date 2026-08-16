@@ -30,9 +30,12 @@ const VECTOR_EXTENSIONS = new Set([".emf", ".wmf"]); // Word SmartArt/clipart
 // materialized). Uploads each extracted file to the same
 // public/manuscripts/{bookId}/ prefix the manual "insert image" toolbar
 // button uses (apps/api/.../manuscript-image.ts), and returns a map from
-// pandoc's own relative target path (e.g. "media/image1.png") to the
-// resulting public URL, so pandocToEditorDoc can resolve Image inlines to
-// real <img src> values instead of dropping them.
+// pandoc's own Image target -- verified against a real pandoc build to be
+// the FULL --extract-media path it was invoked with (e.g.
+// "/tmp/xyz/extracted/media/image1.png"), NOT a "media/image1.png" path
+// relative to that dir, despite what an earlier version of this comment
+// claimed -- to the resulting public URL, so pandocToEditorDoc can resolve
+// Image inlines to real <img src> values instead of dropping them.
 async function extractAndUploadMedia(
   mediaDir: string,
   bookId: string,
@@ -92,7 +95,11 @@ async function extractAndUploadMedia(
 
       const objectName = `public/manuscripts/${bookId}/${randomUUID()}${path.extname(uploadPath).toLowerCase()}`;
       await uploadFromFile(objectName, uploadPath, contentType);
-      map[`media/${filename}`] = publicUrl(objectName);
+      // Keyed by the ORIGINAL file's path as pandoc referenced it in the
+      // AST (path.join(mediaSubdir, filename)) -- not `uploadPath`, which
+      // for TIFF/EMF/WMF has already been swapped to a *.converted.png /
+      // *.png sibling that pandoc never mentions.
+      map[path.join(mediaSubdir, filename)] = publicUrl(objectName);
     } finally {
       onFileDone?.(i + 1, files.length);
     }

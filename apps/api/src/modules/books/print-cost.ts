@@ -28,7 +28,9 @@ export async function bookPrintCostRoutes(app: FastifyInstance) {
 
       const settings = await prisma.printCostSettings.findUnique({ where: { id: SETTINGS_ID } });
       if (!settings) {
-        return reply.send({ status: "NO_PAGE_COUNT" });
+        // Distinct from NO_PAGE_COUNT -- the manuscript is fine, nobody has
+        // saved rates yet at /admin/settings/print-cost.
+        return reply.send({ status: "NO_SETTINGS" });
       }
 
       const softcoverCost = Number(settings.baseCostSoftcover) + pageCount * Number(settings.costPerPage);
