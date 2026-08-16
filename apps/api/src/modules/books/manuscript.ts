@@ -52,7 +52,7 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
           }
         }
 
-        await bookQueue.add(
+        const job = await bookQueue.add(
           "MANUSCRIPT_IMPORT",
           { bookId: id, format: "MANUSCRIPT_IMPORT", docxObjectName: book.originalDocxUrl },
           {
@@ -63,7 +63,8 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
             removeOnFail: { count: 10 },
           }
         );
-        return reply.send({ status: "PROCESSING" });
+        const progress = typeof job.progress === "number" ? job.progress : 0;
+        return reply.send({ status: "PROCESSING", progress });
       }
 
       return reply.send({

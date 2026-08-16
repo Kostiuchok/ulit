@@ -27,7 +27,7 @@ interface ManuscriptBook {
 
 type ManuscriptStatus =
   | { status: "NO_DOCX" }
-  | { status: "PROCESSING" }
+  | { status: "PROCESSING"; progress?: number }
   | { status: "DONE"; content: any; styleOverrides: Record<string, any> };
 
 export default function ManuscriptEditorPage() {
@@ -134,6 +134,7 @@ export default function ManuscriptEditorPage() {
   }
 
   if (!manuscript || manuscript.status !== "DONE") {
+    const progress = manuscript?.status === "PROCESSING" ? manuscript.progress ?? 0 : 0;
     return (
       <div className="flex h-full overflow-hidden">
         <AuthorBooksSidebar />
@@ -142,9 +143,17 @@ export default function ManuscriptEditorPage() {
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border bg-white p-16 shadow-sm">
               <p className="text-sm text-gray-700">Імпортуємо рукопис у редактор…</p>
               <div className="relative h-1.5 w-64 overflow-hidden rounded-full bg-gray-200">
-                <div className="progress-indeterminate-bar absolute top-0 h-full rounded-full bg-gray-900" />
+                {progress > 0 ? (
+                  <div
+                    className="absolute top-0 h-full rounded-full bg-gray-900 transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  />
+                ) : (
+                  <div className="progress-indeterminate-bar absolute top-0 h-full rounded-full bg-gray-900" />
+                )}
               </div>
               <p className="text-xs text-gray-400">
+                {progress > 0 ? `${progress}% — ` : ""}
                 {elapsed}с — зазвичай це займає менше хвилини
                 {elapsed >= 45 && " (великий файл може тривати довше — не закривайте сторінку)"}
               </p>

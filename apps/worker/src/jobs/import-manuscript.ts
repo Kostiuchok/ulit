@@ -33,7 +33,11 @@ const VECTOR_EXTENSIONS = new Set([".emf", ".wmf"]); // Word SmartArt/clipart
 // pandoc's own relative target path (e.g. "media/image1.png") to the
 // resulting public URL, so pandocToEditorDoc can resolve Image inlines to
 // real <img src> values instead of dropping them.
-async function extractAndUploadMedia(mediaDir: string, bookId: string): Promise<Record<string, string>> {
+async function extractAndUploadMedia(
+  mediaDir: string,
+  bookId: string,
+  onFileDone?: (done: number, total: number) => void
+): Promise<Record<string, string>> {
   const map: Record<string, string> = {};
   const mediaSubdir = path.join(mediaDir, "media");
   if (!fs.existsSync(mediaSubdir)) return map;
@@ -61,33 +65,37 @@ async function extractAndUploadMedia(mediaDir: string, bookId: string): Promise<
     }
   }
 
-  for (const filename of files) {
-    const ext = path.extname(filename).toLowerCase();
-    let uploadPath = path.join(mediaSubdir, filename);
-    let contentType = DIRECT_IMAGE_CONTENT_TYPES[ext];
+  for (const [i, filename] of files.entries()) {
+    try {
+      const ext = path.extname(filename).toLowerCase();
+      let uploadPath = path.join(mediaSubdir, filename);
+      let contentType = DIRECT_IMAGE_CONTENT_TYPES[ext];
 
-    if (!contentType && TIFF_EXTENSIONS.has(ext)) {
-      try {
-        const pngPath = path.join(mediaSubdir, `${path.parse(filename).name}.converted.png`);
-        await sharp(uploadPath).png().toFile(pngPath);
-        uploadPath = pngPath;
+      if (!contentType && TIFF_EXTENSIONS.has(ext)) {
+        try {
+          const pngPath = path.join(mediaSubdir, `${path.parse(filename).name}.converted.png`);
+          await sharp(uploadPath).png().toFile(pngPath);
+          uploadPath = pngPath;
+          contentType = "image/png";
+        } catch (err: any) {
+          console.error(`[worker] TIFF conversion failed for ${filename} (book ${bookId}):`, err.message);
+          continue;
+        }
+      } else if (!contentType && VECTOR_EXTENSIONS.has(ext)) {
+        const convertedPath = path.join(mediaSubdir, `${path.parse(filename).name}.png`);
+        if (!fs.existsSync(convertedPath)) continue; // rasterization above failed or skipped this file
+        uploadPath = convertedPath;
         contentType = "image/png";
-      } catch (err: any) {
-        console.error(`[worker] TIFF conversion failed for ${filename} (book ${bookId}):`, err.message);
-        continue;
       }
-    } else if (!contentType && VECTOR_EXTENSIONS.has(ext)) {
-      const convertedPath = path.join(mediaSubdir, `${path.parse(filename).name}.png`);
-      if (!fs.existsSync(convertedPath)) continue; // rasterization above failed or skipped this file
-      uploadPath = convertedPath;
-      contentType = "image/png";
+
+      if (!contentType) continue; // still-unsupported format -- drop rather than upload a broken image
+
+      const objectName = `public/manuscripts/${bookId}/${randomUUID()}${path.extname(uploadPath).toLowerCase()}`;
+      await uploadFromFile(objectName, uploadPath, contentType);
+      map[`media/${filename}`] = publicUrl(objectName);
+    } finally {
+      onFileDone?.(i + 1, files.length);
     }
-
-    if (!contentType) continue; // still-unsupported format -- drop rather than upload a broken image
-
-    const objectName = `public/manuscripts/${bookId}/${randomUUID()}${path.extname(uploadPath).toLowerCase()}`;
-    await uploadFromFile(objectName, uploadPath, contentType);
-    map[`media/${filename}`] = publicUrl(objectName);
   }
   return map;
 }
@@ -103,19 +111,32 @@ export async function importManuscript(job: Job<ManuscriptImportData>) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `book-${bookId}-manuscript-`));
 
   try {
+    await job.updateProgress(5);
     const docxPath = path.join(tmpDir, "original.docx");
     await downloadToFile(docxObjectName, docxPath);
+    await job.updateProgress(15);
 
     const mediaDir = path.join(tmpDir, "extracted");
     const jsonOutput = execSync(`pandoc "${docxPath}" -t json --extract-media="${mediaDir}"`, {
       timeout: 60_000,
       maxBuffer: 50 * 1024 * 1024,
     }).toString("utf-8");
+    await job.updateProgress(30);
 
-    const mediaMap = await extractAndUploadMedia(mediaDir, bookId);
+    // Real per-image progress within the 30-70% band -- the only part of
+    // this job with more than one unit of work to report against; download
+    // and pandoc conversion above are each a single opaque step.
+    const mediaMap = await extractAndUploadMedia(mediaDir, bookId, (done, total) => {
+      job.updateProgress(30 + Math.round((done / total) * 40)).catch(() => {});
+    });
+    await job.updateProgress(70);
+
     const imageAlignments = extractImageAlignments(docxPath);
+    await job.updateProgress(80);
+
     const pandocDoc = JSON.parse(jsonOutput);
     const editorDoc = pandocToEditorDoc(pandocDoc, mediaMap, imageAlignments);
+    await job.updateProgress(90);
 
     await prisma.book.update({
       where: { id: bookId },
@@ -124,6 +145,7 @@ export async function importManuscript(job: Job<ManuscriptImportData>) {
         manuscriptImportedAt: new Date(),
       },
     });
+    await job.updateProgress(100);
 
     console.log(`[worker] MANUSCRIPT_IMPORT for ${bookId}: imported`);
   } catch (err: any) {
