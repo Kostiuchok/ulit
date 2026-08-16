@@ -455,7 +455,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         <nav className="pb-4">
           {outline.length === 0 && (
             <p className="px-8 text-[0.8125rem] text-gray-400">
-              Позначте розділ/главу/заголовок через панель "Стилі тексту" праворуч — вони з'являться тут.
+              Позначте розділ/главу/заголовок через панель &quot;Стилі тексту&quot; праворуч — вони з&apos;являться тут.
             </p>
           )}
           {outline.map((item) => (
@@ -831,7 +831,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         <div className="space-y-2">
           {authorStyleSets.length === 0 && !showSaveSetForm && (
             <p className="text-[0.75rem] text-gray-400">
-              Тут з'являться ваші збережені набори стилів — доступні для будь-якої вашої книги.
+              Тут з&apos;являться ваші збережені набори стилів — доступні для будь-якої вашої книги.
             </p>
           )}
           {authorStyleSets.map((set) => (

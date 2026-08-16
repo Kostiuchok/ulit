@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
+import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop, convertToPixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { useDropzone } from "react-dropzone";
 import { Button } from "../ui/button";
@@ -49,7 +49,12 @@ export function AvatarUploader({ currentAvatarUrl, onSuccess }: Props) {
 
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height));
+    const crop = centerAspectCrop(width, height);
+    setCrop(crop);
+    // ReactCrop's onComplete only fires after the user drags the crop box --
+    // seed completedCrop here too, so "Зберегти фото" works even if the
+    // author accepts the auto-centered crop without touching it.
+    setCompletedCrop(convertToPixelCrop(crop, width, height));
   }
 
   async function handleUpload() {

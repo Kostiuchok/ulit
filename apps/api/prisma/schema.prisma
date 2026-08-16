@@ -173,6 +173,7 @@ model Book {
   coAuthors            Json?
   language             String               @default("uk")
   pageCount            Int?
+  printPageCount       Int? // page count of the real print-trim PDF (printPdfUrl) -- distinct from pageCount, which is derived from the online-viewer PDF at Word's own page size; used for print-cost estimates
   pagesGeneratedAt     DateTime?
   previewStart         Int?
   previewEnd           Int?
@@ -261,4 +262,16 @@ model ConversionJob {
 
   @@unique([bookId, format])
   @@index([bookId])
+}
+
+// Single-row platform-wide print production cost config, edited from
+// /admin/settings/print-cost. Not per-book -- print trim size is fixed
+// platform-wide (see CoverDesignerCanvas.tsx), so one cost formula applies
+// to every book: baseCost(cover type) + printPageCount * costPerPage.
+model PrintCostSettings {
+  id                String   @id @default("singleton")
+  baseCostSoftcover Decimal  @db.Decimal(10, 2)
+  baseCostHardcover Decimal  @db.Decimal(10, 2)
+  costPerPage       Decimal  @db.Decimal(10, 4)
+  updatedAt         DateTime @updatedAt
 }

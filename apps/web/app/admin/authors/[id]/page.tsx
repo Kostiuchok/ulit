@@ -303,7 +303,7 @@ export default function AdminAuthorDetailPage() {
 
                     <div className="mt-2 flex gap-4 text-xs text-gray-400">
                       {book.priceEbook && <span>Е-книга: {book.priceEbook} грн</span>}
-                      {book.pricePrint && <span>Друк (м'яка): {book.pricePrint} грн</span>}
+                      {book.pricePrint && <span>Друк (м&apos;яка): {book.pricePrint} грн</span>}
                       {book.pricePrintHardcover && <span>Друк (тверда): {book.pricePrintHardcover} грн</span>}
                       <span>Додано: {new Date(book.createdAt).toLocaleDateString("uk-UA")}</span>
                       {book.publishedAt && (

@@ -433,7 +433,7 @@ function OutputDataContent() {
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="pricePrint">Друк, м'яка (грн)</Label>
+                  <Label htmlFor="pricePrint">Друк, м&apos;яка (грн)</Label>
                   <Input
                     id="pricePrint"
                     type="number"
@@ -469,7 +469,7 @@ function OutputDataContent() {
                 </p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="pricePrintBw">Друк ч/б, м'яка (грн)</Label>
+                    <Label htmlFor="pricePrintBw">Друк ч/б, м&apos;яка (грн)</Label>
                     <Input
                       id="pricePrintBw"
                       type="number"

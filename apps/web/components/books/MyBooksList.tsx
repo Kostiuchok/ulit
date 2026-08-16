@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { BookCard } from "@/components/books/BookCard";
 import { DeleteBookModal } from "@/components/books/DeleteBookModal";
 import { PurgeArchivedModal } from "@/components/books/PurgeArchivedModal";
@@ -14,6 +15,10 @@ interface Book {
   title: string;
   description?: string | null;
   status: string;
+  moderationStatus?: string;
+  d2dStatus?: string;
+  kdpStatus?: string;
+  googleStatus?: string;
   coverUrl?: string | null;
   priceEbook?: string | null;
   pricePrint?: string | null;
@@ -30,8 +35,20 @@ interface Book {
 // under the author profile tabs (/dashboard/settings/books) — the "Мої
 // книги" profile tab needs the same content without leaving that layout,
 // or the author loses the profile menu with no way back to it.
+const FILTERS: Record<string, { label: string; test: (b: Book) => boolean }> = {
+  published: { label: "Опубліковано", test: (b) => b.status === "PUBLISHED" },
+  pending: { label: "На затвердженні адміном", test: (b) => b.status === "REVIEW" },
+  distributed: {
+    label: "На сторонніх сервісах",
+    test: (b) => b.d2dStatus === "PUBLISHED" || b.kdpStatus === "PUBLISHED" || b.googleStatus === "PUBLISHED",
+  },
+  rejected: { label: "Повернуто на доопрацювання", test: (b) => b.moderationStatus === "REJECTED" },
+};
+
 export function MyBooksList() {
   const { apiFetch, token } = useApi();
+  const searchParams = useSearchParams();
+  const activeFilter = searchParams.get("filter");
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +83,9 @@ export function MyBooksList() {
     }
   }
 
-  const activeBooks = books.filter((b) => b.status !== "ARCHIVED");
+  const activeStatusBooks = books.filter((b) => b.status !== "ARCHIVED");
+  const filterDef = activeFilter ? FILTERS[activeFilter] : undefined;
+  const activeBooks = filterDef ? activeStatusBooks.filter(filterDef.test) : activeStatusBooks;
   const archivedBooks = books.filter((b) => b.status === "ARCHIVED");
 
   return (
@@ -85,6 +104,17 @@ export function MyBooksList() {
             <Button>+ Нова книга</Button>
           </Link>
         </div>
+
+        {filterDef && (
+          <div className="mb-6 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
+            <span>
+              Фільтр: <strong>{filterDef.label}</strong>
+            </span>
+            <Link href="/dashboard/books" className="text-gray-500 underline hover:text-gray-700">
+              Скинути фільтр
+            </Link>
+          </div>
+        )}
 
         {loading ? (
           <div className="space-y-4">

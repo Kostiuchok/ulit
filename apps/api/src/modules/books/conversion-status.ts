@@ -10,6 +10,7 @@ const updateStatusSchema = z.object({
   status: z.enum(["PENDING", "PROCESSING", "DONE", "FAILED"]),
   error: z.string().optional(),
   outputObjectName: z.string().optional(),
+  printPageCount: z.number().int().positive().optional(),
 });
 
 const FORMAT_URL_FIELD: Record<string, string> = {
@@ -55,7 +56,7 @@ export async function conversionStatusRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: result.error.errors[0].message });
       }
 
-      const { format, status, error, outputObjectName } = result.data;
+      const { format, status, error, outputObjectName, printPageCount } = result.data;
 
       await prisma.conversionJob.update({
         where: { bookId_format: { bookId: id, format } },
@@ -67,7 +68,10 @@ export async function conversionStatusRoutes(app: FastifyInstance) {
         if (field) {
           await prisma.book.update({
             where: { id },
-            data: { [field]: outputObjectName },
+            data: {
+              [field]: outputObjectName,
+              ...(format === "PRINT_PDF" && printPageCount ? { printPageCount } : {}),
+            },
             select: { id: true },
           });
         }

@@ -5,7 +5,7 @@ export async function notifyJobStatus(
   bookId: string,
   format: string,
   status: "PROCESSING" | "DONE" | "FAILED",
-  opts?: { error?: string; outputObjectName?: string }
+  opts?: { error?: string; outputObjectName?: string; printPageCount?: number }
 ) {
   await fetch(`${API_URL}/api/books/${bookId}/job-status`, {
     method: "POST",

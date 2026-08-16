@@ -65,7 +65,7 @@ export default function ServicesPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Сервіси дистрибуції</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Увімкніть або вимкніть кожен сервіс. Вимкнені сервіси не з'являтимуться в черзі дистрибуції.
+          Увімкніть або вимкніть кожен сервіс. Вимкнені сервіси не з&apos;являтимуться в черзі дистрибуції.
         </p>
       </div>
 

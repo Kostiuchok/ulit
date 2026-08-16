@@ -27,6 +27,7 @@ import { publishRoute } from "./modules/books/publish";
 import { republishRoute } from "./modules/books/republish";
 import { authorStatsRoutes } from "./modules/books/stats";
 import { bookPagesRoutes } from "./modules/books/pages";
+import { bookPrintCostRoutes } from "./modules/books/print-cost";
 import { bookManuscriptRoutes } from "./modules/books/manuscript";
 import { uploadManuscriptImageRoute } from "./modules/books/manuscript-image";
 import { authorStyleSetRoutes } from "./modules/books/style-sets";
@@ -37,6 +38,7 @@ import { royaltiesMeRoutes } from "./modules/royalties/me";
 import { liqpayRoutes } from "./modules/payments/liqpay";
 import { adminRoutes } from "./modules/admin/admin";
 import { bookChamberRoutes } from "./modules/admin/book-chamber";
+import { printCostSettingsRoutes } from "./modules/admin/print-cost-settings";
 import { startEmailWorker } from "./lib/email-queue";
 import { metricsRegistry } from "./lib/metrics";
 
@@ -118,6 +120,7 @@ async function bootstrap() {
   await app.register(publishRoute);
   await app.register(republishRoute);
   await app.register(bookPagesRoutes);
+  await app.register(bookPrintCostRoutes);
   await app.register(bookManuscriptRoutes);
   await app.register(uploadManuscriptImageRoute);
   await app.register(authorStyleSetRoutes);
@@ -129,6 +132,7 @@ async function bootstrap() {
   await app.register(liqpayRoutes);
   await app.register(adminRoutes);
   await app.register(bookChamberRoutes);
+  await app.register(printCostSettingsRoutes);
 
   // Auto-promote ADMIN_EMAIL to ADMIN role (safe: only upgrades AUTHOR, never downgrades)
   const adminEmail = process.env.ADMIN_EMAIL;

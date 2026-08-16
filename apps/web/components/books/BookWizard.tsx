@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { DocxUploader } from "../dashboard/DocxUploader";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
 
@@ -61,6 +62,17 @@ interface BookDraft {
   slug: string;
 }
 
+interface ConversionJobStatus {
+  format: string;
+  status: "PENDING" | "PROCESSING" | "DONE" | "FAILED";
+}
+
+type PrintCost =
+  | { status: "DONE"; softcoverCost: number; hardcoverCost: number }
+  | { status: "NO_PAGE_COUNT" };
+
+type ManuscriptStage = "idle" | "polling" | "done" | "failed" | "skipped";
+
 export function BookWizard() {
   const router = useRouter();
   const { apiFetch } = useApi();
@@ -70,8 +82,57 @@ export function BookWizard() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const [manuscriptStage, setManuscriptStage] = useState<ManuscriptStage>("idle");
+  const [printCost, setPrintCost] = useState<PrintCost | null>(null);
+  const [pollElapsed, setPollElapsed] = useState(0);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (tickRef.current) clearInterval(tickRef.current);
+    };
+  }, []);
+
   const step1 = useForm<Step1Form>({ resolver: zodResolver(step1Schema), defaultValues: { language: "uk" } });
   const step3 = useForm<Step3Form>({ resolver: zodResolver(step3Schema) });
+
+  // ── Manuscript upload → print-cost pipeline (step "Файл") ──────────────────
+  async function checkPrintConversion(bookId: string) {
+    try {
+      const { jobs } = await apiFetch<{ jobs: ConversionJobStatus[] }>(`/api/books/${bookId}/conversion-status`);
+      const printJob = jobs.find((j) => j.format === "PRINT_PDF");
+      if (printJob?.status !== "DONE" && printJob?.status !== "FAILED") return;
+
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+
+      if (printJob.status === "DONE") {
+        const cost = await apiFetch<PrintCost>(`/api/books/${bookId}/print-cost`);
+        setPrintCost(cost);
+        setManuscriptStage("done");
+      } else {
+        setManuscriptStage("failed");
+      }
+    } catch {
+      // Transient network error — keep polling, don't abort the wizard.
+    }
+  }
+
+  function handleDocxUploaded() {
+    if (!draft) return;
+    setManuscriptStage("polling");
+    setPollElapsed(0);
+    checkPrintConversion(draft.id);
+    pollRef.current = setInterval(() => checkPrintConversion(draft.id), 3000);
+    tickRef.current = setInterval(() => setPollElapsed((s) => s + 1), 1000);
+  }
+
+  function handleSkipUpload() {
+    setManuscriptStage("skipped");
+    setStep(2);
+  }
 
   // ── Step 1: Basic info ──────────────────────────────────────────────────────
   const submitStep1 = step1.handleSubmit(async (data) => {
@@ -230,31 +291,69 @@ export function BookWizard() {
 
           {errorBanner}
           <div className="flex justify-end">
-            <Button type="submit" loading={saving}>Далі →</Button>
+            <Button type="submit" loading={saving}>Зберегти і перейти на наступний крок →</Button>
           </div>
         </form>
       </div>
     );
   }
 
-  // Step 1 — Upload DOCX (Phase 4 will wire up the actual job)
+  // Step 1 — Upload DOCX, then wait for the print-PDF job so we know the
+  // real print page count before showing prices/cost estimates in step 2.
   if (step === 1) {
+    const showUploader = manuscriptStage === "idle" && draft;
+
     return (
       <div>
         {progress}
         <h2 className="text-lg font-semibold mb-2">Завантажити рукопис</h2>
-        <p className="text-sm text-gray-500 mb-6">Підтримуються файли .docx (Word). Максимальний розмір — 50 MB.</p>
+        <p className="text-sm text-gray-500 mb-6">
+          Підтримуються файли .docx (Word). Максимальний розмір — 50 MB. Це дозволить показати
+          орієнтовну собівартість друку на наступному кроці.
+        </p>
 
-        <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center">
-          <div className="text-4xl mb-3">📄</div>
-          <p className="text-sm font-medium text-gray-700">Завантаження DOCX буде доступне в наступному оновленні</p>
-          <p className="text-xs text-gray-400 mt-1">Ви зможете перейти далі та повернутись до завантаження пізніше</p>
-        </div>
+        {showUploader && (
+          <DocxUploader bookId={draft!.id} onUploadSuccess={handleDocxUploaded} />
+        )}
+
+        {manuscriptStage === "polling" && (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border bg-gray-50 p-12 text-center">
+            <p className="text-sm text-gray-700">Готуємо друковану версію, щоб порахувати сторінки…</p>
+            <div className="relative h-1.5 w-64 overflow-hidden rounded-full bg-gray-200">
+              <div className="progress-indeterminate-bar absolute top-0 h-full rounded-full bg-gray-900" />
+            </div>
+            <p className="text-xs text-gray-400">
+              {pollElapsed}с — зазвичай це займає менше хвилини
+              {pollElapsed >= 45 && " (великий файл може тривати довше)"}
+            </p>
+          </div>
+        )}
+
+        {manuscriptStage === "done" && (
+          <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+            <span>✓</span>
+            <span>Рукопис оброблено. Собівартість друку буде показана на наступному кроці.</span>
+          </div>
+        )}
+
+        {manuscriptStage === "failed" && (
+          <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+            <span>⚠</span>
+            <span>Не вдалось підготувати друковану версію. Ви можете продовжити — собівартість друку буде недоступна, поки це не буде виправлено.</span>
+          </div>
+        )}
 
         {errorBanner}
         <div className="flex justify-between mt-6">
           <Button variant="outline" onClick={() => setStep(0)}>← Назад</Button>
-          <Button onClick={() => setStep(2)}>Далі →</Button>
+          <div className="flex gap-2">
+            {manuscriptStage !== "done" && manuscriptStage !== "polling" && (
+              <Button variant="outline" onClick={handleSkipUpload}>Пропустити завантаження зараз</Button>
+            )}
+            <Button onClick={() => setStep(2)} disabled={manuscriptStage === "polling"}>
+              {manuscriptStage === "done" ? "Зберегти і перейти на наступний крок →" : "Далі →"}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -295,7 +394,7 @@ export function BookWizard() {
             <div className="rounded-lg border p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">📗</span>
-                <p className="font-medium">Друкована, м'яка обкладинка</p>
+                <p className="font-medium">Друкована, м&apos;яка обкладинка</p>
               </div>
               <p className="text-xs text-gray-500">PDF/X-3 для типографії — замовлення на друк</p>
               <div className="space-y-1">
@@ -311,6 +410,7 @@ export function BookWizard() {
                 {step3.formState.errors.pricePrint && (
                   <p className="text-xs text-red-500">{step3.formState.errors.pricePrint.message}</p>
                 )}
+                <PrintCostHint cost={printCost} field="softcoverCost" onGoToUpload={() => setStep(1)} />
               </div>
             </div>
 
@@ -333,6 +433,7 @@ export function BookWizard() {
                 {step3.formState.errors.pricePrintHardcover && (
                   <p className="text-xs text-red-500">{step3.formState.errors.pricePrintHardcover.message}</p>
                 )}
+                <PrintCostHint cost={printCost} field="hardcoverCost" onGoToUpload={() => setStep(1)} />
               </div>
             </div>
           </div>
@@ -340,7 +441,7 @@ export function BookWizard() {
           {errorBanner}
           <div className="flex justify-between">
             <Button variant="outline" type="button" onClick={() => setStep(1)}>← Назад</Button>
-            <Button type="submit" loading={saving}>Далі →</Button>
+            <Button type="submit" loading={saving}>Зберегти і перейти на наступний крок →</Button>
           </div>
         </form>
       </div>
@@ -445,7 +546,7 @@ export function BookWizard() {
         {errorBanner}
         <div className="flex justify-between mt-6">
           <Button variant="outline" onClick={() => setStep(2)}>← Назад</Button>
-          <Button onClick={submitDistribution} loading={saving}>Далі →</Button>
+          <Button onClick={submitDistribution} loading={saving}>Зберегти і перейти на наступний крок →</Button>
         </div>
       </div>
     );
@@ -490,8 +591,10 @@ export function BookWizard() {
         </div>
 
         <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700 mb-6">
-          <strong>Наступний крок після збереження чернетки:</strong> завантажте DOCX-рукопис та обкладинку,
-          після чого книга буде відправлена на модерацію.
+          <strong>Наступний крок після збереження чернетки:</strong>{" "}
+          {manuscriptStage === "done"
+            ? "завантажте обкладинку, після чого книга буде відправлена на модерацію."
+            : "завантажте рукопис (якщо пропустили) та обкладинку, після чого книга буде відправлена на модерацію."}
         </div>
 
         {errorBanner}
@@ -514,5 +617,28 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
       <span className="text-gray-500">{label}</span>
       <span className={cn("font-medium text-gray-900", mono && "font-mono text-xs")}>{value}</span>
     </div>
+  );
+}
+
+function PrintCostHint({
+  cost,
+  field,
+  onGoToUpload,
+}: {
+  cost: { status: "DONE"; softcoverCost: number; hardcoverCost: number } | { status: "NO_PAGE_COUNT" } | null;
+  field: "softcoverCost" | "hardcoverCost";
+  onGoToUpload: () => void;
+}) {
+  if (cost?.status === "DONE") {
+    return (
+      <p className="text-xs text-gray-400">
+        Собівартість виготовлення: ~{cost[field].toFixed(2)} грн
+      </p>
+    );
+  }
+  return (
+    <button type="button" onClick={onGoToUpload} className="text-xs text-gray-400 underline hover:text-gray-600">
+      Завантажте рукопис, щоб побачити собівартість
+    </button>
   );
 }

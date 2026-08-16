@@ -68,7 +68,7 @@ export function BookCard({ book, onDelete }: Props) {
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-3 text-[0.75rem] text-gray-500">
             {book.priceEbook && <span>Е-книга: {Number(book.priceEbook).toFixed(0)} грн</span>}
-            {book.pricePrint && <span>Друк (м'яка): {Number(book.pricePrint).toFixed(0)} грн</span>}
+            {book.pricePrint && <span>Друк (м&apos;яка): {Number(book.pricePrint).toFixed(0)} грн</span>}
             {book.pricePrintHardcover && <span>Друк (тверда): {Number(book.pricePrintHardcover).toFixed(0)} грн</span>}
             {book.isbn && <span>ISBN: {book.isbn}</span>}
           </div>

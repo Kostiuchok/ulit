@@ -64,7 +64,7 @@ export default function RegisterPage() {
         <div className="bg-white rounded-xl shadow-sm border p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="name">Ім'я та прізвище</Label>
+              <Label htmlFor="name">Ім&apos;я та прізвище</Label>
               <Input
                 id="name"
                 type="text"

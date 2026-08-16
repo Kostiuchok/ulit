@@ -156,7 +156,7 @@ export function BookDashboard() {
               <div className="rounded-md border bg-white p-4 shadow-sm space-y-3">
                 <div className="space-y-1 text-sm text-black">
                   {book?.priceEbook && <p>Електронна - {Number(book.priceEbook).toFixed(0)} грн</p>}
-                  {book?.pricePrint && <p>Друк, м'яка - {Number(book.pricePrint).toFixed(0)} грн</p>}
+                  {book?.pricePrint && <p>Друк, м&apos;яка - {Number(book.pricePrint).toFixed(0)} грн</p>}
                   {book?.pricePrintHardcover && <p>Друк, тверда - {Number(book.pricePrintHardcover).toFixed(0)} грн</p>}
                 </div>
                 <Link

@@ -30,7 +30,7 @@ export default function PrivacyPage() {
 
           <h3 className="text-base font-semibold text-gray-800 mb-2 mt-4">2.1 Дані акаунта</h3>
           <ul className="list-disc list-inside space-y-1.5 ml-4">
-            <li>Ім'я та прізвище (або псевдонім)</li>
+            <li>Ім&apos;я та прізвище (або псевдонім)</li>
             <li>Адреса електронної пошти</li>
             <li>Хешований пароль (ми не зберігаємо паролі у відкритому вигляді)</li>
             <li>Аватар (за бажанням)</li>
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-3">6. Файли Cookie</h2>
           <p>Ми використовуємо наступні типи cookie:</p>
           <ul className="list-disc list-inside space-y-1.5 ml-4">
-            <li><strong>Обов'язкові</strong> — сесія авторизації (NextAuth.js), захист CSRF;</li>
+            <li><strong>Обов&apos;язкові</strong> — сесія авторизації (NextAuth.js), захист CSRF;</li>
             <li><strong>Функціональні</strong> — збереження налаштувань читача (тема EPUB);</li>
             <li><strong>Аналітичні</strong> — анонімна статистика відвідуваності (тільки за вашою згодою).</li>
           </ul>

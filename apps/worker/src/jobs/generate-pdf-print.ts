@@ -51,10 +51,25 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
 
     if (!fs.existsSync(outputPdf)) throw new Error("Ghostscript did not produce a print PDF");
 
+    // Real print-trim page count (differs from the online-viewer pageCount,
+    // which is derived from the plain LibreOffice PDF at Word's own page
+    // size) -- used for print-cost estimates.
+    let printPageCount: number | undefined;
+    try {
+      const pageCountOutput = execSync(
+        `gs -q -dNODISPLAY -dNOSAFER -c "(${outputPdf}) (r) file runpdfbegin pdfpagecount = quit"`,
+        { timeout: 30_000, stdio: "pipe" }
+      ).toString().trim();
+      const parsed = parseInt(pageCountOutput, 10);
+      if (Number.isFinite(parsed) && parsed > 0) printPageCount = parsed;
+    } catch {
+      // Non-fatal -- cost estimate falls back to the online pageCount.
+    }
+
     const objectName = `private/books/${bookId}/print.pdf`;
     await uploadFromFile(objectName, outputPdf, "application/pdf");
 
-    await notifyJobStatus(bookId, "PRINT_PDF", "DONE", { outputObjectName: objectName });
+    await notifyJobStatus(bookId, "PRINT_PDF", "DONE", { outputObjectName: objectName, printPageCount });
   } catch (err: any) {
     await notifyJobStatus(bookId, "PRINT_PDF", "FAILED", { error: err.message });
     throw err;

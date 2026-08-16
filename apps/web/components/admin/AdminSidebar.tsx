@@ -32,6 +32,7 @@ const NAV: NavItem[] = [
   },
   { href: "/admin/royalties", label: "Роялті", icon: "💰" },
   { href: "/admin/authors", label: "Автори", icon: "👤" },
+  { href: "/admin/settings/print-cost", label: "Собівартість друку", icon: "💵" },
   { href: "/admin/services", label: "Сервіси", icon: "⚙️" },
 ];
 

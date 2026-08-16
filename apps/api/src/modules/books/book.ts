@@ -48,6 +48,7 @@ const BOOK_SELECT = {
   coAuthors: true,
   language: true,
   pageCount: true,
+  printPageCount: true,
   pagesGeneratedAt: true,
   previewStart: true,
   previewEnd: true,

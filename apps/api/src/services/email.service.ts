@@ -19,8 +19,11 @@ const FROM = process.env.SMTP_FROM || "noreply@knyha.ua";
 
 async function sendMail(to: string, subject: string, html: string) {
   const info = await transporter.sendMail({ from: `Knyha <${FROM}>`, to, subject, html });
-  if (process.env.SMTP_HOST === undefined) {
-    console.log("[email] (dev transport)", JSON.parse((info as any).message));
+  if (!process.env.SMTP_HOST) {
+    // No real SMTP configured -- nodemailer's jsonTransport accepted the
+    // message but never actually sent it. Log loudly so a missing SMTP_HOST
+    // in production isn't silently indistinguishable from a real send.
+    console.warn("[email] SMTP_HOST not set -- email NOT actually sent:", { to, subject });
   }
 }
 

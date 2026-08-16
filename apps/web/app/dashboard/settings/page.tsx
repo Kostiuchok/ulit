@@ -143,7 +143,7 @@ export default function SettingsPage() {
           <h2 className="text-base font-semibold mb-5">Особисті дані</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="name">Ім'я автора</Label>
+              <Label htmlFor="name">Ім&apos;я автора</Label>
               <Input id="name" {...register("name")} placeholder="Іван Франко" />
               {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
             </div>
