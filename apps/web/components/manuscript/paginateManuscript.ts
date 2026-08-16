@@ -294,11 +294,23 @@ export async function paginateManuscriptWithToc(
     return paginateManuscript(doc, contentWidth, contentHeight, fontSizePx);
   }
 
-  // Pass 1: paginate the document exactly as it stands today (no TOC) to
-  // learn which page each heading lands on -- front matter's own page count
-  // is already correctly baked into this; only the TOC's own (not yet
-  // known) page count still needs adding on top.
-  const basePages = await paginateManuscript(doc, contentWidth, contentHeight, fontSizePx);
+  // The TOC must land on its own page(s), sharing with nothing else -- not
+  // the tail of front matter, not the body. Force a break right after front
+  // matter too (not just after the TOC), and fold that into Pass 1 itself so
+  // basePageOfId() already reflects it (front matter's colophon might not
+  // naturally end exactly at a page boundary otherwise, which would throw
+  // off every subsequent page number by one).
+  const frontWithBreak = front.length > 0 ? [...front, { type: "pageBreak" }] : front;
+
+  // Pass 1: paginate front matter + body (with the break above, no TOC yet)
+  // to learn which page each heading lands on -- only the TOC's own (not
+  // yet known) page count still needs adding on top of this.
+  const basePages = await paginateManuscript(
+    { type: "doc", content: [...frontWithBreak, ...body] },
+    contentWidth,
+    contentHeight,
+    fontSizePx
+  );
   const basePageOfId = (id: string) => {
     const idx = findPageIndexOfId(basePages, id);
     return idx === null ? null : idx + 1;

@@ -55,6 +55,15 @@ export function ManuscriptPagePreview({
   // (crisp at any zoom) rather than shrinking width/height props, which
   // would re-run the whole DOM pagination pass at a different content box.
   useEffect(() => {
+    // outerRef/controlsRef don't exist yet while `pages` is still null --
+    // the component renders the "Готуємо передперегляд…" early return below
+    // instead of this JSX tree at all, so a mount-only effect (empty dep
+    // array) would run against a null ref and never fire again once the
+    // real layout (and its measurable box) actually appears. Re-run once
+    // pagination resolves, and watch the box itself (sidebar collapse,
+    // panel resize, etc. don't always fire a window "resize" event).
+    if (!outerRef.current) return;
+
     function recompute() {
       if (!outerRef.current) return;
       const outerStyle = getComputedStyle(outerRef.current);
@@ -65,12 +74,17 @@ export function ManuscriptPagePreview({
       const availableW = outerRef.current.clientWidth - 32;
       const spreadW = PAGE_W * 2; // usePortrait=false always renders a two-page spread
       const next = Math.min(availableW / spreadW, availableH / PAGE_H, 1);
-      setScale(next > 0 ? next : 1);
+      setScale(next > 0 && Number.isFinite(next) ? next : 1);
     }
     recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(outerRef.current);
     window.addEventListener("resize", recompute);
-    return () => window.removeEventListener("resize", recompute);
-  }, []);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", recompute);
+    };
+  }, [pages]);
 
   const hasCover = !!coverUrl;
 
