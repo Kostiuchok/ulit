@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
+import { withAvatarVersion } from "../../lib/coverVersion";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -35,14 +36,15 @@ export async function loginRoute(app: FastifyInstance) {
     const token = app.jwt.sign({ id: user.id, sub: user.id, email: user.email, role: user.role });
 
     return reply.send({
-      user: {
+      user: withAvatarVersion({
         id: user.id,
         email: user.email,
         name: user.name,
         slug: user.slug,
         role: user.role,
         avatarUrl: user.avatarUrl,
-      },
+        updatedAt: user.updatedAt,
+      }),
       token,
     });
   });

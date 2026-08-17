@@ -16,3 +16,17 @@ export function withCoverVersion<T extends Record<string, any> | null>(record: T
     spineUrl: record.spineUrl ? `${record.spineUrl}?v=${v}` : record.spineUrl,
   };
 }
+
+// Same problem, same fix, for User.avatarUrl (public/avatars/{userId}.{ext},
+// same fixed-key-per-user shape) -- reported as "avatar won't update" after
+// a fresh page load/other session kept showing the old photo even though
+// the upload itself succeeded. `updatedAt` bumps on any User field change
+// (not avatar-specific), same accepted tradeoff withCoverVersion already
+// makes for Book.updatedAt -- an occasional harmless extra re-fetch of
+// identical bytes, never a stale one.
+export function withAvatarVersion<T extends Record<string, any> | null>(record: T): T {
+  if (!record) return record;
+  const updatedAt = record.updatedAt instanceof Date ? record.updatedAt : null;
+  if (!updatedAt || !record.avatarUrl) return record;
+  return { ...record, avatarUrl: `${record.avatarUrl}?v=${updatedAt.getTime()}` };
+}

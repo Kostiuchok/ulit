@@ -27,7 +27,6 @@ export function AvatarUploader({ currentAvatarUrl, onSuccess }: Props) {
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const [freshAvatarUrl, setFreshAvatarUrl] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const onDrop = useCallback((files: File[]) => {
@@ -87,7 +86,6 @@ export function AvatarUploader({ currentAvatarUrl, onSuccess }: Props) {
 
       const data = await apiUpload<{ avatarUrl: string }>("/api/users/me/avatar", form);
       onSuccess(data.avatarUrl);
-      setFreshAvatarUrl(`${data.avatarUrl}?t=${Date.now()}`);
       setImgSrc("");
     } catch (e: any) {
       setError(e.message || "Помилка завантаження");
@@ -99,9 +97,9 @@ export function AvatarUploader({ currentAvatarUrl, onSuccess }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        {(freshAvatarUrl || currentAvatarUrl) ? (
+        {currentAvatarUrl ? (
           <img
-            src={freshAvatarUrl || currentAvatarUrl!}
+            src={currentAvatarUrl}
             alt="Аватар"
             className="h-20 w-20 rounded-full object-cover ring-2 ring-border"
           />

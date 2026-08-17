@@ -3,6 +3,7 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { uploadFile, publicUrl } from "../../services/storage.service";
+import { withAvatarVersion } from "../../lib/coverVersion";
 import { Readable } from "stream";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -41,10 +42,10 @@ export async function usersAvatar(app: FastifyInstance) {
       const user = await prisma.user.update({
         where: { id: request.user.id },
         data: { avatarUrl },
-        select: { id: true, avatarUrl: true },
+        select: { id: true, avatarUrl: true, updatedAt: true },
       });
 
-      return reply.send({ avatarUrl: user.avatarUrl });
+      return reply.send({ avatarUrl: withAvatarVersion(user).avatarUrl });
     }
   );
 }

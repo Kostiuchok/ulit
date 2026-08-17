@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
+import { withAvatarVersion } from "../../lib/coverVersion";
 
 const patchSchema = z.object({
   name: z.string().min(2).optional(),
@@ -42,11 +43,12 @@ export async function usersMe(app: FastifyInstance) {
         identityChangeReason: true,
         identityUpdatedAt: true,
         createdAt: true,
+        updatedAt: true,
         _count: { select: { books: true } },
       },
     });
     if (!user) throw AppError.notFound("User");
-    return reply.send({ user });
+    return reply.send({ user: withAvatarVersion(user) });
   });
 
   app.patch("/api/users/me", { preHandler: authenticate }, async (request, reply) => {
@@ -76,10 +78,11 @@ export async function usersMe(app: FastifyInstance) {
         avatarUrl: true,
         role: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
-    return reply.send({ user });
+    return reply.send({ user: withAvatarVersion(user) });
   });
 
   app.post("/api/users/me/accept-agreement", { preHandler: authenticate }, async (request, reply) => {

@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { bookQueue } from "../../lib/queue";
 import { publicUrl, getSignedUrl } from "../../services/storage.service";
+import { withAvatarVersion } from "../../lib/coverVersion";
 
 function buildPageUrls(bookId: string, pageCount: number, variant: "pages" | "pages-bw") {
   return Array.from({ length: pageCount }, (_, i) => ({
@@ -63,16 +64,20 @@ export async function bookPagesRoutes(app: FastifyInstance) {
         where: { id },
         select: {
           authorId: true,
-          author: { select: { name: true, bio: true, avatarUrl: true } },
+          author: { select: { name: true, bio: true, avatarUrl: true, updatedAt: true } },
         },
       });
       if (!book) throw AppError.notFound("Book");
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
 
+      // book.author.avatarUrl is already a full URL (storage.service's
+      // publicUrl() is applied once, at upload time -- users/avatar.ts) --
+      // re-wrapping it in publicUrl() here double-prefixed the base URL,
+      // producing a broken link whenever the author had an avatar set.
       return reply.send({
         authorName: book.author.name,
         bio: book.author.bio ?? null,
-        avatarUrl: book.author.avatarUrl ? publicUrl(book.author.avatarUrl) : null,
+        avatarUrl: withAvatarVersion(book.author).avatarUrl,
       });
     }
   );

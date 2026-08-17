@@ -13,6 +13,7 @@ import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
 import { assignIsbn } from "../../services/isbn.service";
 import { queuePublishedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
 import { enqueueConversionJobs } from "../../services/publishing.service";
+import { withAvatarVersion } from "../../lib/coverVersion";
 
 const KDP_SELECT_DAYS = 90;
 const WARN_BEFORE_DAYS = 7;
@@ -769,6 +770,7 @@ export async function adminRoutes(app: FastifyInstance) {
         avatarUrl: true,
         contractAcceptedAt: true,
         createdAt: true,
+        updatedAt: true,
         _count: { select: { books: true } },
         books: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
       },
@@ -776,7 +778,7 @@ export async function adminRoutes(app: FastifyInstance) {
     });
 
     const authors = raw.map(({ books, ...a }) => ({
-      ...a,
+      ...withAvatarVersion(a),
       lastBookAt: books[0]?.createdAt ?? null,
     }));
 
@@ -799,6 +801,7 @@ export async function adminRoutes(app: FastifyInstance) {
         contractAcceptedAt: true,
         contractAcceptedIp: true,
         createdAt: true,
+        updatedAt: true,
         _count: { select: { books: true, orders: true } },
         books: {
           orderBy: { createdAt: "desc" },
@@ -831,7 +834,7 @@ export async function adminRoutes(app: FastifyInstance) {
       },
     });
     if (!author) throw AppError.notFound("Author");
-    return reply.send({ author });
+    return reply.send({ author: withAvatarVersion(author) });
   });
 
   // ─── Delete author account ────────────────────────────────────────────────

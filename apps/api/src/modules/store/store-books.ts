@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { getSignedUrl } from "../../services/storage.service";
-import { withCoverVersion } from "../../lib/coverVersion";
+import { withCoverVersion, withAvatarVersion } from "../../lib/coverVersion";
 
 const querySchema = z.object({
   q: z.string().optional(),
@@ -42,8 +42,17 @@ const BOOK_SELECT = {
   mobiUrl: true,
   printPdfUrl: true,
   distributionStrategy: true,
-  author: { select: { id: true, name: true, slug: true, avatarUrl: true } },
+  author: { select: { id: true, name: true, slug: true, avatarUrl: true, updatedAt: true } },
 };
+
+// Both the book's own cover/back-cover and the nested author's avatar are
+// stored under fixed-per-record object keys (coverVersion.ts) -- readers on
+// the public store otherwise see a stale cached author photo/cover after
+// the author re-uploads.
+function withBookAndAuthorVersion<T extends { author?: any }>(book: T): T {
+  const withCover = withCoverVersion(book as any);
+  return withCover.author ? { ...withCover, author: withAvatarVersion(withCover.author) } : withCover;
+}
 
 export async function storeBooksRoutes(app: FastifyInstance) {
   // T-801 — catalog with filters + full-text search + cursor pagination
@@ -98,7 +107,7 @@ export async function storeBooksRoutes(app: FastifyInstance) {
     const page = hasMore ? books.slice(0, take) : books;
     const nextCursor = hasMore ? page[page.length - 1].id : null;
 
-    return reply.send({ books: page.map(withCoverVersion), nextCursor });
+    return reply.send({ books: page.map(withBookAndAuthorVersion), nextCursor });
   });
 
   // T-802 — single book by slug
@@ -119,7 +128,7 @@ export async function storeBooksRoutes(app: FastifyInstance) {
       },
     });
     if (!book || book.status !== "PUBLISHED") throw AppError.notFound("Book");
-    return reply.send({ book: withCoverVersion(book) });
+    return reply.send({ book: withBookAndAuthorVersion(book) });
   });
 
   // T-803 — author public profile by slug
@@ -134,6 +143,7 @@ export async function storeBooksRoutes(app: FastifyInstance) {
         bio: true,
         avatarUrl: true,
         createdAt: true,
+        updatedAt: true,
         books: {
           where: { status: "PUBLISHED" },
           select: BOOK_SELECT,
@@ -142,7 +152,9 @@ export async function storeBooksRoutes(app: FastifyInstance) {
       },
     });
     if (!author) throw AppError.notFound("Author");
-    return reply.send({ author });
+    return reply.send({
+      author: { ...withAvatarVersion(author), books: author.books.map(withBookAndAuthorVersion) },
+    });
   });
 
   // T-1003 — public EPUB preview config for a book
