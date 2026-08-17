@@ -11,6 +11,8 @@ import { Label } from "../ui/label";
 import { DocxUploader } from "../dashboard/DocxUploader";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
+import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
+import { KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "../../lib/distributionPlatforms";
 
 // ─── Step schemas ────────────────────────────────────────────────────────────
 
@@ -296,6 +298,21 @@ export function BookWizard() {
             </div>
           </div>
 
+          {(() => {
+            const genreValue = step1.watch("genre");
+            const formatKey = genreValue ? GENRE_TO_PRINT_FORMAT[genreValue] : undefined;
+            const format = formatKey ? PRINT_FORMATS[formatKey] : PRINT_FORMATS.standard;
+            const label = `${format.widthMm} × ${format.heightMm} мм (${format.label.toLowerCase()})`;
+            return (
+              <div className="rounded-lg bg-gray-50 border px-4 py-3 text-sm text-gray-600">
+                Друкована версія книги матиме розмір <strong>{label}</strong>
+                {genreValue ? " — рекомендований формат для обраного жанру." : " — типовий формат, зміниться після вибору жанру."}{" "}
+                На наступному кроці підготуйте документ Word такого ж розміру сторінки, інакше
+                завантаження буде відхилено.
+              </div>
+            );
+          })()}
+
           {errorBanner}
           <div className="flex justify-end">
             <Button type="submit" loading={saving}>Зберегти і перейти на наступний крок →</Button>
@@ -318,6 +335,23 @@ export function BookWizard() {
           Підтримуються файли .docx (Word). Максимальний розмір — 50 MB. Це дозволить показати
           орієнтовну собівартість друку на наступному кроці.
         </p>
+
+        <details className="mb-6 rounded-lg border bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <summary className="cursor-pointer font-medium text-gray-800">
+            Технічні вимоги до тексту й ілюстрацій (натисніть, щоб розгорнути)
+          </summary>
+          <ul className="mt-3 list-disc space-y-1.5 pl-5">
+            <li>Шрифт <strong>Times New Roman, 14 pt</strong>, міжрядковий інтервал <strong>1,5</strong></li>
+            <li>Абзацні відступи — лише клавішею Enter, не пробілами чи табуляцією</li>
+            <li>Не використовуйте примусовий розрив рядка (Shift+Enter) і ручні переноси дефісом</li>
+            <li>Виноски — тільки інструментом Word (вставка виноски), не вручну</li>
+            <li>Вірші — розділяйте строфи порожнім рядком (Enter)</li>
+            <li>
+              Ілюстрації для друку — файли .tif/.psd, 300 ppi, окремо від тексту (не .png/.gif —
+              це веб-формати низької якості для друку); назва файлу має відповідати підпису в тексті
+            </li>
+          </ul>
+        </details>
 
         {showUploader && (
           <DocxUploader bookId={draft!.id} onUploadSuccess={handleDocxUploaded} />
@@ -412,6 +446,9 @@ export function BookWizard() {
                 <p className="font-medium">Друкована, м&apos;яка обкладинка</p>
               </div>
               <p className="text-xs text-gray-500">PDF/X-3 для типографії — замовлення на друк</p>
+              <p className="text-xs text-gray-400">
+                Книжковий блок вставляють у щільний папір з офсетним друком; зверху лакують або ламінують плівкою.
+              </p>
               <div className="space-y-1">
                 <Label htmlFor="pricePrint">Ціна (грн)</Label>
                 <Input
@@ -435,6 +472,10 @@ export function BookWizard() {
                 <p className="font-medium">Друкована, тверда обкладинка</p>
               </div>
               <p className="text-xs text-gray-500">PDF/X-3 для типографії — замовлення на друк</p>
+              <p className="text-xs text-gray-400">
+                Книжковий блок прошивають ниткою й вставляють у картонну обкладинку, обтягнуту палітурним матеріалом,
+                з&apos;єднуючи форзацним листом.
+              </p>
               <div className="space-y-1">
                 <Label htmlFor="pricePrintHardcover">Ціна (грн)</Label>
                 <Input
@@ -546,6 +587,13 @@ export function BookWizard() {
                 </div>
                 <p className="mt-2 text-xs text-gray-500">{p.description}</p>
                 {p.locked && <p className="mt-1 text-xs text-gray-400">Не можна вимкнути</p>}
+                {p.key === "KDP" && KDP_EBOOK_UNSUPPORTED_LANGUAGES.includes(step1.watch("language")) && (
+                  <p className="mt-1 text-xs font-medium text-amber-600">
+                    Amazon KDP для цієї мови приймає лише друковані видання — електронна книга на Kindle
+                    видана не буде. Щоб опублікувати й електронну версію, книгу можна перекласти
+                    мовою, яку Kindle підтримує (зокрема за допомогою штучного інтелекту).
+                  </p>
+                )}
               </button>
             );
           })}

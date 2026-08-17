@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { DISTRIBUTION_PLATFORMS as PLATFORMS } from "@/lib/distributionPlatforms";
+import { DISTRIBUTION_PLATFORMS as PLATFORMS, KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "@/lib/distributionPlatforms";
 
 interface DistributionInfo {
   distributionChannels: string[];
   kdpSelectActive: boolean;
 }
 
-export function DistributionChannelPicker({ bookId }: { bookId: string }) {
+export function DistributionChannelPicker({ bookId, language }: { bookId: string; language?: string }) {
   const { apiFetch, token } = useApi();
   const [channels, setChannels] = useState<string[] | null>(null);
   const [kdpActive, setKdpActive] = useState(false);
@@ -57,6 +57,7 @@ export function DistributionChannelPicker({ bookId }: { bookId: string }) {
   if (!channels) return null;
 
   const isKdpSelect = channels.includes("KDP") && !channels.includes("D2D") && !channels.includes("GOOGLE");
+  const kdpEbookUnsupported = !!language && KDP_EBOOK_UNSUPPORTED_LANGUAGES.includes(language);
 
   return (
     <div className="space-y-3">
@@ -94,6 +95,13 @@ export function DistributionChannelPicker({ bookId }: { bookId: string }) {
               </div>
               <p className="mt-2 text-xs text-gray-500">{p.description}</p>
               {p.locked && <p className="mt-1 text-xs text-gray-400">Не можна вимкнути</p>}
+              {p.key === "KDP" && kdpEbookUnsupported && (
+                <p className="mt-1 text-xs font-medium text-amber-600">
+                  Amazon KDP для цієї мови приймає лише друковані видання — електронна книга на Kindle
+                  видана не буде. Щоб опублікувати й електронну версію, книгу можна перекласти
+                  мовою, яку Kindle підтримує (зокрема за допомогою штучного інтелекту).
+                </p>
+              )}
             </button>
           );
         })}

@@ -24,6 +24,7 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [appearanceConfirmed, setAppearanceConfirmed] = useState(false);
 
   if (bookStatus === "PUBLISHED") {
     return (
@@ -80,7 +81,10 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
     setErrors([]);
     setContractRequired(false);
     try {
-      await apiFetch(`/api/books/${bookId}/publish`, { method: "POST", body: JSON.stringify({}) });
+      await apiFetch(`/api/books/${bookId}/publish`, {
+        method: "POST",
+        body: JSON.stringify({ appearanceConfirmed }),
+      });
       onSubmitted?.();
     } catch (e: any) {
       if (e.code === "CONTRACT_NOT_SIGNED") {
@@ -107,8 +111,18 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
             Адміністратор перевірить книгу. Ви отримаєте email, щойно перевірку завершено і книгу опубліковано
             (буде призначено ISBN). Автор акцептує публічну оферту.
           </p>
+          <label className="flex items-start gap-2 text-xs text-green-900">
+            <input
+              type="checkbox"
+              checked={appearanceConfirmed}
+              onChange={(e) => setAppearanceConfirmed(e.target.checked)}
+              className="mt-0.5 rounded border-gray-300"
+            />
+            Мене влаштовує вигляд книги (обкладинка, передперегляд рукопису) — я переглянув(ла) і готовий(а)
+            до модерації.
+          </label>
           <div className="flex gap-2">
-            <Button onClick={handleSubmit} loading={loading} className="flex-1">
+            <Button onClick={handleSubmit} loading={loading} disabled={!appearanceConfirmed} className="flex-1">
               Підтвердити надсилання
             </Button>
             <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={loading}>

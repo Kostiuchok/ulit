@@ -81,8 +81,23 @@ export default function PrintCostSettingsPage() {
         <p className="text-sm text-gray-500 mt-1">
           Формула для оцінки, яку бачить автор у майстрі публікації:
           базова ставка + ціна за сторінку × кількість сторінок друкованого блоку.
-          Розмір друку на платформі фіксований для всіх книг (152 × 229 мм, 6 × 9″).
+          Розмір друку залежить від жанру книги (ДСТУ 3018-95, за замовчуванням — "Стандартний" 130×200мм);
+          повна таблиця форматів — <code>packages/shared-types</code>, <code>PRINT_FORMATS</code>.
         </p>
+      </div>
+
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 space-y-1.5">
+        <p className="font-semibold">Технічні вимоги друкарні до готового файлу (звірено з кодом)</p>
+        <ul className="list-disc space-y-1 pl-5 text-xs">
+          <li>Кольоровий простір CMYK, 300 dpi — <strong>вже реалізовано</strong> в <code>generate-pdf-print.ts</code></li>
+          <li>Мітки різу не додаються (друкарня додає сама) — <strong>вже відповідає</strong></li>
+          <li>
+            Кількість сторінок рекомендовано парна (для брошур на скобу — кратна 4), інакше можливі білі
+            сторінки в кінці примірника — <strong className="text-amber-700">поки не реалізовано</strong>
+          </li>
+          <li>Файл до 1000 МБ — активної перевірки поки немає</li>
+        </ul>
+        <p className="text-xs text-blue-700">Повний довідник — <code>docs/print-file-technical-requirements.md</code></p>
       </div>
 
       <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">

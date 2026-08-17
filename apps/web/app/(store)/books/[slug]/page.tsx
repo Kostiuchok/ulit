@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BookCoverAndPurchase } from "../../../../components/store/BookCoverAndPurchase";
+import { PRINT_TRIM_SIZE_LABEL } from "shared-types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -89,13 +90,6 @@ const FORMAT_INFO: { key: keyof BookDetail; label: string; desc: string }[] = [
   { key: "mobiUrl", label: "MOBI / AZW3", desc: "Для Amazon Kindle" },
   { key: "printPdfUrl", label: "PDF (друк)", desc: "Висока якість для друку" },
 ];
-
-// Print trim size is a fixed platform-wide constant, not per-book -- same
-// 6in / 1800px-at-300dpi front-panel width the cover editor lays out from
-// (apps/web/components/books/CoverDesignerCanvas.tsx's DISPLAY_W/TRIM_WIDTH_MM),
-// at its DISPLAY_H/DISPLAY_W = 1.5 aspect ratio. Not an ISO/A-series size, so
-// labelled by its actual mm/inches rather than a (wrong) "A5" guess.
-const PRINT_TRIM_SIZE_LABEL = "152 × 229 мм (6 × 9″)";
 
 const LANGUAGE_NAMES: Record<string, string> = {
   uk: "Українська",

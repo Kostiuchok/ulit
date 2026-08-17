@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
@@ -41,6 +42,14 @@ const BOOK_SELECT = {
   pricePrintBw: true,
   pricePrintHardcoverBw: true,
   genre: true,
+  printFormatKey: true,
+  printWidthMm: true,
+  printHeightMm: true,
+  bookAuthors: true,
+  contributors: true,
+  authorBio: true,
+  coverIndependentFromBookData: true,
+  desiredRoyaltyAmount: true,
   subtitle: true,
   ageRating: true,
   aiGenerated: true,
@@ -75,15 +84,36 @@ const coAuthorSchema = z.object({
   photoUrl: z.string().url().optional(),
 });
 
+// T-2060 п.4 -- structured per-book authors, independent of the account profile.
+const bookAuthorSchema = z.object({
+  lastName: z.string().min(1).max(100),
+  firstName: z.string().min(1).max(100),
+  middleName: z.string().max(100).optional(),
+  photoUrl: z.string().url().optional(),
+});
+
+// T-2060 п.5 -- "Над книгою працювали", separate from bookAuthors/coAuthors.
+const contributorSchema = z.object({
+  role: z.string().min(1).max(100),
+  name: z.string().min(1).max(255),
+});
+
 const patchSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(5000).nullable().optional(),
   genre: z.string().max(100).nullable().optional(),
+  printWidthMm: z.number().int().positive().nullable().optional(),
+  printHeightMm: z.number().int().positive().nullable().optional(),
   subtitle: z.string().max(255).nullable().optional(),
   ageRating: z.enum(["0+", "0-6", "6-10", "11-14", "15-17", "18+"]).nullable().optional(),
   aiGenerated: z.boolean().optional(),
   aiGeneratedNote: z.string().max(1000).nullable().optional(),
   coAuthors: z.array(coAuthorSchema).max(10).nullable().optional(),
+  bookAuthors: z.array(bookAuthorSchema).max(10).nullable().optional(),
+  contributors: z.array(contributorSchema).max(20).nullable().optional(),
+  authorBio: z.string().max(3000).nullable().optional(),
+  coverIndependentFromBookData: z.boolean().optional(),
+  desiredRoyaltyAmount: z.number().positive().nullable().optional(),
   language: z.string().length(2).optional(),
   priceEbook: z.number().positive().nullable().optional(),
   pricePrint: z.number().positive().nullable().optional(),
@@ -136,10 +166,25 @@ export async function bookRoutes(app: FastifyInstance) {
     }
 
     const data = result.data;
+
+    // Auto-derive print format from genre (ДСТУ 3018-95, GENRE_TO_PRINT_FORMAT)
+    // unless the caller explicitly set a custom trim in this same request --
+    // that's treated as a manual override and takes precedence. Re-picking a
+    // genre later without also re-specifying size will still overwrite a
+    // previous manual override -- known simplification, no separate
+    // "manually overridden" flag yet (docs/T-2060-publish-info-redesign-checklist.md).
+    let printFormatOverride: { printFormatKey: string; printWidthMm: number; printHeightMm: number } | undefined;
+    if (data.genre !== undefined && data.printWidthMm === undefined && data.printHeightMm === undefined) {
+      const formatKey = data.genre ? GENRE_TO_PRINT_FORMAT[data.genre] : undefined;
+      const format = formatKey ? PRINT_FORMATS[formatKey] : PRINT_FORMATS.standard;
+      printFormatOverride = { printFormatKey: format.key, printWidthMm: format.widthMm, printHeightMm: format.heightMm };
+    }
+
     const book = await prisma.book.update({
       where: { id },
       data: {
         ...data,
+        ...printFormatOverride,
         priceEbook: data.priceEbook !== undefined ? (data.priceEbook ?? undefined) : undefined,
         pricePrint: data.pricePrint !== undefined ? (data.pricePrint ?? undefined) : undefined,
         pricePrintHardcover: data.pricePrintHardcover !== undefined ? (data.pricePrintHardcover ?? undefined) : undefined,
@@ -150,6 +195,12 @@ export async function bookRoutes(app: FastifyInstance) {
           : undefined,
         coAuthors: data.coAuthors !== undefined
           ? (data.coAuthors ?? Prisma.JsonNull)
+          : undefined,
+        bookAuthors: data.bookAuthors !== undefined
+          ? (data.bookAuthors ?? Prisma.JsonNull)
+          : undefined,
+        contributors: data.contributors !== undefined
+          ? (data.contributors ?? Prisma.JsonNull)
           : undefined,
       },
       select: BOOK_SELECT,

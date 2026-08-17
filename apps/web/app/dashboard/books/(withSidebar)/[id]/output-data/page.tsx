@@ -20,12 +20,20 @@ import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
 import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
 
+// T-2060 п.1/п.3 -- confirmed by live Ridero test (2026-08-17), matches
+// apps/api/src/modules/books/publish.ts's DESCRIPTION_MIN_LENGTH/MAX_LENGTH.
+const DESCRIPTION_MIN_LENGTH = 120;
+const DESCRIPTION_MAX_LENGTH = 500;
+
 const infoSchema = z.object({
   title: z.string().min(3, "Назва має містити щонайменше 3 символи").max(255),
   subtitle: z.string().max(255).optional(),
-  description: z.string().max(5000).optional(),
+  description: z
+    .string()
+    .min(DESCRIPTION_MIN_LENGTH, `Анотація має містити щонайменше ${DESCRIPTION_MIN_LENGTH} символів`)
+    .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
   genre: z.string().max(100).optional(),
-  ageRating: z.string().optional(),
+  ageRating: z.string().min(1, "Вкажіть вікові обмеження"),
   language: z.string().length(2),
   aiGenerated: z.boolean().optional(),
   aiGeneratedNote: z.string().max(1000).optional(),
@@ -81,6 +89,20 @@ interface CoAuthor {
   name: string;
 }
 
+// T-2060 п.4 — structured per-book authors, independent of the account profile.
+interface BookAuthor {
+  lastName: string;
+  firstName: string;
+  middleName?: string;
+  photoUrl?: string;
+}
+
+// T-2060 п.5 — "Над книгою працювали", separate entity from bookAuthors.
+interface Contributor {
+  role: string;
+  name: string;
+}
+
 const GENRES = [
   "Проза", "Поезія", "Драматургія", "Наукова фантастика", "Фентезі",
   "Детектив", "Роман", "Повість", "Оповідання", "Нон-фікшн",
@@ -105,6 +127,7 @@ interface MetadataBook {
   genre?: string | null;
   ageRating?: string | null;
   language: string;
+  coverUrl?: string | null;
   priceEbook?: number | string | null;
   pricePrint?: number | string | null;
   pricePrintHardcover?: number | string | null;
@@ -113,6 +136,9 @@ interface MetadataBook {
   aiGenerated?: boolean;
   aiGeneratedNote?: string | null;
   coAuthors?: CoAuthor[] | null;
+  bookAuthors?: BookAuthor[] | null;
+  contributors?: Contributor[] | null;
+  authorBio?: string | null;
   moderationStatus?: string | null;
   moderationNote?: string | null;
   epubUrl?: string | null;
@@ -121,6 +147,66 @@ interface MetadataBook {
   previewEnd?: number | null;
   originalDocxUrl?: string | null;
   distributionChannels?: string[] | null;
+}
+
+// docs/isbn-udc-requirements.md, "Детальний технічний чекліст оформлення ISBN" (2026-08-17).
+// Орієнтовно "пів сторінки" ≈ 900-1000 знаків -- м'якший поріг, ніж наша сувора верхня межа
+// анотації (500, T-2060), тому це окрема (не блокуюча) перевірка, не заміна existing validation.
+const ISBN_ANNOTATION_HALF_PAGE_CHARS = 1000;
+
+interface IsbnChecklistItem {
+  label: string;
+  done: boolean;
+  hint?: string;
+}
+
+function IsbnReadinessChecklist({ book, bookAuthors }: { book: MetadataBook | null; bookAuthors: BookAuthor[] }) {
+  const hasAuthorName = bookAuthors.some((a) => a.lastName.trim() && a.firstName.trim());
+  const descLength = (book?.description ?? "").length;
+  const annotationOk = descLength > 0 && descLength <= ISBN_ANNOTATION_HALF_PAGE_CHARS;
+
+  const items: IsbnChecklistItem[] = [
+    {
+      label: "Анотація (файл 1 для ISBN-служби) — не більше пів сторінки",
+      done: annotationOk,
+      hint: !annotationOk && descLength > 0 ? `${descLength} символів — орієнтовно більше пів сторінки` : undefined,
+    },
+    {
+      label: "Повне ПІБ автора (файл 1 для ISBN-служби)",
+      done: hasAuthorName,
+      hint: !hasAuthorName ? "Додайте прізвище та ім'я автора вище, у розділі «Автори книги»" : undefined,
+    },
+    { label: "Обкладинка завантажена", done: !!book?.coverUrl },
+  ];
+
+  return (
+    <div className="rounded-xl border bg-white p-5 space-y-3 text-sm">
+      <div>
+        <h2 className="text-base font-semibold">Готовність до оформлення ISBN</h2>
+        <p className="text-xs text-gray-500">
+          Перевірка інформації, яку потрібно надати службі присвоєння ISBN — детальніше в{" "}
+          <code className="text-xs">docs/isbn-udc-requirements.md</code>.
+        </p>
+      </div>
+      <ul className="space-y-1.5">
+        {items.map((it) => (
+          <li key={it.label} className="flex items-start gap-2">
+            <span className={cn("mt-0.5", it.done ? "text-green-600" : "text-amber-500")}>
+              {it.done ? "✓" : "○"}
+            </span>
+            <span className={it.done ? "text-gray-700" : "text-gray-500"}>
+              {it.label}
+              {it.hint && <span className="block text-xs text-amber-600">{it.hint}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-gray-400 border-t pt-2">
+        Структуру друкованого файлу (титул → порожня сторінка → текст, файл 2 для ISBN-служби) платформа
+        сформує автоматично при генерації друкованого макету — окремої дії від автора поки не потребує.
+      </p>
+    </div>
+  );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -149,6 +235,11 @@ function OutputDataContent() {
   const [locallyFixed, setLocallyFixed] = useState(false);
   const [coAuthors, setCoAuthors] = useState<CoAuthor[]>([]);
   const [newCoAuthorName, setNewCoAuthorName] = useState("");
+  const [bookAuthors, setBookAuthors] = useState<BookAuthor[]>([]);
+  const [newAuthor, setNewAuthor] = useState<BookAuthor>({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
+  const [contributors, setContributors] = useState<Contributor[]>([]);
+  const [newContributor, setNewContributor] = useState<Contributor>({ role: "", name: "" });
+  const [authorBio, setAuthorBio] = useState("");
 
   const [priceSaved, setPriceSaved] = useState(false);
   const [priceError, setPriceError] = useState("");
@@ -169,6 +260,9 @@ function OutputDataContent() {
   useEffect(() => {
     if (!book) return;
     setCoAuthors(Array.isArray(book.coAuthors) ? book.coAuthors : []);
+    setBookAuthors(Array.isArray(book.bookAuthors) ? book.bookAuthors : []);
+    setContributors(Array.isArray(book.contributors) ? book.contributors : []);
+    setAuthorBio(book.authorBio ?? "");
     infoForm.reset({
       title: book.title,
       subtitle: book.subtitle ?? "",
@@ -196,6 +290,31 @@ function OutputDataContent() {
     setNewCoAuthorName("");
   }
 
+  function addBookAuthor() {
+    if (!newAuthor.lastName.trim() || !newAuthor.firstName.trim()) return;
+    setBookAuthors((prev) => [...prev, {
+      lastName: newAuthor.lastName.trim(),
+      firstName: newAuthor.firstName.trim(),
+      middleName: newAuthor.middleName?.trim() || undefined,
+      photoUrl: newAuthor.photoUrl?.trim() || undefined,
+    }]);
+    setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
+  }
+
+  function removeBookAuthor(index: number) {
+    setBookAuthors((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function addContributor() {
+    if (!newContributor.role.trim() || !newContributor.name.trim()) return;
+    setContributors((prev) => [...prev, { role: newContributor.role.trim(), name: newContributor.name.trim() }]);
+    setNewContributor({ role: "", name: "" });
+  }
+
+  function removeContributor(index: number) {
+    setContributors((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function removeCoAuthor(index: number) {
     setCoAuthors((prev) => prev.filter((_, i) => i !== index));
   }
@@ -216,10 +335,16 @@ function OutputDataContent() {
           aiGenerated: data.aiGenerated ?? false,
           aiGeneratedNote: data.aiGenerated ? (data.aiGeneratedNote || null) : null,
           coAuthors: coAuthors.length > 0 ? coAuthors : null,
+          bookAuthors: bookAuthors.length > 0 ? bookAuthors : null,
+          contributors: contributors.length > 0 ? contributors : null,
+          authorBio: authorBio.trim() || null,
         }),
       });
       setBook(updated);
       setCoAuthors(Array.isArray(updated.coAuthors) ? updated.coAuthors : []);
+      setBookAuthors(Array.isArray(updated.bookAuthors) ? updated.bookAuthors : []);
+      setContributors(Array.isArray(updated.contributors) ? updated.contributors : []);
+      setAuthorBio(updated.authorBio ?? "");
       setInfoSaved(true);
       setLocallyFixed(true);
       setTimeout(() => setInfoSaved(false), 3000);
@@ -302,9 +427,16 @@ function OutputDataContent() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="description">Опис</Label>
-                  <span className={cn("text-xs", descValue.length > 0 && descValue.length < 120 ? "text-amber-600 font-medium" : "text-gray-400")}>
-                    {descValue.length}/5000 {descValue.length > 0 && descValue.length < 120 && `(рекомендовано мін. 120 для платформ)`}
+                  <Label htmlFor="description">Анотація *</Label>
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      descValue.length > 0 && (descValue.length < DESCRIPTION_MIN_LENGTH || descValue.length > DESCRIPTION_MAX_LENGTH)
+                        ? "text-red-500"
+                        : "text-gray-400"
+                    )}
+                  >
+                    {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
                   </span>
                 </div>
                 <textarea
@@ -313,12 +445,15 @@ function OutputDataContent() {
                   rows={4}
                   className={cn(
                     "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
-                    descValue.length > 0 && descValue.length < 120
-                      ? "border-amber-400 focus-visible:ring-amber-300"
+                    infoForm.formState.errors.description
+                      ? "border-red-400 focus-visible:ring-red-300"
                       : "border-input focus-visible:ring-ring"
                   )}
-                  placeholder="Розкажіть читачам про вашу книгу… (рекомендовано від 120 символів)"
+                  placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
                 />
+                {infoForm.formState.errors.description && (
+                  <p className="text-sm text-red-500">{infoForm.formState.errors.description.message}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -362,49 +497,120 @@ function OutputDataContent() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="ageRating">Вікові обмеження</Label>
+                  <Label htmlFor="ageRating">Вікові обмеження *</Label>
                   <select
                     id="ageRating"
                     {...infoForm.register("ageRating")}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className={cn(
+                      "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2",
+                      infoForm.formState.errors.ageRating
+                        ? "border-red-400 focus-visible:ring-red-300"
+                        : "border-input focus-visible:ring-ring"
+                    )}
                   >
-                    <option value="">Не вказано</option>
+                    <option value="">Оберіть вікове обмеження</option>
                     {AGE_RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
+                  {infoForm.formState.errors.ageRating && (
+                    <p className="text-sm text-red-500">{infoForm.formState.errors.ageRating.message}</p>
+                  )}
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <Label>Над книгою також працювали</Label>
+              {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача */}
+              <div className="space-y-2 rounded-lg border p-3">
+                <Label>Автори книги</Label>
+                <p className="text-xs text-gray-400">
+                  Якщо авторів декілька — кожен додає власне прізвище/ім'я і, за бажанням, своє фото.
+                </p>
+                {bookAuthors.length > 0 && (
+                  <div className="space-y-1.5">
+                    {bookAuthors.map((a, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-md bg-gray-50 px-2.5 py-1.5 text-sm">
+                        {a.photoUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.photoUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+                        )}
+                        <span className="flex-1">
+                          {a.lastName} {a.firstName} {a.middleName || ""}
+                        </span>
+                        <button type="button" onClick={() => removeBookAuthor(i)} className="text-gray-400 hover:text-red-600">×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Input
+                    value={newAuthor.lastName}
+                    onChange={(e) => setNewAuthor((p) => ({ ...p, lastName: e.target.value }))}
+                    placeholder="Прізвище"
+                    className="h-9 text-sm"
+                  />
+                  <Input
+                    value={newAuthor.firstName}
+                    onChange={(e) => setNewAuthor((p) => ({ ...p, firstName: e.target.value }))}
+                    placeholder="Ім'я"
+                    className="h-9 text-sm"
+                  />
+                  <Input
+                    value={newAuthor.middleName}
+                    onChange={(e) => setNewAuthor((p) => ({ ...p, middleName: e.target.value }))}
+                    placeholder="По батькові"
+                    className="h-9 text-sm"
+                  />
+                  <Input
+                    value={newAuthor.photoUrl}
+                    onChange={(e) => setNewAuthor((p) => ({ ...p, photoUrl: e.target.value }))}
+                    placeholder="URL фото (необов'язково)"
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addBookAuthor}>+ Додати автора</Button>
+              </div>
+
+              {/* T-2060 п.5 — окрема сутність, не змішана з авторами */}
+              <div className="space-y-2 rounded-lg border p-3">
+                <Label>Над книгою працювали</Label>
+                <p className="text-xs text-gray-400">Редактор, ілюстратор, дизайнер обкладинки тощо.</p>
+                {contributors.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {coAuthors.map((c, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700"
-                      >
-                        {c.name}
-                        <button
-                          type="button"
-                          onClick={() => removeCoAuthor(i)}
-                          className="text-gray-400 hover:text-red-600"
-                        >
-                          ×
-                        </button>
+                    {contributors.map((c, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">
+                        {c.role}: {c.name}
+                        <button type="button" onClick={() => removeContributor(i)} className="text-gray-400 hover:text-red-600">×</button>
                       </span>
                     ))}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={newCoAuthorName}
-                      onChange={(e) => setNewCoAuthorName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCoAuthor(); } }}
-                      placeholder="Ім'я співавтора"
-                      className="h-9 flex-1 min-w-0 text-sm"
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={addCoAuthor} className="shrink-0">
-                      + Додати
-                    </Button>
-                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newContributor.role}
+                    onChange={(e) => setNewContributor((p) => ({ ...p, role: e.target.value }))}
+                    placeholder="Роль (напр. редактор)"
+                    className="h-9 w-40 shrink-0 text-sm"
+                  />
+                  <Input
+                    value={newContributor.name}
+                    onChange={(e) => setNewContributor((p) => ({ ...p, name: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addContributor(); } }}
+                    placeholder="Ім'я"
+                    className="h-9 flex-1 min-w-0 text-sm"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={addContributor} className="shrink-0">+ Додати</Button>
                 </div>
+              </div>
+
+              {/* T-2060 п.6 — канонічне джерело тексту біографії; показується й редагується вживу на обкладинці */}
+              <div className="space-y-1.5">
+                <Label htmlFor="authorBio">Біографія автора</Label>
+                <textarea
+                  id="authorBio"
+                  value={authorBio}
+                  onChange={(e) => setAuthorBio(e.target.value)}
+                  rows={3}
+                  placeholder="Наприклад: Валентина Островська народилась у…"
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                />
               </div>
 
               <div className="space-y-2 rounded-lg border p-3">
@@ -562,7 +768,7 @@ function OutputDataContent() {
             <div className="rounded-xl border bg-white p-6 shadow-sm">
               <h2 className="text-base font-semibold mb-1">Платформи розповсюдження</h2>
               <p className="text-xs text-gray-500 mb-4">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
-              <DistributionChannelPicker bookId={id} />
+              <DistributionChannelPicker bookId={id} language={book?.language} />
             </div>
 
             {book?.status === "PUBLISHED" && (
@@ -587,6 +793,10 @@ function OutputDataContent() {
               <Row label="Друк, тверда (ч/б)" value={book?.pricePrintHardcoverBw ? `${Number(book.pricePrintHardcoverBw).toFixed(2)} грн` : "Не продається"} />
               <Row label="Платформи" value={book?.distributionChannels?.length ? `${book.distributionChannels.length} обрано` : "Не обрано"} />
             </div>
+
+            {book?.pricePrint || book?.pricePrintHardcover || book?.pricePrintBw || book?.pricePrintHardcoverBw ? (
+              <IsbnReadinessChecklist book={book} bookAuthors={bookAuthors} />
+            ) : null}
 
             {!!book?.distributionChannels?.length && (
               <div className="rounded-xl border bg-white p-5 space-y-4 text-sm">

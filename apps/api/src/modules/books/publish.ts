@@ -8,8 +8,15 @@ interface ValidationError {
   message: string;
 }
 
+// T-2060 п.1/п.3 -- confirmed by live Ridero test (2026-08-17), see
+// docs/T-2060-publish-info-redesign-checklist.md.
+const DESCRIPTION_MIN_LENGTH = 120;
+const DESCRIPTION_MAX_LENGTH = 500;
+
 function validateBook(book: {
   title: string;
+  description: string | null;
+  ageRating: string | null;
   coverUrl: string | null;
   originalDocxUrl: string | null;
   pdfUrl: string | null;
@@ -17,17 +24,37 @@ function validateBook(book: {
   priceEbook: any;
   pricePrint: any;
   pricePrintHardcover: any;
+  pricePrintBw: any;
+  pricePrintHardcoverBw: any;
+  desiredRoyaltyAmount: any;
   status: string;
 }): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (!book.title?.trim()) errors.push({ field: "title", message: "Назва відсутня" });
+  const descLength = book.description?.trim().length ?? 0;
+  if (descLength < DESCRIPTION_MIN_LENGTH || descLength > DESCRIPTION_MAX_LENGTH) {
+    errors.push({
+      field: "description",
+      message: `Анотація має бути від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів (зараз ${descLength})`,
+    });
+  }
+  if (!book.ageRating) errors.push({ field: "ageRating", message: "Вкажіть вікові обмеження" });
   if (!book.coverUrl) errors.push({ field: "cover", message: "Обкладинка не завантажена" });
   if (!book.originalDocxUrl && !book.pdfUrl && !book.epubUrl) {
     errors.push({ field: "file", message: "Файл рукопису не завантажено" });
   }
-  if (!book.priceEbook && !book.pricePrint && !book.pricePrintHardcover) {
-    errors.push({ field: "price", message: "Вкажіть ціну (е-книга або друкована версія)" });
+  // T-2060 п.9/п.11 -- either the legacy per-format prices or the new
+  // desired-royalty-per-unit (which auto-derives a price for every enabled
+  // distribution channel, see DistributionChannelPicker) satisfies this.
+  // True "price resolved on every enabled channel" enforcement needs the
+  // per-channel royalty-calculator UI (T-2060 checklist, not yet built) --
+  // this is an interim, more permissive check, not the final rule.
+  if (
+    !book.priceEbook && !book.pricePrint && !book.pricePrintHardcover &&
+    !book.pricePrintBw && !book.pricePrintHardcoverBw && !book.desiredRoyaltyAmount
+  ) {
+    errors.push({ field: "price", message: "Вкажіть ціну або бажане роялті" });
   }
   if (book.status === "PROCESSING") {
     errors.push({ field: "status", message: "Дочекайтесь завершення конвертації файлів" });
@@ -48,6 +75,8 @@ export async function publishRoute(app: FastifyInstance) {
         select: {
           authorId: true,
           title: true,
+          description: true,
+          ageRating: true,
           coverUrl: true,
           originalDocxUrl: true,
           pdfUrl: true,
@@ -55,6 +84,9 @@ export async function publishRoute(app: FastifyInstance) {
           priceEbook: true,
           pricePrint: true,
           pricePrintHardcover: true,
+          pricePrintBw: true,
+          pricePrintHardcoverBw: true,
+          desiredRoyaltyAmount: true,
           status: true,
         },
       });
@@ -82,6 +114,8 @@ export async function publishRoute(app: FastifyInstance) {
         select: {
           id: true,
           title: true,
+          description: true,
+          ageRating: true,
           status: true,
           authorId: true,
           coverUrl: true,
@@ -91,6 +125,9 @@ export async function publishRoute(app: FastifyInstance) {
           priceEbook: true,
           pricePrint: true,
           pricePrintHardcover: true,
+          pricePrintBw: true,
+          pricePrintHardcoverBw: true,
+          desiredRoyaltyAmount: true,
           publicationTimeline: true,
           author: { select: { id: true, contractAcceptedAt: true } },
         },
@@ -107,6 +144,14 @@ export async function publishRoute(app: FastifyInstance) {
 
       // T-702 — validate
       const errors = validateBook(book);
+
+      // T-2060 п.10 -- separate explicit checkbox ("Мене влаштовує вигляд
+      // книги"), not persisted, re-confirmed on every submission attempt.
+      const body = (request.body ?? {}) as { appearanceConfirmed?: boolean };
+      if (!body.appearanceConfirmed) {
+        errors.push({ field: "appearanceConfirmed", message: "Підтвердіть, що вас влаштовує вигляд книги" });
+      }
+
       if (errors.length > 0) {
         return reply.status(422).send({
           error: "Validation failed",

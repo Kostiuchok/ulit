@@ -190,6 +190,7 @@ export function PublicationTimeline({
   const hasManuscript = !!creation.originalDocxUrl;
   const manuscriptDate = creation.manuscriptEditedAt ?? creation.manuscriptImportedAt;
   const hasPrice = !!(creation.priceEbook || creation.pricePrint || creation.pricePrintHardcover);
+  const hasPrintPrice = !!(creation.pricePrint || creation.pricePrintHardcover);
   const hasCover = !!creation.coverUrl;
   const hasDistribution = distributionChannels.length > 0;
   const outputDataFilled = hasBasicInfo && hasPrice;
@@ -284,6 +285,14 @@ export function PublicationTimeline({
                   <>
                     Ми надамо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і відправимо до
                     книжкової палати України
+                    {hasPrintPrice && (
+                      <>
+                        {" "}
+                        Для друкованого видання надання обов&apos;язкових примірників (2 шт) до Книжкової палати —{" "}
+                        <strong>обов&apos;язкове за законом</strong>. Ці примірники друкуються{" "}
+                        <strong>за рахунок автора</strong> — надішлете їх нам після виходу книги з друку.
+                      </>
+                    )}
                   </>
                 ) : undefined
               }

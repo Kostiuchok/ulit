@@ -17,18 +17,25 @@ import {
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
 } from "lucide-react";
+import { PRINT_TRIM_SIZE_MM } from "shared-types";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { CoverTemplatesModal } from "./CoverTemplatesModal";
 
-// Front-panel display vs export
+// Front-panel display vs export -- geometry derived from the platform's
+// print trim size (PRINT_TRIM_SIZE_MM, shared-types: A5, 148×210mm as of
+// 2026-08-17). DISPLAY_W is an arbitrary UI pixel anchor; DISPLAY_H follows
+// the real trim's aspect ratio so the canvas isn't distorted.
 const DISPLAY_W = 350;
-const DISPLAY_H = 525;
-const EXPORT_SCALE = 1800 / DISPLAY_W; // ~5.14× → 1800×2700px per panel
+const DISPLAY_H = Math.round(DISPLAY_W * (PRINT_TRIM_SIZE_MM.heightMm / PRINT_TRIM_SIZE_MM.widthMm));
+const EXPORT_DPI = 300;
+const EXPORT_TARGET_W = Math.round((PRINT_TRIM_SIZE_MM.widthMm / 25.4) * EXPORT_DPI); // ~1748px at A5/300dpi
+const EXPORT_SCALE = EXPORT_TARGET_W / DISPLAY_W;
 
 // T-1926 — minimum accepted size for a self-uploaded cover (matches print requirements: 150 DPI)
-const OWN_COVER_MIN_W = 915;
-const OWN_COVER_MIN_H = 1270;
+const OWN_COVER_MIN_DPI = 150;
+const OWN_COVER_MIN_W = Math.round((PRINT_TRIM_SIZE_MM.widthMm / 25.4) * OWN_COVER_MIN_DPI);
+const OWN_COVER_MIN_H = Math.round((PRINT_TRIM_SIZE_MM.heightMm / 25.4) * OWN_COVER_MIN_DPI);
 
 // Inset from a panel's raw edge for "safe zone" alignment — keeps text clear
 // of the trim/bleed area near the physical edge of a printed cover.
@@ -39,10 +46,9 @@ const SAFE_MARGIN = 24;
 // carries no font-licensing risk. All have solid Cyrillic coverage.
 const FONTS = ["Georgia", "Arial", "Helvetica", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New"];
 
-// DISPLAY_W (350px) represents a 6in / 1800px-at-300dpi trim width — used to
-// convert a real-world spine thickness (mm) into display px.
-const TRIM_WIDTH_MM = (1800 / 300) * 25.4;
-const PX_PER_MM = DISPLAY_W / TRIM_WIDTH_MM;
+// DISPLAY_W (350px) represents PRINT_TRIM_SIZE_MM.widthMm — used to convert a
+// real-world spine thickness (mm) into display px.
+const PX_PER_MM = DISPLAY_W / PRINT_TRIM_SIZE_MM.widthMm;
 const DEFAULT_PAGE_COUNT = 150;
 
 export type CoverFormat = "ebook" | "softcover" | "hardcover";
@@ -2261,7 +2267,9 @@ export default function CoverDesignerCanvas({
         {activeTab === "own" && (
           <div className="space-y-3">
             <p className="text-xs text-gray-500">
-              Завантажте готову обкладинку цілком — вона замінить усе на канві. Мінімум {OWN_COVER_MIN_W}×{OWN_COVER_MIN_H}px (150 DPI).
+              Завантажте готову обкладинку цілком — вона замінить усе на канві. Мінімум {OWN_COVER_MIN_W}×{OWN_COVER_MIN_H}px (150 DPI),
+              найкращий формат — PNG. Тримайте текст і важливі елементи не менше 10–15мм від країв книги —
+              ця зона обрізається або йде на згин.
             </p>
             <input ref={ownCoverInputRef} type="file" accept="image/*" className="hidden" onChange={handleOwnCoverUpload} />
             <button
