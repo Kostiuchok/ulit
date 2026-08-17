@@ -680,3 +680,37 @@ This request has been blocked; the content must be served over HTTPS.
 **Рішення**: замінити всі нееекрановані `'`/`"` в JSX-тексті на `&apos;`/`&quot;` (суто заміна символів, без зміни поведінки). Перевіряти РЕАЛЬНОЮ командою збірки перед пушем — `pnpm --filter web build` (не `next lint`, не `tsc --noEmit`: жодне з них двох саме по собі не відтворює цю помилку — `tsc` не бачить ESLint-правил, а голий `eslint`/`next lint` не завжди явно показує, що саме ЦЕ й провалить `next build`).
 
 **Правило**: будь-який НОВИЙ україномовний текст у JSX з апострофом (дуже частий випадок — присвійні форми, скорочення) чи прямими лапками матиме той самий баг. Перед `git push`, якщо змінювався `apps/web`, запускати `pnpm --filter web build` локально (не тільки `typecheck`/`lint`) — це єдина команда, що на 100% відтворює те, що реально виконає `deploy.sh` на VPS. Якщо `web` колись знову "тихо" перестане деплоїтись — перше, що перевіряти, це `ssh knyha "docker inspect knyha-web --format '{{.Created}}'"` і порівнювати з часом останніх комітів, а не шукати баг у коді фічі, яка "нібито не працює" (код фічі може бути повністю правильним і просто ніколи не докочуватись).
+
+---
+
+### 14. `require("shared-types")` у `api`/`worker` — сирий TypeScript у Docker-рантаймі, і pnpm-симлінк не в одному місці
+
+**Симптом (варіант А, `api`)**: `knyha-api` контейнер рестартує одразу після старту. В логах:
+```
+Error: Cannot find module 'shared-types'
+    at Object.<anonymous> (/app/dist/modules/books/book.js:6:24)
+```
+
+**Симптом (варіант Б, `worker`)**: `knyha-worker` контейнер рестартує. Docker-збірка проходить УСПІШНО (`docker compose build worker` не падає), і навіть `docker run --rm knyha-worker weasyprint --version` працює — але сам застосунок падає одразу при старті:
+```
+file:///app/packages/shared-types/src/index.ts:5
+export type Role = "AUTHOR" | "ADMIN";
+^^^^^^
+SyntaxError: Unexpected token 'export'
+    at Object.<anonymous> (/app/apps/worker/dist/jobs/generate-pdf-print.js:11:24)
+```
+
+**Причина**: `packages/shared-types/package.json` навмисно має `"main": "./src/index.ts"` (сирий TS, без збірки) — це працює для `apps/web`, бо Next.js/webpack резолвить TS напряму. Але `apps/api`/`apps/worker` компілюються звичайним `tsc` (не бандлером) — `require("shared-types")` лишається зовнішнім, нерозгорнутим викликом у скомпільованому JS, і плаский Node не вміє виконати `.ts`-файл напряму.
+- **Варіант А**: multi-stage `apps/api/Dockerfile` копіював у runtime-стадію лише `apps/api/dist` + `node_modules` — сам каталог `packages/` (ціль pnpm-симлінка `node_modules/shared-types`) у фінальний образ не потрапляв узагалі, симлінк "висів у порожнечі".
+- **Варіант Б**: `apps/worker/Dockerfile` — одностадійний, `packages/shared-types` присутній, і символьне посилання ЗАМІНЮЄТЬСЯ на CJS-збірку (`tsc -p tsconfig.cjs.json`) — але pnpm створює symlink `node_modules/shared-types` на **кожному рівні**, що оголошує цю залежність, не лише в кореневому `node_modules/`. Реально існують ОБИДВА: `/app/node_modules/shared-types` **і** `/app/apps/worker/node_modules/shared-types` (обидва → `packages/shared-types`, сирий `.ts`). Node резолвить `require()` від каталогу файлу, що робить виклик, вгору по дереву — тож вкладений симлінк під `apps/worker/` знаходиться ПЕРШИМ і перемагає кореневий, навіть якщо кореневий уже виправлено.
+
+**Рішення**:
+1. Дати `packages/shared-types` окремий CJS-білд: `tsconfig.cjs.json` (`module: commonjs`, `outDir: dist-cjs`) + виклик напряму (`pnpm --filter shared-types exec tsc -p tsconfig.cjs.json`), не через package.json-скрипт — щоб не чіпати публічний `main`/`exports` пакета (`apps/web` лишається на сирому TS, як і задумано).
+2. `api`: додати `COPY --from=builder /app/packages/shared-types/dist-cjs ./node_modules/shared-types` у runtime-стадію (після `rm -f` дірявого симлінка).
+3. `worker`: НЕ хардкодити один шлях. Знайти й замінити **всі** такі симлінки:
+   ```dockerfile
+   RUN find /app -type l -path '*/node_modules/shared-types' -print0 \
+       | xargs -0 -I{} sh -c 'rm -f "{}" && cp -r /app/packages/shared-types/dist-cjs "{}"'
+   ```
+
+**Правило**: якщо будь-який НОВИЙ файл в `apps/api`/`apps/worker` починає імпортувати щось із `shared-types` (пакет без власної збірки), обидва Dockerfile треба звірити з цим патерном. **Перевіряти не лише `docker ... build` (успішна збірка НІЧОГО не каже про рантайм-помилку резолву модуля) і не лише `weasyprint --version`/подібні бінарники всередині контейнера** — а РЕАЛЬНИЙ запуск `node apps/worker/dist/index.js` (чи еквівалент для `api`) проти справжньої мережі (`docker run --network <compose-мережа> ...`). Саме такий запуск і зловив варіант Б — перевірка "чи існує файл" (`ls`/`require.resolve` з кореня `/app`) його пропустила, бо тестувала резолюцію не з того каталогу, з якого реально викликає застосунок.
