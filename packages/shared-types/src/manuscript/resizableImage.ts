@@ -2,6 +2,11 @@ import Image from "@tiptap/extension-image";
 
 export type ImageAlign = "left" | "center" | "right";
 
+// See styledParagraph.ts for why this isn't the DOM's HTMLElement.
+interface AttrElement {
+  getAttribute(name: string): string | null;
+}
+
 /**
  * Extends TipTap's official Image node (same pattern as StyledParagraph) with an
  * `align` attribute for left/center/right positioning. Resize handles are the
@@ -14,7 +19,7 @@ export const ResizableImage = Image.extend({
       ...this.parent?.(),
       align: {
         default: "center" as ImageAlign,
-        parseHTML: (el: HTMLElement) => (el.getAttribute("data-align") as ImageAlign) || "center",
+        parseHTML: (el: AttrElement) => (el.getAttribute("data-align") as ImageAlign) || "center",
         renderHTML: (attrs: { align: ImageAlign }) => ({ "data-align": attrs.align }),
       },
     };

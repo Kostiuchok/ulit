@@ -6,7 +6,9 @@ import { Node, mergeAttributes } from "@tiptap/core";
  * in the live editor (see manuscriptProseStyles.tsx). The manuscript-preview
  * pagination algorithm (paginateManuscript.ts) recognizes this node via
  * data-type="page-break" and treats it as a forced page boundary — it
- * contributes no visible content of its own to any page.
+ * contributes no visible content of its own to any page. The server-side
+ * print render (printHtml.ts) maps the same data-type to a hard CSS
+ * `break-before: page`.
  */
 export const PageBreak = Node.create({
   name: "pageBreak",

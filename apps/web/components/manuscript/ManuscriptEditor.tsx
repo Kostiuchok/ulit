@@ -36,9 +36,7 @@ import {
   X,
   BookOpenCheck,
 } from "lucide-react";
-import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
-import { ResizableImage } from "./resizableImage";
-import { PageBreak } from "./pageBreak";
+import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, ResizableImage, PageBreak, type StyledBlockStyleName } from "shared-types";
 import { buildFrontMatterNodes, hasFrontMatter, type FrontMatterMeta } from "./frontMatter";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
 import { CONTENT_W, CONTENT_H, PRINT_BODY_PX } from "./manuscriptLayout";
@@ -49,7 +47,7 @@ import {
   extractPageNumberPosition,
   withPageNumberPosition,
   stripPageNumberPosition,
-} from "./pageNumberPosition";
+} from "shared-types";
 import { useLivePageBreaks } from "./useLivePageBreaks";
 import { useManuscriptSearch } from "./useManuscriptSearch";
 import {

@@ -7,6 +7,10 @@
 // style-sets.ts) -- an extra key round-trips untouched. This is what makes
 // it save/restore correctly both as the book's own setting and inside a
 // personal "Набір стилів" (AuthorStyleSet), same mechanism as T-1943/1944.
+//
+// Moved to shared-types (T-2057) so the print-PDF render (printHtml.ts, run
+// server-side in the worker) reads the exact same saved position the author
+// picked in the editor, instead of a second, potentially-drifting copy.
 export type PageNumberPosition = "bottom-left" | "bottom-center" | "bottom-right";
 
 export const DEFAULT_PAGE_NUMBER_POSITION: PageNumberPosition = "bottom-center";

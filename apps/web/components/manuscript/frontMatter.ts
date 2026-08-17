@@ -1,4 +1,4 @@
-import type { StyledBlockStyleName } from "./styledParagraph";
+import type { StyledBlockStyleName } from "shared-types";
 
 export interface FrontMatterMeta {
   title: string;

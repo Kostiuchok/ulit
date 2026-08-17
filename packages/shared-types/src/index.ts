@@ -1,3 +1,5 @@
+export * from "./manuscript";
+
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export type Role = "AUTHOR" | "ADMIN";

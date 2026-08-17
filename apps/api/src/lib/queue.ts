@@ -27,5 +27,8 @@ export type ConversionFormat = "PDF" | "EPUB" | "FB2" | "MOBI" | "PRINT_PDF";
 export interface ConversionJobData {
   bookId: string;
   format: ConversionFormat;
-  docxObjectName: string;
+  // T-2057 -- PRINT_PDF no longer converts the raw .docx; it renders
+  // Book.manuscriptContent directly (apps/worker/src/jobs/generate-pdf-print.ts
+  // reads it straight from Prisma), so it's the one format that doesn't need this.
+  docxObjectName?: string;
 }

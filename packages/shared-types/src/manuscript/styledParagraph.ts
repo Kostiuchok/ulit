@@ -1,6 +1,15 @@
 import Paragraph from "@tiptap/extension-paragraph";
 import { Plugin } from "@tiptap/pm/state";
 
+// Structurally-typed stand-in for the DOM's HTMLElement -- these parseHTML()
+// callbacks are only invoked by TipTap when parsing FROM html (never during
+// generateHTML()'s json->html direction, which is the only thing the worker's
+// print-PDF render calls, T-2057). Avoids requiring the "dom" lib in every
+// consumer's tsconfig (apps/api, apps/worker are Node-only, no DOM lib).
+interface AttrElement {
+  getAttribute(name: string): string | null;
+}
+
 export type StyledBlockStyleName =
   | "chapter"
   | "section"
@@ -46,12 +55,12 @@ export const StyledParagraph = Paragraph.extend({
       ...this.parent?.(),
       style: {
         default: "normal" as StyledBlockStyleName,
-        parseHTML: (el: HTMLElement) => (el.getAttribute("data-style") as StyledBlockStyleName) || "normal",
+        parseHTML: (el: AttrElement) => (el.getAttribute("data-style") as StyledBlockStyleName) || "normal",
         renderHTML: (attrs: { style: StyledBlockStyleName }) => ({ "data-style": attrs.style }),
       },
       id: {
         default: null,
-        parseHTML: (el: HTMLElement) => el.getAttribute("data-id"),
+        parseHTML: (el: AttrElement) => el.getAttribute("data-id"),
         renderHTML: (attrs: { id: string | null }) => ({ "data-id": attrs.id }),
       },
       // Presentational-only override, independent of `style` -- used by the
@@ -61,7 +70,7 @@ export const StyledParagraph = Paragraph.extend({
       // author's real structural styles.
       variant: {
         default: null as string | null,
-        parseHTML: (el: HTMLElement) => el.getAttribute("data-variant"),
+        parseHTML: (el: AttrElement) => el.getAttribute("data-variant"),
         renderHTML: (attrs: { variant: string | null }) =>
           attrs.variant ? { "data-variant": attrs.variant } : {},
       },

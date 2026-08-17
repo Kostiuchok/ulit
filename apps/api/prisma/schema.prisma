@@ -203,6 +203,7 @@ model Book {
   manuscriptImportedAt DateTime?
   manuscriptEditedAt   DateTime? // last author edit inside the manuscript editor (distinct from the initial docx import)
   manuscriptStyleOverrides Json?
+  printPdfGeneratedAt  DateTime? // T-2057 -- when printPdfUrl was last (re)rendered from manuscriptContent; regen is skipped if this is newer than manuscriptEditedAt
 
   orderItems      OrderItem[]
   royalties       Royalty[]
