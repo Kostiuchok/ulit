@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
 import { useManuscriptPagination } from "./useManuscriptPagination";
 import { PAGE_W, PAGE_H, MARGIN_X, MARGIN_TOP, MARGIN_BOTTOM, CONTENT_W, CONTENT_H, PRINT_BODY_PX } from "./manuscriptLayout";
-import { DEFAULT_PAGE_NUMBER_POSITION, type PageNumberPosition } from "./pageNumberPosition";
+import { DEFAULT_PAGE_NUMBER_POSITION, type PageNumberPosition } from "shared-types";
 import { cn } from "@/lib/utils";
 
 // A5 trim — fixed at book creation, the only size this preview supports

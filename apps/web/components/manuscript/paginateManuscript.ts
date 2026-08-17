@@ -1,21 +1,14 @@
 import { generateHTML } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import TextAlign from "@tiptap/extension-text-align";
-import { StyledParagraph, OUTLINE_TIERS, type StyledBlockStyleName } from "./styledParagraph";
-import { ResizableImage } from "./resizableImage";
-import { PageBreak } from "./pageBreak";
+import { MANUSCRIPT_CORE_EXTENSIONS, OUTLINE_TIERS, splitFrontMatter, type StyledBlockStyleName } from "shared-types";
 import { TocEntry } from "./tocEntry";
 
-// Same extension set as ManuscriptEditor.tsx / ManuscriptPagePreview.tsx --
+// Same core extension set as ManuscriptEditor.tsx and the server-side
+// print-PDF render (T-2057, shared-types/manuscript/extensions.ts) --
 // guarantees generateHTML() output matches the live editor's own rendering.
-export const MANUSCRIPT_EXTENSIONS: any[] = [
-  StarterKit.configure({ paragraph: false }),
-  TextAlign.configure({ types: ["paragraph"] }),
-  StyledParagraph,
-  ResizableImage,
-  PageBreak,
-  TocEntry,
-];
+// TocEntry stays local: the auto-generated TOC only exists in this
+// browser-side pagination probe, not the print render (out of scope,
+// docs/T-2057-checklist.md section 2).
+export const MANUSCRIPT_EXTENSIONS: any[] = [...MANUSCRIPT_CORE_EXTENSIONS, TocEntry];
 
 export interface PageLeaf {
   html: string;
@@ -247,15 +240,6 @@ function extractOutlineFromDoc(nodes: any[]): OutlineItem[] {
   }
   nodes.forEach(walk);
   return items;
-}
-
-// T-1953/T-1962 front matter always ends in a horizontalRule sentinel --
-// the TOC belongs after it (and after the title/colophon pages it produced),
-// not before.
-function splitFrontMatter(content: any[]): { front: any[]; body: any[] } {
-  const ruleIdx = content.slice(0, 15).findIndex((n) => n?.type === "horizontalRule");
-  if (ruleIdx === -1) return { front: [], body: content };
-  return { front: content.slice(0, ruleIdx + 1), body: content.slice(ruleIdx + 1) };
 }
 
 function findPageIndexOfId(pages: PageLeaf[], id: string): number | null {

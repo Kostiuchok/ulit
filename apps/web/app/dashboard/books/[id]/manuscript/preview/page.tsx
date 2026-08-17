@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ManuscriptPagePreview } from "@/components/manuscript/ManuscriptPagePreview";
-import { extractPageNumberPosition } from "@/components/manuscript/pageNumberPosition";
+import { extractPageNumberPosition } from "shared-types";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 

@@ -29,6 +29,7 @@ import { authorStatsRoutes } from "./modules/books/stats";
 import { bookPagesRoutes } from "./modules/books/pages";
 import { bookPrintCostRoutes } from "./modules/books/print-cost";
 import { bookManuscriptRoutes } from "./modules/books/manuscript";
+import { printPreviewRoutes } from "./modules/books/print-preview";
 import { uploadManuscriptImageRoute } from "./modules/books/manuscript-image";
 import { authorStyleSetRoutes } from "./modules/books/style-sets";
 import { coverTemplateRoutes } from "./modules/books/cover-templates";
@@ -122,6 +123,7 @@ async function bootstrap() {
   await app.register(bookPagesRoutes);
   await app.register(bookPrintCostRoutes);
   await app.register(bookManuscriptRoutes);
+  await app.register(printPreviewRoutes);
   await app.register(uploadManuscriptImageRoute);
   await app.register(authorStyleSetRoutes);
   await app.register(coverTemplateRoutes);
