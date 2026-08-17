@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
 import { DistributionChannelPicker } from "@/components/books/DistributionChannelPicker";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
-import { StepIndicator } from "@/components/books/StepIndicator";
+import { PublishButton } from "@/components/books/PublishButton";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
@@ -111,13 +111,15 @@ const GENRES = [
 
 const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"];
 
-const STEP_META = [
-  { label: "Інформація" },
-  { label: "Файл" },
-  { label: "Ціна" },
-  { label: "Розповсюдження" },
-  { label: "Огляд" },
-];
+// T-2060 п.7 -- section labels for the single-scroll layout (used as plain
+// headings now, not a StepIndicator/paginated wizard).
+const SECTION_LABELS = {
+  info: "Інформація",
+  file: "Рукопис",
+  price: "Ціна",
+  distribution: "Розповсюдження",
+  review: "Огляд перед публікацією",
+};
 
 interface MetadataBook {
   status: string;
@@ -148,6 +150,7 @@ interface MetadataBook {
   previewEnd?: number | null;
   originalDocxUrl?: string | null;
   distributionChannels?: string[] | null;
+  publicationTimeline?: Record<string, string> | null;
 }
 
 // docs/isbn-udc-requirements.md, "Детальний технічний чекліст оформлення ISBN" (2026-08-17).
@@ -221,15 +224,8 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function OutputDataContent() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { apiFetch } = useApi();
   const { book, setBook, loading } = useBook<MetadataBook>(id);
-  const requestedStep = Number(searchParams.get("step"));
-  const initialStep = Number.isInteger(requestedStep) && requestedStep >= 0 && requestedStep < STEP_META.length
-    ? requestedStep
-    : 0;
-  const [step, setStep] = useState(initialStep);
 
   const [infoSaved, setInfoSaved] = useState(false);
   const [infoError, setInfoError] = useState("");
@@ -399,9 +395,8 @@ function OutputDataContent() {
           </div>
         )}
 
-        <StepIndicator steps={STEP_META} current={step} onStepClick={setStep} />
-
-        {step === 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.info}</h2>
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
               <div className="space-y-1.5">
@@ -641,12 +636,13 @@ function OutputDataContent() {
               </Button>
             </form>
           </div>
-        )}
+        </section>
 
-        {step === 1 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.file}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
             <div>
-              <h2 className="text-base font-semibold mb-1">Рукопис (.docx)</h2>
+              <h3 className="text-base font-semibold mb-1">Рукопис (.docx)</h3>
               <p className="text-xs text-gray-500">Завантажте файл або замініть уже завантажений.</p>
             </div>
             <DocxUploader
@@ -661,9 +657,10 @@ function OutputDataContent() {
               Редагувати текст рукопису →
             </Link>
           </div>
-        )}
+        </section>
 
-        {step === 2 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.price}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <form onSubmit={priceForm.handleSubmit(onSubmitPrice)} className="space-y-5">
               <div className="grid grid-cols-3 gap-4">
@@ -762,29 +759,29 @@ function OutputDataContent() {
               </Button>
             </form>
           </div>
-        )}
+        </section>
 
-        {step === 3 && (
-          <div className="space-y-6">
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <h2 className="text-base font-semibold mb-1">Платформи розповсюдження</h2>
-              <p className="text-xs text-gray-500 mb-4">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
-              <DistributionChannelPicker
-                bookId={id}
-                language={book?.language}
-                initialDesiredRoyaltyAmount={book?.desiredRoyaltyAmount}
-              />
-            </div>
-
-            {book?.status === "PUBLISHED" && (
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <KdpSelectPanel bookId={id} bookStatus={book.status} />
-              </div>
-            )}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.distribution}</h2>
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <h3 className="text-base font-semibold mb-1">Платформи розповсюдження</h3>
+            <p className="text-xs text-gray-500 mb-4">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
+            <DistributionChannelPicker
+              bookId={id}
+              language={book?.language}
+              initialDesiredRoyaltyAmount={book?.desiredRoyaltyAmount}
+            />
           </div>
-        )}
 
-        {step === 4 && (
+          {book?.status === "PUBLISHED" && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <KdpSelectPanel bookId={id} bookStatus={book.status} />
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.review}</h2>
           <div className="space-y-6">
             <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
               <Row label="Назва" value={book?.title || "—"} />
@@ -863,31 +860,35 @@ function OutputDataContent() {
               </div>
             )}
 
-            <Button className="w-full" onClick={() => router.push(`/dashboard/books/${id}`)}>
-              До дашборду книги →
-            </Button>
           </div>
-        )}
+        </section>
 
-        <div className="flex items-center justify-between pt-2">
-          <Button variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
-            ← Назад
-          </Button>
-          {step < STEP_META.length - 1 && (
-            <Button onClick={() => setStep((s) => Math.min(STEP_META.length - 1, s + 1))}>
-              Далі →
-            </Button>
-          )}
+        {/* T-2060 п.7 -- single-scroll layout ends with the actual publish
+            action, matching Ridero's one-page publish/info + publish/instore
+            flow (docs/T-2060-publish-info-redesign-checklist.md). */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500">Публікація</h2>
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <PublishButton
+              bookId={id}
+              bookStatus={book?.status ?? ""}
+              reviewDone={!!book?.publicationTimeline?.review_done}
+              onSubmitted={() => setBook((b) => (b ? { ...b, status: "REVIEW" } : b))}
+            />
+          </div>
+        </section>
+
+        <div className="text-center pb-2">
+          <Link
+            href={`/dashboard/books/${id}`}
+            className="text-sm text-gray-500 underline hover:no-underline hover:text-gray-900"
+          >
+            До дашборду книги →
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-export default function OutputDataPage() {
-  return (
-    <Suspense>
-      <OutputDataContent />
-    </Suspense>
-  );
-}
+export default OutputDataContent;
