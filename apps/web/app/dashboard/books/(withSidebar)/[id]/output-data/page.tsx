@@ -19,6 +19,7 @@ import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
 import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
+import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
 
 // T-2060 п.1/п.3 -- confirmed by live Ridero test (2026-08-17), matches
 // apps/api/src/modules/books/publish.ts's DESCRIPTION_MIN_LENGTH/MAX_LENGTH.
@@ -130,6 +131,9 @@ interface MetadataBook {
   ageRating?: string | null;
   language: string;
   coverUrl?: string | null;
+  printFormatKey?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
   priceEbook?: number | string | null;
   pricePrint?: number | string | null;
   pricePrintHardcover?: number | string | null;
@@ -253,6 +257,23 @@ function OutputDataContent() {
   const titleValue = infoForm.watch("title") ?? "";
   const descValue = infoForm.watch("description") ?? "";
   const aiGeneratedValue = infoForm.watch("aiGenerated") ?? false;
+  const genreValue = infoForm.watch("genre") ?? "";
+
+  // T-2057 -- print size needs to be visible right next to Genre, not
+  // something the author has to go look up separately. Live preview from
+  // the SAME genre->format table the server uses when it auto-derives
+  // printWidthMm/printHeightMm on save (apps/api/.../book.ts PATCH
+  // handler) -- shows the size the moment a genre is picked, before
+  // "Зберегти зміни" even runs. If the book already has a manually
+  // overridden size that doesn't match the genre-derived one, that's
+  // shown instead (an override wins over the genre default).
+  const overrideFormat =
+    book?.printWidthMm && book?.printHeightMm
+      ? { widthMm: book.printWidthMm, heightMm: book.printHeightMm, key: book.printFormatKey }
+      : null;
+  const genreFormat = genreValue ? PRINT_FORMATS[GENRE_TO_PRINT_FORMAT[genreValue] ?? "standard"] : PRINT_FORMATS.standard;
+  const isOverride = !!overrideFormat && overrideFormat.key !== genreFormat.key;
+  const displayFormat = isOverride ? overrideFormat! : genreFormat;
 
   useEffect(() => {
     if (!book) return;
@@ -463,6 +484,11 @@ function OutputDataContent() {
                     <option value="">Оберіть жанр</option>
                     {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
                   </select>
+                  <p className="text-xs text-gray-500">
+                    Розмір друкованої книги: <span className="font-medium text-gray-700">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
+                    {" "}({PRINT_FORMATS[displayFormat.key as keyof typeof PRINT_FORMATS]?.label ?? "Стандартний"})
+                    {isOverride && <span className="ml-1 text-amber-600">— вручну змінено</span>}
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">

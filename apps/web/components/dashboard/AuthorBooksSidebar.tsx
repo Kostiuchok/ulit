@@ -50,7 +50,11 @@ const EDIT_GROUP: SubNavItem[] = [
     href: (id) => `/dashboard/books/${id}/manuscript`,
   },
   { label: "Обкладинка", icon: <ImagePlus size={14} />, href: (id) => `/dashboard/books/${id}/cover` },
-  { label: "Передперегляд", icon: <Eye size={14} />, href: (id) => `/dashboard/books/${id}/preview` },
+  // T-2057 -- one real preview, not two: this used to point at the old
+  // page-thumbnail flipbook (`(withSidebar)/[id]/preview`), a separate,
+  // unrelated render pipeline from the one the manuscript editor's own
+  // "Передперегляд" button used. Both now point at the same route.
+  { label: "Передперегляд", icon: <Eye size={14} />, href: (id) => `/dashboard/books/${id}/manuscript/preview` },
   { label: "Видалити", icon: <Trash2 size={14} />, action: "delete" },
 ];
 

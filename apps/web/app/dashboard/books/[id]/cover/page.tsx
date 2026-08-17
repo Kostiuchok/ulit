@@ -134,7 +134,7 @@ export default function CoverPage() {
         </div>
 
         <Link
-          href={`/dashboard/books/${id}/preview`}
+          href={`/dashboard/books/${id}/manuscript/preview`}
           className="ml-auto text-sm text-gray-500 hover:text-gray-900 transition-colors"
         >
           Передперегляд →

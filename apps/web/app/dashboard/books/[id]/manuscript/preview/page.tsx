@@ -5,6 +5,12 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Download } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
+import { useBook } from "@/hooks/useBook";
+
+interface PreviewBook {
+  title: string;
+  coverUrl?: string | null;
+}
 
 // T-2057 -- "Передперегляд = сама генерація друкованого PDF" (docs/T-2057-checklist.md
 // section 0). This page no longer runs its own client-side pagination; it
@@ -19,6 +25,7 @@ type PrintPreviewStatus =
 export default function ManuscriptPreviewPage() {
   const { id } = useParams<{ id: string }>();
   const { apiFetch, token } = useApi();
+  const { book } = useBook<PreviewBook>(id);
   const [state, setState] = useState<PrintPreviewStatus | null>(null);
   const [error, setError] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -64,7 +71,20 @@ export default function ManuscriptPreviewPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-gray-200">
-        {backLink}
+        <div className="flex items-center gap-3">
+          {backLink}
+          {/* T-2057 -- one preview shows the whole book, not just the
+              interior pages: the old (retired) preview page led with the
+              cover before the pages, this keeps that context. */}
+          {book?.coverUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={book.coverUrl}
+              alt={`Обкладинка «${book.title}»`}
+              className="h-9 w-auto rounded-sm border border-gray-200 shadow-sm"
+            />
+          )}
+        </div>
         {/* T-2057 п.4 -- temporary QA link, byte-for-byte the same file the
             viewer below shows. Remove once the pipeline has a confirmed live
             test (docs/T-2057-checklist.md checklist). */}
