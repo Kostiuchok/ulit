@@ -16,24 +16,21 @@ ENV LC_ALL=C.UTF-8
 # WeasyPrint (T-2057, renderManuscriptPdf) -- picked over Puppeteer/Chromium
 # specifically for native `break-before/after: recto/verso` support (CSS GCPM,
 # see docs/T-2057-checklist.md section 3). Installed via pip for a recent
-# version. apt libs cross-checked 2026-08-17 against WeasyPrint's own install
-# docs (doc.courtbouillon.org/weasyprint/stable/first_steps.html), Ubuntu
-# >=20.04 "with wheels" list specifically (not the Debian list -- Ubuntu
-# needs libharfbuzz0b, which an earlier draft of this line, copied from the
-# Debian list, omitted). libcairo2/libgdk-pixbuf2.0-0/shared-mime-info/
-# fonts-dejavu are extras beyond that minimal list (embedded-image rendering
-# and actual glyphs to draw -- ubuntu:22.04 ships no fonts at all otherwise),
-# kept since they're low-cost and plausibly load-bearing for real manuscript
-# content, not because they're independently confirmed necessary.
-# STILL NOT independently verified by actually running it in this exact
-# image (no Docker available in the dev environment this was written in).
-# First deploy after this change MUST confirm `weasyprint --version` runs and
-# that `break-before: recto` actually inserts a blank verso page, the same
-# empirical check already done for the Puppeteer alternative (checklist
-# section 3) -- do not trust this comment over that live test.
+# version. apt libs verified 2026-08-17 by actually building this exact list
+# in a throwaway `ubuntu:22.04` container on the VPS (real target
+# environment) -- an earlier draft mixed in libharfbuzz-subset0 from
+# WeasyPrint's Debian install docs, which doesn't exist as a package on
+# Ubuntu jammy at all (apt-get fails outright); Ubuntu's own docs list
+# libharfbuzz0b instead. Also confirmed there: `pip3 install weasyprint`
+# installs cleanly from wheels (no compiler toolchain pulled in), and a
+# break-before:recto test document rendered to the correct page count.
+# libcairo2/libgdk-pixbuf2.0-0/shared-mime-info/fonts-dejavu are extras
+# beyond WeasyPrint's own minimal list (embedded-image rendering and actual
+# glyphs to draw -- ubuntu:22.04 ships no fonts at all otherwise), kept since
+# they're low-cost and plausibly load-bearing for real manuscript content.
 RUN apt-get update && apt-get install -y \
     curl libreoffice pandoc ghostscript calibre redis-tools unzip \
-    python3-pip libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libharfbuzz-subset0 \
+    python3-pip libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 \
     libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info fonts-dejavu \
     && pip3 install --no-cache-dir weasyprint \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
