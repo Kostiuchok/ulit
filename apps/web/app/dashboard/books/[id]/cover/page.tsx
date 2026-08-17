@@ -11,6 +11,12 @@ import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
 
+interface BookAuthor {
+  lastName: string;
+  firstName: string;
+  middleName?: string;
+}
+
 interface BookInfo {
   id: string;
   title: string;
@@ -25,6 +31,20 @@ interface BookInfo {
   pageCount?: number | null;
   moderationStatus?: string | null;
   moderationNote?: string | null;
+  bookAuthors?: BookAuthor[] | null;
+  authorBio?: string | null;
+  coverIndependentFromBookData?: boolean;
+}
+
+// T-2060 п.4/п.6 -- "Вихідні дані" (bookAuthors/authorBio) is the canonical
+// per-book source, independent of the account profile; falls back to the
+// account name only if the author hasn't filled in structured book authors
+// yet (e.g. a brand-new book).
+function formatBookAuthorName(authors: BookAuthor[] | null | undefined, fallback: string): string {
+  if (!authors || authors.length === 0) return fallback;
+  return authors
+    .map((a) => [a.lastName, a.firstName, a.middleName].filter(Boolean).join(" "))
+    .join(", ");
 }
 
 const FORMATS: { key: CoverFormat; label: string }[] = [
@@ -38,21 +58,35 @@ export default function CoverPage() {
   const { apiFetch, token } = useApi();
   const { data: session } = useSession();
   const [book, setBook] = useState<BookInfo | null>(null);
-  const [authorBio, setAuthorBio] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [format, setFormat] = useState<CoverFormat>("ebook");
   const [saved, setSaved] = useState(false);
   const [locallyFixed, setLocallyFixed] = useState(false);
+  const [independentSaving, setIndependentSaving] = useState(false);
 
   useEffect(() => {
     if (!token) return;
     apiFetch<{ book: BookInfo }>(`/api/books/${id}`)
       .then(({ book }) => setBook(book))
       .finally(() => setLoading(false));
-    apiFetch<{ user: { bio?: string | null } }>("/api/users/me")
-      .then(({ user }) => setAuthorBio(user.bio ?? null))
-      .catch(() => {});
   }, [token, id]);
+
+  async function toggleIndependent(next: boolean) {
+    setBook((b) => (b ? { ...b, coverIndependentFromBookData: next } : b));
+    setIndependentSaving(true);
+    try {
+      await apiFetch(`/api/books/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ coverIndependentFromBookData: next }),
+      });
+    } catch {
+      // Revert on failure -- avoids the UI silently claiming a state the
+      // server never persisted.
+      setBook((b) => (b ? { ...b, coverIndependentFromBookData: !next } : b));
+    } finally {
+      setIndependentSaving(false);
+    }
+  }
 
   function handleSaved(patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) {
     setBook((b) => (b ? { ...b, ...patch } : b));
@@ -120,20 +154,35 @@ export default function CoverPage() {
           </div>
         )}
 
+        <label className="mb-3 flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={!!book?.coverIndependentFromBookData}
+            onChange={(e) => toggleIndependent(e.target.checked)}
+            disabled={independentSaving}
+            className="rounded border-gray-300"
+          />
+          Редагувати текст на обкладинці незалежно від даних книги
+          <span className="text-xs text-gray-400">
+            (якщо вимкнено — назва/автор/анотація/біографія на обкладинці автоматично оновлюються слідом за «Вихідні дані»)
+          </span>
+        </label>
+
         <div className="rounded-xl border bg-white p-6 shadow-sm">
           <CoverDesigner
             bookId={id}
             bookTitle={book?.title ?? "Назва книги"}
-            bookAuthor={session?.user?.name ?? "Автор"}
+            bookAuthor={formatBookAuthorName(book?.bookAuthors, session?.user?.name ?? "Автор")}
             subtitle={book?.subtitle}
             description={book?.description}
-            authorBio={authorBio}
+            authorBio={book?.authorBio}
             isbn={book?.isbn}
             pageCount={book?.pageCount}
             format={format}
             existingCoverUrl={book?.coverUrl}
             savedDesign={book?.coverDesign}
             coverImageLibrary={book?.coverImageLibrary ?? []}
+            syncFromBookData={!book?.coverIndependentFromBookData}
             onSaved={handleSaved}
             onLibraryChange={handleLibraryChange}
             token={token}

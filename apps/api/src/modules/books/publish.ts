@@ -45,11 +45,13 @@ function validateBook(book: {
     errors.push({ field: "file", message: "Файл рукопису не завантажено" });
   }
   // T-2060 п.9/п.11 -- either the legacy per-format prices or the new
-  // desired-royalty-per-unit (which auto-derives a price for every enabled
-  // distribution channel, see DistributionChannelPicker) satisfies this.
-  // True "price resolved on every enabled channel" enforcement needs the
-  // per-channel royalty-calculator UI (T-2060 checklist, not yet built) --
-  // this is an interim, more permissive check, not the final rule.
+  // desired-royalty-per-unit satisfies this. desiredRoyaltyAmount is set via
+  // the per-channel royalty calculator (DistributionChannelPicker.tsx) --
+  // it live-derives a suggested price for every enabled channel from its own
+  // commission formula, but our schema only stores ONE price per format
+  // (not one per channel), so there is no separate per-channel price value
+  // to individually require here. Storing desiredRoyaltyAmount IS the
+  // "price resolved on every enabled channel" state for this schema shape.
   if (
     !book.priceEbook && !book.pricePrint && !book.pricePrintHardcover &&
     !book.pricePrintBw && !book.pricePrintHardcoverBw && !book.desiredRoyaltyAmount

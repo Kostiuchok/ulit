@@ -11,13 +11,43 @@ interface DistributionInfo {
   kdpSelectActive: boolean;
 }
 
-export function DistributionChannelPicker({ bookId, language }: { bookId: string; language?: string }) {
+// T-2060 п.9/п.11 -- один "бажане роялті за примірник" → жива автоціна для
+// КОЖНОГО каналу за його власною формулою комісії (той самий патерн, що й
+// Ridero). Канали з діапазоном комісії (KDP 35-70%) дають діапазон ціни:
+// найдешевша ціна при найкращій комісії (royaltyMax) .. найдорожча при
+// найгіршій (royaltyMin) -- симетрично до того, як існуючий блок "Огляд"
+// (output-data/page.tsx) уже рахує прибуток ІЗ ціни в інший бік.
+function suggestedPriceRange(royalty: number, royaltyMin: number, royaltyMax: number): { min: number; max: number } {
+  return { min: royalty / royaltyMax, max: royalty / royaltyMin };
+}
+
+function formatUah(n: number): string {
+  return `${n.toFixed(2)} грн`;
+}
+
+export function DistributionChannelPicker({
+  bookId,
+  language,
+  initialDesiredRoyaltyAmount,
+}: {
+  bookId: string;
+  language?: string;
+  initialDesiredRoyaltyAmount?: number | string | null;
+}) {
   const { apiFetch, token } = useApi();
   const [channels, setChannels] = useState<string[] | null>(null);
   const [kdpActive, setKdpActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  const [royaltyInput, setRoyaltyInput] = useState(
+    initialDesiredRoyaltyAmount ? String(Number(initialDesiredRoyaltyAmount)) : ""
+  );
+  const [royaltySaving, setRoyaltySaving] = useState(false);
+  const [royaltySaved, setRoyaltySaved] = useState(false);
+  const royaltyValue = Number(royaltyInput.replace(",", "."));
+  const royaltyValid = royaltyInput.trim() !== "" && Number.isFinite(royaltyValue) && royaltyValue > 0;
 
   useEffect(() => {
     if (!token) return;
@@ -54,6 +84,23 @@ export function DistributionChannelPicker({ bookId, language }: { bookId: string
     }
   }
 
+  async function saveRoyalty() {
+    setRoyaltySaving(true);
+    setError("");
+    try {
+      await apiFetch(`/api/books/${bookId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ desiredRoyaltyAmount: royaltyValid ? royaltyValue : null }),
+      });
+      setRoyaltySaved(true);
+      setTimeout(() => setRoyaltySaved(false), 3000);
+    } catch (e: any) {
+      setError(e.message || "Помилка збереження");
+    } finally {
+      setRoyaltySaving(false);
+    }
+  }
+
   if (!channels) return null;
 
   const isKdpSelect = channels.includes("KDP") && !channels.includes("D2D") && !channels.includes("GOOGLE");
@@ -61,9 +108,36 @@ export function DistributionChannelPicker({ bookId, language }: { bookId: string
 
   return (
     <div className="space-y-3">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+        <label htmlFor="desiredRoyalty" className="block text-sm font-medium text-gray-700">
+          Бажане роялті за примірник (грн)
+        </label>
+        <p className="text-xs text-gray-500">
+          Скільки ви хочете отримувати з продажу одного примірника — ціна для кожного каналу нижче
+          порахується автоматично з урахуванням його комісії.
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            id="desiredRoyalty"
+            type="number"
+            step="0.01"
+            min="0"
+            value={royaltyInput}
+            onChange={(e) => { setRoyaltyInput(e.target.value); setRoyaltySaved(false); }}
+            placeholder="напр. 50"
+            className="h-9 w-32 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <Button size="sm" variant="outline" onClick={saveRoyalty} loading={royaltySaving}>
+            Зберегти
+          </Button>
+          {royaltySaved && <span className="text-xs text-green-600">✓ Збережено</span>}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {PLATFORMS.map((p) => {
           const selected = channels.includes(p.key);
+          const range = royaltyValid ? suggestedPriceRange(royaltyValue, p.royaltyMin, p.royaltyMax) : null;
           return (
             <button
               key={p.key}
@@ -94,6 +168,14 @@ export function DistributionChannelPicker({ bookId, language }: { bookId: string
                 </div>
               </div>
               <p className="mt-2 text-xs text-gray-500">{p.description}</p>
+              {range && (
+                <p className="mt-1 text-xs font-medium text-primary">
+                  Ціна ≈{" "}
+                  {range.min === range.max
+                    ? formatUah(range.min)
+                    : `${formatUah(range.min)} – ${formatUah(range.max)}`}
+                </p>
+              )}
               {p.locked && <p className="mt-1 text-xs text-gray-400">Не можна вимкнути</p>}
               {p.key === "KDP" && kdpEbookUnsupported && (
                 <p className="mt-1 text-xs font-medium text-amber-600">

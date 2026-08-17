@@ -751,6 +751,10 @@ interface Props {
   existingCoverUrl?: string | null;
   savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
+  // T-2060 п.8 -- "незалежно від даних книги" (Ridero pattern). Default true
+  // (synced) when the caller doesn't pass it, matching the DB default for
+  // Book.coverIndependentFromBookData (false = synced).
+  syncFromBookData?: boolean;
   onSaved: (patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) => void;
   onLibraryChange?: (library: { url: string; uploadedAt: string; kind?: "slot" | "background" }[]) => void;
   token?: string;
@@ -768,6 +772,7 @@ export default function CoverDesignerCanvas({
   format,
   savedDesign,
   coverImageLibrary = [],
+  syncFromBookData = true,
   onSaved,
   onLibraryChange,
   token,
@@ -1030,6 +1035,43 @@ export default function CoverDesignerCanvas({
     prevFormatRef.current = format;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.layout.totalW, ctx.layout.totalH, format]);
+
+  // T-2060 п.8 -- "Вихідні дані" is the canonical text source (title/author/
+  // subtitle/annotation/bio); by default the cover's own text objects stay
+  // mirrored to it live. Updates in place (by `data.role`) rather than
+  // rebuilding the canvas, so the author's own styling/position/color edits
+  // on those same text objects survive. Deliberately does NOT add a text
+  // object that doesn't already exist (e.g. a subtitle typed in after the
+  // cover was first created with none) -- that would need re-running the
+  // template's layout logic and risks clobbering a manually repositioned
+  // cover; author adds it manually via the toolbar instead, same as any
+  // other cover text. Skipped entirely once the author checks "редагувати
+  // незалежно" (syncFromBookData=false) -- their edits then diverge freely.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !syncFromBookData) return;
+    const roleToText: Record<string, string> = {
+      "text-title": bookTitle,
+      "text-author": bookAuthor,
+      "text-subtitle": subtitle || "",
+      "text-bio": authorBio || "",
+      "text-blurb": description || "Анотація до книги…",
+    };
+    let changed = false;
+    canvas.getObjects().forEach((o: any) => {
+      const role = o.data?.role;
+      const next = roleToText[role];
+      if (next !== undefined && o.text !== next) {
+        o.set({ text: next });
+        changed = true;
+      }
+    });
+    if (changed) {
+      canvas.renderAll();
+      saveSnapshot();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookTitle, bookAuthor, subtitle, description, authorBio, syncFromBookData]);
 
   const undoCanvas = useCallback(() => {
     const canvas = canvasRef.current;

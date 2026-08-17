@@ -133,6 +133,7 @@ interface MetadataBook {
   pricePrintHardcover?: number | string | null;
   pricePrintBw?: number | string | null;
   pricePrintHardcoverBw?: number | string | null;
+  desiredRoyaltyAmount?: number | string | null;
   aiGenerated?: boolean;
   aiGeneratedNote?: string | null;
   coAuthors?: CoAuthor[] | null;
@@ -521,7 +522,7 @@ function OutputDataContent() {
               <div className="space-y-2 rounded-lg border p-3">
                 <Label>Автори книги</Label>
                 <p className="text-xs text-gray-400">
-                  Якщо авторів декілька — кожен додає власне прізвище/ім'я і, за бажанням, своє фото.
+                  Якщо авторів декілька — кожен додає власне прізвище/ім&apos;я і, за бажанням, своє фото.
                 </p>
                 {bookAuthors.length > 0 && (
                   <div className="space-y-1.5">
@@ -768,7 +769,11 @@ function OutputDataContent() {
             <div className="rounded-xl border bg-white p-6 shadow-sm">
               <h2 className="text-base font-semibold mb-1">Платформи розповсюдження</h2>
               <p className="text-xs text-gray-500 mb-4">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
-              <DistributionChannelPicker bookId={id} language={book?.language} />
+              <DistributionChannelPicker
+                bookId={id}
+                language={book?.language}
+                initialDesiredRoyaltyAmount={book?.desiredRoyaltyAmount}
+              />
             </div>
 
             {book?.status === "PUBLISHED" && (
