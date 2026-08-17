@@ -25,8 +25,12 @@ const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph", attrs: { style: 
 // Serializes a TipTap JSON doc to HTML using the exact same node schema the
 // live editor and browser pagination probe use -- single source of truth so
 // the print PDF can never visually drift from what the author actually
-// built. Pure/DOM-free (generateHTML() only walks the JSON + schema), safe
-// to call from the print-PDF worker (Node, no browser).
+// built. NOT DOM-free: ProseMirror's DOMSerializer (used internally by
+// generateHTML()) needs a real `document` global to build nodes before
+// serializing -- throws "window is not defined" in plain Node otherwise.
+// The print-PDF worker (apps/worker/src/lib/renderManuscriptPdf.ts) installs
+// a jsdom shim as a module-level side effect before this is ever called;
+// anywhere else this runs in Node (not a browser) needs the same shim.
 export function manuscriptContentToHtml(content: any): string {
   return generateHTML(content ?? EMPTY_DOC, MANUSCRIPT_CORE_EXTENSIONS);
 }
