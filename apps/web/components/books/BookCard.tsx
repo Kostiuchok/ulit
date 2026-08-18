@@ -16,6 +16,8 @@ interface Book {
   pricePrintHardcover?: string | null;
   genre?: string | null;
   isbn?: string | null;
+  pageCount?: number | null;
+  printPageCount?: number | null;
   createdAt: string;
   publishedAt?: string | null;
   publicationTimeline?: Record<string, string> | null;
@@ -28,6 +30,11 @@ interface Props {
 
 export function BookCard({ book, onDelete }: Props) {
   const status = getBookStatusLabel(book.status, book.publicationTimeline);
+  // Prefer the real print-trim page count (T-2057, printPdfUrl) over the
+  // online-viewer estimate (pageCount, derived from Word's own page size) --
+  // same fallback print-cost.ts already uses, so the number matches what the
+  // author saw there.
+  const pages = book.printPageCount ?? book.pageCount;
 
   return (
     <div className="group relative flex gap-4 rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
@@ -67,6 +74,7 @@ export function BookCard({ book, onDelete }: Props) {
 
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-3 text-[0.75rem] text-gray-500">
+            {pages && <span>{pages} стор.</span>}
             {book.priceEbook && <span>Е-книга: {Number(book.priceEbook).toFixed(0)} грн</span>}
             {book.pricePrint && <span>Друк (м&apos;яка): {Number(book.pricePrint).toFixed(0)} грн</span>}
             {book.pricePrintHardcover && <span>Друк (тверда): {Number(book.pricePrintHardcover).toFixed(0)} грн</span>}

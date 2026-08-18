@@ -68,6 +68,7 @@ export async function booksRoutes(app: FastifyInstance) {
         genre: true,
         language: true,
         pageCount: true,
+        printPageCount: true,
         isbn: true,
         distributionStrategy: true,
         d2dStatus: true,

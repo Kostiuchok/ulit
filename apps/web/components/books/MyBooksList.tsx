@@ -25,6 +25,8 @@ interface Book {
   pricePrintHardcover?: string | null;
   genre?: string | null;
   isbn?: string | null;
+  pageCount?: number | null;
+  printPageCount?: number | null;
   createdAt: string;
   publishedAt?: string | null;
   archivedAt?: string | null;
