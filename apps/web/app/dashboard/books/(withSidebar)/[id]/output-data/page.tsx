@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -113,14 +113,20 @@ const GENRES = [
 const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"];
 
 // T-2060 п.7 -- section labels for the single-scroll layout (used as plain
-// headings now, not a StepIndicator/paginated wizard).
+// headings now, not a StepIndicator/paginated wizard). T-2073 reuses these
+// same labels for a sticky anchor nav so the author can see every section
+// up front and jump to one without scrolling -- the scroll stays a single
+// continuous page (T-2060's decision, Ridero-driven), the nav just adds a
+// way to see/reach every section from the top instead of only forward.
 const SECTION_LABELS = {
   info: "Інформація",
   file: "Рукопис",
   price: "Ціна",
   distribution: "Розповсюдження",
   review: "Огляд перед публікацією",
+  publish: "Публікація",
 };
+const SECTION_ORDER = Object.keys(SECTION_LABELS) as (keyof typeof SECTION_LABELS)[];
 
 interface MetadataBook {
   status: string;
@@ -250,6 +256,39 @@ function OutputDataContent() {
     if (!id) return;
     apiFetch<PrintCost>(`/api/books/${id}/print-cost`).then(setPrintCost).catch(() => {});
   }, [id]);
+
+  // T-2073 -- sticky anchor nav: tracks which section is under the nav bar
+  // so its button can highlight, without turning the page into tabs (every
+  // section still renders at once, this only decides which nav button looks
+  // "current"). rootMargin's negative top matches the nav bar's own height
+  // (~52px) so a section only counts as active once it's actually past the
+  // bar, and the large negative bottom keeps just the topmost visible
+  // section active instead of the whole viewport's worth of sections.
+  const [activeSection, setActiveSection] = useState<(typeof SECTION_ORDER)[number]>("info");
+  const sectionRefs = useRef<Partial<Record<(typeof SECTION_ORDER)[number], HTMLElement | null>>>({});
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          setActiveSection(visible[0].target.id.replace("section-", "") as (typeof SECTION_ORDER)[number]);
+        }
+      },
+      { rootMargin: "-56px 0px -70% 0px", threshold: 0 }
+    );
+    SECTION_ORDER.forEach((key) => {
+      const el = sectionRefs.current[key];
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [book]);
+
+  function scrollToSection(key: (typeof SECTION_ORDER)[number]) {
+    sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const infoForm = useForm<InfoForm>({ resolver: zodResolver(infoSchema) });
   const priceForm = useForm<PriceForm>({ resolver: zodResolver(priceSchema) });
@@ -410,13 +449,41 @@ function OutputDataContent() {
       <div className="max-w-3xl space-y-6">
         <h1 className="text-lg font-semibold text-gray-900">Вихідні дані</h1>
 
+        {/* T-2073 -- sticky anchor nav, not real tabs: clicking a button just
+            scrolls to that section, everything below stays rendered and the
+            single "Зберегти зміни"/publish flow from T-2060 is untouched.
+            Note (docs journal #11): `sticky` always opens a new stacking
+            context -- if a fixed/modal element ever gets added inside one of
+            the sections below, render it via a portal, not inline. */}
+        <nav className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b bg-white py-2.5 shadow-sm">
+          {SECTION_ORDER.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => scrollToSection(key)}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                activeSection === key
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              )}
+            >
+              {SECTION_LABELS[key]}
+            </button>
+          ))}
+        </nav>
+
         {showRejection && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 whitespace-pre-wrap">
             Модератор зазначив зауваження щодо метаданих: {book?.moderationNote}
           </div>
         )}
 
-        <section className="space-y-3">
+        <section
+          id="section-info"
+          ref={(el) => { sectionRefs.current.info = el; }}
+          className="scroll-mt-16 space-y-3"
+        >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.info}</h2>
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
@@ -664,7 +731,11 @@ function OutputDataContent() {
           </div>
         </section>
 
-        <section className="space-y-3">
+        <section
+          id="section-file"
+          ref={(el) => { sectionRefs.current.file = el; }}
+          className="scroll-mt-16 space-y-3"
+        >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.file}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
             <div>
@@ -685,7 +756,11 @@ function OutputDataContent() {
           </div>
         </section>
 
-        <section className="space-y-3">
+        <section
+          id="section-price"
+          ref={(el) => { sectionRefs.current.price = el; }}
+          className="scroll-mt-16 space-y-3"
+        >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.price}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <form onSubmit={priceForm.handleSubmit(onSubmitPrice)} className="space-y-5">
@@ -787,7 +862,11 @@ function OutputDataContent() {
           </div>
         </section>
 
-        <section className="space-y-3">
+        <section
+          id="section-distribution"
+          ref={(el) => { sectionRefs.current.distribution = el; }}
+          className="scroll-mt-16 space-y-3"
+        >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.distribution}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <h3 className="text-base font-semibold mb-1">Платформи розповсюдження</h3>
@@ -806,7 +885,11 @@ function OutputDataContent() {
           )}
         </section>
 
-        <section className="space-y-3">
+        <section
+          id="section-review"
+          ref={(el) => { sectionRefs.current.review = el; }}
+          className="scroll-mt-16 space-y-3"
+        >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.review}</h2>
           <div className="space-y-6">
             <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
@@ -892,8 +975,12 @@ function OutputDataContent() {
         {/* T-2060 п.7 -- single-scroll layout ends with the actual publish
             action, matching Ridero's one-page publish/info + publish/instore
             flow (docs/T-2060-publish-info-redesign-checklist.md). */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-500">Публікація</h2>
+        <section
+          id="section-publish"
+          ref={(el) => { sectionRefs.current.publish = el; }}
+          className="scroll-mt-16 space-y-3"
+        >
+          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.publish}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <PublishButton
               bookId={id}
