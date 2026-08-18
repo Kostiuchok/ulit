@@ -86,6 +86,9 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
         body: JSON.stringify({ appearanceConfirmed }),
       });
       onSubmitted?.();
+      // AuthorBooksSidebar fetches its own book list independently and has
+      // no other way to learn the status just changed to REVIEW in the same tab.
+      window.dispatchEvent(new Event("ulit:books-changed"));
     } catch (e: any) {
       if (e.code === "CONTRACT_NOT_SIGNED") {
         setContractRequired(true);

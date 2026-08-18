@@ -160,16 +160,16 @@ export function AuthorBooksSidebar() {
   const [storeOpen, setStoreOpen] = useState(true);
   const [promoOpen, setPromoOpen] = useState(true);
 
-  function load() {
+  function load(opts?: { silent?: boolean }) {
     if (!token) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     apiFetch<{ books: SidebarBook[] }>("/api/books")
       .then(({ books }) => {
         setBooks(books);
         setError(null);
       })
-      .catch((e: any) => setError(e.message || "Помилка завантаження"))
-      .finally(() => setLoading(false));
+      .catch((e: any) => { if (!opts?.silent) setError(e.message || "Помилка завантаження"); })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   }
 
   useEffect(load, [token]);
@@ -177,6 +177,19 @@ export function AuthorBooksSidebar() {
   useEffect(() => {
     if (routeId) setExpandedBookId(routeId);
   }, [routeId]);
+
+  // Pages that mutate a book (e.g. PublishButton's "Надіслати на модерацію")
+  // fire this event so the sidebar's own independently-fetched status badge
+  // stays in sync -- it has no other way to learn about a change made
+  // elsewhere in the same tab (no navigation, no window blur/refocus, so the
+  // useBook.ts focus-refetch pattern doesn't apply here). Silent: this must
+  // NOT flip the whole sidebar back to its loading skeleton mid-interaction.
+  useEffect(() => {
+    function onBooksChanged() { load({ silent: true }); }
+    window.addEventListener("ulit:books-changed", onBooksChanged);
+    return () => window.removeEventListener("ulit:books-changed", onBooksChanged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return (
     <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-gray-200 bg-white overflow-hidden">
@@ -201,7 +214,7 @@ export function AuthorBooksSidebar() {
         <div className="p-4 text-center">
           <p className="text-[0.75rem] text-red-500">Не вдалося завантажити книги</p>
           <button
-            onClick={load}
+            onClick={() => load()}
             className="mt-2 rounded border border-gray-300 px-2 py-1 text-[0.75rem] text-gray-600 hover:bg-gray-50"
           >
             Спробувати ще раз
