@@ -952,6 +952,13 @@ export default function CoverDesignerCanvas({
       const backSpineObjs = ctx.layout.back ? (backSpineStateRef.current ?? fresh!.backSpine) : [];
 
       canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
+        // T-2067 -- loadFromJSON loads images asynchronously; if the author
+        // navigates away before this callback fires, this effect's cleanup
+        // has already run canvas.dispose() + canvasRef.current = null, and
+        // rendering into a disposed canvas crashes deep in Fabric internals
+        // (clearContext on a null context) as an uncaught client-side
+        // exception -- bail out if this callback is stale.
+        if (canvasRef.current !== canvas) return;
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
         canvas.renderAll();
         historyRef.current = [];
@@ -1021,6 +1028,8 @@ export default function CoverDesignerCanvas({
       const backSpineObjs = ctx.layout.back ? (backSpineStateRef.current ?? fresh!.backSpine) : [];
 
       canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
+        // T-2067 -- same stale-callback-after-unmount race as the init effect above.
+        if (canvasRef.current !== canvas) return;
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
         canvas.renderAll();
         pauseHistoryRef.current = false;
@@ -1080,6 +1089,7 @@ export default function CoverDesignerCanvas({
     const json = historyRef.current[historyIndexRef.current];
     pauseHistoryRef.current = true;
     canvas.loadFromJSON(json, () => {
+      if (canvasRef.current !== canvas) return; // T-2067 -- stale callback after unmount
       canvas.renderAll();
       pauseHistoryRef.current = false;
       setCanUndo(historyIndexRef.current > 0);
@@ -1094,6 +1104,7 @@ export default function CoverDesignerCanvas({
     const json = historyRef.current[historyIndexRef.current];
     pauseHistoryRef.current = true;
     canvas.loadFromJSON(json, () => {
+      if (canvasRef.current !== canvas) return; // T-2067 -- stale callback after unmount
       canvas.renderAll();
       pauseHistoryRef.current = false;
       setCanUndo(true);
@@ -1721,6 +1732,7 @@ export default function CoverDesignerCanvas({
       pauseHistoryRef.current = true;
       return new Promise<void>((resolve) => {
         canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
+          if (canvasRef.current !== canvas) { resolve(); return; } // T-2067 -- stale callback after unmount
           applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
           canvas.renderAll();
           pauseHistoryRef.current = false;
