@@ -527,7 +527,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.info = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.info}</h2>
+          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.info}</h2>
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
               <div className="space-y-1.5">
@@ -779,7 +779,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.file = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.file}</h2>
+          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.file}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
             <div>
               <h3 className="text-base font-semibold mb-1">Рукопис (.docx)</h3>
@@ -804,7 +804,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.price = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.price}</h2>
+          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.price}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
             <FormatsAndDistribution
               language={book?.language}
@@ -892,7 +892,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.review = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.review}</h2>
+          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.review}</h2>
           <div className="space-y-6">
             <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
               <Row label="Назва" value={book?.title || "—"} />
@@ -982,7 +982,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.publish = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.publish}</h2>
+          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.publish}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <PublishButton
               bookId={id}
