@@ -68,7 +68,7 @@ const STORE_GROUP: SubNavItem[] = [
 ];
 
 const PROMO_GROUP: SubNavItem[] = [
-  { label: "Замовити тираж", icon: <Package size={14} />, disabled: true },
+  { label: "Замовити тираж", icon: <Package size={14} />, href: (id) => `/dashboard/books/${id}/print-order` },
   { label: "Обговорення книги", icon: <MessageSquare size={14} />, disabled: true },
   { label: "Знайти нових читачів", icon: <Users size={14} />, disabled: true },
   { label: "Включити акцію на книгу", icon: <Percent size={14} />, disabled: true },

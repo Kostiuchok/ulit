@@ -471,6 +471,20 @@ function OutputDataContent() {
               {SECTION_LABELS[key]}
             </button>
           ))}
+
+          {/* T-2074 -- "Замовити тираж" is Ridero's own separate page
+              (`/publish/print`, live-verified), not a section of this one --
+              kept visually apart from the scroll-anchor pills (divider +
+              real navigation, not scrollToSection) since it leaves this
+              page entirely. First concrete step toward splitting these
+              sections into their own routes, per the "тираж" observation. */}
+          <span className="mx-1 shrink-0 self-center text-gray-200">|</span>
+          <Link
+            href={`/dashboard/books/${id}/print-order`}
+            className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+          >
+            Замовити тираж
+          </Link>
         </nav>
 
         {showRejection && (
