@@ -714,3 +714,15 @@ SyntaxError: Unexpected token 'export'
    ```
 
 **Правило**: якщо будь-який НОВИЙ файл в `apps/api`/`apps/worker` починає імпортувати щось із `shared-types` (пакет без власної збірки), обидва Dockerfile треба звірити з цим патерном. **Перевіряти не лише `docker ... build` (успішна збірка НІЧОГО не каже про рантайм-помилку резолву модуля) і не лише `weasyprint --version`/подібні бінарники всередині контейнера** — а РЕАЛЬНИЙ запуск `node apps/worker/dist/index.js` (чи еквівалент для `api`) проти справжньої мережі (`docker run --network <compose-мережа> ...`). Саме такий запуск і зловив варіант Б — перевірка "чи існує файл" (`ls`/`require.resolve` з кореня `/app`) його пропустила, бо тестувала резолюцію не з того каталогу, з якого реально викликає застосунок.
+
+---
+
+### 15. `next build` НЕ ловить усі TypeScript-помилки, які ловить `tsc --noEmit` — CI `typecheck` впав, `next build` пройшов
+
+**Симптом**: `git push` пройшов, локальний `pnpm --filter web build` (правило журналу #13) виконався БЕЗ помилок — але CI (`.github/workflows/ci.yml`, крок `pnpm typecheck` → `turbo typecheck` → `tsc --noEmit` в кожному пакеті) впав з `Property 'status' does not exist on type 'Book'.`, і деплой не відбувся взагалі (`deploy.yml`: `if: github.event.workflow_run.conclusion == 'success'` — CI не success → job деплою одразу `Skipped`, ніякого білда/SSH не було). GitHub Actions показав це в "Annotations", не в основному логі — легко пропустити, якщо дивитись тільки на статус run'у ("Deploy #228 completed, 3s" виглядає як "все ок", а не як явний сигнал "нічого не задеплоїлось").
+
+**Причина**: `next build` теж типчекає проєкт, але не 1-в-1 еквівалентно голому `tsc --noEmit` — конкретний випадок: локальний `interface Book` на сторінці (`apps/web/app/admin/books/[id]/distribute/page.tsx`) не мав поля `status`, хоч API його завжди повертає; новий код прочитав `book.status` — `next build` це не підняв як фатальну помилку, а окремий `tsc --noEmit` (через `turbo typecheck`) підняв.
+
+**Рішення**: додано відсутнє поле `status: string;` в `Book` interface.
+
+**Правило**: перед `git push`, якщо змінювався `apps/web` (доповнення до правила журналу #13, не заміна) — окрім `pnpm --filter web build`, ще й ганяти `pnpm typecheck` (кореневий `turbo typecheck`, той самий, що й CI) — вони ловлять РІЗНІ підмножини помилок, жоден не покриває інший повністю. Якщо після пушу `Deploy to Production` завершується за секунди ("completed"/"Skipped", а не реальні хвилини SSH+docker build) — це і є сигнал "CI не success, деплой пропущено", перевіряти вкладку **Annotations** конкретного CI run, не сам факт "run completed".
