@@ -135,7 +135,7 @@ export function BookDistribution() {
             <p className="mt-1 text-sm text-gray-500">«{book.title}»</p>
           </div>
           <Link
-            href={`/dashboard/books/${id}/output-data`}
+            href={`/dashboard/books/${id}/output-data#section-price`}
             className="rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50"
           >
             Змінити платформи та ціни

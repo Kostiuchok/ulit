@@ -20,7 +20,16 @@ export function PrintedCoverFrame({ coverUrl, className, mirror }: Props) {
       className={`relative aspect-[242/343] w-full overflow-hidden rounded-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.15),0_16px_28px_-10px_rgba(0,0,0,0.4)] ${className ?? ""}`}
     >
       {coverUrl ? (
-        <img src={coverUrl} alt="" className="h-full w-full object-cover" />
+        // object-contain, not object-cover -- this frame's ratio (242/343,
+        // matches Ridero's printed-book widget exactly) is a fixed visual
+        // choice, but the actual cover PNG is exported at whatever ratio
+        // PRINT_TRIM_SIZE_MM (shared-types) currently is, which doesn't
+        // equal 242/343 and can drift further as that constant changes.
+        // object-cover was silently cropping real cover content (title/
+        // author text near the edges) on every single book to force-fill
+        // the mismatched box; object-contain shows the whole cover,
+        // letterboxed if the ratios don't match exactly.
+        <img src={coverUrl} alt="" className="h-full w-full object-contain" />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-gray-100 text-4xl text-gray-300">📖</div>
       )}

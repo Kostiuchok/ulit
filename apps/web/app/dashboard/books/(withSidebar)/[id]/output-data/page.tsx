@@ -206,7 +206,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function OutputDataContent() {
   const { id } = useParams<{ id: string }>();
-  const { apiFetch } = useApi();
+  const { apiFetch, apiUpload } = useApi();
   const { book, setBook, loading } = useBook<MetadataBook>(id);
 
   const [infoSaved, setInfoSaved] = useState(false);
@@ -214,6 +214,9 @@ function OutputDataContent() {
   const [locallyFixed, setLocallyFixed] = useState(false);
   const [coAuthors, setCoAuthors] = useState<CoAuthor[]>([]);
   const [newCoAuthorName, setNewCoAuthorName] = useState("");
+  const [authorPhotoUploading, setAuthorPhotoUploading] = useState(false);
+  const [authorPhotoError, setAuthorPhotoError] = useState("");
+  const authorPhotoInputRef = useRef<HTMLInputElement>(null);
   const [bookAuthors, setBookAuthors] = useState<BookAuthor[]>([]);
   const [newAuthor, setNewAuthor] = useState<BookAuthor>({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
   const [contributors, setContributors] = useState<Contributor[]>([]);
@@ -338,6 +341,24 @@ function OutputDataContent() {
       photoUrl: newAuthor.photoUrl?.trim() || undefined,
     }]);
     setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
+  }
+
+  async function handleAuthorPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setAuthorPhotoError("");
+    setAuthorPhotoUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const { url } = await apiUpload<{ url: string }>(`/api/books/${id}/author-photo`, form);
+      setNewAuthor((p) => ({ ...p, photoUrl: url }));
+    } catch (e: any) {
+      setAuthorPhotoError(e.message || "Не вдалося завантажити фото");
+    } finally {
+      setAuthorPhotoUploading(false);
+    }
   }
 
   function removeBookAuthor(index: number) {
@@ -690,13 +711,33 @@ function OutputDataContent() {
                     placeholder="По батькові"
                     className="h-9 text-sm"
                   />
-                  <Input
-                    value={newAuthor.photoUrl}
-                    onChange={(e) => setNewAuthor((p) => ({ ...p, photoUrl: e.target.value }))}
-                    placeholder="URL фото (необов'язково)"
-                    className="h-9 text-sm"
-                  />
+                  <div className="col-span-2 flex items-center gap-1.5">
+                    <Input
+                      value={newAuthor.photoUrl}
+                      onChange={(e) => setNewAuthor((p) => ({ ...p, photoUrl: e.target.value }))}
+                      placeholder="URL фото (необов'язково)"
+                      className="h-9 flex-1 text-sm"
+                    />
+                    <input
+                      ref={authorPhotoInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={handleAuthorPhotoUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0 px-2.5 text-xs"
+                      loading={authorPhotoUploading}
+                      onClick={() => authorPhotoInputRef.current?.click()}
+                    >
+                      Завантажити фото
+                    </Button>
+                  </div>
                 </div>
+                {authorPhotoError && <p className="text-xs text-red-500">{authorPhotoError}</p>}
                 <Button type="button" variant="outline" size="sm" onClick={addBookAuthor}>+ Додати автора</Button>
               </div>
 

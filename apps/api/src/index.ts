@@ -20,6 +20,7 @@ import { uploadDocxRoute } from "./modules/books/upload";
 import { uploadCoverRoute } from "./modules/books/cover";
 import { coverLibraryRoutes } from "./modules/books/cover-library";
 import { uploadBackCoverRoute } from "./modules/books/back-cover";
+import { uploadAuthorPhotoRoute } from "./modules/books/author-photo";
 import { uploadSpineCoverRoute } from "./modules/books/spine-cover";
 import { conversionStatusRoutes } from "./modules/books/conversion-status";
 import { distributionRoutes } from "./modules/books/distribution";
@@ -115,6 +116,7 @@ async function bootstrap() {
   await app.register(uploadCoverRoute);
   await app.register(coverLibraryRoutes);
   await app.register(uploadBackCoverRoute);
+  await app.register(uploadAuthorPhotoRoute);
   await app.register(uploadSpineCoverRoute);
   await app.register(conversionStatusRoutes);
   await app.register(distributionRoutes);
