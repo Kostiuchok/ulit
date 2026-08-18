@@ -9,6 +9,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { DocxUploader } from "../dashboard/DocxUploader";
+import { ProBadge } from "../ui/pro-badge";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
 import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
@@ -16,9 +17,19 @@ import { KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "../../lib/distributionPlatforms
 
 // ─── Step schemas ────────────────────────────────────────────────────────────
 
+// Same bounds as output-data/page.tsx's "Анотація" field and
+// apps/api/src/modules/books/publish.ts's DESCRIPTION_MIN_LENGTH/MAX_LENGTH —
+// this is the same Book.description column, just filled in earlier in the
+// flow, so it must validate identically wherever it's edited.
+const DESCRIPTION_MIN_LENGTH = 120;
+const DESCRIPTION_MAX_LENGTH = 500;
+
 const step1Schema = z.object({
   title: z.string().min(1, "Назва обов'язкова").max(255),
-  description: z.string().max(5000).optional(),
+  description: z
+    .string()
+    .min(DESCRIPTION_MIN_LENGTH, `Анотація має містити щонайменше ${DESCRIPTION_MIN_LENGTH} символів`)
+    .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
   genre: z.string().max(100).optional(),
   language: z.string().length(2).default("uk"),
 });
@@ -64,12 +75,6 @@ interface BookDraft {
   slug: string;
 }
 
-interface ConversionJobStatus {
-  format: string;
-  status: "PENDING" | "PROCESSING" | "DONE" | "FAILED";
-  progress?: number;
-}
-
 type PrintCost =
   | { status: "DONE"; softcoverCost: number; hardcoverCost: number }
   | { status: "NO_PAGE_COUNT" }
@@ -104,25 +109,54 @@ export function BookWizard() {
   const step3 = useForm<Step3Form>({ resolver: zodResolver(step3Schema) });
 
   // ── Manuscript upload → print-cost pipeline (step "Файл") ──────────────────
+  // T-2057 moved print-PDF rendering off the upload-time job batch: it now
+  // renders straight from Book.manuscriptContent (WeasyPrint), which only
+  // exists once the manuscript has been imported. There is no longer a
+  // ConversionJob row for "PRINT_PDF" to poll (fixed T-2069 — this used to
+  // poll /conversion-status for a job that's never created, so the spinner
+  // never resolved regardless of document size). Getting a page-count
+  // estimate here means driving the same on-demand chain the manuscript
+  // editor uses: GET /manuscript (imports the .docx) → GET /print-preview
+  // (renders the print PDF off it) → /print-cost.
+  function stopPolling() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+  }
+
   async function checkPrintConversion(bookId: string) {
     try {
-      const { jobs } = await apiFetch<{ jobs: ConversionJobStatus[] }>(`/api/books/${bookId}/conversion-status`);
-      const printJob = jobs.find((j) => j.format === "PRINT_PDF");
-      if (printJob?.status !== "DONE" && printJob?.status !== "FAILED") {
-        if (typeof printJob?.progress === "number") setPrintProgress(printJob.progress);
+      const manuscript = await apiFetch<{ status: string; progress?: number }>(
+        `/api/books/${bookId}/manuscript`
+      );
+      if (manuscript.status === "PROCESSING") {
+        const p = typeof manuscript.progress === "number" ? manuscript.progress : 0;
+        setPrintProgress(Math.round(p / 2)); // import = first half of the bar
+        return;
+      }
+      if (manuscript.status !== "DONE") {
+        stopPolling();
+        setManuscriptStage("failed");
         return;
       }
 
-      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-
-      if (printJob.status === "DONE") {
-        const cost = await apiFetch<PrintCost>(`/api/books/${bookId}/print-cost`);
-        setPrintCost(cost);
-        setManuscriptStage("done");
-      } else {
-        setManuscriptStage("failed");
+      const preview = await apiFetch<{ status: string; progress?: number }>(
+        `/api/books/${bookId}/print-preview`
+      );
+      if (preview.status === "PROCESSING") {
+        const p = typeof preview.progress === "number" ? preview.progress : 0;
+        setPrintProgress(50 + Math.round(p / 2)); // render = second half
+        return;
       }
+      if (preview.status !== "DONE") {
+        stopPolling();
+        setManuscriptStage("failed");
+        return;
+      }
+
+      stopPolling();
+      const cost = await apiFetch<PrintCost>(`/api/books/${bookId}/print-cost`);
+      setPrintCost(cost);
+      setManuscriptStage("done");
     } catch {
       // Transient network error — keep polling, don't abort the wizard.
     }
@@ -249,6 +283,7 @@ export function BookWizard() {
 
   // Step 0 — Basic info
   if (step === 0) {
+    const descValue = step1.watch("description") ?? "";
     return (
       <div>
         {progress}
@@ -263,14 +298,37 @@ export function BookWizard() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="description">Опис</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="description">Анотація *</Label>
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  descValue.length > 0 && (descValue.length < DESCRIPTION_MIN_LENGTH || descValue.length > DESCRIPTION_MAX_LENGTH)
+                    ? "text-red-500"
+                    : "text-gray-400"
+                )}
+              >
+                {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
+              </span>
+            </div>
             <textarea
               id="description"
               {...step1.register("description")}
-              placeholder="Короткий опис книги…"
               rows={4}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+              className={cn(
+                "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
+                step1.formState.errors.description
+                  ? "border-red-400 focus-visible:ring-red-300"
+                  : "border-input focus-visible:ring-ring"
+              )}
+              placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
             />
+            {step1.formState.errors.description && (
+              <p className="text-sm text-red-500">{step1.formState.errors.description.message}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              Ця анотація одразу з&apos;явиться на кроці &quot;Вихідні дані&quot; — редагувати можна буде тут або там, поле спільне.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -347,6 +405,7 @@ export function BookWizard() {
             <li>Виноски — тільки інструментом Word (вставка виноски), не вручну</li>
             <li>Вірші — розділяйте строфи порожнім рядком (Enter)</li>
             <li>
+              <ProBadge className="mr-1.5" />
               Ілюстрації для друку — файли .tif/.psd, 300 ppi, окремо від тексту (не .png/.gif —
               це веб-формати низької якості для друку); назва файлу має відповідати підпису в тексті
             </li>
