@@ -239,7 +239,14 @@ export function AuthorBooksSidebar() {
                     >
                       <h2 className="truncate">{book.title}</h2>
                     </Link>
-                    <span className="block text-[0.75rem] font-normal text-gray-500">{status.label}</span>
+                    <span
+                      className={cn(
+                        "mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[0.6875rem] font-medium leading-none",
+                        status.className
+                      )}
+                    >
+                      {status.label}
+                    </span>
                   </div>
                 </div>
 
