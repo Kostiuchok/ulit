@@ -10,6 +10,7 @@ import { cn } from "../../../../../lib/utils";
 interface Book {
   id: string;
   title: string;
+  status: string;
   description?: string | null;
   isbn?: string | null;
   udcCode?: string | null;
