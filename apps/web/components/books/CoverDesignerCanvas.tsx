@@ -237,6 +237,20 @@ function renderBarcodeDataUrl(isbn: string): string | null {
   return el.toDataURL("image/png");
 }
 
+// T-2067 follow-up -- fabric.Image.fromURL() is async; if the canvas backing
+// it is disposed (component unmount, or the offscreen scratch canvas in
+// buildFreshPanelObjects being disposed synchronously right after
+// template.apply() schedules these loads) before the image finishes loading,
+// its resolved callback still fires and touching the canvas (add/renderAll)
+// crashes deep in Fabric internals (clearContext on a null context, same
+// root cause the loadFromJSON call sites were already guarded against).
+// getContext() is public Fabric API returning contextContainer, which
+// dispose() nulls out -- reliable disposal signal without reaching into
+// version-specific internals.
+function isCanvasDisposed(canvas: fabric.Canvas): boolean {
+  return !canvas.getContext();
+}
+
 function drawBackAndSpine(canvas: fabric.Canvas, ctx: TemplateCtx, style: { font: string; color: string }) {
   const { layout } = ctx;
   if (layout.spine && layout.spine.w >= 14) {
@@ -294,6 +308,7 @@ function drawBackAndSpine(canvas: fabric.Canvas, ctx: TemplateCtx, style: { font
       if (dataUrl) {
         const bottomMargin = 34;
         fabric.Image.fromURL(dataUrl, (img) => {
+          if (isCanvasDisposed(canvas)) return;
           const barcodeW = img.width ?? 130;
           const barcodeH = img.height ?? 46;
           const barcodeX = back.x + 24;
@@ -319,6 +334,7 @@ function drawBackAndSpine(canvas: fabric.Canvas, ctx: TemplateCtx, style: { font
           const logoTextW = Math.max(80, logoRightBound - logoX - 26);
 
           fabric.Image.fromURL("/figma/logo-group.svg", (logoImg) => {
+            if (isCanvasDisposed(canvas)) return;
             const s = 18 / (logoImg.width || 22);
             logoImg.set({ left: logoX, top: barcodeY - 2, scaleX: s, scaleY: s, selectable: false, evented: false });
             canvas.add(logoImg);
@@ -576,6 +592,7 @@ function applyImageToSlot(canvas: fabric.Canvas, url: string, slot: PanelRect) {
   fabric.Image.fromURL(
     url,
     (img) => {
+      if (isCanvasDisposed(canvas)) return;
       const iw = img.width ?? slot.w;
       const ih = img.height ?? slot.h;
       const scale = Math.max(slot.w / iw, slot.h / ih);
@@ -601,6 +618,7 @@ function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: s
   fabric.Image.fromURL(
     url,
     (img) => {
+      if (isCanvasDisposed(canvas)) return;
       const iw = img.width ?? front.w;
       const ih = img.height ?? front.h;
       const scale = Math.max(front.w / iw, front.h / ih);
@@ -1555,6 +1573,7 @@ export default function CoverDesignerCanvas({
           if (!canvas) return;
           canvas.clear();
           fabric.Image.fromURL(dataUrl, (fabricImg) => {
+            if (isCanvasDisposed(canvas)) return;
             const front = ctx.layout.front;
             const scaleX = ctx.layout.totalW / (fabricImg.width ?? ctx.layout.totalW);
             const scaleY = ctx.layout.totalH / (fabricImg.height ?? ctx.layout.totalH);

@@ -232,13 +232,15 @@ function OutputDataContent() {
     apiFetch<PrintCost>(`/api/books/${id}/print-cost`).then(setPrintCost).catch(() => {});
   }, [id]);
 
-  // T-2073 -- sticky anchor nav: tracks which section is under the nav bar
-  // so its button can highlight, without turning the page into tabs (every
-  // section still renders at once, this only decides which nav button looks
-  // "current"). rootMargin's negative top matches the nav bar's own height
-  // (~52px) so a section only counts as active once it's actually past the
-  // bar, and the large negative bottom keeps just the topmost visible
-  // section active instead of the whole viewport's worth of sections.
+  // T-2073 -- sticky header: tracks which section is under the title+nav
+  // block so its pill can highlight, without turning the page into tabs
+  // (every section still renders at once, this only decides which nav
+  // button looks "current"). rootMargin's negative top matches the sticky
+  // block's own height (title + nav, ~104px now that they're grouped
+  // together, see the sticky wrapper below) so a section only counts as
+  // active once it's actually past the block, and the large negative
+  // bottom keeps just the topmost visible section active instead of the
+  // whole viewport's worth of sections.
   const [activeSection, setActiveSection] = useState<(typeof SECTION_ORDER)[number]>("info");
   const sectionRefs = useRef<Partial<Record<(typeof SECTION_ORDER)[number], HTMLElement | null>>>({});
 
@@ -252,7 +254,7 @@ function OutputDataContent() {
           setActiveSection(visible[0].target.id.replace("section-", "") as (typeof SECTION_ORDER)[number]);
         }
       },
-      { rootMargin: "-56px 0px -70% 0px", threshold: 0 }
+      { rootMargin: "-104px 0px -70% 0px", threshold: 0 }
     );
     SECTION_ORDER.forEach((key) => {
       const el = sectionRefs.current[key];
@@ -464,45 +466,55 @@ function OutputDataContent() {
   return (
     <div className="p-8">
       <div className="max-w-3xl space-y-6">
-        <h1 className="text-lg font-semibold text-gray-900">Вихідні дані</h1>
-
-        {/* T-2073 -- sticky anchor nav, not real tabs: clicking a button just
-            scrolls to that section, everything below stays rendered and the
-            single "Зберегти зміни"/publish flow from T-2060 is untouched.
+        {/* T-2073 -- sticky header: title + anchor nav pinned together, not
+            real tabs -- clicking a pill just scrolls to that section,
+            everything below stays rendered and the single "Зберегти
+            зміни"/publish flow from T-2060 is untouched. Previously only the
+            <nav> itself was sticky and the <h1> sat above it in normal flow,
+            so scrolling to any section (including "in the sky" landing --
+            block:"start" against the *stuck* nav) still slid the title out
+            of view above the viewport; the author (2026-08-18) confirmed
+            it's the scroll-to-anchor jump, not a rendering bug, and asked to
+            keep the whole header in sight. Grouping title+nav into one
+            sticky block fixes it for every section, not just the first.
             Note (docs journal #11): `sticky` always opens a new stacking
             context -- if a fixed/modal element ever gets added inside one of
             the sections below, render it via a portal, not inline. */}
-        <nav className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b bg-white py-2.5 shadow-sm">
-          {SECTION_ORDER.map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => scrollToSection(key)}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                activeSection === key
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-              )}
-            >
-              {SECTION_LABELS[key]}
-            </button>
-          ))}
+        <div className="sticky top-0 z-10 -mx-8 border-b bg-white px-8 pt-5 pb-2.5 shadow-sm">
+          <h1 className="mb-2.5 text-lg font-semibold text-gray-900">Вихідні дані</h1>
 
-          {/* T-2074 -- "Замовити тираж" is Ridero's own separate page
-              (`/publish/print`, live-verified), not a section of this one --
-              kept visually apart from the scroll-anchor pills (divider +
-              real navigation, not scrollToSection) since it leaves this
-              page entirely. First concrete step toward splitting these
-              sections into their own routes, per the "тираж" observation. */}
-          <span className="mx-1 shrink-0 self-center text-gray-200">|</span>
-          <Link
-            href={`/dashboard/books/${id}/print-order`}
-            className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-          >
-            Замовити тираж
-          </Link>
-        </nav>
+          <nav className="flex gap-1 overflow-x-auto">
+            {SECTION_ORDER.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => scrollToSection(key)}
+                className={cn(
+                  "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeSection === key
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                )}
+              >
+                {SECTION_LABELS[key]}
+              </button>
+            ))}
+
+            {/* T-2074 -- "Замовити тираж" is Ridero's own separate page
+                (`/publish/print`, live-verified), not a section of this one --
+                kept visually apart from the scroll-anchor pills (divider +
+                real navigation, not scrollToSection) since it leaves this
+                page entirely. First concrete step toward splitting these
+                sections into their own routes, per the "тираж" observation. */}
+            <span className="mx-1 shrink-0 self-center text-gray-200">|</span>
+            <Link
+              href={`/dashboard/books/${id}/print-order`}
+              className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            >
+              Замовити тираж
+            </Link>
+          </nav>
+        </div>
 
         {showRejection && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 whitespace-pre-wrap">
@@ -513,7 +525,7 @@ function OutputDataContent() {
         <section
           id="section-info"
           ref={(el) => { sectionRefs.current.info = el; }}
-          className="scroll-mt-16 space-y-3"
+          className="scroll-mt-28 space-y-3"
         >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.info}</h2>
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
@@ -765,7 +777,7 @@ function OutputDataContent() {
         <section
           id="section-file"
           ref={(el) => { sectionRefs.current.file = el; }}
-          className="scroll-mt-16 space-y-3"
+          className="scroll-mt-28 space-y-3"
         >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.file}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
@@ -790,7 +802,7 @@ function OutputDataContent() {
         <section
           id="section-price"
           ref={(el) => { sectionRefs.current.price = el; }}
-          className="scroll-mt-16 space-y-3"
+          className="scroll-mt-28 space-y-3"
         >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.price}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
@@ -878,7 +890,7 @@ function OutputDataContent() {
         <section
           id="section-review"
           ref={(el) => { sectionRefs.current.review = el; }}
-          className="scroll-mt-16 space-y-3"
+          className="scroll-mt-28 space-y-3"
         >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.review}</h2>
           <div className="space-y-6">
@@ -968,7 +980,7 @@ function OutputDataContent() {
         <section
           id="section-publish"
           ref={(el) => { sectionRefs.current.publish = el; }}
-          className="scroll-mt-16 space-y-3"
+          className="scroll-mt-28 space-y-3"
         >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.publish}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm">
