@@ -1316,6 +1316,18 @@ export default function CoverDesignerCanvas({
     return () => {
       canvas.off("object:moving", onMoving);
       canvas.off("mouse:up", clearGuides);
+      // T-2067 round 3 -- this cleanup runs on every unmount, and the main
+      // init effect's cleanup (canvas.dispose()) always runs before this one
+      // (declared earlier in the component, and React tears down effects in
+      // declaration order). clearGuides() unconditionally touched the
+      // already-disposed canvas's contextTop -- clearContext on a null
+      // context, same crash as the other T-2067 sites, except this one fired
+      // on EVERY navigation away from the cover editor, not just a timing
+      // race, since it's plain synchronous cleanup ordering, not an async
+      // callback landing late. This was the actual repro behind "still
+      // crashes after round 2" -- the loadFromJSON/fromURL guards were real
+      // fixes for real (rarer) races, just not this one.
+      if (isCanvasDisposed(canvas)) return;
       clearGuides();
     };
   }, [panelForObject]);
