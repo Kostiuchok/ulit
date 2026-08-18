@@ -22,20 +22,30 @@ import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { CoverTemplatesModal } from "./CoverTemplatesModal";
 
-// Front-panel display vs export -- geometry derived from the platform's
-// print trim size (PRINT_TRIM_SIZE_MM, shared-types: A5, 148×210mm as of
-// 2026-08-17). DISPLAY_W is an arbitrary UI pixel anchor; DISPLAY_H follows
-// the real trim's aspect ratio so the canvas isn't distorted.
+// Front-panel display vs export -- geometry derived from the BOOK's actual
+// print trim size (trimMm prop, resolveBookPrintFormat in shared-types;
+// falls back to the platform default PRINT_TRIM_SIZE_MM only when the book
+// has none yet). DISPLAY_W is a fixed UI pixel anchor representing whatever
+// the current trimMm's widthMm is; every other geometry constant below is
+// derived from that per-book trim, not a fixed mm size, since trim ratios
+// genuinely vary (pocket ~0.605 to large ~0.759) and previously every
+// book's cover was designed/exported at the same fixed ratio regardless.
 const DISPLAY_W = 350;
-const DISPLAY_H = Math.round(DISPLAY_W * (PRINT_TRIM_SIZE_MM.heightMm / PRINT_TRIM_SIZE_MM.widthMm));
 const EXPORT_DPI = 300;
-const EXPORT_TARGET_W = Math.round((PRINT_TRIM_SIZE_MM.widthMm / 25.4) * EXPORT_DPI); // ~1748px at A5/300dpi
-const EXPORT_SCALE = EXPORT_TARGET_W / DISPLAY_W;
-
 // T-1926 — minimum accepted size for a self-uploaded cover (matches print requirements: 150 DPI)
 const OWN_COVER_MIN_DPI = 150;
-const OWN_COVER_MIN_W = Math.round((PRINT_TRIM_SIZE_MM.widthMm / 25.4) * OWN_COVER_MIN_DPI);
-const OWN_COVER_MIN_H = Math.round((PRINT_TRIM_SIZE_MM.heightMm / 25.4) * OWN_COVER_MIN_DPI);
+
+function deriveGeometry(trimMm: { widthMm: number; heightMm: number }) {
+  const displayH = Math.round(DISPLAY_W * (trimMm.heightMm / trimMm.widthMm));
+  const exportTargetW = Math.round((trimMm.widthMm / 25.4) * EXPORT_DPI);
+  const exportScale = exportTargetW / DISPLAY_W;
+  const ownCoverMinW = Math.round((trimMm.widthMm / 25.4) * OWN_COVER_MIN_DPI);
+  const ownCoverMinH = Math.round((trimMm.heightMm / 25.4) * OWN_COVER_MIN_DPI);
+  // DISPLAY_W represents trimMm.widthMm -- used to convert a real-world
+  // spine thickness (mm) into display px.
+  const pxPerMm = DISPLAY_W / trimMm.widthMm;
+  return { displayW: DISPLAY_W, displayH, exportScale, ownCoverMinW, ownCoverMinH, pxPerMm };
+}
 
 // Inset from a panel's raw edge for "safe zone" alignment — keeps text clear
 // of the trim/bleed area near the physical edge of a printed cover.
@@ -46,9 +56,6 @@ const SAFE_MARGIN = 24;
 // carries no font-licensing risk. All have solid Cyrillic coverage.
 const FONTS = ["Georgia", "Arial", "Helvetica", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New"];
 
-// DISPLAY_W (350px) represents PRINT_TRIM_SIZE_MM.widthMm — used to convert a
-// real-world spine thickness (mm) into display px.
-const PX_PER_MM = DISPLAY_W / PRINT_TRIM_SIZE_MM.widthMm;
 const DEFAULT_PAGE_COUNT = 150;
 
 export type CoverFormat = "ebook" | "softcover" | "hardcover";
@@ -69,17 +76,22 @@ interface CoverLayout {
   back?: PanelRect;
 }
 
-function computeSpineWidthPx(format: CoverFormat, pageCount?: number | null): number {
+function computeSpineWidthPx(format: CoverFormat, pageCount: number | null | undefined, pxPerMm: number): number {
   const pages = pageCount && pageCount > 0 ? pageCount : DEFAULT_PAGE_COUNT;
   const spineMm = pages * 0.1 + (format === "hardcover" ? 4 : 0);
-  return Math.max(6, Math.round(spineMm * PX_PER_MM));
+  return Math.max(6, Math.round(spineMm * pxPerMm));
 }
 
-export function computeCoverLayout(format: CoverFormat, pageCount?: number | null): CoverLayout {
+export function computeCoverLayout(
+  format: CoverFormat,
+  pageCount?: number | null,
+  trimMm: { widthMm: number; heightMm: number } = PRINT_TRIM_SIZE_MM
+): CoverLayout {
+  const { displayH: DISPLAY_H, pxPerMm } = deriveGeometry(trimMm);
   if (format === "ebook") {
     return { format, totalW: DISPLAY_W, totalH: DISPLAY_H, front: { x: 0, y: 0, w: DISPLAY_W, h: DISPLAY_H } };
   }
-  const spineW = computeSpineWidthPx(format, pageCount);
+  const spineW = computeSpineWidthPx(format, pageCount, pxPerMm);
   return {
     format,
     totalW: DISPLAY_W * 2 + spineW,
@@ -765,6 +777,14 @@ interface Props {
   authorBio?: string | null;
   isbn?: string | null;
   pageCount?: number | null;
+  // Real physical trim size (T-2057/genre-derived or manually overridden,
+  // resolveBookPrintFormat in shared-types) -- drives the canvas's own
+  // aspect ratio so the on-screen/exported cover actually matches what the
+  // book will be printed at, instead of always the platform-wide fallback
+  // regardless of the book's real format (pocket/standard/enlarged/large
+  // ratios genuinely differ, ~0.605 to ~0.759). Falls back to
+  // PRINT_TRIM_SIZE_MM when absent (no genre chosen yet).
+  trimMm?: { widthMm: number; heightMm: number } | null;
   format: CoverFormat;
   existingCoverUrl?: string | null;
   savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
@@ -787,6 +807,7 @@ export default function CoverDesignerCanvas({
   authorBio,
   isbn,
   pageCount,
+  trimMm,
   format,
   savedDesign,
   coverImageLibrary = [],
@@ -802,6 +823,13 @@ export default function CoverDesignerCanvas({
   // existed default to "slot".
   const slotLibrary = coverImageLibrary.filter((img) => (img.kind ?? "slot") === "slot");
   const bgLibrary = coverImageLibrary.filter((img) => img.kind === "background");
+
+  const effectiveTrimMm =
+    trimMm && trimMm.widthMm > 0 && trimMm.heightMm > 0 ? trimMm : PRINT_TRIM_SIZE_MM;
+  const geometry = useMemo(
+    () => deriveGeometry(effectiveTrimMm),
+    [effectiveTrimMm.widthMm, effectiveTrimMm.heightMm]
+  );
 
   const canvasEl = useRef<HTMLCanvasElement>(null);
   const canvasRef = useRef<fabric.Canvas | null>(null);
@@ -860,7 +888,7 @@ export default function CoverDesignerCanvas({
 
   const ctx: TemplateCtx = useMemo(
     () => ({
-      layout: computeCoverLayout(format, pageCount),
+      layout: computeCoverLayout(format, pageCount, effectiveTrimMm),
       title: bookTitle,
       author: bookAuthor,
       subtitle: subtitle || undefined,
@@ -868,7 +896,7 @@ export default function CoverDesignerCanvas({
       bio: authorBio || undefined,
       isbn,
     }),
-    [format, pageCount, bookTitle, bookAuthor, subtitle, description, authorBio, isbn]
+    [format, pageCount, effectiveTrimMm.widthMm, effectiveTrimMm.heightMm, bookTitle, bookAuthor, subtitle, description, authorBio, isbn]
   );
 
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
@@ -1018,7 +1046,7 @@ export default function CoverDesignerCanvas({
     const formatChanged = prevFormatRef.current !== format;
 
     if (formatChanged) {
-      const leavingLayout = computeCoverLayout(prevFormatRef.current, pageCount);
+      const leavingLayout = computeCoverLayout(prevFormatRef.current, pageCount, effectiveTrimMm);
       const currentObjects = ((canvas.toJSON(["data"]) as any).objects ?? []) as any[];
       const { front, backSpine } = splitObjectsByPanel(currentObjects, leavingLayout);
       frontStateRef.current = front;
@@ -1575,9 +1603,9 @@ export default function CoverDesignerCanvas({
         const img = new Image();
         img.onload = () => {
           setOwnCoverDims({ w: img.naturalWidth, h: img.naturalHeight });
-          if (img.naturalWidth < OWN_COVER_MIN_W || img.naturalHeight < OWN_COVER_MIN_H) {
+          if (img.naturalWidth < geometry.ownCoverMinW || img.naturalHeight < geometry.ownCoverMinH) {
             setOwnCoverError(
-              `Зображення ${img.naturalWidth}×${img.naturalHeight}px — менше мінімуму ${OWN_COVER_MIN_W}×${OWN_COVER_MIN_H}px (150 DPI). Завантажте зображення більшого розміру.`
+              `Зображення ${img.naturalWidth}×${img.naturalHeight}px — менше мінімуму ${geometry.ownCoverMinW}×${geometry.ownCoverMinH}px (150 DPI). Завантажте зображення більшого розміру.`
             );
             return;
           }
@@ -1642,7 +1670,7 @@ export default function CoverDesignerCanvas({
 
       const frontDataUrl = canvas.toDataURL({
         format: "png",
-        multiplier: EXPORT_SCALE,
+        multiplier: geometry.exportScale,
         left: front.x,
         top: front.y,
         width: front.w,
@@ -1653,7 +1681,7 @@ export default function CoverDesignerCanvas({
       if (back) {
         const backDataUrl = canvas.toDataURL({
           format: "png",
-          multiplier: EXPORT_SCALE,
+          multiplier: geometry.exportScale,
           left: back.x,
           top: back.y,
           width: back.w,
@@ -1668,7 +1696,7 @@ export default function CoverDesignerCanvas({
       if (spine) {
         const spineDataUrl = canvas.toDataURL({
           format: "png",
-          multiplier: EXPORT_SCALE,
+          multiplier: geometry.exportScale,
           left: spine.x,
           top: spine.y,
           width: spine.w,
@@ -1693,7 +1721,7 @@ export default function CoverDesignerCanvas({
     } finally {
       setSaving(false);
     }
-  }, [ctx.layout, uploadPanel, onSaved, bookId, token, croppingSlot, exitCropMode]);
+  }, [ctx.layout, geometry.exportScale, uploadPanel, onSaved, bookId, token, croppingSlot, exitCropMode]);
 
   // Author-level cover templates (distinct from the built-in TEMPLATES array
   // and from AuthorStyleSet, which is manuscript typography, not covers) --
@@ -2352,7 +2380,7 @@ export default function CoverDesignerCanvas({
         {activeTab === "own" && (
           <div className="space-y-3">
             <p className="text-xs text-gray-500">
-              Завантажте готову обкладинку цілком — вона замінить усе на канві. Мінімум {OWN_COVER_MIN_W}×{OWN_COVER_MIN_H}px (150 DPI),
+              Завантажте готову обкладинку цілком — вона замінить усе на канві. Мінімум {geometry.ownCoverMinW}×{geometry.ownCoverMinH}px (150 DPI),
               найкращий формат — PNG. Тримайте текст і важливі елементи не менше 10–15мм від країв книги —
               ця зона обрізається або йде на згин.
             </p>

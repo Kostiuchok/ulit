@@ -86,6 +86,39 @@ export const GENRE_TO_PRINT_FORMAT: Record<string, PrintFormatKey> = {
 export const PRINT_TRIM_SIZE_MM = PRINT_FORMATS.standard;
 export const PRINT_TRIM_SIZE_LABEL = "130 × 200 мм (стандартний, ДСТУ 3018-95)";
 
+// Single place that decides "what's this book's actual print trim size" --
+// genre-derived default, unless the author/admin explicitly overrode
+// printWidthMm/printHeightMm (book.ts PATCH handler persists the override;
+// this only resolves what to *display*/*build geometry from*, given
+// whatever's already on the book). Used by output-data's own display
+// (previously duplicated this logic inline) and by the cover editor's
+// canvas geometry (previously didn't use it at all -- always rendered at
+// the PRINT_TRIM_SIZE_MM fallback ratio regardless of the book's real
+// format, which is a genre-driven aspect ratio that can range from
+// pocket's 107x177 (~0.605) to large's 220x290 (~0.759); the printed file
+// itself always used the real size, only the cover design canvas didn't).
+export function resolveBookPrintFormat(book: {
+  genre?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
+  printFormatKey?: string | null;
+}): PrintFormat {
+  const genreFormat = book.genre
+    ? PRINT_FORMATS[GENRE_TO_PRINT_FORMAT[book.genre] ?? "standard"]
+    : PRINT_FORMATS.standard;
+  if (book.printWidthMm && book.printHeightMm) {
+    return {
+      key: (book.printFormatKey as PrintFormatKey) ?? genreFormat.key,
+      label: genreFormat.key === book.printFormatKey ? genreFormat.label : "Індивідуальний",
+      sheetFraction: genreFormat.sheetFraction,
+      purpose: genreFormat.purpose,
+      widthMm: book.printWidthMm,
+      heightMm: book.printHeightMm,
+    };
+  }
+  return genreFormat;
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 export interface User {

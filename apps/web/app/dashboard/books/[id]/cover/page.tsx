@@ -10,6 +10,7 @@ import { useApi } from "@/hooks/useApi";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
+import { resolveBookPrintFormat } from "shared-types";
 
 interface BookAuthor {
   lastName: string;
@@ -34,6 +35,10 @@ interface BookInfo {
   bookAuthors?: BookAuthor[] | null;
   authorBio?: string | null;
   coverIndependentFromBookData?: boolean;
+  genre?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
+  printFormatKey?: string | null;
 }
 
 // T-2060 п.4/п.6 -- "Вихідні дані" (bookAuthors/authorBio) is the canonical
@@ -70,6 +75,8 @@ export default function CoverPage() {
       .then(({ book }) => setBook(book))
       .finally(() => setLoading(false));
   }, [token, id]);
+
+  const trimFormat = resolveBookPrintFormat(book ?? {});
 
   async function toggleIndependent(next: boolean) {
     setBook((b) => (b ? { ...b, coverIndependentFromBookData: next } : b));
@@ -154,6 +161,16 @@ export default function CoverPage() {
           </div>
         )}
 
+        {/* Cover canvas geometry now follows the book's real print trim
+            size (resolveBookPrintFormat) instead of one fixed ratio for
+            every book -- this makes that visible, since it isn't obvious
+            from the canvas alone that its shape is tied to "Вихідні дані"
+            → жанр/розмір, and changing genre later changes it. */}
+        <p className="mb-3 inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
+          📐 Ця обкладинка розробляється для книжки розміром:{" "}
+          <span className="font-semibold text-gray-900">{trimFormat.widthMm}×{trimFormat.heightMm}мм</span>
+        </p>
+
         <label className="mb-3 flex items-center gap-2 text-sm text-gray-600">
           <input
             type="checkbox"
@@ -168,7 +185,12 @@ export default function CoverPage() {
           </span>
         </label>
 
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div
+          className={cn(
+            "rounded-xl border bg-white p-6 shadow-sm transition-shadow",
+            book && parseRejectedConcerns(book).cover && !locallyFixed && "ring-2 ring-yellow-400 ring-offset-2"
+          )}
+        >
           <CoverDesigner
             bookId={id}
             bookTitle={book?.title ?? "Назва книги"}
@@ -178,6 +200,7 @@ export default function CoverPage() {
             authorBio={book?.authorBio}
             isbn={book?.isbn}
             pageCount={book?.pageCount}
+            trimMm={{ widthMm: trimFormat.widthMm, heightMm: trimFormat.heightMm }}
             format={format}
             existingCoverUrl={book?.coverUrl}
             savedDesign={book?.coverDesign}
@@ -190,7 +213,8 @@ export default function CoverPage() {
         </div>
 
         <p className="mt-3 text-xs text-gray-400 text-center">
-          Обкладинка буде збережена у форматі PNG 1800×2700 px (300 DPI) на панель
+          Обкладинка буде збережена у форматі PNG {Math.round((trimFormat.widthMm / 25.4) * 300)}×
+          {Math.round((trimFormat.heightMm / 25.4) * 300)} px (300 DPI) на панель
         </p>
       </div>
     </div>

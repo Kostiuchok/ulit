@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Download } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { useBook } from "@/hooks/useBook";
@@ -24,6 +23,7 @@ type PrintPreviewStatus =
 
 export default function ManuscriptPreviewPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { apiFetch, token } = useApi();
   const { book } = useBook<PreviewBook>(id);
   const [state, setState] = useState<PrintPreviewStatus | null>(null);
@@ -58,14 +58,29 @@ export default function ManuscriptPreviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, id]);
 
+  // Передперегляд is reachable from several places (manuscript editor,
+  // cover editor, the always-visible sidebar nav item) with no single
+  // "home" page -- router.back() returns to wherever the author actually
+  // came from, instead of a hardcoded link that's only right some of the
+  // time. Falls back to the manuscript editor only if there's no history to
+  // go back to (e.g. this page was opened directly / in a fresh tab).
+  function goBack() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(`/dashboard/books/${id}/manuscript`);
+    }
+  }
+
   const backLink = (
-    <Link
-      href={`/dashboard/books/${id}/manuscript`}
+    <button
+      type="button"
+      onClick={goBack}
       className="flex items-center gap-2 px-4 py-3 text-[0.875rem] font-medium text-black hover:bg-gray-50"
     >
       <ChevronLeft size={14} className="shrink-0 text-gray-500" />
-      До редактора рукопису
-    </Link>
+      Назад
+    </button>
   );
 
   return (

@@ -27,6 +27,7 @@ interface Book {
   genre?: string | null;
   language?: string;
   pageCount?: number | null;
+  printPageCount?: number | null;
   distributionStrategy: string;
   distributionChannels?: string[];
   d2dStatus: string;
@@ -145,6 +146,15 @@ interface Platform {
 
 function buildPlatforms(book: Book, coverW: number, coverH: number): Platform[] {
   const descLen = (book.description ?? "").length;
+  // pageCount is only ever set by the old PAGE_THUMBNAILS job, which
+  // nothing in the current publish flow triggers anymore (only the
+  // retired BookViewer "PDF" tab called GET /api/books/:id/pages, the
+  // thing that used to enqueue it) -- it's effectively dead for every book
+  // published through today's pipeline. printPageCount, from the live
+  // generate-pdf-print.ts job (Ghostscript pdfpagecount), is the real
+  // source of truth now; same fallback order already used by
+  // apps/api/.../print-cost.ts.
+  const effectivePageCount = book.printPageCount ?? book.pageCount;
   const coverMaxDim = Math.max(coverW, coverH);
   const coverLoaded = coverW > 0;
 
@@ -183,9 +193,9 @@ function buildPlatforms(book: Book, coverW: number, coverH: number): Platform[] 
         coverDimCheck(1600),
         check("genre", "Жанр вказано", book.genre ? "pass" : "fail",
           book.genre ? "" : "Жанр обов'язковий для KDP"),
-        check("pages", book.pageCount ? `Кількість сторінок (${book.pageCount})` : "Кількість сторінок",
-          (book.pageCount ?? 0) > 0 ? "pass" : "warn",
-          (book.pageCount ?? 0) > 0 ? "" : "Кількість сторінок не визначена — перевірте конвертацію"),
+        check("pages", effectivePageCount ? `Кількість сторінок (${effectivePageCount})` : "Кількість сторінок",
+          (effectivePageCount ?? 0) > 0 ? "pass" : "warn",
+          (effectivePageCount ?? 0) > 0 ? "" : "Кількість сторінок не визначена — перевірте конвертацію"),
       ],
     },
     {
@@ -392,6 +402,8 @@ export default function DistributePage() {
   const [bcAuthorSign, setBcAuthorSign] = useState("");
   const [savingBookChamber, setSavingBookChamber] = useState(false);
   const [bookChamberError, setBookChamberError] = useState("");
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -468,6 +480,22 @@ export default function DistributePage() {
       setBookChamberError(e.message || "Помилка збереження");
     } finally {
       setSavingBookChamber(false);
+    }
+  }
+
+  async function handleApprove() {
+    setApproving(true);
+    setApproveError("");
+    try {
+      const { book: updated } = await apiFetch<{ book: Book }>(`/api/admin/books/${id}/approve`, {
+        method: "PATCH",
+        body: JSON.stringify({}),
+      });
+      setBook(updated);
+    } catch (e: any) {
+      setApproveError(e.message || "Помилка схвалення");
+    } finally {
+      setApproving(false);
     }
   }
 
@@ -561,6 +589,37 @@ export default function DistributePage() {
         ))}
       </div>
 
+      {/* ── Moderation approval ──────────────────────────────────────────────── */}
+      {/* This checklist above is about EXTERNAL platform readiness (KDP/D2D/
+          Google) -- ISBN specifically is expected to fail here (see the
+          "Реєстрація ISBN" section below, a separate later stage), so
+          approval isn't gated on the checklist being all-green, same as
+          rejection isn't either -- the admin judges content, the checklist
+          is context, not a blocker. */}
+      {book.moderationStatus === "APPROVED" ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">
+          ✓ Модерація успішна{book.status === "PUBLISHED" && " · книга опублікована на Ulit"}
+        </div>
+      ) : (
+        !rejectDone && (
+          <div className="rounded-xl border border-green-100 bg-green-50 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-green-900">Модерація</h2>
+            <p className="text-xs text-green-800">
+              Схвалення публікує книгу на Ulit одразу (без ISBN — ISBN потрібен лише окремим зовнішнім магазинам,
+              не для продажу на самому Ulit). Наступний крок після цього — «Реєстрація ISBN» нижче.
+            </p>
+            {approveError && <p className="text-sm text-red-600">{approveError}</p>}
+            <Button
+              className="bg-green-700 hover:bg-green-800"
+              onClick={handleApprove}
+              loading={approving}
+            >
+              ✓ Модерація успішна
+            </Button>
+          </div>
+        )
+      )}
+
       {/* ── Reject book ──────────────────────────────────────────────────────── */}
       {!rejectDone && (
         <div className="rounded-xl border border-red-100 bg-red-50 p-5 space-y-3">
@@ -601,16 +660,35 @@ export default function DistributePage() {
         </div>
       )}
 
-      {/* ── Книжкова палата ─────────────────────────────────────────────────── */}
-      <div className="rounded-xl border bg-white p-5 shadow-sm space-y-3">
+      {/* ── Книжкова палата / Реєстрація ISBN ─────────────────────────────────── */}
+      <div className="rounded-xl border bg-white p-5 shadow-sm space-y-4">
         <div>
-          <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація в Книжковій палаті</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація ISBN</h2>
           <p className="text-xs text-gray-400">
-            У Книжкової палати немає публічного API — цей блок нічого нікуди не відправляє автоматично. Подання
-            відбувається поза системою (адмін сам надсилає дані книги в Книжкову палату), а тут лише фіксується
-            дата, коли це було зроблено, і вносяться реальні ISBN/УДК/ББК/авторський знак після відповіді.
+            Наступний етап після модерації. У Книжкової палати немає публічного API — цей блок нічого нікуди не
+            відправляє автоматично. Подання відбувається поза системою (адмін сам надсилає дані книги в Книжкову
+            палату зовнішнім каналом), а тут лише фіксується дата, коли це було зроблено, і вносяться реальні
+            ISBN/УДК/ББК/авторський знак після відповіді.
           </p>
         </div>
+
+        <ol className="list-decimal space-y-1.5 pl-5 text-xs text-gray-600 marker:text-gray-400">
+          <li>
+            Зібрати комплект даних книги (все вже є на цій сторінці й на «Вихідні дані»): анотацію (не більше пів
+            сторінки), повне ПІБ автора, готову обкладинку, кількість сторінок.
+          </li>
+          <li>
+            Надіслати цей комплект зовнішнім каналом до служби присвоєння ISBN/УДК (Книжкова палата або
+            уповноважений постачальник), обов'язково вказавши в коментарі, що потрібне саме оформлення ISBN.
+          </li>
+          <li>Дочекатися відповіді (орієнтовно ~1 тиждень) з реальними ISBN, УДК, ББК та авторським знаком.</li>
+          <li>Натиснути «Я вже подав(ла) цю книгу до Книжкової палати» нижче — фіксує лише дату подання.</li>
+          <li>Коли служба відповість — внести отримані ISBN/УДК/ББК/авторський знак у поля нижче і зберегти.</li>
+          <li>
+            Для друкованого видання — не забути про обов'язкові примірники (2 шт., за рахунок автора) для звіту в
+            Книжкову палату; докладніше в <code className="text-[0.6875rem]">docs/isbn-udc-requirements.md</code>.
+          </li>
+        </ol>
 
         <div className="flex flex-col gap-1.5 text-sm">
           {book.bookChamberSubmittedAt ? (

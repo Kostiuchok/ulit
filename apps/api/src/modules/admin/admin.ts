@@ -10,7 +10,6 @@ const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<s
 import { Readable } from "stream";
 import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
-import { assignIsbn } from "../../services/isbn.service";
 import { queuePublishedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
 import { enqueueConversionJobs } from "../../services/publishing.service";
 import { withAvatarVersion } from "../../lib/coverVersion";
@@ -91,6 +90,7 @@ const BOOK_ADMIN_SELECT = {
   genre: true,
   language: true,
   pageCount: true,
+  printPageCount: true,
   distributionStrategy: true,
   distributionChannels: true,
   d2dStatus: true,
@@ -254,20 +254,18 @@ export async function adminRoutes(app: FastifyInstance) {
         timeline.contract_signed = now.toISOString();
       }
 
-      let isbn = book.isbn;
+      const isbn = book.isbn;
       let kdpSelectEnrolled = book.kdpSelectEnrolled;
       let kdpSelectExpiry = book.kdpSelectExpiry;
 
       if (shouldPublish) {
-        if (!isbn) {
-          for (let attempt = 0; attempt < 5; attempt++) {
-            const candidate = await assignIsbn(id);
-            const collision = await prisma.book.findUnique({ where: { isbn: candidate }, select: { id: true } });
-            if (!collision) { isbn = candidate; break; }
-          }
-          if (!isbn) throw new AppError("Не вдалося призначити ISBN, спробуйте ще раз", 500, "ISBN_EXHAUSTED");
-        }
-
+        // No auto-generated placeholder ISBN -- a book can go PUBLISHED on
+        // Ulit's own store without one (Ridero's reference UX has an
+        // explicit "без ISBN" mode too; ISBN is a specific-retailer
+        // requirement, e.g. Amazon KDP, not a legal precondition for
+        // selling a book at all). The real ISBN only ever comes from the
+        // admin manually entering it below, after actually registering with
+        // Книжкова палата -- see "Реєстрація ISBN" section.
         const isKdpSelect = book.distributionStrategy === "KDP_SELECT";
         if (isKdpSelect && !kdpSelectEnrolled) {
           kdpSelectEnrolled = true;
@@ -420,20 +418,12 @@ export async function adminRoutes(app: FastifyInstance) {
         result.data.step === "contract_signed" && !!result.data.date && existing.status !== "PUBLISHED";
 
       const now = new Date();
-      let isbn = existing.isbn;
+      const isbn = existing.isbn;
       let kdpSelectEnrolled = existing.kdpSelectEnrolled;
       let kdpSelectExpiry = existing.kdpSelectExpiry;
 
       if (shouldPublish) {
-        if (!isbn) {
-          for (let attempt = 0; attempt < 5; attempt++) {
-            const candidate = await assignIsbn(id);
-            const collision = await prisma.book.findUnique({ where: { isbn: candidate }, select: { id: true } });
-            if (!collision) { isbn = candidate; break; }
-          }
-          if (!isbn) throw new AppError("Не вдалося призначити ISBN, спробуйте ще раз", 500, "ISBN_EXHAUSTED");
-        }
-
+        // See the /approve handler above -- no placeholder ISBN generation.
         const isKdpSelect = existing.distributionStrategy === "KDP_SELECT";
         if (isKdpSelect && !kdpSelectEnrolled) {
           kdpSelectEnrolled = true;

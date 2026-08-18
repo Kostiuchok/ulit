@@ -21,6 +21,7 @@ interface Props {
   authorBio?: string | null;
   isbn?: string | null;
   pageCount?: number | null;
+  trimMm?: { widthMm: number; heightMm: number } | null;
   format: CoverFormat;
   existingCoverUrl?: string | null;
   savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;

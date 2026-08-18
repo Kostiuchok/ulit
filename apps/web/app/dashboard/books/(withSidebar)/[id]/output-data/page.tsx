@@ -17,7 +17,7 @@ import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
-import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
+import { parseRejectedConcerns, resolveRejectionLineSection } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
 import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
 
@@ -246,6 +246,16 @@ function OutputDataContent() {
   // whole viewport's worth of sections.
   const [activeSection, setActiveSection] = useState<(typeof SECTION_ORDER)[number]>("info");
   const sectionRefs = useRef<Partial<Record<(typeof SECTION_ORDER)[number], HTMLElement | null>>>({});
+  // T-2076 -- a rejection-reason line the author clicks (resolveRejectionLineSection)
+  // scrolls to AND rings the target section in yellow for a bit, so "go fix this"
+  // lands on the exact block instead of just the top of the page.
+  const [highlightSection, setHighlightSection] = useState<(typeof SECTION_ORDER)[number] | null>(null);
+
+  function jumpToRejectionTarget(key: (typeof SECTION_ORDER)[number]) {
+    scrollToSection(key);
+    setHighlightSection(key);
+    setTimeout(() => setHighlightSection((cur) => (cur === key ? null : cur)), 4000);
+  }
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -538,15 +548,49 @@ function OutputDataContent() {
         </div>
 
         {showRejection && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 whitespace-pre-wrap">
-            Модератор зазначив зауваження щодо метаданих: {book?.moderationNote}
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <p className="mb-1.5 font-medium">Модератор зазначив зауваження щодо метаданих:</p>
+            <div className="space-y-0.5">
+              {(book?.moderationNote ?? "").split("\n").map((line, i) => {
+                if (!line.trim()) return <div key={i} className="h-2" />;
+                const target = resolveRejectionLineSection(line);
+                if (target === "cover-page") {
+                  return (
+                    <Link
+                      key={i}
+                      href={`/dashboard/books/${id}/cover`}
+                      className="block whitespace-pre-wrap underline decoration-red-300 hover:decoration-red-600"
+                    >
+                      {line}
+                    </Link>
+                  );
+                }
+                if (target) {
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => jumpToRejectionTarget(target)}
+                      className="block whitespace-pre-wrap text-left underline decoration-red-300 hover:decoration-red-600"
+                    >
+                      {line}
+                    </button>
+                  );
+                }
+                return (
+                  <p key={i} className="whitespace-pre-wrap">
+                    {line}
+                  </p>
+                );
+              })}
+            </div>
           </div>
         )}
 
         <section
           id="section-info"
           ref={(el) => { sectionRefs.current.info = el; }}
-          className="scroll-mt-28 space-y-3"
+          className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "info" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
           <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.info}</h2>
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
@@ -615,10 +659,11 @@ function OutputDataContent() {
                     <option value="">Оберіть жанр</option>
                     {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
                   </select>
-                  <p className="text-xs text-gray-500">
-                    Розмір друкованої книги: <span className="font-medium text-gray-700">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
+                  <p className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
+                    📐 Розмір друкованої книги:{" "}
+                    <span className="font-semibold text-gray-900">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
                     {" "}({PRINT_FORMATS[displayFormat.key as keyof typeof PRINT_FORMATS]?.label ?? "Стандартний"})
-                    {isOverride && <span className="ml-1 text-amber-600">— вручну змінено</span>}
+                    {isOverride && <span className="ml-1 font-medium text-amber-600">— вручну змінено</span>}
                   </p>
                 </div>
 
@@ -818,7 +863,7 @@ function OutputDataContent() {
         <section
           id="section-file"
           ref={(el) => { sectionRefs.current.file = el; }}
-          className="scroll-mt-28 space-y-3"
+          className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "file" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
           <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.file}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
@@ -843,7 +888,7 @@ function OutputDataContent() {
         <section
           id="section-price"
           ref={(el) => { sectionRefs.current.price = el; }}
-          className="scroll-mt-28 space-y-3"
+          className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "price" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
           <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.price}</h2>
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
