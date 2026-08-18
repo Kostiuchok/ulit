@@ -13,7 +13,7 @@ import { ProBadge } from "../ui/pro-badge";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
 import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
-import { KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "../../lib/distributionPlatforms";
+import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../books/FormatsAndDistribution";
 
 // ─── Step schemas ────────────────────────────────────────────────────────────
 
@@ -34,22 +34,22 @@ const step1Schema = z.object({
   language: z.string().length(2).default("uk"),
 });
 
-const step3Schema = z.object({
-  priceEbook: z.coerce.number().positive("Вкажіть коректну ціну").optional().or(z.literal("")),
-  pricePrint: z.coerce.number().positive("Вкажіть коректну ціну").optional().or(z.literal("")),
-  pricePrintHardcover: z.coerce.number().positive("Вкажіть коректну ціну").optional().or(z.literal("")),
-});
-
 type Step1Form = z.infer<typeof step1Schema>;
-type Step3Form = z.infer<typeof step3Schema>;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
+// T-2075 -- steps 2 ("Ціна") and 3 ("Розповсюдження") used to be separate:
+// asking for a final shelf price BEFORE the author picked which channels the
+// book would sell through was backwards -- channels/commissions are exactly
+// what determines a workable shelf price, and the two steps also visibly
+// duplicated "which stores" (raw price step implied all of them, the actual
+// channel step let you pick). Merged into one step matching Ridero's
+// "Опубликовать в магазинах" page (docs/ridero-research-preview-cover.md
+// section 8) -- see FormatsAndDistribution.tsx for the actual UI/formula.
 const STEPS = [
   { label: "Інформація" },
   { label: "Файл" },
-  { label: "Ціна" },
-  { label: "Розповсюдження" },
+  { label: "Формати та розповсюдження" },
   { label: "Огляд" },
 ];
 
@@ -75,11 +75,6 @@ interface BookDraft {
   slug: string;
 }
 
-type PrintCost =
-  | { status: "DONE"; softcoverCost: number; hardcoverCost: number }
-  | { status: "NO_PAGE_COUNT" }
-  | { status: "NO_SETTINGS" };
-
 type ManuscriptStage = "idle" | "polling" | "done" | "failed" | "skipped";
 
 export function BookWizard() {
@@ -90,6 +85,8 @@ export function BookWizard() {
   const [channels, setChannels] = useState<string[]>(["ULIT", "D2D", "KDP", "GOOGLE"]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [royaltyEbook, setRoyaltyEbook] = useState("");
+  const [royaltyPrint, setRoyaltyPrint] = useState("");
 
   const [manuscriptStage, setManuscriptStage] = useState<ManuscriptStage>("idle");
   const [printCost, setPrintCost] = useState<PrintCost | null>(null);
@@ -106,7 +103,6 @@ export function BookWizard() {
   }, []);
 
   const step1 = useForm<Step1Form>({ resolver: zodResolver(step1Schema), defaultValues: { language: "uk" } });
-  const step3 = useForm<Step3Form>({ resolver: zodResolver(step3Schema) });
 
   // ── Manuscript upload → print-cost pipeline (step "Файл") ──────────────────
   // T-2057 moved print-PDF rendering off the upload-time job batch: it now
@@ -202,39 +198,33 @@ export function BookWizard() {
     }
   });
 
-  // ── Step 3: Pricing ─────────────────────────────────────────────────────────
-  const submitStep3 = step3.handleSubmit(async (data) => {
+  // ── Step 2: Formats, royalty + distribution (merged T-2075) ────────────────
+  function toggleChannel(key: string) {
+    if (key === "ULIT") return;
+    setChannels((prev) => (prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]));
+  }
+
+  async function submitFormatsAndDistribution() {
     setError("");
     if (!draft) return;
     setSaving(true);
     try {
+      const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
       await apiFetch(`/api/books/${draft.id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          priceEbook: data.priceEbook || undefined,
-          pricePrint: data.pricePrint || undefined,
-          pricePrintHardcover: data.pricePrintHardcover || undefined,
+          desiredRoyaltyAmount: anchor.priceEbook !== undefined ? Number(royaltyEbook.replace(",", ".")) : undefined,
+          desiredRoyaltyAmountPrint: anchor.pricePrint !== undefined ? Number(royaltyPrint.replace(",", ".")) : undefined,
+          priceEbook: anchor.priceEbook,
+          pricePrint: anchor.pricePrint,
+          pricePrintHardcover: anchor.pricePrintHardcover,
         }),
       });
-      setStep(3);
-    } catch (e: any) {
-      setError(e.message || "Помилка збереження");
-    } finally {
-      setSaving(false);
-    }
-  });
-
-  // ── Step 4: Distribution ────────────────────────────────────────────────────
-  async function submitDistribution() {
-    setError("");
-    if (!draft) return;
-    setSaving(true);
-    try {
       await apiFetch(`/api/books/${draft.id}/distribution`, {
         method: "PATCH",
         body: JSON.stringify({ distributionChannels: channels }),
       });
-      setStep(4);
+      setStep(3);
     } catch (e: any) {
       setError(e.message || "Помилка збереження");
     } finally {
@@ -467,217 +457,47 @@ export function BookWizard() {
     );
   }
 
-  // Step 2 — Pricing
+  // Step 2 — Formats, royalty + distribution (merged T-2075)
   if (step === 2) {
-    return (
-      <div>
-        {progress}
-        <h2 className="text-lg font-semibold mb-2">Формати та ціни</h2>
-        <p className="text-sm text-gray-500 mb-6">Вкажіть ціну для форматів, які хочете продавати. Залиште порожнім щоб не продавати.</p>
-
-        <form onSubmit={submitStep3} className="space-y-5">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📱</span>
-                <p className="font-medium">Е-книга</p>
-              </div>
-              <p className="text-xs text-gray-500">EPUB, FB2, MOBI — для читалок і смартфонів</p>
-              <div className="space-y-1">
-                <Label htmlFor="priceEbook">Ціна (грн)</Label>
-                <Input
-                  id="priceEbook"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="49.99"
-                  {...step3.register("priceEbook")}
-                />
-                {step3.formState.errors.priceEbook && (
-                  <p className="text-xs text-red-500">{step3.formState.errors.priceEbook.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📗</span>
-                <p className="font-medium">Друкована, м&apos;яка обкладинка</p>
-              </div>
-              <p className="text-xs text-gray-500">PDF/X-3 для типографії — замовлення на друк</p>
-              <p className="text-xs text-gray-400">
-                Книжковий блок вставляють у щільний папір з офсетним друком; зверху лакують або ламінують плівкою.
-              </p>
-              <div className="space-y-1">
-                <Label htmlFor="pricePrint">Ціна (грн)</Label>
-                <Input
-                  id="pricePrint"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="199.99"
-                  {...step3.register("pricePrint")}
-                />
-                {step3.formState.errors.pricePrint && (
-                  <p className="text-xs text-red-500">{step3.formState.errors.pricePrint.message}</p>
-                )}
-                <PrintCostHint cost={printCost} field="softcoverCost" price={step3.watch("pricePrint")} onGoToUpload={() => setStep(1)} />
-              </div>
-            </div>
-
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📘</span>
-                <p className="font-medium">Друкована, тверда обкладинка</p>
-              </div>
-              <p className="text-xs text-gray-500">PDF/X-3 для типографії — замовлення на друк</p>
-              <p className="text-xs text-gray-400">
-                Книжковий блок прошивають ниткою й вставляють у картонну обкладинку, обтягнуту палітурним матеріалом,
-                з&apos;єднуючи форзацним листом.
-              </p>
-              <div className="space-y-1">
-                <Label htmlFor="pricePrintHardcover">Ціна (грн)</Label>
-                <Input
-                  id="pricePrintHardcover"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="299.99"
-                  {...step3.register("pricePrintHardcover")}
-                />
-                {step3.formState.errors.pricePrintHardcover && (
-                  <p className="text-xs text-red-500">{step3.formState.errors.pricePrintHardcover.message}</p>
-                )}
-                <PrintCostHint cost={printCost} field="hardcoverCost" price={step3.watch("pricePrintHardcover")} onGoToUpload={() => setStep(1)} />
-              </div>
-            </div>
-          </div>
-
-          {errorBanner}
-          <div className="flex justify-between">
-            <Button variant="outline" type="button" onClick={() => setStep(1)}>← Назад</Button>
-            <Button type="submit" loading={saving}>Зберегти і перейти на наступний крок →</Button>
-          </div>
-        </form>
-      </div>
-    );
-  }
-
-  // Step 3 — Distribution channels
-  if (step === 3) {
-    const isKdpSelect = channels.includes("KDP") && !channels.includes("D2D") && !channels.includes("GOOGLE");
-
-    const toggleChannel = (key: string) => {
-      if (key === "ULIT") return;
-      setChannels((prev) =>
-        prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]
-      );
-    };
-
-    const platforms = [
-      {
-        key: "ULIT",
-        icon: "📚",
-        name: "Магазин Ulit",
-        royalty: "70%",
-        description: "Власний магазин платформи. Завжди увімкнений.",
-        locked: true,
-      },
-      {
-        key: "D2D",
-        icon: "🌐",
-        name: "Draft2Digital",
-        royalty: "60%",
-        description: "40+ ритейлерів: Barnes & Noble, Kobo, Apple Books та інші.",
-        locked: false,
-      },
-      {
-        key: "KDP",
-        icon: "🔶",
-        name: "Amazon KDP",
-        royalty: "35–70%",
-        description: "Amazon Kindle Store. Якщо обрано без D2D і Google — активується KDP Select (90 днів ексклюзивності).",
-        locked: false,
-      },
-      {
-        key: "GOOGLE",
-        icon: "🎮",
-        name: "Google Play Books",
-        royalty: "52%",
-        description: "Google Play Books Store.",
-        locked: false,
-      },
-    ];
+    const genreValue = step1.watch("genre");
+    const formatKey = genreValue ? GENRE_TO_PRINT_FORMAT[genreValue] : undefined;
+    const format = formatKey ? PRINT_FORMATS[formatKey] : PRINT_FORMATS.standard;
+    const formatLabel = `${format.widthMm}×${format.heightMm}мм (${format.label.toLowerCase()})`;
 
     return (
       <div>
         {progress}
-        <h2 className="text-lg font-semibold mb-2">Платформи розповсюдження</h2>
-        <p className="text-sm text-gray-500 mb-6">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
+        <h2 className="text-lg font-semibold mb-2">Формати, ціни та розповсюдження</h2>
+        <p className="text-sm text-gray-500 mb-6">
+          Вкажіть, скільки хочете заробляти з примірника — платформа порахує ціну для покупця.
+          Оберіть канали окремо для друкованої та електронної книги.
+        </p>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {platforms.map((p) => {
-            const selected = channels.includes(p.key);
-            return (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => toggleChannel(p.key)}
-                className={cn(
-                  "rounded-xl border-2 p-4 text-left transition-colors",
-                  selected ? "border-primary bg-primary/5" : "border-gray-200 hover:border-gray-300",
-                  p.locked && "cursor-default"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{p.icon}</span>
-                    <span className="font-semibold text-sm">{p.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-medium text-green-600">{p.royalty}</span>
-                    <div className={cn(
-                      "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0",
-                      selected ? "border-primary bg-primary" : "border-gray-300"
-                    )}>
-                      {selected && <span className="text-white text-[10px] leading-none">✓</span>}
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-2 text-xs text-gray-500">{p.description}</p>
-                {p.locked && <p className="mt-1 text-xs text-gray-400">Не можна вимкнути</p>}
-                {p.key === "KDP" && KDP_EBOOK_UNSUPPORTED_LANGUAGES.includes(step1.watch("language")) && (
-                  <p className="mt-1 text-xs font-medium text-amber-600">
-                    Amazon KDP для цієї мови приймає лише друковані видання — електронна книга на Kindle
-                    видана не буде. Щоб опублікувати й електронну версію, книгу можна перекласти
-                    мовою, яку Kindle підтримує (зокрема за допомогою штучного інтелекту).
-                  </p>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {isKdpSelect && (
-          <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-            <span className="font-medium">KDP Select (Kindle Unlimited)</span> — ексклюзивна угода з Amazon на 90 днів.
-            Протягом цього часу книга не може продаватись на D2D та Google Play Books.
-          </div>
-        )}
+        <FormatsAndDistribution
+          language={step1.watch("language")}
+          formatLabel={formatLabel}
+          printCost={printCost}
+          channels={channels}
+          onToggleChannel={toggleChannel}
+          royaltyEbook={royaltyEbook}
+          onRoyaltyEbookChange={setRoyaltyEbook}
+          royaltyPrint={royaltyPrint}
+          onRoyaltyPrintChange={setRoyaltyPrint}
+        />
 
         {errorBanner}
         <div className="flex justify-between mt-6">
-          <Button variant="outline" onClick={() => setStep(2)}>← Назад</Button>
-          <Button onClick={submitDistribution} loading={saving}>Зберегти і перейти на наступний крок →</Button>
+          <Button variant="outline" type="button" onClick={() => setStep(1)}>← Назад</Button>
+          <Button onClick={submitFormatsAndDistribution} loading={saving}>Зберегти і перейти на наступний крок →</Button>
         </div>
       </div>
     );
   }
 
-  // Step 4 — Review + finish
-  if (step === 4) {
+  // Step 3 — Review + finish
+  if (step === 3) {
     const s1 = step1.getValues();
-    const s3 = step3.getValues();
+    const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
 
     return (
       <div>
@@ -691,15 +511,15 @@ export function BookWizard() {
           <Row label="Мова" value={LANGUAGES.find((l) => l.code === s1.language)?.label || s1.language} />
           <Row
             label="Е-книга"
-            value={s3.priceEbook ? `${Number(s3.priceEbook).toFixed(2)} грн` : "Не продається"}
+            value={anchor.priceEbook !== undefined ? `${anchor.priceEbook.toFixed(2)} грн` : "Не продається"}
           />
           <Row
             label="Друк, м'яка"
-            value={s3.pricePrint ? `${Number(s3.pricePrint).toFixed(2)} грн` : "Не продається"}
+            value={anchor.pricePrint !== undefined ? `${anchor.pricePrint.toFixed(2)} грн` : "Не продається"}
           />
           <Row
             label="Друк, тверда"
-            value={s3.pricePrintHardcover ? `${Number(s3.pricePrintHardcover).toFixed(2)} грн` : "Не продається"}
+            value={anchor.pricePrintHardcover !== undefined ? `${anchor.pricePrintHardcover.toFixed(2)} грн` : "Не продається"}
           />
           <Row
             label="Стратегія"
@@ -721,7 +541,7 @@ export function BookWizard() {
 
         {errorBanner}
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setStep(3)}>← Назад</Button>
+          <Button variant="outline" onClick={() => setStep(2)}>← Назад</Button>
           <Button onClick={() => router.push(`/dashboard/books/${draft?.id}`)}>
             Зберегти чернетку →
           </Button>
@@ -742,41 +562,3 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   );
 }
 
-function PrintCostHint({
-  cost,
-  field,
-  price,
-  onGoToUpload,
-}: {
-  cost: PrintCost | null;
-  field: "softcoverCost" | "hardcoverCost";
-  price?: string | number;
-  onGoToUpload: () => void;
-}) {
-  if (cost?.status === "DONE") {
-    const priceNum = Number(price);
-    const profit = Number.isFinite(priceNum) && priceNum > 0 ? priceNum - cost[field] : null;
-    return (
-      <div className="space-y-0.5">
-        <p className="text-xs text-gray-400">
-          Собівартість виготовлення: ~{cost[field].toFixed(2)} грн
-        </p>
-        {profit !== null && (
-          <p className={cn("text-xs font-medium", profit < 0 ? "text-red-500" : "text-green-600")}>
-            {profit < 0
-              ? `Ціна нижча за собівартість на ${Math.abs(profit).toFixed(2)} грн`
-              : `Заробите: ~${profit.toFixed(2)} грн`}
-          </p>
-        )}
-      </div>
-    );
-  }
-  if (cost?.status === "NO_SETTINGS") {
-    return <p className="text-xs text-gray-400">Собівартість друку ще не налаштована адміном</p>;
-  }
-  return (
-    <button type="button" onClick={onGoToUpload} className="text-xs text-gray-400 underline hover:text-gray-600">
-      Завантажте рукопис, щоб побачити собівартість
-    </button>
-  );
-}

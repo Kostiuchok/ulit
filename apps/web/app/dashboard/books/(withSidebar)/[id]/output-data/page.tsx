@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
-import { DistributionChannelPicker } from "@/components/books/DistributionChannelPicker";
+import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import { PublishButton } from "@/components/books/PublishButton";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
@@ -41,50 +41,16 @@ const infoSchema = z.object({
 });
 type InfoForm = z.infer<typeof infoSchema>;
 
+// T-2075 -- only the optional B&W alternative prices are still raw manual
+// inputs. priceEbook/pricePrint/pricePrintHardcover moved to the merged
+// "Ціна та розповсюдження" section (FormatsAndDistribution + anchor pricing,
+// same as BookWizard's step 2) -- there's no per-B&W production cost in
+// print-cost.ts to build a royalty calculator against, so this stays as-is.
 const priceSchema = z.object({
-  priceEbook: z.coerce.number().positive().optional().or(z.literal("")),
-  pricePrint: z.coerce.number().positive().optional().or(z.literal("")),
-  pricePrintHardcover: z.coerce.number().positive().optional().or(z.literal("")),
   pricePrintBw: z.coerce.number().positive().optional().or(z.literal("")),
   pricePrintHardcoverBw: z.coerce.number().positive().optional().or(z.literal("")),
 });
 type PriceForm = z.infer<typeof priceSchema>;
-
-type PrintCost =
-  | { status: "DONE"; softcoverCost: number; hardcoverCost: number }
-  | { status: "NO_PAGE_COUNT" }
-  | { status: "NO_SETTINGS" };
-
-function PrintCostHint({
-  cost,
-  field,
-  price,
-}: {
-  cost: PrintCost | null;
-  field: "softcoverCost" | "hardcoverCost";
-  price?: string | number;
-}) {
-  if (cost?.status === "DONE") {
-    const priceNum = Number(price);
-    const profit = Number.isFinite(priceNum) && priceNum > 0 ? priceNum - cost[field] : null;
-    return (
-      <div className="space-y-0.5">
-        <p className="text-xs text-gray-400">Собівартість виготовлення: ~{cost[field].toFixed(2)} грн</p>
-        {profit !== null && (
-          <p className={cn("text-xs font-medium", profit < 0 ? "text-red-500" : "text-green-600")}>
-            {profit < 0
-              ? `Ціна нижча за собівартість на ${Math.abs(profit).toFixed(2)} грн`
-              : `Заробите: ~${profit.toFixed(2)} грн`}
-          </p>
-        )}
-      </div>
-    );
-  }
-  if (cost?.status === "NO_SETTINGS") {
-    return <p className="text-xs text-gray-400">Собівартість друку ще не налаштована адміном</p>;
-  }
-  return <p className="text-xs text-gray-400">Завантажте рукопис, щоб побачити собівартість</p>;
-}
 
 interface CoAuthor {
   name: string;
@@ -118,11 +84,16 @@ const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"];
 // up front and jump to one without scrolling -- the scroll stays a single
 // continuous page (T-2060's decision, Ridero-driven), the nav just adds a
 // way to see/reach every section from the top instead of only forward.
+// T-2075 -- "price" and "distribution" used to be two separate sections;
+// merged into one ("Ціна та розповсюдження", FormatsAndDistribution.tsx) for
+// the same reason BookWizard's steps 2/3 merged: a shelf price genuinely
+// depends on which channels are enabled and their commissions, so asking for
+// one before the other was backwards and the two sections' "which stores"
+// concepts visibly overlapped.
 const SECTION_LABELS = {
   info: "Інформація",
   file: "Рукопис",
-  price: "Ціна",
-  distribution: "Розповсюдження",
+  price: "Ціна та розповсюдження",
   review: "Огляд перед публікацією",
   publish: "Публікація",
 };
@@ -146,6 +117,7 @@ interface MetadataBook {
   pricePrintBw?: number | string | null;
   pricePrintHardcoverBw?: number | string | null;
   desiredRoyaltyAmount?: number | string | null;
+  desiredRoyaltyAmountPrint?: number | string | null;
   aiGenerated?: boolean;
   aiGeneratedNote?: string | null;
   coAuthors?: CoAuthor[] | null;
@@ -251,6 +223,9 @@ function OutputDataContent() {
   const [priceSaved, setPriceSaved] = useState(false);
   const [priceError, setPriceError] = useState("");
   const [printCost, setPrintCost] = useState<PrintCost | null>(null);
+  const [channels, setChannels] = useState<string[]>(["ULIT"]);
+  const [royaltyEbook, setRoyaltyEbook] = useState("");
+  const [royaltyPrint, setRoyaltyPrint] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -331,14 +306,19 @@ function OutputDataContent() {
       aiGeneratedNote: book.aiGeneratedNote ?? "",
     });
     priceForm.reset({
-      priceEbook: book.priceEbook ? Number(book.priceEbook) : "",
-      pricePrint: book.pricePrint ? Number(book.pricePrint) : "",
-      pricePrintHardcover: book.pricePrintHardcover ? Number(book.pricePrintHardcover) : "",
       pricePrintBw: book.pricePrintBw ? Number(book.pricePrintBw) : "",
       pricePrintHardcoverBw: book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : "",
     });
+    setChannels(Array.isArray(book.distributionChannels) && book.distributionChannels.length > 0 ? book.distributionChannels : ["ULIT"]);
+    setRoyaltyEbook(book.desiredRoyaltyAmount ? String(Number(book.desiredRoyaltyAmount)) : "");
+    setRoyaltyPrint(book.desiredRoyaltyAmountPrint ? String(Number(book.desiredRoyaltyAmountPrint)) : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book]);
+
+  function toggleChannel(key: string) {
+    if (key === "ULIT") return;
+    setChannels((prev) => (prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]));
+  }
 
   function addCoAuthor() {
     const name = newCoAuthorName.trim();
@@ -417,9 +397,6 @@ function OutputDataContent() {
       const { book: updated } = await apiFetch<{ book: MetadataBook }>(`/api/books/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          priceEbook: data.priceEbook ? Number(data.priceEbook) : null,
-          pricePrint: data.pricePrint ? Number(data.pricePrint) : null,
-          pricePrintHardcover: data.pricePrintHardcover ? Number(data.pricePrintHardcover) : null,
           pricePrintBw: data.pricePrintBw ? Number(data.pricePrintBw) : null,
           pricePrintHardcoverBw: data.pricePrintHardcoverBw ? Number(data.pricePrintHardcoverBw) : null,
         }),
@@ -431,6 +408,46 @@ function OutputDataContent() {
       setPriceError(e.message || "Помилка збереження");
     }
   };
+
+  // T-2075 -- one save action for the merged "Ціна та розповсюдження"
+  // section: derives the concrete Ulit-anchored priceEbook/pricePrint/
+  // pricePrintHardcover from the two royalty inputs (same helper BookWizard's
+  // step 2 uses, computeAnchorPrices in FormatsAndDistribution.tsx, so the
+  // formula can't drift between the two places), then saves both the price
+  // PATCH and the distributionChannels PATCH together -- they're one
+  // decision now, not two.
+  const [formatsSaving, setFormatsSaving] = useState(false);
+  const [formatsSaved, setFormatsSaved] = useState(false);
+  const [formatsError, setFormatsError] = useState("");
+
+  async function saveFormatsAndDistribution() {
+    setFormatsError("");
+    setFormatsSaving(true);
+    try {
+      const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
+      const { book: updated } = await apiFetch<{ book: MetadataBook }>(`/api/books/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          desiredRoyaltyAmount: anchor.priceEbook !== undefined ? Number(royaltyEbook.replace(",", ".")) : null,
+          desiredRoyaltyAmountPrint: anchor.pricePrint !== undefined ? Number(royaltyPrint.replace(",", ".")) : null,
+          priceEbook: anchor.priceEbook ?? null,
+          pricePrint: anchor.pricePrint ?? null,
+          pricePrintHardcover: anchor.pricePrintHardcover ?? null,
+        }),
+      });
+      setBook(updated);
+      await apiFetch(`/api/books/${id}/distribution`, {
+        method: "PATCH",
+        body: JSON.stringify({ distributionChannels: channels }),
+      });
+      setFormatsSaved(true);
+      setTimeout(() => setFormatsSaved(false), 3000);
+    } catch (e: any) {
+      setFormatsError(e.message || "Помилка збереження");
+    } finally {
+      setFormatsSaving(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -776,89 +793,65 @@ function OutputDataContent() {
           className="scroll-mt-16 space-y-3"
         >
           <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.price}</h2>
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <form onSubmit={priceForm.handleSubmit(onSubmitPrice)} className="space-y-5">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="priceEbook">Ціна е-книги (грн)</Label>
-                  <Input
-                    id="priceEbook"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...priceForm.register("priceEbook")}
-                    placeholder="49.99"
-                  />
-                  {priceForm.formState.errors.priceEbook && (
-                    <p className="text-xs text-red-500">{priceForm.formState.errors.priceEbook.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pricePrint">Друк, м&apos;яка (грн)</Label>
-                  <Input
-                    id="pricePrint"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...priceForm.register("pricePrint")}
-                    placeholder="199.99"
-                  />
-                  {priceForm.formState.errors.pricePrint && (
-                    <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrint.message}</p>
-                  )}
-                  <PrintCostHint cost={printCost} field="softcoverCost" price={priceForm.watch("pricePrint")} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pricePrintHardcover">Друк, тверда (грн)</Label>
-                  <Input
-                    id="pricePrintHardcover"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...priceForm.register("pricePrintHardcover")}
-                    placeholder="299.99"
-                  />
-                  {priceForm.formState.errors.pricePrintHardcover && (
-                    <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintHardcover.message}</p>
-                  )}
-                  <PrintCostHint cost={printCost} field="hardcoverCost" price={priceForm.watch("pricePrintHardcover")} />
-                </div>
-              </div>
+          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
+            <FormatsAndDistribution
+              language={book?.language}
+              formatLabel={`${displayFormat.widthMm}×${displayFormat.heightMm}мм (${PRINT_FORMATS[displayFormat.key as keyof typeof PRINT_FORMATS]?.label ?? "Стандартний"})`}
+              pageCount={book?.pageCount}
+              printCost={printCost}
+              channels={channels}
+              onToggleChannel={toggleChannel}
+              royaltyEbook={royaltyEbook}
+              onRoyaltyEbookChange={setRoyaltyEbook}
+              royaltyPrint={royaltyPrint}
+              onRoyaltyPrintChange={setRoyaltyPrint}
+            />
 
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-2">
-                  Чорно-білий друк (дешевше в типографії) — заповніть, якщо хочете запропонувати покупцю
-                  дешевший варіант поруч із кольоровим
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pricePrintBw">Друк ч/б, м&apos;яка (грн)</Label>
-                    <Input
-                      id="pricePrintBw"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...priceForm.register("pricePrintBw")}
-                      placeholder="149.99"
-                    />
-                    {priceForm.formState.errors.pricePrintBw && (
-                      <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintBw.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pricePrintHardcoverBw">Друк ч/б, тверда (грн)</Label>
-                    <Input
-                      id="pricePrintHardcoverBw"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...priceForm.register("pricePrintHardcoverBw")}
-                      placeholder="229.99"
-                    />
-                    {priceForm.formState.errors.pricePrintHardcoverBw && (
-                      <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintHardcoverBw.message}</p>
-                    )}
-                  </div>
+            {formatsError && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{formatsError}</div>
+            )}
+            {formatsSaved && (
+              <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>
+            )}
+            <Button onClick={saveFormatsAndDistribution} loading={formatsSaving}>
+              Зберегти зміни
+            </Button>
+          </div>
+
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <form onSubmit={priceForm.handleSubmit(onSubmitPrice)} className="space-y-3">
+              <p className="text-xs font-medium text-gray-500">
+                Чорно-білий друк (дешевше в типографії, опційно) — заповніть, якщо хочете запропонувати покупцю
+                дешевший варіант поруч із кольоровим. Пряма ціна для покупця, без калькулятора гонорару.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="pricePrintBw">Друк ч/б, м&apos;яка (грн)</Label>
+                  <Input
+                    id="pricePrintBw"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...priceForm.register("pricePrintBw")}
+                    placeholder="149.99"
+                  />
+                  {priceForm.formState.errors.pricePrintBw && (
+                    <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintBw.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pricePrintHardcoverBw">Друк ч/б, тверда (грн)</Label>
+                  <Input
+                    id="pricePrintHardcoverBw"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...priceForm.register("pricePrintHardcoverBw")}
+                    placeholder="229.99"
+                  />
+                  {priceForm.formState.errors.pricePrintHardcoverBw && (
+                    <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintHardcoverBw.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -869,27 +862,10 @@ function OutputDataContent() {
                 <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>
               )}
 
-              <Button type="submit" loading={priceForm.formState.isSubmitting}>
-                Зберегти зміни
+              <Button type="submit" variant="outline" loading={priceForm.formState.isSubmitting}>
+                Зберегти ч/б ціни
               </Button>
             </form>
-          </div>
-        </section>
-
-        <section
-          id="section-distribution"
-          ref={(el) => { sectionRefs.current.distribution = el; }}
-          className="scroll-mt-16 space-y-3"
-        >
-          <h2 className="text-sm font-semibold text-gray-500">{SECTION_LABELS.distribution}</h2>
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <h3 className="text-base font-semibold mb-1">Платформи розповсюдження</h3>
-            <p className="text-xs text-gray-500 mb-4">Оберіть, де продавати книгу. Можна вибрати кілька.</p>
-            <DistributionChannelPicker
-              bookId={id}
-              language={book?.language}
-              initialDesiredRoyaltyAmount={book?.desiredRoyaltyAmount}
-            />
           </div>
 
           {book?.status === "PUBLISHED" && (

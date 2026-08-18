@@ -178,7 +178,8 @@ model Book {
   contributors         Json? // T-2060 п.5 -- "Над книгою працювали" (editor/illustrator/designer etc.), separate entity from bookAuthors: {role, name}[]
   authorBio            String? // T-2060 п.6 -- canonical author biography text, shown on cover (CoverDesignerCanvas) and editable live there when coverIndependentFromBookData is false
   coverIndependentFromBookData Boolean @default(false) // T-2060 п.8 -- when true, cover text (title/author/bio) is edited independently and does NOT sync back to book data
-  desiredRoyaltyAmount Decimal?             @db.Decimal(10, 2) // T-2060 п.11 (=T-2053) -- author's desired net earning per unit; per-channel retail price is computed from this + each channel's royalty rate, not stored per-channel
+  desiredRoyaltyAmount Decimal?             @db.Decimal(10, 2) // T-2060 п.11 (=T-2053) -- author's desired net earning per unit (E-BOOK). Per-channel retail price is computed from this + each channel's royalty rate, not stored per-channel
+  desiredRoyaltyAmountPrint Decimal?        @db.Decimal(10, 2) // T-2075 -- same idea as desiredRoyaltyAmount, but for the PRINT block: production cost (per-book, from print-cost) is added on top before applying each channel's royalty rate, since print has a real per-unit cost the ebook doesn't
   language             String               @default("uk")
   pageCount            Int?
   printPageCount       Int? // page count of the real print-trim PDF (printPdfUrl) -- distinct from pageCount, which is derived from the online-viewer PDF at Word's own page size; used for print-cost estimates

@@ -27,6 +27,7 @@ function validateBook(book: {
   pricePrintBw: any;
   pricePrintHardcoverBw: any;
   desiredRoyaltyAmount: any;
+  desiredRoyaltyAmountPrint: any;
   status: string;
 }): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -54,7 +55,8 @@ function validateBook(book: {
   // "price resolved on every enabled channel" state for this schema shape.
   if (
     !book.priceEbook && !book.pricePrint && !book.pricePrintHardcover &&
-    !book.pricePrintBw && !book.pricePrintHardcoverBw && !book.desiredRoyaltyAmount
+    !book.pricePrintBw && !book.pricePrintHardcoverBw &&
+    !book.desiredRoyaltyAmount && !book.desiredRoyaltyAmountPrint
   ) {
     errors.push({ field: "price", message: "Вкажіть ціну або бажане роялті" });
   }
@@ -89,6 +91,7 @@ export async function publishRoute(app: FastifyInstance) {
           pricePrintBw: true,
           pricePrintHardcoverBw: true,
           desiredRoyaltyAmount: true,
+          desiredRoyaltyAmountPrint: true,
           status: true,
         },
       });
@@ -130,6 +133,7 @@ export async function publishRoute(app: FastifyInstance) {
           pricePrintBw: true,
           pricePrintHardcoverBw: true,
           desiredRoyaltyAmount: true,
+          desiredRoyaltyAmountPrint: true,
           publicationTimeline: true,
           author: { select: { id: true, contractAcceptedAt: true } },
         },
