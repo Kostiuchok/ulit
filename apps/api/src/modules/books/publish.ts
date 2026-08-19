@@ -181,10 +181,19 @@ export async function publishRoute(app: FastifyInstance) {
       const now = new Date();
       const timeline = { ...((book.publicationTimeline as Record<string, string>) ?? {}), submitted: now.toISOString() };
 
+      // Resubmission after a rejection must clear the old REJECTED verdict --
+      // moderationStatus/moderationNote otherwise stay stuck on the rejection
+      // from a previous round forever (nothing else ever resets them), so
+      // the author's rejection banner (parseRejectedConcerns, keyed off
+      // moderationStatus === "REJECTED") kept showing even after fixing the
+      // issues and resubmitting. Unconditional reset to PENDING is correct
+      // for a first-time submission too (already the schema default).
       const submitted = await prisma.book.update({
         where: { id },
         data: {
           status: "REVIEW",
+          moderationStatus: "PENDING",
+          moderationNote: null,
           publicationTimeline: timeline,
         },
         select: { id: true, status: true, title: true },
