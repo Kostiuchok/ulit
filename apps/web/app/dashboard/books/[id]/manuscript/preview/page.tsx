@@ -165,10 +165,25 @@ export default function ManuscriptPreviewPage() {
           </div>
         )}
 
-        {!error && state?.status === "DONE" && (
+        {/* printPageCount should always be set once status is DONE --
+            generate-pdf-print.ts (apps/worker) writes it in the same Prisma
+            update that sets printPdfUrl, right before this route can ever
+            report DONE. Null here means that invariant broke somewhere, not
+            "book has 0 pages" -- silently falling back to an empty
+            flipbook (printPageCount ?? 0) would hide that from both the
+            author and us; surface it instead so a real report points
+            straight at this rather than "the preview looks broken". */}
+        {!error && state?.status === "DONE" && state.printPageCount == null && (
+          <div className="flex h-full items-center justify-center px-6 text-center text-sm text-red-500">
+            Не вдалося визначити кількість сторінок друкованого файлу. Спробуйте оновити сторінку; якщо
+            повторюється — повідомте підтримку.
+          </div>
+        )}
+
+        {!error && state?.status === "DONE" && state.printPageCount != null && (
           <PrintFlipViewer
             printPdfUrl={state.printPdfUrl}
-            printPageCount={state.printPageCount ?? 0}
+            printPageCount={state.printPageCount}
             coverUrl={book?.coverUrl}
             trimMm={trimMm}
             grayscale={grayscale}
