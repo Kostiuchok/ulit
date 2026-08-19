@@ -1,14 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Download } from "lucide-react";
+import { ChevronLeft, Download, Palette } from "lucide-react";
+import { resolveBookPrintFormat } from "shared-types";
 import { useApi } from "@/hooks/useApi";
 import { useBook } from "@/hooks/useBook";
+import { PrintFlipViewer } from "@/components/books/PrintFlipViewer";
 
 interface PreviewBook {
   title: string;
   coverUrl?: string | null;
+  genre?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
+  printFormatKey?: string | null;
 }
 
 // T-2057 -- "Передперегляд = сама генерація друкованого PDF" (docs/T-2057-checklist.md
@@ -28,7 +34,16 @@ export default function ManuscriptPreviewPage() {
   const { book } = useBook<PreviewBook>(id);
   const [state, setState] = useState<PrintPreviewStatus | null>(null);
   const [error, setError] = useState("");
+  const [grayscale, setGrayscale] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Same source of truth as the cover editor and "Вихідні дані" (T-2076) --
+  // books range from pocket (~0.605 width/height) to large (~0.759), and the
+  // flipbook must show each book at ITS real trim, not one fixed shape.
+  const trimMm = useMemo(
+    () => (book ? resolveBookPrintFormat(book) : null),
+    [book]
+  );
 
   const poll = useCallback(async () => {
     try {
@@ -100,19 +115,33 @@ export default function ManuscriptPreviewPage() {
             />
           )}
         </div>
-        {/* T-2057 п.4 -- temporary QA link, byte-for-byte the same file the
-            viewer below shows. Remove once the pipeline has a confirmed live
-            test (docs/T-2057-checklist.md checklist). */}
         {state?.status === "DONE" && (
-          <a
-            href={state.printPdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-4 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
-          >
-            <Download size={13} className="shrink-0" />
-            Завантажити PDF (QA)
-          </a>
+          <div className="flex items-center gap-1">
+            {/* T-2068 -- one shared color/b&w toggle over the same render,
+                not a second generated file (Ridero renders two separate
+                PDFs for this; a CSS filter gets the same visual result for
+                us without doubling worker/storage cost). */}
+            <button
+              type="button"
+              onClick={() => setGrayscale((g) => !g)}
+              className="flex items-center gap-1.5 px-3 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
+            >
+              <Palette size={13} className="shrink-0" />
+              {grayscale ? "Кольоровий" : "Чорно-білий"}
+            </button>
+            {/* T-2057 п.4 -- temporary QA link, byte-for-byte the same file the
+                viewer below shows. Remove once the pipeline has a confirmed live
+                test (docs/T-2057-checklist.md checklist). */}
+            <a
+              href={state.printPdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
+            >
+              <Download size={13} className="shrink-0" />
+              Завантажити PDF (QA)
+            </a>
+          </div>
         )}
       </div>
 
@@ -137,10 +166,12 @@ export default function ManuscriptPreviewPage() {
         )}
 
         {!error && state?.status === "DONE" && (
-          <iframe
-            src={state.printPdfUrl}
-            title="Передперегляд друкованого PDF"
-            className="h-full w-full border-0"
+          <PrintFlipViewer
+            printPdfUrl={state.printPdfUrl}
+            printPageCount={state.printPageCount ?? 0}
+            coverUrl={book?.coverUrl}
+            trimMm={trimMm}
+            grayscale={grayscale}
           />
         )}
       </div>
