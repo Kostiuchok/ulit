@@ -5,6 +5,14 @@ interface Props {
   // mirrored, so the spine/page-block lighting must mirror too, or a
   // side-by-side front/back pair reads as lit from two different angles.
   mirror?: boolean;
+  // Real per-book trim (shared-types resolveBookPrintFormat) -- unlike
+  // TabletCoverFrame's bezel, this frame's "chrome" is pure CSS (box-shadow +
+  // gradient, no baked-in image asset), so it's safe to actually resize per
+  // book instead of only relying on object-contain letterboxing inside a
+  // fixed box. Falls back to the old fixed Ridero-matched ratio when omitted
+  // (e.g. BookPurchaseWidget's small format-picker thumbnail, which has no
+  // book-format context wired in).
+  trimMm?: { widthMm: number; heightMm: number };
 }
 
 // Page-edge/spine sheen — matches Ridero's printed-book widget exactly
@@ -14,10 +22,11 @@ interface Props {
 const EDGE_SHEEN =
   "linear-gradient(90deg, hsla(0, 0%, 100%, .2), rgba(0, 0, 0, .25) 3.44%, hsla(0, 0%, 100%, .2) 6.21%, hsla(0, 0%, 58%, .15) 11.09%, hsla(0, 0%, 100%, 0) 66.98%, hsla(0, 0%, 89%, .15) 96.15%, hsla(0, 0%, 100%, .15))";
 
-export function PrintedCoverFrame({ coverUrl, className, mirror }: Props) {
+export function PrintedCoverFrame({ coverUrl, className, mirror, trimMm }: Props) {
   return (
     <div
-      className={`relative aspect-[242/343] w-full overflow-hidden rounded-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.15),0_16px_28px_-10px_rgba(0,0,0,0.4)] ${className ?? ""}`}
+      className={`relative w-full overflow-hidden rounded-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.15),0_16px_28px_-10px_rgba(0,0,0,0.4)] ${trimMm ? "" : "aspect-[242/343]"} ${className ?? ""}`}
+      style={trimMm ? { aspectRatio: `${trimMm.widthMm} / ${trimMm.heightMm}` } : undefined}
     >
       {coverUrl ? (
         // object-contain, not object-cover -- this frame's ratio (242/343,

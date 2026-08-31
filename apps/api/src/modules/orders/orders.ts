@@ -204,7 +204,7 @@ export async function ordersRoutes(app: FastifyInstance) {
 
       // Build LiqPay payment form
       const description = order.items.map((i) => i.book.title).join(", ");
-      const webUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const webUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
       const apiUrl = process.env.API_URL || "http://localhost:3001";
 
       const liqpay = generateLiqPayForm({

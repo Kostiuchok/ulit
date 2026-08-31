@@ -32,6 +32,7 @@ const step1Schema = z.object({
     .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
   genre: z.string().max(100).optional(),
   language: z.string().length(2).default("uk"),
+  ageRating: z.string().min(1, "Вкажіть вікові обмеження"),
 });
 
 type Step1Form = z.infer<typeof step1Schema>;
@@ -49,7 +50,7 @@ type Step1Form = z.infer<typeof step1Schema>;
 const STEPS = [
   { label: "Інформація" },
   { label: "Файл" },
-  { label: "Формати та розповсюдження" },
+  { label: "Розповсюдження" },
   { label: "Огляд" },
 ];
 
@@ -58,6 +59,10 @@ const GENRES = [
   "Детектив", "Роман", "Повість", "Оповідання", "Нон-фікшн",
   "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
 ];
+
+// Same list as output-data/page.tsx's AGE_RATINGS — both write the same
+// Book.ageRating column, required by publish.ts's pre-publish validation.
+const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"];
 
 const LANGUAGES = [
   { code: "uk", label: "Українська" },
@@ -233,31 +238,39 @@ export function BookWizard() {
   }
 
   // ─── Progress bar ────────────────────────────────────────────────────────────
+  // Fixed equal-width columns (grid, not flex) so all 4 steps stay the same
+  // width regardless of label length. Connector lines are drawn as absolutely
+  // positioned bars between circle centers (top-4 = half of the h-8 circle),
+  // independent of the row's height — so a two-line label never pushes a
+  // circle or line out of alignment with the others.
+  const stepCenterPct = (i: number) => ((i + 0.5) / STEPS.length) * 100;
   const progress = (
     <div className="mb-8">
-      <div className="flex items-center justify-between">
+      <div className="relative grid" style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}>
+        {STEPS.slice(0, -1).map((_, i) => (
+          <div
+            key={i}
+            className={cn("absolute top-4 h-0.5 -translate-y-1/2", i < step ? "bg-primary" : "bg-gray-200")}
+            style={{ left: `${stepCenterPct(i)}%`, width: `${stepCenterPct(i + 1) - stepCenterPct(i)}%` }}
+          />
+        ))}
         {STEPS.map((s, i) => (
-          <div key={i} className="flex flex-1 items-center">
-            <div className="flex flex-col items-center">
-              <div
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors",
-                  i < step
-                    ? "bg-primary text-primary-foreground"
-                    : i === step
-                    ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
-                    : "bg-gray-200 text-gray-400"
-                )}
-              >
-                {i < step ? "✓" : i + 1}
-              </div>
-              <span className={cn("mt-1 text-xs", i === step ? "text-gray-900 font-medium" : "text-gray-400")}>
-                {s.label}
-              </span>
+          <div key={i} className="relative z-10 flex flex-col items-center text-center px-1">
+            <div
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium transition-colors",
+                i < step
+                  ? "bg-primary text-primary-foreground"
+                  : i === step
+                  ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                  : "bg-gray-200 text-gray-400"
+              )}
+            >
+              {i < step ? "✓" : i + 1}
             </div>
-            {i < STEPS.length - 1 && (
-              <div className={cn("flex-1 h-0.5 mx-1 mb-5", i < step ? "bg-primary" : "bg-gray-200")} />
-            )}
+            <span className={cn("mt-1.5 text-xs leading-snug", i === step ? "text-gray-900 font-medium" : "text-gray-400")}>
+              {s.label}
+            </span>
           </div>
         ))}
       </div>
@@ -321,7 +334,7 @@ export function BookWizard() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="genre">Жанр</Label>
               <select
@@ -343,6 +356,26 @@ export function BookWizard() {
               >
                 {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
               </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="ageRating">Вікові обмеження *</Label>
+              <select
+                id="ageRating"
+                {...step1.register("ageRating")}
+                className={cn(
+                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2",
+                  step1.formState.errors.ageRating
+                    ? "border-red-400 focus-visible:ring-red-300"
+                    : "border-input focus-visible:ring-ring"
+                )}
+              >
+                <option value="">Оберіть</option>
+                {AGE_RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              {step1.formState.errors.ageRating && (
+                <p className="text-sm text-red-500">{step1.formState.errors.ageRating.message}</p>
+              )}
             </div>
           </div>
 

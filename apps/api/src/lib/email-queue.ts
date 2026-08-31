@@ -1,6 +1,6 @@
 import { Queue, Worker } from "bullmq";
 import { redisConfig } from "./queue";
-import { sendKdpExpiryWarning, sendPublishedNotification, sendOrderDownloadLinks } from "../services/email.service";
+import { sendKdpExpiryWarning, sendPublishedNotification, sendOrderDownloadLinks, sendRejectedNotification } from "../services/email.service";
 
 export const EMAIL_QUEUE = "email";
 
@@ -8,7 +8,7 @@ const connection = { ...redisConfig, maxRetriesPerRequest: null } as any;
 
 export const emailQueue = new Queue(EMAIL_QUEUE, { connection });
 
-export type EmailJobName = "kdp-expiry-warning" | "book-published" | "order-paid";
+export type EmailJobName = "kdp-expiry-warning" | "book-published" | "book-rejected" | "order-paid";
 
 export interface KdpExpiryWarningData {
   email: string;
@@ -24,6 +24,14 @@ export interface BookPublishedData {
   bookTitle: string;
   bookId: string;
   isbn?: string | null;
+}
+
+export interface BookRejectedData {
+  email: string;
+  name: string;
+  bookTitle: string;
+  bookId: string;
+  reason?: string | null;
 }
 
 export interface OrderPaidData {
@@ -65,6 +73,14 @@ export async function queuePublishedEmail(data: BookPublishedData) {
   });
 }
 
+export async function queueRejectedEmail(data: BookRejectedData) {
+  await emailQueue.add("book-rejected", data, {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 30_000 },
+    removeOnComplete: { count: 100 },
+  });
+}
+
 // Worker runs in the API process (email doesn't need LibreOffice etc.)
 export function startEmailWorker() {
   const worker = new Worker(
@@ -76,6 +92,9 @@ export function startEmailWorker() {
       } else if (job.name === "book-published") {
         const d = job.data as BookPublishedData;
         await sendPublishedNotification(d);
+      } else if (job.name === "book-rejected") {
+        const d = job.data as BookRejectedData;
+        await sendRejectedNotification(d);
       } else if (job.name === "order-paid") {
         const d = job.data as OrderPaidData;
         await sendOrderDownloadLinks(d);

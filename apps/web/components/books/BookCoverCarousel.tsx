@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { resolveBookPrintFormat } from "shared-types";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
 import { PrintedCoverFrame } from "@/components/books/PrintedCoverFrame";
 
@@ -9,23 +10,46 @@ interface Props {
   backCoverUrl?: string | null;
   hasEbook: boolean;
   hasPrint: boolean;
+  // Real per-book print trim (same shape resolveBookPrintFormat expects) --
+  // drives PrintedCoverFrame's aspect ratio so a pocket-format book and a
+  // large-format book each get a correctly-shaped preview instead of one
+  // fixed box for every book. Omitted entirely falls back to the old fixed
+  // Ridero-matched ratio.
+  genre?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
+  printFormatKey?: string | null;
   // Controlled mode -- lets a parent (e.g. the format picker on the book page)
   // drive which slide is shown. Uncontrolled (internal state) when omitted.
   activeKey?: string;
   onActiveKeyChange?: (key: string) => void;
 }
 
-export function BookCoverCarousel({ coverUrl, backCoverUrl, hasEbook, hasPrint, activeKey, onActiveKeyChange }: Props) {
+export function BookCoverCarousel({
+  coverUrl,
+  backCoverUrl,
+  hasEbook,
+  hasPrint,
+  genre,
+  printWidthMm,
+  printHeightMm,
+  printFormatKey,
+  activeKey,
+  onActiveKeyChange,
+}: Props) {
+  const format = resolveBookPrintFormat({ genre, printWidthMm, printHeightMm, printFormatKey });
+  const trimMm = { widthMm: format.widthMm, heightMm: format.heightMm };
+
   const slides: { key: string; label: string; node: React.ReactNode }[] = [];
 
   if (hasEbook) {
     slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} /> });
   }
   if (hasPrint) {
-    slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} /> });
+    slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} trimMm={trimMm} /> });
   }
   if (backCoverUrl) {
-    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} mirror /> });
+    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} trimMm={trimMm} mirror /> });
   }
   if (slides.length === 0) {
     slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} /> });
@@ -42,9 +66,17 @@ export function BookCoverCarousel({ coverUrl, backCoverUrl, hasEbook, hasPrint, 
 
   return (
     <div className="space-y-3">
+      {/* No shared fixed aspect-ratio here: TabletCoverFrame keeps its own
+          fixed tablet-shaped ratio (a physical tablet screen has one shape),
+          while PrintedCoverFrame now sizes itself from the book's own real
+          trimMm -- forcing both into one shared box would either crop/distort
+          whichever one doesn't match it, or letterbox awkwardly. Letting the
+          wrapper size to the active slide's own intrinsic aspect ratio means
+          each renders at its correct shape; height may shift a bit when
+          switching between the ebook and print slides, which is correct --
+          they really are differently-shaped objects. */}
       <div
         className={`relative flex w-full items-center justify-center ${slides.length > 1 ? "cursor-pointer" : ""}`}
-        style={{ aspectRatio: "232 / 341" }}
         onClick={slides.length > 1 ? () => selectIndex((current + 1) % slides.length) : undefined}
       >
         <div key={slides[current].key} aria-label={slides[current].label} className="w-full">

@@ -245,7 +245,10 @@ function countIssues(platform: Platform) {
 function buildRejectionText(platforms: Platform[]): string {
   const lines: string[] = ["Книга не відповідає вимогам платформ:\n"];
   for (const p of platforms) {
-    const issues = p.checks.filter((c) => c.result !== "pass");
+    // ISBN is never something the author can act on (admin-only, assigned
+    // after approval via the dedicated "Реєстрація ISBN" flow below) -- never
+    // belongs in a rejection reason sent back to them.
+    const issues = p.checks.filter((c) => c.result !== "pass" && c.id !== "isbn");
     if (issues.length === 0) continue;
     lines.push(`${p.name}:`);
     for (const c of issues) {
@@ -405,6 +408,49 @@ export default function DistributePage() {
   const [bookChamberError, setBookChamberError] = useState("");
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState("");
+  const [isbnPkg, setIsbnPkg] = useState<{
+    annotationTxtUrl: string;
+    manuscriptPdfUrl: string;
+    coverUrl: string | null;
+    authorFullName: string | null;
+  } | null>(null);
+  const [isbnPkgError, setIsbnPkgError] = useState("");
+  const [isbnPkgLoading, setIsbnPkgLoading] = useState(true);
+  const [annotationDownloading, setAnnotationDownloading] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    setIsbnPkgLoading(true);
+    apiFetch<typeof isbnPkg>(`/api/admin/books/${id}/isbn-package`)
+      .then((pkg) => setIsbnPkg(pkg))
+      .catch((e: any) => setIsbnPkgError(e.message || "Дані ще не готові"))
+      .finally(() => setIsbnPkgLoading(false));
+  }, [token, id]);
+
+  // annotation.txt is a direct admin-gated API route (not a pre-signed URL
+  // like the other two package links), so a plain <a href> would 401 without
+  // the bearer token -- same authenticated-blob-download pattern as
+  // admin/isbn-queue/page.tsx.
+  async function downloadAnnotation(url: string, filename: string) {
+    setAnnotationDownloading(true);
+    try {
+      const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch (e: any) {
+      alert(`Помилка завантаження: ${e.message}`);
+    } finally {
+      setAnnotationDownloading(false);
+    }
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -521,9 +567,19 @@ export default function DistributePage() {
 
   const isKdpSelect = book.distributionStrategy === "KDP_SELECT";
   const platforms = buildPlatforms(book, coverDims.w, coverDims.h);
-  const totalIssues = platforms.reduce((s, p) => s + countIssues(p), 0);
+  // ISBN is excluded from this top-level "critical requirements" banner --
+  // it's tracked by its own dedicated "Реєстрація ISBN" checklist below, and
+  // is expected to be unset here (a book only gets one after moderation
+  // approval). Each platform's own expanded section still shows its ISBN
+  // check individually (still real info for actually sending to KDP/Google
+  // later) -- only the aggregate banner ignores it, so it stops reading as
+  // an alarming "critical" blocker on a freshly-submitted book.
+  const totalIssues = platforms.reduce(
+    (s, p) => s + p.checks.filter((c) => c.result !== "pass" && c.id !== "isbn").length,
+    0
+  );
   const totalFails = platforms.reduce(
-    (s, p) => s + p.checks.filter((c) => c.result === "fail").length,
+    (s, p) => s + p.checks.filter((c) => c.result === "fail" && c.id !== "isbn").length,
     0
   );
 
@@ -662,52 +718,74 @@ export default function DistributePage() {
       )}
 
       {/* ── Книжкова палата / Реєстрація ISBN ─────────────────────────────────── */}
-      <div className="rounded-xl border bg-white p-5 shadow-sm space-y-4">
+      <div className="rounded-xl border bg-white p-5 shadow-sm space-y-5">
         <div>
           <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація ISBN</h2>
           <p className="text-xs text-gray-400">
             Наступний етап після модерації. У Книжкової палати немає публічного API — цей блок нічого нікуди не
             відправляє автоматично. Подання відбувається поза системою (адмін сам надсилає дані книги в Книжкову
-            палату зовнішнім каналом), а тут лише фіксується дата, коли це було зроблено, і вносяться реальні
-            ISBN/УДК/ББК/авторський знак після відповіді.
+            палату зовнішнім каналом).
           </p>
         </div>
 
-        <ol className="list-decimal space-y-1.5 pl-5 text-xs text-gray-600 marker:text-gray-400">
-          <li>
-            Зібрати комплект даних книги (все вже є на цій сторінці й на «Вихідні дані»): анотацію (не більше пів
-            сторінки), повне ПІБ автора, готову обкладинку, кількість сторінок.
-          </li>
-          <li>
-            Надіслати цей комплект зовнішнім каналом до служби присвоєння ISBN/УДК (Книжкова палата або
-            уповноважений постачальник), обов&apos;язково вказавши в коментарі, що потрібне саме оформлення ISBN.
-          </li>
-          <li>Дочекатися відповіді (орієнтовно ~1 тиждень) з реальними ISBN, УДК, ББК та авторським знаком.</li>
-          <li>Натиснути «Я вже подав(ла) цю книгу до Книжкової палати» нижче — фіксує лише дату подання.</li>
-          <li>Коли служба відповість — внести отримані ISBN/УДК/ББК/авторський знак у поля нижче і зберегти.</li>
-          <li>
-            Для друкованого видання — не забути про обов&apos;язкові примірники (2 шт., за рахунок автора) для звіту в
-            Книжкову палату; докладніше в <code className="text-[0.6875rem]">docs/isbn-udc-requirements.md</code>.
-          </li>
-        </ol>
-
-        <div className="flex flex-col gap-1.5 text-sm">
-          {book.bookChamberSubmittedAt ? (
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600">
-                Подано до Книжкової палати: <span className="font-mono">{fmtDate(book.bookChamberSubmittedAt)}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => saveBookChamber({ submittedAt: null })}
-                className="text-gray-400 hover:text-red-600"
-                title="Скасувати позначку"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
+        {/* Step 1 — download the submission package */}
+        <div className="space-y-2 border-t pt-4">
+          <p className="text-sm font-semibold text-gray-800">1. Завантажити файли</p>
+          {isbnPkgLoading ? (
+            <p className="text-xs text-gray-400">Готуємо файли…</p>
+          ) : isbnPkgError ? (
+            <p className="text-xs text-amber-600">⚠ {isbnPkgError}</p>
+          ) : isbnPkg ? (
             <>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={annotationDownloading}
+                  onClick={() => downloadAnnotation(isbnPkg.annotationTxtUrl, `${book.title}-annotation.txt`)}
+                >
+                  📄 Файл 1 — анотація + ПІБ автора (.txt)
+                </Button>
+                <a href={isbnPkg.manuscriptPdfUrl} target="_blank" rel="noreferrer">
+                  <Button size="sm" variant="outline">📘 Файл 2 — рукопис (PDF)</Button>
+                </a>
+                {isbnPkg.coverUrl && (
+                  <a href={isbnPkg.coverUrl} target="_blank" rel="noreferrer">
+                    <Button size="sm" variant="outline">🖼 Файл 3 — обкладинка</Button>
+                  </a>
+                )}
+              </div>
+              <p className="text-xs text-gray-400">
+                Автор: {isbnPkg.authorFullName || "—"}. Для друкованого видання не забути про обов&apos;язкові
+                примірники (2 шт., за рахунок автора) для звіту в Книжкову палату — докладніше в{" "}
+                <code className="text-[0.6875rem]">docs/isbn-udc-requirements.md</code>.
+              </p>
+            </>
+          ) : null}
+        </div>
+
+        {/* Step 2 — hand off externally, mark the date */}
+        <div className="space-y-2 border-t pt-4">
+          <p className="text-sm font-semibold text-gray-800">2. Відправити в Книжкову палату</p>
+          <p className="text-xs text-gray-500">
+            Виконується особисто адміном — зовнішнім каналом (email тощо), поза системою.
+          </p>
+          <div className="flex flex-col gap-1.5 text-sm">
+            {book.bookChamberSubmittedAt ? (
+              <div className="flex items-center gap-3">
+                <span className="text-gray-600">
+                  Подано до Книжкової палати: <span className="font-mono">{fmtDate(book.bookChamberSubmittedAt)}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => saveBookChamber({ submittedAt: null })}
+                  className="text-gray-400 hover:text-red-600"
+                  title="Скасувати позначку"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
               <Button
                 size="sm"
                 variant="outline"
@@ -717,66 +795,70 @@ export default function DistributePage() {
               >
                 Я вже подав(ла) цю книгу до Книжкової палати
               </Button>
-              <p className="text-xs text-gray-400">
-                Натисніть після того, як самі надішлете дані книги до Книжкової палати зовнішнім каналом — кнопка
-                лише фіксує дату для відстеження, автоматичної відправки не відбувається.
-              </p>
-            </>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500">ISBN</label>
-            <input
-              value={bcIsbn}
-              onChange={(e) => setBcIsbn(e.target.value)}
-              placeholder="978-XXX-XXXX-XX-X"
-              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500">Авторський знак</label>
-            <input
-              value={bcAuthorSign}
-              onChange={(e) => setBcAuthorSign(e.target.value)}
-              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500">УДК</label>
-            <input
-              value={bcUdc}
-              onChange={(e) => setBcUdc(e.target.value)}
-              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500">ББК</label>
-            <input
-              value={bcBbk}
-              onChange={(e) => setBcBbk(e.target.value)}
-              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
-            />
+            )}
           </div>
         </div>
 
-        {bookChamberError && <p className="text-sm text-red-500">{bookChamberError}</p>}
+        {/* Step 3 — record what the Книжкова палата sent back, assign the ISBN */}
+        <div className="space-y-3 border-t pt-4">
+          <p className="text-sm font-semibold text-gray-800">3. Присвоїти ISBN</p>
+          <p className="text-xs text-gray-500">
+            Внести дані, отримані від Книжкової палати, і натиснути «Присвоїти ISBN».
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">ISBN</label>
+              <input
+                value={bcIsbn}
+                onChange={(e) => setBcIsbn(e.target.value)}
+                placeholder="978-XXX-XXXX-XX-X"
+                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">Авторський знак</label>
+              <input
+                value={bcAuthorSign}
+                onChange={(e) => setBcAuthorSign(e.target.value)}
+                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">УДК</label>
+              <input
+                value={bcUdc}
+                onChange={(e) => setBcUdc(e.target.value)}
+                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">ББК</label>
+              <input
+                value={bcBbk}
+                onChange={(e) => setBcBbk(e.target.value)}
+                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+              />
+            </div>
+          </div>
 
-        <Button
-          size="sm"
-          loading={savingBookChamber}
-          onClick={() =>
-            saveBookChamber({
-              isbn: bcIsbn.trim() || null,
-              udcCode: bcUdc.trim() || null,
-              bbkCode: bcBbk.trim() || null,
-              authorSign: bcAuthorSign.trim() || null,
-            })
-          }
-        >
-          Зберегти
-        </Button>
+          {bookChamberError && <p className="text-sm text-red-500">{bookChamberError}</p>}
+
+          <Button
+            size="sm"
+            loading={savingBookChamber}
+            disabled={!bcIsbn.trim()}
+            onClick={() =>
+              saveBookChamber({
+                isbn: bcIsbn.trim() || null,
+                udcCode: bcUdc.trim() || null,
+                bbkCode: bcBbk.trim() || null,
+                authorSign: bcAuthorSign.trim() || null,
+              })
+            }
+          >
+            Присвоїти ISBN
+          </Button>
+        </div>
       </div>
 
       {/* ── Publication / contract / distribution timeline ────────────────────── */}

@@ -61,7 +61,7 @@ export async function sendKdpExpiryWarning(opts: {
 }) {
   const { email, name, bookTitle, bookId, expiryDate } = opts;
   const fmtDate = expiryDate.toLocaleDateString("uk-UA", { day: "numeric", month: "long", year: "numeric" });
-  const dashboardUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/dashboard/books/${bookId}`;
+  const dashboardUrl = `${process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"}/dashboard/books/${bookId}`;
 
   await sendMail(
     email,
@@ -98,7 +98,7 @@ export async function sendOrderDownloadLinks(opts: {
   }>;
 }) {
   const { email, name, orderId, total, downloads } = opts;
-  const orderUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/orders/${orderId}`;
+  const orderUrl = `${process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"}/orders/${orderId}`;
 
   const booksHtml = downloads
     .map(
@@ -145,7 +145,7 @@ export async function sendPublishedNotification(opts: {
   isbn?: string | null;
 }) {
   const { email, name, bookTitle, bookId, isbn } = opts;
-  const dashboardUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/dashboard/books/${bookId}`;
+  const dashboardUrl = `${process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"}/dashboard/books/${bookId}`;
 
   await sendMail(
     email,
@@ -156,6 +156,35 @@ export async function sendPublishedNotification(opts: {
       <p>Вітаємо, ${name}!</p>
       <p>Книга <strong>"${bookTitle}"</strong> успішно пройшла модерацію і тепер доступна в магазині.</p>
       ${isbn ? `<p>ISBN: <strong>${isbn}</strong></p>` : ""}
+      <a href="${dashboardUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#2d2d2d;color:#fff;text-decoration:none;border-radius:6px">
+        Перейти до книги
+      </a>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа Knyha — knyha.ua</p>
+    </div>
+    `
+  );
+}
+
+export async function sendRejectedNotification(opts: {
+  email: string;
+  name: string;
+  bookTitle: string;
+  bookId: string;
+  reason?: string | null;
+}) {
+  const { email, name, bookTitle, bookId, reason } = opts;
+  const dashboardUrl = `${process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"}/dashboard/books/${bookId}`;
+
+  await sendMail(
+    email,
+    `⚠ Книгу повернуто на доопрацювання — "${bookTitle}"`,
+    `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+      <h2 style="color:#1a1a2e">Вашу книгу повернуто на доопрацювання</h2>
+      <p>Вітаємо, ${name}!</p>
+      <p>Книга <strong>"${bookTitle}"</strong> не пройшла модерацію і повернута вам на доопрацювання.</p>
+      ${reason ? `<p style="margin:16px 0;padding:12px 16px;background:#fef2f2;border:2px solid #ef4444;border-radius:8px;color:#991b1b"><strong>Коментар модератора:</strong><br>${reason}</p>` : ""}
+      <p>Внесіть потрібні виправлення і надішліть книгу на повторний розгляд.</p>
       <a href="${dashboardUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#2d2d2d;color:#fff;text-decoration:none;border-radius:6px">
         Перейти до книги
       </a>

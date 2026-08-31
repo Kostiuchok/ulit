@@ -10,7 +10,7 @@ const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<s
 import { Readable } from "stream";
 import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
-import { queuePublishedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
+import { queuePublishedEmail, queueRejectedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
 import { enqueueConversionJobs } from "../../services/publishing.service";
 import { withAvatarVersion } from "../../lib/coverVersion";
 
@@ -318,7 +318,7 @@ export async function adminRoutes(app: FastifyInstance) {
 
       const book = await prisma.book.findUnique({
         where: { id },
-        select: { title: true, author: { select: { email: true, name: true } } },
+        select: { title: true, author: { select: { id: true, email: true, name: true } } },
       });
       if (!book) throw AppError.notFound("Book");
 
@@ -336,6 +336,14 @@ export async function adminRoutes(app: FastifyInstance) {
         { bookId: id, reason: body.reason, author: book.author.email },
         "Book rejected"
       );
+
+      queueRejectedEmail({
+        email: book.author.email,
+        name: book.author.name,
+        bookTitle: book.title,
+        bookId: id,
+        reason: body.reason,
+      }).catch((err) => console.error("[email] rejected notification failed:", err));
 
       return reply.send({ book: updated, reason: body.reason });
     }

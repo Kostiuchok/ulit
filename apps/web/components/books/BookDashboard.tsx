@@ -21,6 +21,9 @@ interface DashboardBook {
   pricePrint?: string | number | null;
   pricePrintHardcover?: string | number | null;
   genre?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
+  printFormatKey?: string | null;
   originalDocxUrl?: string | null;
   docxUpdatedAt?: string | null;
   republishRequestedAt?: string | null;
@@ -150,6 +153,10 @@ export function BookDashboard() {
               backCoverUrl={book?.backCoverUrl}
               hasEbook={!!book?.priceEbook || !(book?.pricePrint || book?.pricePrintHardcover)}
               hasPrint={!!(book?.pricePrint || book?.pricePrintHardcover)}
+              genre={book?.genre}
+              printWidthMm={book?.printWidthMm}
+              printHeightMm={book?.printHeightMm}
+              printFormatKey={book?.printFormatKey}
             />
 
             {(book?.priceEbook || book?.pricePrint || book?.pricePrintHardcover) && (

@@ -20,6 +20,10 @@ interface Props {
   pricePrintHardcover?: number | null;
   pricePrintBw?: number | null;
   pricePrintHardcoverBw?: number | null;
+  genre?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
+  printFormatKey?: string | null;
 }
 
 // Keeps the cover carousel in sync with the format the buyer picks in the
@@ -40,6 +44,10 @@ export function BookCoverAndPurchase({
   pricePrintHardcover,
   pricePrintBw,
   pricePrintHardcoverBw,
+  genre,
+  printWidthMm,
+  printHeightMm,
+  printFormatKey,
 }: Props) {
   const hasEbook = priceEbook != null;
   const hasPrint = !!(pricePrint || pricePrintHardcover || pricePrintBw || pricePrintHardcoverBw);
@@ -54,6 +62,10 @@ export function BookCoverAndPurchase({
             backCoverUrl={backCoverUrl}
             hasEbook={hasEbook}
             hasPrint={hasPrint}
+            genre={genre}
+            printWidthMm={printWidthMm}
+            printHeightMm={printHeightMm}
+            printFormatKey={printFormatKey}
             activeKey={format === "ebook" ? "ebook" : "print-front"}
             onActiveKeyChange={(key) => setFormat(key === "ebook" ? "ebook" : "print")}
           />

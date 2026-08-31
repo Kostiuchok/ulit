@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { useApi } from "../../hooks/useApi";
+import { cn } from "../../lib/utils";
 
 interface ValidationError {
   field: string;
@@ -101,36 +102,52 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
     }
   }
 
+  // showConfirm's panel (and the contract/error notices below it) are wide,
+  // multi-line message boxes -- in BookDashboard.tsx this component sits as
+  // one item in a `flex flex-wrap` row of toolbar buttons alongside
+  // "Редагувати"/"Сайт книги", so left at shrink-to-content width they
+  // squeezed into that row and broke it. `w-full` forces this component's
+  // root onto its own full-width flex line whenever there's more than just
+  // the trigger button to show; harmless in output-data/page.tsx's other
+  // usage, which already wraps it in its own full-width block container.
+  const expanded = showConfirm || contractRequired || errors.length > 0;
+
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", expanded && "w-full")}>
       {!showConfirm ? (
         <Button onClick={handleValidate} loading={validating} className="w-full">
           Надіслати на модерацію →
         </Button>
       ) : (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
-          <p className="text-sm font-semibold text-green-800">✓ Книга готова до модерації</p>
-          <p className="text-xs text-green-700">
-            Адміністратор перевірить книгу. Ви отримаєте email, щойно перевірку завершено і книгу опубліковано
-            (буде призначено ISBN). Автор акцептує публічну оферту.
-          </p>
-          <label className="flex items-start gap-2 text-xs text-green-900">
-            <input
-              type="checkbox"
-              checked={appearanceConfirmed}
-              onChange={(e) => setAppearanceConfirmed(e.target.checked)}
-              className="mt-0.5 rounded border-gray-300"
-            />
-            Мене влаштовує вигляд книги (обкладинка, передперегляд рукопису) — я переглянув(ла) і готовий(а)
-            до модерації.
-          </label>
-          <div className="flex gap-2">
-            <Button onClick={handleSubmit} loading={loading} disabled={!appearanceConfirmed} className="flex-1">
-              Підтвердити надсилання
-            </Button>
-            <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={loading}>
-              Скасувати
-            </Button>
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <p className="text-sm font-semibold text-green-800">✓ Книга готова до модерації</p>
+              <p className="text-xs text-green-700">
+                Адміністратор перевірить книгу. Ви отримаєте email, щойно перевірку завершено і книгу
+                опубліковано (буде призначено ISBN). Автор акцептує публічну оферту.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <label className="flex items-start gap-2 text-xs text-green-900">
+                <input
+                  type="checkbox"
+                  checked={appearanceConfirmed}
+                  onChange={(e) => setAppearanceConfirmed(e.target.checked)}
+                  className="mt-0.5 rounded border-gray-300"
+                />
+                Мене влаштовує вигляд книги (обкладинка, передперегляд рукопису) — я переглянув(ла) і
+                готовий(а) до модерації.
+              </label>
+              <div className="flex gap-2">
+                <Button onClick={handleSubmit} loading={loading} disabled={!appearanceConfirmed} className="flex-1">
+                  Підтвердити надсилання
+                </Button>
+                <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={loading}>
+                  Скасувати
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

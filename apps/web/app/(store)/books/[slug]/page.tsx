@@ -20,6 +20,9 @@ interface BookDetail {
   pricePrintBw?: string | null;
   pricePrintHardcoverBw?: string | null;
   genre?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
+  printFormatKey?: string | null;
   ageRating?: string | null;
   aiGenerated?: boolean;
   aiGeneratedNote?: string | null;
@@ -201,6 +204,10 @@ export default async function BookPage({ params }: Props) {
                 pricePrintHardcover={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}
                 pricePrintBw={book.pricePrintBw ? Number(book.pricePrintBw) : null}
                 pricePrintHardcoverBw={book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : null}
+                genre={book.genre}
+                printWidthMm={book.printWidthMm}
+                printHeightMm={book.printHeightMm}
+                printFormatKey={book.printFormatKey}
               />
             </div>
           </div>

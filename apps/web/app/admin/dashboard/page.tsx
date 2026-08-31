@@ -259,6 +259,7 @@ export default function AdminDashboard() {
         {[
           { href: "/admin/books?status=REVIEW", label: "Модерація книг", icon: "✅", color: "border-yellow-200 bg-yellow-50" },
           { href: "/admin/distribution/queue", label: "Черга дистрибуції", icon: "📦", color: "border-blue-200 bg-blue-50" },
+          { href: "/admin/isbn-queue", label: "Реєстрація ISBN", icon: "🔖", color: "border-purple-200 bg-purple-50" },
           { href: "/admin/royalties?status=PENDING", label: "Виплати роялті", icon: "💰", color: "border-green-200 bg-green-50" },
         ].map((link) => (
           <Link

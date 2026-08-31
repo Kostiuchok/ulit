@@ -1843,31 +1843,6 @@ export default function CoverDesignerCanvas({
         </div>
         <p className="text-xs text-gray-400">Клікніть на назву, підзаголовок, автора чи анотацію, щоб редагувати текст прямо на обкладинці</p>
 
-        {(activeObj as any)?.data?.role === "band" && (
-          <div className="flex w-full max-w-xs items-center gap-3 rounded-lg border bg-gray-50 p-2">
-            <div className="flex items-center gap-1.5">
-              <label className="text-xs text-gray-500">Колір</label>
-              <input
-                type="color"
-                value={typeof (activeObj as any)?.fill === "string" ? ((activeObj as any).fill as string) : "#000000"}
-                onChange={(e) => updateSelected({ fill: e.target.value })}
-                className="h-6 w-8 cursor-pointer rounded border"
-              />
-            </div>
-            <div className="flex flex-1 items-center gap-1.5">
-              <label className="shrink-0 text-xs text-gray-500">Прозорість</label>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={Math.round((activeObj?.opacity ?? 1) * 100)}
-                onChange={(e) => updateSelected({ opacity: Number(e.target.value) / 100 })}
-                className="flex-1"
-              />
-            </div>
-          </div>
-        )}
-
         {activeObj && (
           <div className="flex w-full max-w-xs items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">
             <button
@@ -2051,6 +2026,33 @@ export default function CoverDesignerCanvas({
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeObj?.type === "rect" && (activeObj as any)?.data?.role === "band" && (
+          <div className="space-y-2 rounded-lg border bg-gray-50 p-2">
+            <p className="text-xs font-medium text-gray-500">Прямокутник</p>
+            <div className="flex items-center gap-2">
+              <label className="w-20 shrink-0 text-xs text-gray-500">Колір</label>
+              <input
+                type="color"
+                value={typeof (activeObj as any)?.fill === "string" ? ((activeObj as any).fill as string) : "#000000"}
+                onChange={(e) => updateSelected({ fill: e.target.value })}
+                className="h-7 w-9 cursor-pointer rounded border border-gray-200"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="w-20 shrink-0 text-xs text-gray-500">Прозорість</label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={activeObj?.opacity ?? 1}
+                onChange={(e) => updateSelected({ opacity: Number(e.target.value) })}
+                className="flex-1"
+              />
             </div>
           </div>
         )}

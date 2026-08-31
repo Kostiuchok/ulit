@@ -147,14 +147,16 @@ function CreationSubItem({
   label,
   href,
   date,
+  tooltip,
 }: {
   done: boolean;
   label: string;
   href?: string;
   date?: string | null;
+  tooltip?: React.ReactNode;
 }) {
   const inner = (
-    <div className="flex items-center gap-1.5 text-sm">
+    <div className="group/subitem relative flex items-center gap-1.5 text-sm">
       <span style={done ? { color: ACCENT } : undefined} className={!done ? "text-gray-300" : undefined}>
         {done ? "✓" : "○"}
       </span>
@@ -162,6 +164,14 @@ function CreationSubItem({
         {label}
       </span>
       {date && <span className="text-gray-500">/ {fmt(date)}</span>}
+      {tooltip && (
+        <span className="relative inline-flex shrink-0 items-center">
+          <Info size={13} className="text-gray-400" />
+          <div className="absolute left-0 top-full z-20 mt-2 hidden w-72 items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] group-hover/subitem:flex sm:left-full sm:top-1/2 sm:mt-0 sm:ml-2 sm:-translate-y-1/2">
+            <span>{tooltip}</span>
+          </div>
+        </span>
+      )}
     </div>
   );
   return href && !done ? <Link href={href} className="block">{inner}</Link> : inner;
@@ -250,7 +260,7 @@ export function PublicationTimeline({
             />
             <CreationSubItem
               done={hasCover}
-              label="Додано обкладинку"
+              label="Додати обкладинку"
               href={`/dashboard/books/${bookId}/cover`}
             />
             <CreationSubItem
@@ -259,6 +269,11 @@ export function PublicationTimeline({
               href={`/dashboard/books/${bookId}/output-data`}
             />
             <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
+            <CreationSubItem
+              done={false}
+              label="Отримати ISBN"
+              tooltip="Адмін отримав всю необхідну інформацію про книгу, і протягом 3 днів ви отримаєте унікальний код ISBN для розповсюдження книги."
+            />
           </div>
         )}
       </div>
