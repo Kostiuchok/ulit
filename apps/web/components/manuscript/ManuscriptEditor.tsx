@@ -227,7 +227,6 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   }, []);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [saveError, setSaveError] = useState("");
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [styleOverrides, setStyleOverrides] = useState<Record<string, StyleOverride>>(
@@ -338,7 +337,11 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       });
       setSaveState("saved");
     } catch (e: any) {
-      setSaveError(e.message || "Помилка збереження");
+      // The button's own tooltip stays a calm, reassuring message (not this
+      // string) -- this is only for diagnosing a real report, same way the
+      // "Invalid or missing token" 401s that prompted this whole retry path
+      // were originally tracked down via the API's own logs.
+      console.error("Manuscript autosave failed:", e.message || e);
       setSaveState("error");
     }
   }
@@ -647,21 +650,38 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
           <div className="ml-auto flex items-center gap-2 text-[0.75rem]">
             {imageError && <span className="text-red-600">{imageError}</span>}
-            <span className={cn(saveState === "error" ? "text-red-600" : "text-gray-400")}>
-              {saveState === "saving" && "Збереження…"}
-              {saveState === "saved" && "✓ Збережено"}
-              {saveState === "error" && `⚠ Не збережено — ${saveError}`}
-            </span>
+            {/* Save status now lives IN the button's own label (not a
+                separate status span next to it) -- a second element next to
+                a crowded toolbar row that pops in/out of existence (empty
+                when idle, ~90px of text once saved) shifted the row's total
+                content width enough to wrap it onto a second line, which is
+                what made the toolbar's height jump. One element, fixed
+                min-width, can't do that -- its width never changes at all now. */}
             <button
               type="button"
               onClick={saveNow}
               disabled={saveState === "saving"}
+              // Explains + reassures rather than showing the raw server
+              // error ("Invalid or missing token" etc.) -- that string is
+              // accurate but reads as alarming/cryptic to an author, and by
+              // itself doesn't say the one thing that actually matters:
+              // nothing typed is lost, it's still right here and will go
+              // through once retried (useApi.ts already retries once
+              // silently before this state is ever reached).
+              title={
+                saveState === "error"
+                  ? "Не вдалося зберегти автоматично. Текст нікуди не зникає — він і далі тут, натисніть, щоб спробувати ще раз."
+                  : undefined
+              }
               className={cn(
-                "rounded px-2.5 py-1 font-medium transition-colors disabled:opacity-50",
+                "min-w-[6.5rem] rounded px-2.5 py-1 text-center font-medium transition-colors disabled:opacity-50",
                 saveState === "error" ? "bg-red-600 text-white hover:bg-red-700" : "bg-gray-900 text-white hover:bg-gray-700"
               )}
             >
-              {saveState === "error" ? "Повторити" : "Зберегти"}
+              {saveState === "saving" && "Збереження…"}
+              {saveState === "saved" && "✓ Збережено"}
+              {saveState === "error" && "⚠ Повторити"}
+              {saveState === "idle" && "Зберегти"}
             </button>
           </div>
         </div>
