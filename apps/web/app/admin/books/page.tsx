@@ -17,6 +17,7 @@ interface Book {
   language?: string;
   publishedAt?: string | null;
   republishRequestedAt?: string | null;
+  publicationTimeline?: Record<string, string> | null;
   distributionStrategy?: string;
   d2dStatus: string;
   kdpStatus: string;
@@ -59,6 +60,10 @@ const EXT_ICONS: Record<string, string> = {
   PUBLISHED: "✓",
   ERROR: "✕",
 };
+
+function formatDate(date: string): string {
+  return new Date(date).toLocaleDateString("uk-UA");
+}
 
 function Checklist({ book }: { book: Book }) {
   const checks = [
@@ -127,6 +132,14 @@ function BookRow({
           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${rejected ? "bg-gray-200 text-gray-500" : MOD_COLORS[book.moderationStatus] ?? "bg-gray-100 text-gray-600"}`}>
             {book.moderationStatus}
           </span>
+          {book.publicationTimeline?.submitted && (
+            <p
+              className={`text-xs ${rejected ? "text-gray-400" : "text-gray-500"}`}
+              title={new Date(book.publicationTimeline.submitted).toLocaleString("uk-UA")}
+            >
+              🕓 Надіслано {formatDate(book.publicationTimeline.submitted)}
+            </p>
+          )}
           {pendingRepublish && (
             <>
               <br />
