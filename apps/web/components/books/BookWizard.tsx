@@ -67,11 +67,12 @@ const GENRES = [
 // Book size is its own independent selection here, not derived from genre --
 // the author picks any genre and any size, freely combined. Order matches
 // PRINT_FORMATS' rough size progression (shared-types), "standard" first as
-// the platform default. "a4" (210×297мм, ISO 216) is the odd one out here --
-// not a ДСТУ sheet-fraction format like the rest, added for authors who need
-// a plain document-like page size (workbooks, tables/schemas-heavy content).
+// the platform default. "a4"/"statement"/"executive" are the odd ones out --
+// not ДСТУ sheet-fraction formats like the rest, added so authors who write
+// in Google Docs (which only offers a handful of fixed page presets, no
+// custom size) have a book-size option matching one of them out of the box.
 const PRINT_FORMAT_OPTIONS: PrintFormatKey[] = [
-  "standard", "pocket", "miniature", "encyclopedic", "enlarged", "large", "a4",
+  "standard", "pocket", "miniature", "encyclopedic", "enlarged", "large", "a4", "statement", "executive",
 ];
 
 // Same list as output-data/page.tsx's AGE_RATINGS — both write the same
@@ -438,8 +439,9 @@ export function BookWizard() {
             const label = `${format.widthMm} × ${format.heightMm} мм (${format.label.toLowerCase()})`;
             return (
               <div className="rounded-lg bg-gray-50 border px-4 py-3 text-sm text-gray-600">
-                Друкована версія книги матиме розмір <strong>{label}</strong>. На наступному кроці
-                підготуйте документ Word такого ж розміру сторінки, інакше завантаження буде відхилено.
+                Друкована версія книги матиме розмір <strong>{label}</strong>. Платформа сама переверстає
+                текст під цей розмір при друці, тож розмір сторінки у вашому Word/Google Docs може
+                бути будь-яким — це не завадить завантаженню.
               </div>
             );
           })()}

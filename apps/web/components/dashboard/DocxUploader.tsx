@@ -18,6 +18,7 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<"upload" | "processing">("upload");
   const [error, setError] = useState("");
+  const [pageSizeWarning, setPageSizeWarning] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const onDrop = useCallback((files: File[]) => {
@@ -42,6 +43,7 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
     if (!selectedFile) return;
     setUploading(true);
     setError("");
+    setPageSizeWarning("");
     setProgress(0);
     setPhase("upload");
 
@@ -60,6 +62,8 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
+          const body = JSON.parse(xhr.responseText || "{}");
+          if (body.pageSizeWarning) setPageSizeWarning(body.pageSizeWarning);
           setProgress(100);
           setPhase("processing");
           setSelectedFile(null);
@@ -130,6 +134,13 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {pageSizeWarning && (
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+          <span>⚠</span>
+          <span>{pageSizeWarning}</span>
+        </div>
+      )}
 
       {uploading && (
         <div className="space-y-1.5">

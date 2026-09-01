@@ -57,16 +57,24 @@ export async function uploadDocxRoute(app: FastifyInstance) {
 
       const buffer = Buffer.concat(chunks);
 
-      // Reject before persisting anything if the document's own page setup
-      // doesn't match the platform's fixed print trim -- the print pipeline
-      // converts the author's .docx as-is (no reflow, see T-2057), so a
-      // mismatched page size here means a mismatched printed book later.
+      // Informational only, never blocking: the actual print PDF is rendered
+      // by the platform's own WeasyPrint pipeline from the imported manuscript
+      // content (generate-pdf-print.ts / printHtml.ts's @page rules), sized
+      // only from the book's printWidthMm/printHeightMm -- it fully reflows
+      // the text and rebuilds every margin (including the mirrored left/right
+      // gutter) from scratch, so the source .docx's own page setup has no
+      // bearing on the final printed result. A mismatch here just means the
+      // author's on-screen pagination in Word/Google Docs won't visually match
+      // the eventual book -- worth telling them, not worth blocking the
+      // upload over (Google Docs in particular can't set a custom page size
+      // at all, only its own fixed presets).
+      let pageSizeWarning: string | undefined;
       const tmpPath = path.join(os.tmpdir(), `upload-pgsz-${id}-${Date.now()}.docx`);
       try {
         fs.writeFileSync(tmpPath, buffer);
         const sizeCheck = validateDocxPageSize(tmpPath, expectedSize);
         if (!sizeCheck.valid) {
-          throw new AppError(sizeCheck.message!, 422, "PAGE_SIZE_MISMATCH");
+          pageSizeWarning = sizeCheck.message;
         }
       } finally {
         fs.rmSync(tmpPath, { force: true });
@@ -90,6 +98,7 @@ export async function uploadDocxRoute(app: FastifyInstance) {
           message: "Файл оновлено. Натисніть «Опублікувати із змінами», щоб застосувати.",
           staged: true,
           docxPath: objectName,
+          pageSizeWarning,
         });
       }
 
@@ -99,6 +108,7 @@ export async function uploadDocxRoute(app: FastifyInstance) {
         message: "Upload successful, conversion started",
         jobCount: jobs.length,
         docxPath: objectName,
+        pageSizeWarning,
       });
     }
   );

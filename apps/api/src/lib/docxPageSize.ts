@@ -64,6 +64,12 @@ export interface PageSizeValidationResult {
  * noise from twips<->mm conversion and minor inconsistency between what
  * different Word versions write for the "same" page setup -- not meant to
  * allow genuinely different sizes through.
+ *
+ * Purely informational for the caller (apps/api/src/modules/books/upload.ts
+ * never blocks on this) -- the actual print PDF is fully reflowed by the
+ * platform's own WeasyPrint pipeline regardless of the source page size, so
+ * a mismatch here only means the author's on-screen pagination in Word/
+ * Google Docs won't visually match the eventual printed book.
  */
 export function validateDocxPageSize(
   docxPath: string,
@@ -93,8 +99,10 @@ export function validateDocxPageSize(
     detected,
     message:
       `Розмір сторінки документа (${detected.widthMm.toFixed(0)}×${detected.heightMm.toFixed(0)}мм) ` +
-      `не відповідає розміру друкованої книги на цій платформі (${expected.widthMm.toFixed(0)}×${expected.heightMm.toFixed(0)}мм). ` +
-      `У Word: Макет → Розмір → задайте власний розмір ${expected.widthMm.toFixed(0)}×${expected.heightMm.toFixed(0)}мм ` +
-      `(або ${(expected.widthMm / 25.4).toFixed(1)}×${(expected.heightMm / 25.4).toFixed(1)}″), після чого завантажте файл ще раз.`,
+      `відрізняється від обраного розміру книги (${expected.widthMm.toFixed(0)}×${expected.heightMm.toFixed(0)}мм). ` +
+      `Це не завадить завантаженню — платформа сама переверстає текст під розмір книги — ` +
+      `але щоб розбивка на сторінки в Word виглядала ближче до майбутньої книги, можете виставити ` +
+      `власний розмір сторінки ${expected.widthMm.toFixed(0)}×${expected.heightMm.toFixed(0)}мм ` +
+      `(${(expected.widthMm / 25.4).toFixed(1)}×${(expected.heightMm / 25.4).toFixed(1)}″) у Word: Макет → Розмір.`,
   };
 }

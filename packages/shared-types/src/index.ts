@@ -32,7 +32,9 @@ export type PrintFormatKey =
   | "encyclopedic"  // Енциклопедичний, 60x90/16
   | "enlarged"      // Збільшений, 70x100/16
   | "large"         // Дуже великий, 60x90/8
-  | "a4";           // А4, ISO 216 -- not a ДСТУ sheet-fraction format
+  | "a4"            // А4, ISO 216 -- not a ДСТУ sheet-fraction format
+  | "statement"     // Statement, US trade size (5.5x8.5") -- a Google Docs page-size preset
+  | "executive";    // Executive, US trade size (7.25x10.5") -- a Google Docs page-size preset
 
 export interface PrintFormat {
   key: PrintFormatKey;
@@ -51,6 +53,8 @@ export const PRINT_FORMATS: Record<PrintFormatKey, PrintFormat> = {
   enlarged: { key: "enlarged", label: "Збільшений", sheetFraction: "70×100/16", widthMm: 170, heightMm: 240, purpose: "спецлітература, дитячі книжки" },
   large: { key: "large", label: "Дуже великий", sheetFraction: "60×90/8", widthMm: 220, heightMm: 290, purpose: "альбоми мистецтва, атласи, ілюстровані видання" },
   a4: { key: "a4", label: "А4", sheetFraction: "ISO 216", widthMm: 210, heightMm: 297, purpose: "підручники, робочі зошити, видання з великою кількістю таблиць/схем" },
+  statement: { key: "statement", label: "Statement", sheetFraction: "US trade, 5.5×8.5″", widthMm: 140, heightMm: 216, purpose: "зручний розмір для авторів, які пишуть у Google Docs" },
+  executive: { key: "executive", label: "Executive", sheetFraction: "US trade, 7.25×10.5″", widthMm: 184, heightMm: 267, purpose: "зручний розмір для авторів, які пишуть у Google Docs" },
 };
 
 // Genre (from GENRES in BookWizard.tsx / output-data page) -> recommended
