@@ -4,6 +4,13 @@ export { PageBreak } from "./pageBreak";
 export { splitFrontMatter } from "./splitFrontMatter";
 export { extractOutline, type OutlineItem } from "./outline";
 export {
+  PAGE_MARGIN_TOP_MM,
+  PAGE_MARGIN_BOTTOM_MM,
+  PAGE_MARGIN_INNER_MM,
+  PAGE_MARGIN_OUTER_MM,
+  BODY_FONT_PT,
+} from "./printGeometry";
+export {
   DEFAULT_PAGE_NUMBER_POSITION,
   PAGE_NUMBER_POSITION_LABELS,
   extractPageNumberPosition,

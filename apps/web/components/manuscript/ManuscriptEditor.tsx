@@ -39,7 +39,7 @@ import {
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, ResizableImage, PageBreak, type StyledBlockStyleName } from "shared-types";
 import { buildFrontMatterNodes, hasFrontMatter, type FrontMatterMeta } from "./frontMatter";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
-import { CONTENT_W, CONTENT_H, PRINT_BODY_PX } from "./manuscriptLayout";
+import { computePageGeometry, DEFAULT_PAGE_GEOMETRY } from "./manuscriptLayout";
 import {
   type PageNumberPosition,
   DEFAULT_PAGE_NUMBER_POSITION,
@@ -81,6 +81,10 @@ interface Props {
   initialContent: any;
   initialStyleOverrides?: Record<string, StyleOverride>;
   bookMeta?: FrontMatterMeta;
+  // Book's real print trim -- drives the toolbar's page-format check
+  // (formerly hardcoded to A5 regardless of the book's actual format).
+  // Undefined falls back to the platform default trim (DEFAULT_PAGE_GEOMETRY).
+  printFormat?: { widthMm: number; heightMm: number; label: string };
 }
 
 interface AuthorStyleSet {
@@ -202,9 +206,14 @@ function extractOutline(editor: Editor): OutlineItem[] {
   return items;
 }
 
-export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, bookMeta }: Props) {
+export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, bookMeta, printFormat }: Props) {
   const { apiFetch, apiUpload } = useApi();
   const searchParams = useSearchParams();
+
+  const pageGeometry = useMemo(
+    () => (printFormat ? computePageGeometry(printFormat.widthMm, printFormat.heightMm) : DEFAULT_PAGE_GEOMETRY),
+    [printFormat]
+  );
 
   // Prepend the Ridero-style title/copyright page (T-1953) the first time this
   // manuscript is opened — everything above the horizontalRule is "page 2",
@@ -235,7 +244,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   const [savingSet, setSavingSet] = useState(false);
   const [, forceTick] = useState(0);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [a5Mode, setA5Mode] = useState(false);
+  const [pageCheckMode, setPageCheckMode] = useState(false);
   const [cleanupMenuOpen, setCleanupMenuOpen] = useState(false);
   const cleanupMenuRef = useRef<HTMLDivElement>(null);
 
@@ -282,7 +291,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     immediatelyRender: false,
   });
 
-  const livePageBreaks = useLivePageBreaks(editor, a5Mode, CONTENT_H);
+  const livePageBreaks = useLivePageBreaks(editor, pageCheckMode, pageGeometry.contentH);
   const search = useManuscriptSearch(editor);
 
   useEffect(() => {
@@ -526,15 +535,15 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           </ToolbarButton>
           <button
             type="button"
-            onClick={() => setA5Mode((v) => !v)}
-            title="Змінити розмір канвасу під А5 формат — перевірити, чи текст/зображення не 'втекли' на межі сторінки"
+            onClick={() => setPageCheckMode((v) => !v)}
+            title={`Змінити розмір канвасу під формат книги (${printFormat ? `${printFormat.widthMm}×${printFormat.heightMm}мм` : "стандартний"}) — перевірити, чи текст/зображення не 'втекли' на межі сторінки`}
             className={cn(
               "flex h-7 items-center gap-1 rounded px-2 text-[0.75rem] font-medium transition-colors",
-              a5Mode ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-100"
+              pageCheckMode ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-100"
             )}
           >
             <BookOpenCheck size={14} />
-            A5
+            {printFormat ? `${printFormat.widthMm}×${printFormat.heightMm}` : "Формат"}
           </button>
           <ToolbarButton title="Пошук" onClick={() => (search.open ? search.closeSearch() : search.openSearch())} active={search.open}>
             <Search size={15} />
@@ -687,13 +696,13 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         )}
 
         <div className="flex-1 overflow-y-auto bg-white px-16 py-10">
-          <div className="relative mx-auto" style={a5Mode ? { width: CONTENT_W } : { maxWidth: 680 }}>
+          <div className="relative mx-auto" style={pageCheckMode ? { width: pageGeometry.contentW } : { maxWidth: 680 }}>
             <EditorContent
               editor={editor}
               className="manuscript-prose"
-              style={a5Mode ? ({ "--ms-font-size": `${PRINT_BODY_PX}px` } as CSSProperties) : undefined}
+              style={pageCheckMode ? ({ "--ms-font-size": `${pageGeometry.bodyFontPx}px` } as CSSProperties) : undefined}
             />
-            {a5Mode &&
+            {pageCheckMode &&
               livePageBreaks.map((y, i) => (
                 <div key={i} className="manuscript-page-break-marker" style={{ top: y }} data-label={`— кінець сторінки ${i + 1} —`} />
               ))}
@@ -770,7 +779,9 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
             >
               <div className="flex items-start justify-between gap-2">
                 <p className="text-[0.6875rem] font-bold uppercase leading-tight text-black">{tpl.name}</p>
-                <span className="shrink-0 rounded-sm bg-gray-100 px-1 py-px text-[0.5625rem] text-gray-500">A5</span>
+                <span className="shrink-0 rounded-sm bg-gray-100 px-1 py-px text-[0.5625rem] text-gray-500">
+                  {printFormat ? `${printFormat.widthMm}×${printFormat.heightMm}` : "Стандарт"}
+                </span>
               </div>
               <p className="mt-1 text-[0.6875rem] leading-snug text-gray-500">{tpl.description}</p>
               <div className="mt-2 flex gap-1.5">

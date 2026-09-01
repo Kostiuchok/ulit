@@ -96,6 +96,22 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
 
   return (
     <div className="space-y-4">
+      {/* Platform now auto-generates the printed book's "Зміст" from
+          Розділ/Глава headings (target-counter, printHtml.ts) -- an
+          author-typed one would show page numbers frozen at whatever their
+          own Word/Google Docs pagination was, guaranteed to drift once the
+          platform reflows the manuscript into the book's real print
+          geometry. Shown before upload so this is known ahead of time, not
+          discovered after the fact in the printed file. */}
+      <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+        <span>💡</span>
+        <span>
+          Не додавайте власний Зміст із номерами сторінок — платформа сформує його автоматично з заголовків,
+          позначених стилями «Розділ»/«Глава» в редакторі рукопису, з правильними номерами сторінок готової
+          друкованої книги.
+        </span>
+      </div>
+
       {currentDocxUrl && (
         <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-700">
           <span>✓</span>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { resolveBookPrintFormat } from "shared-types";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { ManuscriptEditor } from "@/components/manuscript/ManuscriptEditor";
 import { AuthorBooksSidebar } from "@/components/dashboard/AuthorBooksSidebar";
@@ -12,6 +13,10 @@ interface ManuscriptBook {
   title: string;
   subtitle?: string | null;
   description?: string | null;
+  genre?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
+  printFormatKey?: string | null;
   ageRating?: string | null;
   isbn?: string | null;
   udcCode?: string | null;
@@ -35,6 +40,10 @@ export default function ManuscriptEditorPage() {
   const router = useRouter();
   const { apiFetch, token } = useApi();
   const { book, setBook, loading, refetch } = useBook<ManuscriptBook>(id);
+  // Same source of truth as the print PDF and cover editor (T-2076) -- the
+  // editor's own page-format check must reflect this book's REAL trim, not
+  // a fixed constant.
+  const printFormat = useMemo(() => (book ? resolveBookPrintFormat(book) : null), [book]);
   const [manuscript, setManuscript] = useState<ManuscriptStatus | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showReimportConfirm, setShowReimportConfirm] = useState(false);
@@ -216,6 +225,7 @@ export default function ManuscriptEditorPage() {
           bookId={id}
           initialContent={manuscript.content}
           initialStyleOverrides={manuscript.styleOverrides}
+          printFormat={printFormat ?? undefined}
           bookMeta={{
             title: book?.title ?? "",
             subtitle: book?.subtitle,

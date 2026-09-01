@@ -3,6 +3,13 @@ import { manuscriptContentToHtml } from "./extensions";
 import { splitFrontMatter } from "./splitFrontMatter";
 import { DEFAULT_PAGE_NUMBER_POSITION, type PageNumberPosition } from "./pageNumberPosition";
 import { extractOutline } from "./outline";
+import {
+  PAGE_MARGIN_TOP_MM,
+  PAGE_MARGIN_BOTTOM_MM,
+  PAGE_MARGIN_INNER_MM,
+  PAGE_MARGIN_OUTER_MM,
+  BODY_FONT_PT,
+} from "./printGeometry";
 
 // T-2057 -- print-only CSS on top of the shared MANUSCRIPT_PROSE_CSS (which
 // stays purely presentational, no pagination semantics, since it's also used
@@ -11,18 +18,13 @@ import { extractOutline } from "./outline";
 // because it supports `break-before/after: recto/verso` natively
 // (docs/T-2057-checklist.md section 3); Chromium/Puppeteer does not.
 //
-// Margins: 20mm inner (binding side) / 15mm outer, per the printer's own
-// technical requirements for books (docs/print-file-technical-requirements.md,
-// printto.ua) -- not the client editor's approximate 16mm A5-toggle numbers
-// (apps/web/components/manuscript/manuscriptLayout.ts), which are stale
-// (hardcoded to the old 148x210mm trim, pre-dates the genre-driven format
-// system) and only drive an in-editor visual approximation, not the real
-// print file.
-const PAGE_MARGIN_TOP_MM = 18;
-const PAGE_MARGIN_BOTTOM_MM = 20;
-const PAGE_MARGIN_INNER_MM = 20;
-const PAGE_MARGIN_OUTER_MM = 15;
-const BODY_FONT_PT = 11;
+// Margins (printGeometry.ts): 20mm inner (binding side) / 15mm outer, per
+// the printer's own technical requirements for books
+// (docs/print-file-technical-requirements.md, printto.ua) -- the live
+// editor's own book-format check (apps/web/components/manuscript/
+// manuscriptLayout.ts) now reads the exact same constants, so the two can
+// no longer drift on margins the way they used to when the editor hardcoded
+// its own approximate numbers.
 
 function pageNumberMarginBox(position: PageNumberPosition): string {
   switch (position) {
