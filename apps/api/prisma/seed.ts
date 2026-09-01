@@ -6,28 +6,28 @@ const prisma = new PrismaClient();
 async function main() {
   const adminHash = await bcrypt.hash("admin123456", 12);
   const admin = await prisma.user.upsert({
-    where: { email: "admin@knyha.ua" },
+    where: { email: "admin@ulit.ua" },
     update: {},
     create: {
-      email: "admin@knyha.ua",
+      email: "admin@ulit.ua",
       passwordHash: adminHash,
-      name: "Адмін Knyha",
-      slug: "admin-knyha",
+      name: "Адмін ULIT",
+      slug: "admin-ulit",
       role: "ADMIN",
     },
   });
 
   const authorHash = await bcrypt.hash("author123456", 12);
   const author = await prisma.user.upsert({
-    where: { email: "author@knyha.ua" },
+    where: { email: "author@ulit.ua" },
     update: {},
     create: {
-      email: "author@knyha.ua",
+      email: "author@ulit.ua",
       passwordHash: authorHash,
       name: "Тестовий Автор",
       slug: "testovyi-avtor",
       role: "AUTHOR",
-      bio: "Тестовий автор для демонстрації платформи Knyha.",
+      bio: "Тестовий автор для демонстрації платформи ULIT.",
     },
   });
 

@@ -24,11 +24,11 @@ export default function GoogleBooksPage() {
         <section>
           <h2 className="text-base font-semibold text-gray-900 mb-2">Шаблон листа</h2>
           <div className="rounded-lg bg-gray-50 border p-4 text-sm text-gray-700 font-mono whitespace-pre-wrap leading-relaxed">
-{`Subject: Google Books Partner Application — Knyha Platform
+{`Subject: Google Books Partner Application — ULIT Platform
 
 Dear Google Books Partnership Team,
 
-We are Knyha (knyha.ua), a Ukrainian self-publishing platform
+We are ULIT (ulit.ua), a Ukrainian self-publishing platform
 helping Ukrainian authors distribute their books globally.
 
 We would like to apply for Google Play Books Partner access to
@@ -39,11 +39,11 @@ Platform stats:
 - Published books: [N]
 - File formats: EPUB 3, PDF, FB2, MOBI
 
-Technical contact: admin@knyha.ua
+Technical contact: admin@ulit.ua
 Company: [Company name], Ukraine
 
 Best regards,
-Knyha Team`}
+ULIT Team`}
           </div>
         </section>
 

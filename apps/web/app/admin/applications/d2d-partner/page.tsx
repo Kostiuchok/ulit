@@ -21,11 +21,11 @@ export default function D2dPartnerPage() {
         <section>
           <h2 className="text-base font-semibold text-gray-900 mb-2">Шаблон листа</h2>
           <div className="rounded-lg bg-gray-50 border p-4 text-sm text-gray-700 font-mono whitespace-pre-wrap leading-relaxed">
-{`Subject: Publisher/Aggregator Account Request — Knyha Platform (Ukraine)
+{`Subject: Publisher/Aggregator Account Request — ULIT Platform (Ukraine)
 
 Dear D2D Business Development Team,
 
-My name is [Name], and I represent Knyha (knyha.ua) — a Ukrainian
+My name is [Name], and I represent ULIT (ulit.ua) — a Ukrainian
 self-publishing platform dedicated to helping Ukrainian authors
 distribute their books globally.
 
@@ -48,8 +48,8 @@ We would like to integrate with D2D API to automate book submission.
 
 Best regards,
 [Name]
-Knyha Platform — knyha.ua
-Email: admin@knyha.ua`}
+ULIT Platform — ulit.ua
+Email: admin@ulit.ua`}
           </div>
         </section>
 

@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!author) return { title: "Автор не знайдений" };
 
   const title = author.name;
-  const description = author.bio?.slice(0, 160) ?? `Книги автора ${author.name} на платформі Knyha`;
+  const description = author.bio?.slice(0, 160) ?? `Книги автора ${author.name} на платформі ULIT`;
 
   return {
     title,

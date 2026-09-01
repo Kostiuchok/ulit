@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "../../auth";
 import { AdminSidebar } from "../../components/admin/AdminSidebar";
 
-export const metadata = { title: { template: "%s | Knyha Admin", default: "Admin" } };
+export const metadata = { title: { template: "%s | ULIT Admin", default: "Admin" } };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();

@@ -15,10 +15,10 @@ function createTransport() {
 }
 
 const transporter = createTransport();
-const FROM = process.env.SMTP_FROM || "noreply@knyha.ua";
+const FROM = process.env.SMTP_FROM || "noreply@ulit.ua";
 
 async function sendMail(to: string, subject: string, html: string) {
-  const info = await transporter.sendMail({ from: `Knyha <${FROM}>`, to, subject, html });
+  const info = await transporter.sendMail({ from: `ULIT <${FROM}>`, to, subject, html });
   if (!process.env.SMTP_HOST) {
     // No real SMTP configured -- nodemailer's jsonTransport accepted the
     // message but never actually sent it. Log loudly so a missing SMTP_HOST
@@ -35,7 +35,7 @@ export async function sendEmailVerification(opts: {
   const { email, name, verificationUrl } = opts;
   await sendMail(
     email,
-    "Підтвердіть ваш email — Knyha",
+    "Підтвердіть ваш email — ULIT",
     `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
       <h2 style="color:#1a1a2e">Підтвердіть вашу електронну адресу</h2>
@@ -45,8 +45,8 @@ export async function sendEmailVerification(opts: {
         Підтвердити email
       </a>
       <p style="color:#666;font-size:0.9em">Посилання дійсне <strong>24 години</strong>.</p>
-      <p style="color:#999;font-size:0.8em">Якщо ви не реєструвались на Knyha — просто ігноруйте цей лист.</p>
-      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа Knyha — knyha.ua</p>
+      <p style="color:#999;font-size:0.8em">Якщо ви не реєструвались на ULIT — просто ігноруйте цей лист.</p>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа ULIT — ulit.ua</p>
     </div>
     `
   );
@@ -80,7 +80,7 @@ export async function sendKdpExpiryWarning(opts: {
       <a href="${dashboardUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#2d2d2d;color:#fff;text-decoration:none;border-radius:6px">
         Відкрити книгу
       </a>
-      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа Knyha — knyha.ua</p>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа ULIT — ulit.ua</p>
     </div>
     `
   );
@@ -131,7 +131,7 @@ export async function sendOrderDownloadLinks(opts: {
       <p style="margin-top:16px">
         <a href="${orderUrl}" style="color:#2563eb">Переглянути замовлення</a>
       </p>
-      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа Knyha — knyha.ua</p>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа ULIT — ulit.ua</p>
     </div>
     `
   );
@@ -159,7 +159,7 @@ export async function sendPublishedNotification(opts: {
       <a href="${dashboardUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#2d2d2d;color:#fff;text-decoration:none;border-radius:6px">
         Перейти до книги
       </a>
-      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа Knyha — knyha.ua</p>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа ULIT — ulit.ua</p>
     </div>
     `
   );
@@ -188,7 +188,7 @@ export async function sendRejectedNotification(opts: {
       <a href="${dashboardUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#2d2d2d;color:#fff;text-decoration:none;border-radius:6px">
         Перейти до книги
       </a>
-      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа Knyha — knyha.ua</p>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа ULIT — ulit.ua</p>
     </div>
     `
   );

@@ -4,12 +4,12 @@ import { CartIcon } from "../../components/store/CartIcon";
 
 export const metadata: Metadata = {
   title: {
-    default: "Knyha — Книжковий магазин",
-    template: "%s | Knyha",
+    default: "ULIT — Книжковий магазин",
+    template: "%s | ULIT",
   },
   description: "Книги від українських авторів — електронні та друковані формати. Читайте та підтримуйте українське письменство.",
   openGraph: {
-    siteName: "Knyha",
+    siteName: "ULIT",
     locale: "uk_UA",
     type: "website",
   },
@@ -21,7 +21,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <header className="sticky top-0 z-40 bg-white border-b shadow-sm">
         <div className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 h-14">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg text-gray-900">
-            📚 <span>Knyha</span>
+            📚 <span>ULIT</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-gray-600">
@@ -52,7 +52,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <main>{children}</main>
 
       <footer className="mt-16 border-t bg-white py-8 text-center text-sm text-gray-500">
-        <p>© {new Date().getFullYear()} Knyha — платформа для українських авторів</p>
+        <p>© {new Date().getFullYear()} ULIT — платформа для українських авторів</p>
         <div className="mt-2 flex justify-center gap-6">
           <Link href="/terms" className="hover:text-gray-700">Умови використання</Link>
           <Link href="/privacy" className="hover:text-gray-700">Конфіденційність</Link>

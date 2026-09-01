@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Політика конфіденційності | Knyha",
-  description: "Як платформа Knyha збирає, використовує та захищає ваші персональні дані.",
+  title: "Політика конфіденційності | ULIT",
+  description: "Як платформа ULIT збирає, використовує та захищає ваші персональні дані.",
 };
 
 export default function PrivacyPage() {
@@ -18,11 +18,11 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-xl font-semibold text-gray-900 mb-3">1. Хто ми</h2>
           <p>
-            ФОП «Knyha» (далі — «Knyha», «ми», «нам», «наш») — оператор платформи самовидавництва,
-            розташованої за адресою <strong>knyha.ua</strong>. Ми є контролером персональних даних
+            ФОП «ULIT» (далі — «ULIT», «ми», «нам», «наш») — оператор платформи самовидавництва,
+            розташованої за адресою <strong>ulit.ua</strong>. Ми є контролером персональних даних
             у розумінні Закону України «Про захист персональних даних» та Регламенту ЄС 2016/679 (GDPR).
           </p>
-          <p>Контакт з питань конфіденційності: <a href="mailto:privacy@knyha.ua" className="text-blue-600 hover:underline">privacy@knyha.ua</a></p>
+          <p>Контакт з питань конфіденційності: <a href="mailto:privacy@ulit.ua" className="text-blue-600 hover:underline">privacy@ulit.ua</a></p>
         </section>
 
         <section>
@@ -130,7 +130,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             Для реалізації прав зверніться на:{" "}
-            <a href="mailto:privacy@knyha.ua" className="text-blue-600 hover:underline">privacy@knyha.ua</a>.
+            <a href="mailto:privacy@ulit.ua" className="text-blue-600 hover:underline">privacy@ulit.ua</a>.
             Термін відповіді — 30 днів.
           </p>
         </section>

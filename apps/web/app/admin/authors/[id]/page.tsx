@@ -203,7 +203,7 @@ export default function AdminAuthorDetailPage() {
           <div className="flex-1 space-y-1">
             <h1 className="text-xl font-bold text-gray-900">{author.name}</h1>
             <p className="text-sm text-gray-500">{author.email}</p>
-            <p className="text-xs text-gray-400">knyha.ua/authors/{author.slug}</p>
+            <p className="text-xs text-gray-400">ulit.ua/authors/{author.slug}</p>
             {author.bio && <p className="text-sm text-gray-600 mt-2">{author.bio}</p>}
           </div>
           <div className="text-right space-y-1 text-sm text-gray-500 shrink-0">

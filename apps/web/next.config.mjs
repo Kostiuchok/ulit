@@ -4,7 +4,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: "http", hostname: "localhost" },
-      { protocol: "https", hostname: "*.knyha.ua" },
+      { protocol: "https", hostname: "*.ulit.ua" },
       { protocol: "https", hostname: "ulit.render.ua" },
     ],
   },

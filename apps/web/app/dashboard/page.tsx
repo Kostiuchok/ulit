@@ -64,7 +64,7 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">
           Вітаємо, {session?.user?.name}!
         </h1>
-        <p className="mt-1 text-gray-500">Ваш кабінет автора на платформі Knyha.</p>
+        <p className="mt-1 text-gray-500">Ваш кабінет автора на платформі ULIT.</p>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatTile label="Книги" value={totalBooks} loading={loading} href="/dashboard/books" />

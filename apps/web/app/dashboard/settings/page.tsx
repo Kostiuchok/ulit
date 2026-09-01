@@ -151,7 +151,7 @@ export default function SettingsPage() {
             <div className="space-y-1.5">
               <Label htmlFor="slug">Публічний slug</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">knyha.ua/authors/</span>
+                <span className="text-sm text-gray-400">ulit.ua/authors/</span>
                 <Input
                   id="slug"
                   {...register("slug")}

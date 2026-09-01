@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Умови використання | Knyha",
-  description: "Умови та правила використання платформи Knyha.",
+  title: "Умови використання | ULIT",
+  description: "Умови та правила використання платформи ULIT.",
 };
 
 export default function TermsPage() {
@@ -18,9 +18,9 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-semibold text-gray-900 mb-3">1. Загальні положення</h2>
           <p>
-            1.1. Ці Умови використання (далі — «Умови») регулюють відносини між платформою Knyha
+            1.1. Ці Умови використання (далі — «Умови») регулюють відносини між платформою ULIT
             (далі — «Платформа», «ми», «нам») та будь-якою особою, яка використовує сайт
-            <strong> knyha.ua</strong> та пов&apos;язані сервіси (далі — «Користувач», «ви»).
+            <strong> ulit.ua</strong> та пов&apos;язані сервіси (далі — «Користувач», «ви»).
           </p>
           <p>
             1.2. Використання Платформи означає повне та беззастережне прийняття цих Умов.
@@ -31,7 +31,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-semibold text-gray-900 mb-3">2. Послуги платформи</h2>
           <p>
-            2.1. Knyha — це платформа самовидавництва для авторів та книжковий магазин для покупців.
+            2.1. ULIT — це платформа самовидавництва для авторів та книжковий магазин для покупців.
           </p>
           <p>2.2. Для авторів Платформа надає:</p>
           <ul className="list-disc list-inside space-y-1.5 ml-4">
@@ -59,7 +59,7 @@ export default function TermsPage() {
           </p>
           <p>
             3.3. Користувач несе відповідальність за збереження конфіденційності свого пароля.
-            Про несанкціонований доступ слід негайно повідомити на <a href="mailto:support@knyha.ua" className="text-blue-600 hover:underline">support@knyha.ua</a>.
+            Про несанкціонований доступ слід негайно повідомити на <a href="mailto:support@ulit.ua" className="text-blue-600 hover:underline">support@ulit.ua</a>.
           </p>
           <p>
             3.4. Один акаунт — одна фізична особа. Передача акаунта іншим особам заборонена.
@@ -87,7 +87,7 @@ export default function TermsPage() {
           </p>
           <p>
             5.2. Після успішної оплати Покупцю надсилаються посилання для завантаження файлів,
-            дійсні протягом 48 годин. У разі технічних проблем зверніться на support@knyha.ua.
+            дійсні протягом 48 годин. У разі технічних проблем зверніться на support@ulit.ua.
           </p>
           <p>
             5.3. Повернення коштів за цифровий контент не здійснюється після завантаження файлу.
@@ -103,7 +103,7 @@ export default function TermsPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-3">6. Інтелектуальна власність Платформи</h2>
           <p>
             6.1. Дизайн, логотип, програмний код та інші елементи Платформи є інтелектуальною
-            власністю Knyha та захищені авторським правом.
+            власністю ULIT та захищені авторським правом.
           </p>
           <p>
             6.2. Використання матеріалів Платформи в комерційних цілях без письмового дозволу заборонено.
@@ -125,7 +125,7 @@ export default function TermsPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-3">8. Контакти</h2>
           <p>
             З питань щодо Умов використання звертайтесь:{" "}
-            <a href="mailto:legal@knyha.ua" className="text-blue-600 hover:underline">legal@knyha.ua</a>
+            <a href="mailto:legal@ulit.ua" className="text-blue-600 hover:underline">legal@ulit.ua</a>
           </p>
         </section>
 

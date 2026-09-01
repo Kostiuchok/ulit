@@ -84,7 +84,7 @@ function LoginContent() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">📚 Knyha</h1>
+          <h1 className="text-3xl font-bold text-gray-900">📚 ULIT</h1>
           <h2 className="mt-4 text-xl font-semibold text-gray-700">Увійти до кабінету</h2>
         </div>
 

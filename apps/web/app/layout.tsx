@@ -4,7 +4,7 @@ import { CookieBanner } from "../components/legal/CookieBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Knyha — Платформа самовидавництва",
+  title: "ULIT — Платформа самовидавництва",
   description: "Публікуйте книги, отримуйте ISBN, продавайте у власному магазині та на Amazon.",
 };
 

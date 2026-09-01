@@ -63,7 +63,7 @@ export default function PublishedPage() {
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">🎉</div>
           <h1 className="text-3xl font-bold text-gray-900">Книгу опубліковано!</h1>
-          <p className="mt-2 text-gray-500">Вашу книгу успішно опубліковано на платформі Knyha.</p>
+          <p className="mt-2 text-gray-500">Вашу книгу успішно опубліковано на платформі ULIT.</p>
         </div>
 
         <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">

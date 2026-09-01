@@ -157,7 +157,7 @@ export default function ContractPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Договір на публікацію</h1>
             <p className="text-sm text-gray-500">
-              Публічна оферта про надання послуг платформи самовидавництва Knyha
+              Публічна оферта про надання послуг платформи самовидавництва ULIT
             </p>
           </div>
         </div>

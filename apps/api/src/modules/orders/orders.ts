@@ -210,7 +210,7 @@ export async function ordersRoutes(app: FastifyInstance) {
       const liqpay = generateLiqPayForm({
         orderId: order.id,
         amount: total,
-        description: `Knyha: ${description}`,
+        description: `ULIT: ${description}`,
         resultUrl: `${webUrl}/orders/${order.id}`,
         serverUrl: `${apiUrl}/api/payments/liqpay/callback`,
       });

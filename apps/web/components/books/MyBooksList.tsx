@@ -136,7 +136,7 @@ export function MyBooksList() {
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-white py-20 text-center">
             <div className="text-5xl mb-4">📚</div>
             <h2 className="text-lg font-semibold text-gray-700">Поки немає книг</h2>
-            <p className="mt-1 text-sm text-gray-500">Опублікуйте свою першу книгу на платформі Knyha</p>
+            <p className="mt-1 text-sm text-gray-500">Опублікуйте свою першу книгу на платформі ULIT</p>
             <Link href="/dashboard/books/new" className="mt-6">
               <Button>Опублікувати книгу</Button>
             </Link>

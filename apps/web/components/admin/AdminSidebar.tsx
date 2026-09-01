@@ -43,7 +43,7 @@ export function AdminSidebar() {
     <aside className="w-56 shrink-0 border-r bg-gray-950 text-gray-300 min-h-screen">
       <div className="px-4 py-5 border-b border-gray-800">
         <Link href="/admin/dashboard" className="text-white font-bold text-base">
-          🛡 Knyha Admin
+          🛡 ULIT Admin
         </Link>
       </div>
 

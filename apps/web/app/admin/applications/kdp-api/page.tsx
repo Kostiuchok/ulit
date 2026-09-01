@@ -16,7 +16,7 @@ export default function KdpApiPage() {
             <li>Перейдіть у Apps &amp; Services → Develop Apps</li>
             <li>Натисніть «Register new application»</li>
             <li>Заповніть форму: тип — «Publishing», категорія — «Book content delivery»</li>
-            <li>Вкажіть OAuth redirect URL: <code className="bg-gray-100 px-1 rounded">https://knyha.ua/api/integrations/kdp/callback</code></li>
+            <li>Вкажіть OAuth redirect URL: <code className="bg-gray-100 px-1 rounded">https://ulit.ua/api/integrations/kdp/callback</code></li>
             <li>Надішліть заявку на Amazon review (2–4 тижні)</li>
           </ol>
         </section>
@@ -25,7 +25,7 @@ export default function KdpApiPage() {
           <h2 className="text-base font-semibold text-gray-900 mb-2">Необхідні дані</h2>
           <div className="space-y-3">
             {[
-              { label: "Application name", value: "Knyha Publishing Platform" },
+              { label: "Application name", value: "ULIT Publishing Platform" },
               { label: "Application description", value: "Ukrainian self-publishing platform. Automates EPUB delivery to KDP for Ukrainian authors." },
               { label: "Business type", value: "Publisher / Aggregator" },
               { label: "Marketplace", value: "Amazon.com, Amazon.co.uk" },
