@@ -57,6 +57,14 @@ export const PRINT_FORMATS: Record<PrintFormatKey, PrintFormat> = {
   executive: { key: "executive", label: "Executive", sheetFraction: "US trade, 7.25×10.5″", widthMm: 184, heightMm: 267, purpose: "зручний розмір для авторів, які пишуть у Google Docs" },
 };
 
+// Display order for the "Розмір книги" selector -- BookWizard.tsx and
+// output-data/page.tsx both render this same list, "standard" first as the
+// platform default, so the two independent size pickers (creation-time and
+// post-creation edit) never drift apart on ordering.
+export const PRINT_FORMAT_KEYS: PrintFormatKey[] = [
+  "standard", "pocket", "miniature", "encyclopedic", "enlarged", "large", "a4", "statement", "executive",
+];
+
 // Genre (from GENRES in BookWizard.tsx / output-data page) -> recommended
 // default print format. A proposed mapping (2026-08-17), not independently
 // re-confirmed per-genre against ДСТУ -- open to correction. BookWizard now

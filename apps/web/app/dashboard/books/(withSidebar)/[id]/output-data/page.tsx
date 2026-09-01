@@ -19,7 +19,7 @@ import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
 import { parseRejectedConcerns, resolveRejectionLineSection } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
-import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
+import { PRINT_FORMATS, PRINT_FORMAT_KEYS, resolveBookPrintFormat, type PrintFormatKey } from "shared-types";
 
 // T-2060 п.1/п.3 -- confirmed by live Ridero test (2026-08-17), matches
 // apps/api/src/modules/books/publish.ts's DESCRIPTION_MIN_LENGTH/MAX_LENGTH.
@@ -34,6 +34,10 @@ const infoSchema = z.object({
     .min(DESCRIPTION_MIN_LENGTH, `Анотація має містити щонайменше ${DESCRIPTION_MIN_LENGTH} символів`)
     .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
   genre: z.string().max(100).optional(),
+  // Independent from genre -- the author picks this directly, from
+  // PRINT_FORMAT_KEYS (shared-types), same list BookWizard's creation-time
+  // selector uses.
+  printFormatKey: z.string().min(1, "Оберіть розмір книги"),
   ageRating: z.string().min(1, "Вкажіть вікові обмеження"),
   language: z.string().length(2),
   aiGenerated: z.boolean().optional(),
@@ -286,23 +290,12 @@ function OutputDataContent() {
   const titleValue = infoForm.watch("title") ?? "";
   const descValue = infoForm.watch("description") ?? "";
   const aiGeneratedValue = infoForm.watch("aiGenerated") ?? false;
-  const genreValue = infoForm.watch("genre") ?? "";
 
-  // T-2057 -- print size needs to be visible right next to Genre, not
-  // something the author has to go look up separately. Live preview from
-  // the SAME genre->format table the server uses when it auto-derives
-  // printWidthMm/printHeightMm on save (apps/api/.../book.ts PATCH
-  // handler) -- shows the size the moment a genre is picked, before
-  // "Зберегти зміни" even runs. If the book already has a manually
-  // overridden size that doesn't match the genre-derived one, that's
-  // shown instead (an override wins over the genre default).
-  const overrideFormat =
-    book?.printWidthMm && book?.printHeightMm
-      ? { widthMm: book.printWidthMm, heightMm: book.printHeightMm, key: book.printFormatKey }
-      : null;
-  const genreFormat = genreValue ? PRINT_FORMATS[GENRE_TO_PRINT_FORMAT[genreValue] ?? "standard"] : PRINT_FORMATS.standard;
-  const isOverride = !!overrideFormat && overrideFormat.key !== genreFormat.key;
-  const displayFormat = isOverride ? overrideFormat! : genreFormat;
+  // Розмір книги is its own independent field now (not derived from genre)
+  // -- same "Розмір книги" selector BookWizard's creation step has, so it
+  // can be changed after creation too, not just once at the start.
+  const selectedFormatKey = (infoForm.watch("printFormatKey") || "standard") as PrintFormatKey;
+  const displayFormat = PRINT_FORMATS[selectedFormatKey] ?? PRINT_FORMATS.standard;
 
   useEffect(() => {
     if (!book) return;
@@ -315,6 +308,7 @@ function OutputDataContent() {
       subtitle: book.subtitle ?? "",
       description: book.description ?? "",
       genre: book.genre ?? "",
+      printFormatKey: resolveBookPrintFormat(book).key,
       ageRating: book.ageRating ?? "",
       language: book.language,
       aiGenerated: book.aiGenerated ?? false,
@@ -393,6 +387,13 @@ function OutputDataContent() {
     setInfoError("");
     setInfoSaved(false);
     try {
+      // Resolve the picked size to its actual mm values here so the request
+      // always carries a consistent {printFormatKey, printWidthMm,
+      // printHeightMm} triplet -- the backend only auto-derives a size from
+      // genre when the book has none on record yet, so an explicit save
+      // here is what makes this selector actually independent of genre
+      // (apps/api book.ts PATCH handler).
+      const format = PRINT_FORMATS[data.printFormatKey as PrintFormatKey] ?? PRINT_FORMATS.standard;
       const { book: updated } = await apiFetch<{ book: MetadataBook }>(`/api/books/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -400,6 +401,9 @@ function OutputDataContent() {
           subtitle: data.subtitle || null,
           description: data.description || null,
           genre: data.genre || null,
+          printFormatKey: format.key,
+          printWidthMm: format.widthMm,
+          printHeightMm: format.heightMm,
           ageRating: data.ageRating || null,
           language: data.language,
           aiGenerated: data.aiGenerated ?? false,
@@ -648,6 +652,9 @@ function OutputDataContent() {
                 )}
               </div>
 
+              {/* Жанр і розмір книги — незалежні поля, поруч в одному ряду
+                  (як і в BookWizard'і при створенні книги): автор обирає
+                  обидва окремо, розмір більше не випливає з жанру. */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="genre">Жанр</Label>
@@ -659,14 +666,28 @@ function OutputDataContent() {
                     <option value="">Оберіть жанр</option>
                     {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
                   </select>
-                  <p className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
-                    📐 Розмір друкованої книги:{" "}
-                    <span className="font-semibold text-gray-900">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
-                    {" "}({PRINT_FORMATS[displayFormat.key as keyof typeof PRINT_FORMATS]?.label ?? "Стандартний"})
-                    {isOverride && <span className="ml-1 font-medium text-amber-600">— вручну змінено</span>}
-                  </p>
                 </div>
 
+                <div className="space-y-1.5">
+                  <Label htmlFor="printFormatKey">Розмір книги *</Label>
+                  <select
+                    id="printFormatKey"
+                    {...infoForm.register("printFormatKey")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {PRINT_FORMAT_KEYS.map((key) => {
+                      const f = PRINT_FORMATS[key];
+                      return (
+                        <option key={key} value={key}>
+                          {f.label} ({f.widthMm}×{f.heightMm}мм)
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="language">
                     Мова книги *
@@ -691,9 +712,7 @@ function OutputDataContent() {
                     <option value="ru">Русский</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="ageRating">Вікові обмеження *</Label>
                   <select
@@ -714,6 +733,12 @@ function OutputDataContent() {
                   )}
                 </div>
               </div>
+
+              <p className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
+                📐 Друкована версія книги матиме розмір{" "}
+                <span className="font-semibold text-gray-900">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
+                {" "}({displayFormat.label.toLowerCase()})
+              </p>
 
               {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача */}
               <div className="space-y-2 rounded-lg border p-3">
@@ -983,6 +1008,7 @@ function OutputDataContent() {
             <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
               <Row label="Назва" value={book?.title || "—"} />
               <Row label="Жанр" value={book?.genre || "—"} />
+              <Row label="Розмір книги" value={`${displayFormat.label} (${displayFormat.widthMm}×${displayFormat.heightMm}мм)`} />
               <Row label="Кількість сторінок" value={book?.pageCount ? `${book.pageCount} ст.` : "—"} />
               <Row label="Рукопис" value={book?.originalDocxUrl ? "Завантажено" : "Не завантажено"} />
               <Row label="Е-книга" value={book?.priceEbook ? `${Number(book.priceEbook).toFixed(2)} грн` : "Не продається"} />

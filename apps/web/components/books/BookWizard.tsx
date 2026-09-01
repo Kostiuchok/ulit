@@ -12,7 +12,7 @@ import { DocxUploader } from "../dashboard/DocxUploader";
 import { ProBadge } from "../ui/pro-badge";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
-import { PRINT_FORMATS, type PrintFormatKey } from "shared-types";
+import { PRINT_FORMATS, PRINT_FORMAT_KEYS, type PrintFormatKey } from "shared-types";
 import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../books/FormatsAndDistribution";
 
 // ─── Step schemas ────────────────────────────────────────────────────────────
@@ -31,9 +31,9 @@ const step1Schema = z.object({
     .min(DESCRIPTION_MIN_LENGTH, `Анотація має містити щонайменше ${DESCRIPTION_MIN_LENGTH} символів`)
     .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
   genre: z.string().max(100).optional(),
-  // Independent from genre -- the author picks this directly, see
-  // PRINT_FORMAT_OPTIONS below (shared-types PRINT_FORMATS is the source of
-  // truth for the actual mm values).
+  // Independent from genre -- the author picks this directly from
+  // PRINT_FORMAT_KEYS (shared-types), which is also PRINT_FORMATS' source
+  // of truth for the actual mm values.
   printFormatKey: z.string().min(1, "Оберіть розмір книги"),
   language: z.string().length(2).default("uk"),
   ageRating: z.string().min(1, "Вкажіть вікові обмеження"),
@@ -65,15 +65,9 @@ const GENRES = [
 ];
 
 // Book size is its own independent selection here, not derived from genre --
-// the author picks any genre and any size, freely combined. Order matches
-// PRINT_FORMATS' rough size progression (shared-types), "standard" first as
-// the platform default. "a4"/"statement"/"executive" are the odd ones out --
-// not ДСТУ sheet-fraction formats like the rest, added so authors who write
-// in Google Docs (which only offers a handful of fixed page presets, no
-// custom size) have a book-size option matching one of them out of the box.
-const PRINT_FORMAT_OPTIONS: PrintFormatKey[] = [
-  "standard", "pocket", "miniature", "encyclopedic", "enlarged", "large", "a4", "statement", "executive",
-];
+// the author picks any genre and any size, freely combined. Same ordered
+// list (PRINT_FORMAT_KEYS, shared-types) the output-data page's own size
+// selector uses, so creation-time and post-creation editing never drift.
 
 // Same list as output-data/page.tsx's AGE_RATINGS — both write the same
 // Book.ageRating column, required by publish.ts's pre-publish validation.
@@ -388,7 +382,7 @@ export function BookWizard() {
                 {...step1.register("printFormatKey")}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {PRINT_FORMAT_OPTIONS.map((key) => {
+                {PRINT_FORMAT_KEYS.map((key) => {
                   const f = PRINT_FORMATS[key];
                   return (
                     <option key={key} value={key}>
