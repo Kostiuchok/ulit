@@ -17,7 +17,7 @@ import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
-import { parseRejectedConcerns, resolveRejectionLineSection } from "@/lib/rejectedBlocks";
+import { parseRejectedConcerns, resolveRejectionLineSection, splitRejectionLines } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
 import { PRINT_FORMATS, PRINT_FORMAT_KEYS, resolveBookPrintFormat, type PrintFormatKey } from "shared-types";
 
@@ -497,6 +497,15 @@ function OutputDataContent() {
 
   const rejected = book ? parseRejectedConcerns(book) : { cover: false, manuscript: false, metadata: false };
   const showRejection = rejected.metadata && !locallyFixed;
+  // "Мова книги" gets its own precise check instead of sharing showRejection
+  // (the whole-section flag) with every other field in "Інформація" -- a
+  // rejection about description length or genre used to also turn this
+  // unrelated dropdown red, since showRejection didn't distinguish which
+  // metadata field the note actually complained about.
+  const languageRejected =
+    book?.moderationStatus === "REJECTED" && !!book.moderationNote
+      ? splitRejectionLines(book.moderationNote).some((l) => l.category === "language")
+      : false;
   const titleInvalid = titleValue.length > 0 && titleValue.length < 3;
 
   return (
@@ -699,7 +708,7 @@ function OutputDataContent() {
                     {...infoForm.register("language")}
                     className={cn(
                       "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      showRejection ? "border-red-400" : "border-input"
+                      languageRejected ? "border-red-400" : "border-input"
                     )}
                   >
                     <option value="uk">🇺🇦 Українська</option>

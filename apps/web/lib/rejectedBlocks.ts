@@ -39,7 +39,7 @@ export type OutputDataSectionKey = "info" | "file" | "price" | "review" | "publi
 // problem at all).
 export interface RejectionLine {
   text: string;
-  category: "cover" | "manuscript" | "metadata" | "other";
+  category: "cover" | "manuscript" | "language" | "metadata" | "other";
 }
 
 // Same keyword rules as parseRejectedConcerns above, applied per-line
@@ -47,6 +47,15 @@ export interface RejectionLine {
 // line(s) from a mixed rejection (e.g. show a dedicated, monitored cover
 // block plus a generic block for everything else, instead of one
 // undifferentiated paragraph the author has to parse themselves).
+//
+// "language" is split out of the generic "metadata" bucket (its own
+// category, checked before the metadata catch-all) so a field-level UI can
+// point a red ring at exactly the "Мова книги" select only when a rejection
+// line actually mentions language -- not at every metadata-adjacent field
+// (title/genre/description/price/...) whenever ANY of them is mentioned,
+// which previously made e.g. an "Опис замалий" line light up the unrelated
+// language dropdown too (output-data/page.tsx's showRejection used one
+// blind flag for the whole section AND every field inside it alike).
 export function splitRejectionLines(note: string): RejectionLine[] {
   return note
     .split("\n")
@@ -55,7 +64,8 @@ export function splitRejectionLines(note: string): RejectionLine[] {
       const n = text.toLowerCase();
       if (/обкладин/.test(n)) return { text, category: "cover" as const };
       if (/рукопис|docx|файл|конверт|epub|mobi/.test(n)) return { text, category: "manuscript" as const };
-      if (/назв|опис|жанр|мов|ціна|price|isbn|метадан|анотац|автор/.test(n)) return { text, category: "metadata" as const };
+      if (/мов/.test(n)) return { text, category: "language" as const };
+      if (/назв|опис|жанр|ціна|price|isbn|метадан|анотац|автор/.test(n)) return { text, category: "metadata" as const };
       return { text, category: "other" as const };
     });
 }
