@@ -27,4 +27,4 @@ jobs:
 
       - name: Deploy via SSH
         run: ssh -i ~/.ssh/deploy_key -p 22 root@${{ vars.SSH_HOST }} "bash /opt/knyha-platform/infra/scripts/deploy.sh"
-        timeout-minutes: 10
+        timeout-minutes: 20
