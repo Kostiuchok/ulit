@@ -1,5 +1,5 @@
 import { generateHTML } from "@tiptap/core";
-import { MANUSCRIPT_CORE_EXTENSIONS, OUTLINE_TIERS, splitFrontMatter, type StyledBlockStyleName } from "shared-types";
+import { MANUSCRIPT_CORE_EXTENSIONS, extractOutline, splitFrontMatter, type OutlineItem } from "shared-types";
 import { TocEntry } from "./tocEntry";
 
 // Same core extension set as ManuscriptEditor.tsx and the server-side
@@ -206,42 +206,6 @@ export async function paginateManuscript(
   return paginateNodes(nodes, contentHeight - 1);
 }
 
-export interface OutlineItem {
-  id: string;
-  text: string;
-  tier: number;
-}
-
-function textContentOf(node: any): string {
-  if (!node) return "";
-  if (node.type === "text") return node.text ?? "";
-  if (Array.isArray(node.content)) return node.content.map(textContentOf).join("");
-  return "";
-}
-
-// Same tiers/detection as ManuscriptEditor.tsx's extractOutline(), but
-// operating on plain JSON (no live TipTap Editor instance available here).
-function extractOutlineFromDoc(nodes: any[]): OutlineItem[] {
-  const items: OutlineItem[] = [];
-  function walk(node: any) {
-    if (!node || typeof node !== "object") return;
-    if (node.type === "paragraph") {
-      const style = node.attrs?.style as StyledBlockStyleName | undefined;
-      const tierIdx = style ? OUTLINE_TIERS.indexOf(style) : -1;
-      if (tierIdx !== -1) {
-        const text = textContentOf(node).trim();
-        // No id yet (content saved before StyledParagraph's id-backfill
-        // plugin last ran) -- can't reliably locate its page, so skip it
-        // rather than link the wrong entry.
-        if (text && node.attrs?.id) items.push({ id: node.attrs.id, text, tier: tierIdx });
-      }
-    }
-    if (Array.isArray(node.content)) node.content.forEach(walk);
-  }
-  nodes.forEach(walk);
-  return items;
-}
-
 function findPageIndexOfId(pages: PageLeaf[], id: string): number | null {
   const idx = pages.findIndex((p) => p.html.includes(`data-id="${id}"`));
   return idx === -1 ? null : idx;
@@ -272,7 +236,7 @@ export async function paginateManuscriptWithToc(
   const doc = content ?? EMPTY_DOC;
   const allContent: any[] = doc.content ?? [];
   const { front, body } = splitFrontMatter(allContent);
-  const outline = extractOutlineFromDoc(body);
+  const outline = extractOutline(body);
 
   if (outline.length === 0) {
     return paginateManuscript(doc, contentWidth, contentHeight, fontSizePx);

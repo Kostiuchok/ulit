@@ -2,6 +2,7 @@ export { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, type StyledBlockStyleName
 export { ResizableImage, type ImageAlign } from "./resizableImage";
 export { PageBreak } from "./pageBreak";
 export { splitFrontMatter } from "./splitFrontMatter";
+export { extractOutline, type OutlineItem } from "./outline";
 export {
   DEFAULT_PAGE_NUMBER_POSITION,
   PAGE_NUMBER_POSITION_LABELS,

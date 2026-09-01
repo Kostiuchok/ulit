@@ -61,7 +61,12 @@ export const StyledParagraph = Paragraph.extend({
       id: {
         default: null,
         parseHTML: (el: AttrElement) => el.getAttribute("data-id"),
-        renderHTML: (attrs: { id: string | null }) => ({ "data-id": attrs.id }),
+        // Also emits a real `id` attribute (not just `data-id`) -- the
+        // server-side print Зміст (printHtml.ts) needs an actual element id
+        // to reference via `target-counter(attr(href), page)` for WeasyPrint
+        // to resolve each entry's real printed page number.
+        renderHTML: (attrs: { id: string | null }) =>
+          attrs.id ? { "data-id": attrs.id, id: attrs.id } : {},
       },
       // Presentational-only override, independent of `style` -- used by the
       // generated front-matter (T-1962) for title-page/colophon-specific
