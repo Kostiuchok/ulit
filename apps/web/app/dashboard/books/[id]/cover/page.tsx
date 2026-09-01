@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
 import { CoverDesigner } from "@/components/books/CoverDesigner";
 import type { CoverFormat } from "@/components/books/CoverDesignerCanvas";
 import { useApi } from "@/hooks/useApi";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { parseRejectedConcerns } from "@/lib/rejectedBlocks";
+import { parseRejectedConcerns, splitRejectionLines } from "@/lib/rejectedBlocks";
 import { resolveBookPrintFormat } from "shared-types";
 
 interface BookAuthor {
@@ -66,7 +66,7 @@ export default function CoverPage() {
   const [loading, setLoading] = useState(true);
   const [format, setFormat] = useState<CoverFormat>("ebook");
   const [saved, setSaved] = useState(false);
-  const [locallyFixed, setLocallyFixed] = useState(false);
+  const [coverNoticeDismissed, setCoverNoticeDismissed] = useState(false);
   const [independentSaving, setIndependentSaving] = useState(false);
 
   useEffect(() => {
@@ -77,6 +77,11 @@ export default function CoverPage() {
   }, [token, id]);
 
   const trimFormat = resolveBookPrintFormat(book ?? {});
+  const coverRejected = !!book && parseRejectedConcerns(book).cover;
+  const coverResolved = !!book?.coverUrl;
+  const coverNoteLines = book?.moderationNote
+    ? splitRejectionLines(book.moderationNote).filter((l) => l.category === "cover")
+    : [];
 
   async function toggleIndependent(next: boolean) {
     setBook((b) => (b ? { ...b, coverIndependentFromBookData: next } : b));
@@ -96,9 +101,11 @@ export default function CoverPage() {
   }
 
   function handleSaved(patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) {
+    // No separate "locally fixed" flag needed anymore -- coverRejected's
+    // resolved/pending state above already derives straight from
+    // book.coverUrl, which this same patch just updated.
     setBook((b) => (b ? { ...b, ...patch } : b));
     setSaved(true);
-    setLocallyFixed(true);
     setTimeout(() => setSaved(false), 3000);
   }
 
@@ -155,9 +162,39 @@ export default function CoverPage() {
           </div>
         )}
 
-        {book && parseRejectedConcerns(book).cover && !locallyFixed && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 whitespace-pre-wrap">
-            Модератор зазначив зауваження щодо обкладинки: {book.moderationNote}
+        {/* Monitors the real coverUrl instead of "did the author click save
+            at all" (locallyFixed used to dismiss this the moment ANY cover
+            edit was saved, fixed or not) -- flips to a green resolved state
+            the moment a cover actually exists, no save/dismiss required to
+            notice that, and stays dismissable by hand either way. */}
+        {coverRejected && !coverNoticeDismissed && (
+          <div
+            className={cn(
+              "relative mb-4 rounded-xl border p-4 pr-11 text-sm",
+              coverResolved ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => setCoverNoticeDismissed(true)}
+              aria-label="Закрити"
+              className={cn(
+                "absolute right-2.5 top-2.5 rounded p-1 transition-colors",
+                coverResolved ? "text-green-500 hover:bg-green-100" : "text-red-500 hover:bg-red-100"
+              )}
+            >
+              <X size={16} />
+            </button>
+            <p className="font-medium">
+              {coverResolved ? "✓ Обкладинка додана" : "Модератор зазначив зауваження щодо обкладинки:"}
+            </p>
+            {!coverResolved && coverNoteLines.length > 0 && (
+              <div className="mt-1 space-y-0.5">
+                {coverNoteLines.map((l, i) => (
+                  <p key={i} className="whitespace-pre-wrap">{l.text}</p>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -188,7 +225,7 @@ export default function CoverPage() {
         <div
           className={cn(
             "rounded-xl border bg-white p-6 shadow-sm transition-shadow",
-            book && parseRejectedConcerns(book).cover && !locallyFixed && "ring-2 ring-yellow-400 ring-offset-2"
+            coverRejected && !coverResolved && !coverNoticeDismissed && "ring-2 ring-yellow-400 ring-offset-2"
           )}
         >
           <CoverDesigner

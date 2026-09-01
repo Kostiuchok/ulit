@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { X } from "lucide-react";
 import { PublicationTimeline } from "@/components/books/PublicationTimeline";
 import { PublishButton } from "@/components/books/PublishButton";
 import { RepublishButton } from "@/components/books/RepublishButton";
@@ -10,6 +12,8 @@ import { RelistButton } from "@/components/books/RelistButton";
 import { BookCoverCarousel } from "@/components/books/BookCoverCarousel";
 import { BookPromoSidebar } from "@/components/books/BookPromoSidebar";
 import { useBook } from "@/hooks/useBook";
+import { splitRejectionLines } from "@/lib/rejectedBlocks";
+import { cn } from "@/lib/utils";
 
 interface DashboardBook {
   status: string;
@@ -53,6 +57,8 @@ interface DashboardBook {
 export function BookDashboard() {
   const { id } = useParams<{ id: string }>();
   const { book, setBook, loading } = useBook<DashboardBook>(id);
+  const [coverNoticeDismissed, setCoverNoticeDismissed] = useState(false);
+  const [otherNoticeDismissed, setOtherNoticeDismissed] = useState(false);
 
   if (loading) {
     return (
@@ -65,17 +71,106 @@ export function BookDashboard() {
   const isPublished = book?.status === "PUBLISHED";
   const isUnpublished = book?.status === "UNPUBLISHED";
 
+  // T-2076-ish -- a rejection used to just sit as one raw paragraph of
+  // moderationNote until the author saved *anything* on the relevant page
+  // (locallyFixed, cover/page.tsx and output-data/page.tsx), which is a
+  // blind dismissal -- saving an unrelated tweak clears a still-unresolved
+  // "обкладинка застара" note just as readily as actually fixing it. The
+  // cover concern specifically can be checked against real data instead of
+  // guessing from "did the author click save": book.coverUrl either exists
+  // now or it doesn't. Split the note so the cover line(s) get their own
+  // monitored block (red while missing, flips green+checked the moment a
+  // cover exists -- no save/dismiss action required to notice that), and
+  // -- if the rejection was cover-only -- skip the generic block entirely
+  // rather than repeat the same line twice.
+  const rejectionLines = book?.moderationStatus === "REJECTED" && book.moderationNote
+    ? splitRejectionLines(book.moderationNote)
+    : [];
+  const coverLines = rejectionLines.filter((l) => l.category === "cover");
+  const otherLines = rejectionLines.filter((l) => l.category !== "cover");
+  const hasCoverNotice = coverLines.length > 0 && !coverNoticeDismissed;
+  const coverResolved = !!book?.coverUrl;
+  // No categorized lines matched at all (freeform note that didn't hit any
+  // keyword) -- fall back to the old undifferentiated block so a rejection
+  // never silently shows nothing.
+  const showGenericFallback =
+    book?.moderationStatus === "REJECTED" && rejectionLines.length === 0 && !otherNoticeDismissed;
+  const showOtherBlock = (otherLines.length > 0 || showGenericFallback) && !otherNoticeDismissed;
+
   return (
     <div className="min-h-screen bg-white p-8">
       <div className="space-y-8">
-        {book?.moderationStatus === "REJECTED" && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-5 space-y-2">
+        {hasCoverNotice && (
+          <div
+            className={cn(
+              "relative rounded-xl border p-5 pr-11 space-y-1.5",
+              coverResolved ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => setCoverNoticeDismissed(true)}
+              aria-label="Закрити"
+              className={cn(
+                "absolute right-3 top-3 rounded p-1 transition-colors",
+                coverResolved ? "text-green-500 hover:bg-green-100" : "text-red-500 hover:bg-red-100"
+              )}
+            >
+              <X size={16} />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className={coverResolved ? "text-green-600 text-lg" : "text-red-600 text-lg"}>
+                {coverResolved ? "✓" : "✕"}
+              </span>
+              <p className={cn("font-semibold", coverResolved ? "text-green-800" : "text-red-800")}>
+                {coverResolved ? "Обкладинка додана" : "Модератор зазначив зауваження щодо обкладинки"}
+              </p>
+            </div>
+            {!coverResolved && (
+              <div className="space-y-0.5 pl-6">
+                {coverLines.map((l, i) => (
+                  <p key={i} className="text-sm text-red-700 whitespace-pre-wrap">{l.text}</p>
+                ))}
+              </div>
+            )}
+            <p className={cn("pl-6 text-xs", coverResolved ? "text-green-600" : "text-red-500")}>
+              {coverResolved
+                ? "Це зауваження вважається вирішеним — модератор перевірить нову обкладинку разом з рештою книги."
+                : (
+                  <>
+                    Виправте на сторінці{" "}
+                    <Link href={`/dashboard/books/${id}/cover`} className="underline hover:no-underline">
+                      «Обкладинка»
+                    </Link>
+                    .
+                  </>
+                )}
+            </p>
+          </div>
+        )}
+
+        {showOtherBlock && (
+          <div className="relative rounded-xl border border-red-200 bg-red-50 p-5 pr-11 space-y-2">
+            <button
+              type="button"
+              onClick={() => setOtherNoticeDismissed(true)}
+              aria-label="Закрити"
+              className="absolute right-3 top-3 rounded p-1 text-red-500 transition-colors hover:bg-red-100"
+            >
+              <X size={16} />
+            </button>
             <div className="flex items-center gap-2">
               <span className="text-red-600 text-lg">✕</span>
               <p className="font-semibold text-red-800">Книгу відхилено модератором</p>
             </div>
-            {book.moderationNote ? (
-              <p className="text-sm text-red-700 whitespace-pre-wrap">{book.moderationNote}</p>
+            {showGenericFallback ? (
+              <p className="text-sm text-red-700 whitespace-pre-wrap">{book!.moderationNote}</p>
+            ) : otherLines.length > 0 ? (
+              <div className="space-y-0.5">
+                {otherLines.map((l, i) => (
+                  <p key={i} className="text-sm text-red-700 whitespace-pre-wrap">{l.text}</p>
+                ))}
+              </div>
             ) : (
               <p className="text-sm text-red-600">Причину не вказано. Зверніться до підтримки.</p>
             )}

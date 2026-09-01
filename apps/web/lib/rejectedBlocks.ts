@@ -37,6 +37,29 @@ export type OutputDataSectionKey = "info" | "file" | "price" | "review" | "publi
 // act on from either page (e.g. ISBN, which only the admin can enter via
 // "Книжкова палата"; or the pageCount pipeline bug, which isn't a content
 // problem at all).
+export interface RejectionLine {
+  text: string;
+  category: "cover" | "manuscript" | "metadata" | "other";
+}
+
+// Same keyword rules as parseRejectedConcerns above, applied per-line
+// instead of to the whole note -- lets a caller isolate just the cover
+// line(s) from a mixed rejection (e.g. show a dedicated, monitored cover
+// block plus a generic block for everything else, instead of one
+// undifferentiated paragraph the author has to parse themselves).
+export function splitRejectionLines(note: string): RejectionLine[] {
+  return note
+    .split("\n")
+    .filter((line) => line.trim().length > 0)
+    .map((text) => {
+      const n = text.toLowerCase();
+      if (/обкладин/.test(n)) return { text, category: "cover" as const };
+      if (/рукопис|docx|файл|конверт|epub|mobi/.test(n)) return { text, category: "manuscript" as const };
+      if (/назв|опис|жанр|мов|ціна|price|isbn|метадан|анотац|автор/.test(n)) return { text, category: "metadata" as const };
+      return { text, category: "other" as const };
+    });
+}
+
 export function resolveRejectionLineSection(line: string): OutputDataSectionKey | "cover-page" | null {
   const n = line.toLowerCase();
   if (/обкладин/.test(n)) return "cover-page";
