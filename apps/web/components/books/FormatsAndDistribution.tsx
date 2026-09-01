@@ -208,7 +208,7 @@ export function FormatsAndDistribution({
       {/* ── Друкована книга ─────────────────────────────────────────────── */}
       <div className="rounded-xl border bg-white p-4 space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Продаж друкованої книги</h3>
+          <h3 className="text-base font-bold text-gray-900">Продаж друкованої книги</h3>
           <p className="mt-0.5 text-xs text-gray-500">
             Формат {formatLabel}
             {pageCount ? ` · ${pageCount} стор.` : ""} · м&apos;яка або тверда обкладинка, кольоровий друк
@@ -272,7 +272,7 @@ export function FormatsAndDistribution({
       {/* ── Електронна книга ────────────────────────────────────────────── */}
       <div className="rounded-xl border bg-white p-4 space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Продаж електронної книги</h3>
+          <h3 className="text-base font-bold text-gray-900">Продаж електронної книги</h3>
           <p className="mt-0.5 text-xs text-gray-500">EPUB, FB2, MOBI — для читалок і смартфонів</p>
         </div>
 

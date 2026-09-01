@@ -944,10 +944,13 @@ function OutputDataContent() {
 
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <form onSubmit={priceForm.handleSubmit(onSubmitPrice)} className="space-y-3">
-              <p className="text-xs font-medium text-gray-500">
-                Чорно-білий друк (дешевше в типографії, опційно) — заповніть, якщо хочете запропонувати покупцю
-                дешевший варіант поруч із кольоровим. Пряма ціна для покупця, без калькулятора гонорару.
-              </p>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Чорно-білий друк</h3>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Дешевше в типографії, опційно — заповніть, якщо хочете запропонувати покупцю дешевший варіант
+                  поруч із кольоровим. Пряма ціна для покупця, без калькулятора гонорару.
+                </p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="pricePrintBw">Друк ч/б, м&apos;яка (грн)</Label>
