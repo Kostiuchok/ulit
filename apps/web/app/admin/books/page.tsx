@@ -123,7 +123,12 @@ function BookRow({
             <div className="h-12 w-8 rounded bg-gray-100 flex items-center justify-center text-lg shrink-0">📖</div>
           )}
           <div className="min-w-0">
-            <p className={`font-medium truncate max-w-xs ${rejected ? "text-gray-500" : "text-gray-900"}`}>{book.title}</p>
+            <Link
+              href={`/admin/books/${book.id}/distribute`}
+              className={`block truncate max-w-xs font-medium hover:underline ${rejected ? "text-gray-500" : "text-gray-900"}`}
+            >
+              {book.title}
+            </Link>
             <p className="text-xs text-gray-400">{book.author.name}</p>
             {book.isbn && <p className="text-xs font-mono text-gray-400">{book.isbn}</p>}
           </div>
