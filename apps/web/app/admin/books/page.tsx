@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
@@ -70,6 +70,46 @@ function formatDateTime(date: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatDateOnly(date: string): string {
+  return new Date(date).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function formatTimeOnly(date: string): string {
+  return new Date(date).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
+}
+
+// Resizable admin/books table -- one width per column, persisted so an
+// admin's preferred proportions survive a reload. Column order/count here
+// must stay in sync with the <colgroup>/<th> list below.
+const TABLE_COLUMNS = [
+  "Книга",
+  "Статус",
+  "Дата/час",
+  "Чеклист",
+  "D2D / KDP / Google",
+  "Публікація",
+  "Відхилити",
+  "Дистрибуція",
+  "Файли",
+] as const;
+const DEFAULT_COLUMN_WIDTHS = [260, 110, 140, 190, 150, 140, 110, 120, 90];
+const COLUMN_WIDTHS_STORAGE_KEY = "ulit-admin-books-col-widths";
+const MIN_COLUMN_WIDTH = 60;
+
+function loadColumnWidths(): number[] {
+  if (typeof window === "undefined") return DEFAULT_COLUMN_WIDTHS;
+  try {
+    const raw = window.localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(parsed) && parsed.length === DEFAULT_COLUMN_WIDTHS.length && parsed.every((w) => typeof w === "number")) {
+      return parsed;
+    }
+  } catch {
+    // malformed/blocked localStorage -- fall back to defaults below
+  }
+  return DEFAULT_COLUMN_WIDTHS;
 }
 
 function Checklist({ book }: { book: Book }) {
@@ -204,12 +244,33 @@ function BookRow({
             });
           }
           if (entries.length === 0) return <span className="text-xs text-gray-300">—</span>;
+
+          // Grouped by calendar date -- the date printed once per group,
+          // followed by one compact "icon time" chip per event that day,
+          // instead of the full date+time repeated on every line. Most rows
+          // only ever have one date group (everything happened same-day),
+          // collapsing 3-4 lines down to 2.
+          const groups: { dateKey: string; items: typeof entries }[] = [];
+          for (const e of entries) {
+            const dateKey = formatDateOnly(e.date);
+            const g = groups.find((g) => g.dateKey === dateKey);
+            if (g) g.items.push(e);
+            else groups.push({ dateKey, items: [e] });
+          }
+
           return (
-            <div className={`space-y-0.5 text-xs ${rejected ? "text-gray-400" : "text-gray-600"}`}>
-              {entries.map((e) => (
-                <p key={e.key} title={e.title} className={e.className}>
-                  {e.icon} {formatDateTime(e.date)}
-                </p>
+            <div className={`space-y-1 text-xs ${rejected ? "text-gray-400" : "text-gray-600"}`}>
+              {groups.map((g) => (
+                <div key={g.dateKey}>
+                  <p className="font-medium">{g.dateKey}</p>
+                  <p className="flex flex-wrap gap-x-1.5">
+                    {g.items.map((e) => (
+                      <span key={e.key} title={`${e.title} — ${formatDateTime(e.date)}`} className={e.className}>
+                        {e.icon} {formatTimeOnly(e.date)}
+                      </span>
+                    ))}
+                  </p>
+                </div>
               ))}
             </div>
           );
@@ -328,6 +389,38 @@ export default function AdminBooksPage() {
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "");
   const [modFilter, setModFilter] = useState(searchParams.get("mod") ?? "");
   const [search, setSearch] = useState("");
+
+  const [colWidths, setColWidths] = useState<number[]>(DEFAULT_COLUMN_WIDTHS);
+  useEffect(() => { setColWidths(loadColumnWidths()); }, []);
+  const resizeRef = useRef<{ index: number; startX: number; startWidth: number } | null>(null);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    const r = resizeRef.current;
+    if (!r) return;
+    const next = Math.max(MIN_COLUMN_WIDTH, r.startWidth + (e.clientX - r.startX));
+    setColWidths((prev) => prev.map((w, i) => (i === r.index ? next : w)));
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    resizeRef.current = null;
+    document.removeEventListener("mousemove", handleResizeMove);
+    document.removeEventListener("mouseup", handleResizeEnd);
+    setColWidths((prev) => {
+      try {
+        window.localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify(prev));
+      } catch {
+        // storage blocked/full -- widths still apply for this session
+      }
+      return prev;
+    });
+  }, [handleResizeMove]);
+
+  function handleResizeStart(index: number, e: ReactMouseEvent) {
+    e.preventDefault();
+    resizeRef.current = { index, startX: e.clientX, startWidth: colWidths[index] };
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+  }
 
   const activeBooks = books.filter((b) => b.moderationStatus !== "REJECTED");
   const rejectedBooks = books.filter((b) => b.moderationStatus === "REJECTED");
@@ -494,18 +587,26 @@ export default function AdminBooksPage() {
           <div className="p-8 text-center text-gray-400">Книг не знайдено</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="text-sm" style={{ tableLayout: "fixed", width: colWidths.reduce((a, b) => a + b, 0) }}>
+              <colgroup>
+                {colWidths.map((w, i) => (
+                  <col key={TABLE_COLUMNS[i]} style={{ width: w }} />
+                ))}
+              </colgroup>
               <thead className="border-b bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Книга</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Статус</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Дата/час</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Чеклист</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">D2D / KDP / Google</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Публікація</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Відхилити</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Дистрибуція</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Файли</th>
+                  {TABLE_COLUMNS.map((label, i) => (
+                    <th key={label} className="relative px-4 py-3 text-left font-semibold text-gray-600 select-none">
+                      <span className="block truncate">{label}</span>
+                      {/* Drag handle -- widens/narrows this column only, persisted to
+                          localStorage on mouseup so an admin's preferred layout survives
+                          a reload instead of resetting to the defaults every visit. */}
+                      <span
+                        onMouseDown={(e) => handleResizeStart(i, e)}
+                        className="absolute right-0 top-0 h-full w-2 cursor-col-resize hover:bg-gray-300 active:bg-gray-400"
+                      />
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y">
