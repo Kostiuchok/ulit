@@ -48,7 +48,7 @@ export default function PrintOrderPage() {
 
   return (
     <div className="p-8">
-      <div className="max-w-3xl space-y-6">
+      <div className="space-y-6">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">Замовити тираж</h1>
           <p className="mt-1 text-sm text-gray-500">

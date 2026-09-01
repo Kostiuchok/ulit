@@ -496,7 +496,7 @@ function OutputDataContent() {
 
   return (
     <div className="p-8">
-      <div className="max-w-3xl space-y-6">
+      <div className="space-y-6">
         {/* T-2073 -- sticky header: title + anchor nav pinned together, not
             real tabs -- clicking a pill just scrolls to that section,
             everything below stays rendered and the single "Зберегти
