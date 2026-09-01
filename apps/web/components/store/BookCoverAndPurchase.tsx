@@ -51,7 +51,19 @@ export function BookCoverAndPurchase({
 }: Props) {
   const hasEbook = priceEbook != null;
   const hasPrint = !!(pricePrint || pricePrintHardcover || pricePrintBw || pricePrintHardcoverBw);
-  const [format, setFormat] = useState<"ebook" | "print">(hasEbook ? "ebook" : "print");
+  // Carousel's own slide key is the single source of truth (front/back are
+  // both "print", so a plain ebook/print format value can't tell them apart
+  // -- driving activeKey off just that format used to snap "print-back"
+  // straight back to "print-front" on every click, since format never
+  // actually changed). `format` for the purchase widget is derived from it;
+  // the widget can still push a format change back in, which resets to that
+  // format's front slide (handleFormatChange below), same as before.
+  const [coverKey, setCoverKey] = useState<string>(hasEbook ? "ebook" : "print-front");
+  const format: "ebook" | "print" = coverKey === "ebook" ? "ebook" : "print";
+
+  function handleFormatChange(next: "ebook" | "print") {
+    setCoverKey(next === "ebook" ? "ebook" : "print-front");
+  }
 
   return (
     <>
@@ -66,8 +78,8 @@ export function BookCoverAndPurchase({
             printWidthMm={printWidthMm}
             printHeightMm={printHeightMm}
             printFormatKey={printFormatKey}
-            activeKey={format === "ebook" ? "ebook" : "print-front"}
-            onActiveKeyChange={(key) => setFormat(key === "ebook" ? "ebook" : "print")}
+            activeKey={coverKey}
+            onActiveKeyChange={setCoverKey}
           />
         ) : (
           <div className="flex aspect-[2/3] w-full items-center justify-center rounded-xl bg-gray-100 text-7xl">
@@ -104,7 +116,7 @@ export function BookCoverAndPurchase({
           pricePrintBw={pricePrintBw}
           pricePrintHardcoverBw={pricePrintHardcoverBw}
           format={format}
-          onFormatChange={setFormat}
+          onFormatChange={handleFormatChange}
         />
       </div>
     </>
