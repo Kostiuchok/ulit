@@ -26,6 +26,19 @@ import { PRINT_FORMATS, PRINT_FORMAT_KEYS, resolveBookPrintFormat, type PrintFor
 const DESCRIPTION_MIN_LENGTH = 120;
 const DESCRIPTION_MAX_LENGTH = 500;
 
+// Each external platform's own annotation-length recommendation -- kept in
+// sync manually with admin/books/[id]/distribute/page.tsx's per-platform
+// checklist (same numbers, "desc" check per platform). Ulit's own gate
+// above (120-500) is the only thing that actually blocks /publish; these are
+// informational -- live badges here let the author see, while typing,
+// which stores their annotation is already long enough for, in ascending
+// order so badges light up left-to-right as they keep writing.
+const DESCRIPTION_PLATFORM_TARGETS = [
+  { key: "d2d", label: "D2D", minChars: 50 },
+  { key: "google", label: "Google Play", minChars: 150 },
+  { key: "kdp", label: "Amazon KDP", minChars: 250 },
+] as const;
+
 const infoSchema = z.object({
   title: z.string().min(3, "Назва має містити щонайменше 3 символи").max(255),
   subtitle: z.string().max(255).optional(),
@@ -632,6 +645,24 @@ function OutputDataContent() {
               </div>
 
               <div className="space-y-1.5">
+                <div className="flex items-center justify-end gap-1.5">
+                  {DESCRIPTION_PLATFORM_TARGETS.map((p) => {
+                    const reached = descValue.length >= p.minChars;
+                    return (
+                      <span
+                        key={p.key}
+                        title={`${p.label}: рекомендовано від ${p.minChars} символів`}
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium transition-colors",
+                          reached ? "border-green-300 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"
+                        )}
+                      >
+                        {reached ? "✓ " : ""}
+                        {p.label} {p.minChars}+
+                      </span>
+                    );
+                  })}
+                </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="description">Анотація *</Label>
                   <span
