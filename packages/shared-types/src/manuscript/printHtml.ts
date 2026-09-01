@@ -85,17 +85,33 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
       break-after: page;
     }
 
-    /* Author-inserted manual page break -- real break, no visible marker
-       (the dashed line + "Розрив сторінки" label from MANUSCRIPT_PROSE_CSS
-       is an editor-only affordance, meaningless in the final print file). */
+    /* Strip the editor-only visual marker (dashed line + "Розрив сторінки"
+       label from MANUSCRIPT_PROSE_CSS) everywhere in print -- both the
+       front-matter's structural title/colophon separator and any
+       author-inserted manual break in the body use this same div. */
     .manuscript-prose div[data-type="page-break"] {
-      break-before: page;
       height: 0;
       margin: 0;
       border: none;
     }
     .manuscript-prose div[data-type="page-break"]::after {
       content: none;
+    }
+    /* Author-inserted manual page break -- real forced break, scoped to the
+       BODY only. The front-matter's own page-break div (title -> colophon)
+       must NOT get break-before:page here: it already forces positioning via
+       .front-matter div[data-type="page-break"] { break-after: verso } above,
+       and stacking break-before:page on top double-breaks it -- verified
+       against a real WeasyPrint render, this combination produced two
+       consecutive blank pages before the colophon instead of the intended
+       single verso-aligned page (break-before:page forces the empty div onto
+       its own new page, which already happens to be verso; break-after:verso
+       then evaluates the page AFTER that one -- recto -- and inserts a
+       second blank to reach the next verso). Dropping break-before:page here
+       leaves the div flowing inline (zero height, no break) right after the
+       title content, so break-after:verso alone decides the colophon's page. */
+    .manuscript-body div[data-type="page-break"] {
+      break-before: page;
     }
 
     /* Auto-generated Зміст (see outline.ts): always starts on a fresh recto

@@ -45,7 +45,13 @@ export function BookCoverCarousel({
   if (hasEbook) {
     slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} /> });
   }
-  if (hasPrint) {
+  // A designed back cover is itself proof of print intent (CoverDesigner's
+  // back-cover panel only exists for the print edition) -- an author who's
+  // just finished the cover but hasn't set a print price yet (hasPrint,
+  // price-driven) would otherwise get an orphaned back-cover slide with no
+  // matching front-cover slide beside it, which reads as broken.
+  const hasPrintCover = hasPrint || !!backCoverUrl;
+  if (hasPrintCover) {
     slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} trimMm={trimMm} /> });
   }
   if (backCoverUrl) {
