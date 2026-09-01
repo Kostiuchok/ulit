@@ -16,6 +16,7 @@ interface Book {
   genre?: string | null;
   language?: string;
   publishedAt?: string | null;
+  rejectedAt?: string | null;
   republishRequestedAt?: string | null;
   publicationTimeline?: Record<string, string> | null;
   distributionStrategy?: string;
@@ -154,23 +155,65 @@ function BookRow({
         </div>
       </td>
       <td className="px-4 py-3">
-        {book.publicationTimeline?.submitted ? (
-          <div className={`space-y-0.5 text-xs ${rejected ? "text-gray-400" : "text-gray-600"}`}>
-            <p title="Вперше надіслано на модерацію">🕓 {formatDateTime(book.publicationTimeline.submitted)}</p>
-            {/* lastSubmitted only differs from submitted once the author has
-                actually resubmitted at least once (e.g. after a rejection) --
-                shown as a second line so "як активно автор займається" is
-                visible at a glance, not just the original submission date. */}
-            {book.publicationTimeline.lastSubmitted &&
-              book.publicationTimeline.lastSubmitted !== book.publicationTimeline.submitted && (
-                <p title="Востаннє повторно надіслано на модерацію" className={rejected ? "" : "text-blue-600"}>
-                  ↻ {formatDateTime(book.publicationTimeline.lastSubmitted)}
+        {(() => {
+          // One line per lifecycle timestamp that actually happened to this
+          // book, most-recent-relevant kept alongside the submission dates --
+          // covers submit/resubmit (existing), and now also затвердження
+          // (moderationStatus APPROVED), публікація (status PUBLISHED), and
+          // відхилення (status DRAFT after a reject), each keyed off the
+          // status/moderationStatus that's actually showing in the cell
+          // next to this one, so the date always matches what's displayed.
+          const entries: { key: string; icon: string; title: string; date: string; className?: string }[] = [];
+          if (book.publicationTimeline?.submitted) {
+            entries.push({ key: "submitted", icon: "🕓", title: "Вперше надіслано на модерацію", date: book.publicationTimeline.submitted });
+          }
+          if (book.publicationTimeline?.lastSubmitted && book.publicationTimeline.lastSubmitted !== book.publicationTimeline?.submitted) {
+            entries.push({
+              key: "lastSubmitted",
+              icon: "↻",
+              title: "Востаннє повторно надіслано на модерацію",
+              date: book.publicationTimeline.lastSubmitted,
+              className: rejected ? "" : "text-blue-600",
+            });
+          }
+          if (book.moderationStatus === "APPROVED" && book.publicationTimeline?.review_done) {
+            entries.push({
+              key: "approved",
+              icon: "✅",
+              title: "Дата затвердження адміном",
+              date: book.publicationTimeline.review_done,
+              className: rejected ? "" : "text-green-600",
+            });
+          }
+          if (book.status === "PUBLISHED" && book.publishedAt) {
+            entries.push({
+              key: "published",
+              icon: "📚",
+              title: "Дата публікації в магазині",
+              date: book.publishedAt,
+              className: rejected ? "" : "text-green-700",
+            });
+          }
+          if (book.status === "DRAFT" && book.moderationStatus === "REJECTED" && book.rejectedAt) {
+            entries.push({
+              key: "rejected",
+              icon: "↩",
+              title: "Дата відхилення адміном",
+              date: book.rejectedAt,
+              className: rejected ? "" : "text-red-600",
+            });
+          }
+          if (entries.length === 0) return <span className="text-xs text-gray-300">—</span>;
+          return (
+            <div className={`space-y-0.5 text-xs ${rejected ? "text-gray-400" : "text-gray-600"}`}>
+              {entries.map((e) => (
+                <p key={e.key} title={e.title} className={e.className}>
+                  {e.icon} {formatDateTime(e.date)}
                 </p>
-              )}
-          </div>
-        ) : (
-          <span className="text-xs text-gray-300">—</span>
-        )}
+              ))}
+            </div>
+          );
+        })()}
       </td>
       <td className="px-4 py-3">
         <Checklist book={book} />
@@ -188,25 +231,19 @@ function BookRow({
           </span>
         </div>
       </td>
+      {/* Дії split into one column per action TYPE (not per row) so the same
+          kind of action always lands in the same column across every book --
+          scannable at a glance instead of hunting a crowded single cell. */}
       <td className="px-4 py-3">
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="flex flex-col items-start gap-1">
           {pendingRepublish && (
-            <>
-              <button
-                onClick={() => onApproveRepublish(book.id)}
-                disabled={actionLoading === book.id + "_approveRepublish"}
-                className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                ✓ Схвалити зміни
-              </button>
-              <button
-                onClick={() => onRejectRepublish(book.id)}
-                disabled={actionLoading === book.id + "_rejectRepublish"}
-                className="rounded-md bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
-              >
-                ✕ Відхилити зміни
-              </button>
-            </>
+            <button
+              onClick={() => onApproveRepublish(book.id)}
+              disabled={actionLoading === book.id + "_approveRepublish"}
+              className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              ✓ Схвалити зміни
+            </button>
           )}
           {book.status === "PUBLISHED" ? (
             <span className="rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
@@ -228,6 +265,19 @@ function BookRow({
               </button>
             )
           )}
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-col items-start gap-1">
+          {pendingRepublish && (
+            <button
+              onClick={() => onRejectRepublish(book.id)}
+              disabled={actionLoading === book.id + "_rejectRepublish"}
+              className="rounded-md bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+            >
+              ✕ Відхилити зміни
+            </button>
+          )}
           {book.status !== "DRAFT" && (
             <button
               onClick={() => onRejectClick(book.id)}
@@ -236,22 +286,26 @@ function BookRow({
               ✕ Відхилити
             </button>
           )}
-          {(book.status === "PUBLISHED" || book.moderationStatus === "APPROVED") && (
-            <Link
-              href={`/admin/books/${book.id}/distribute`}
-              className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-            >
-              {book.status === "PUBLISHED" ? "📦 Розіслати" : "📦 Публікація"}
-            </Link>
-          )}
-          <button
-            onClick={() => onFilesClick(book)}
-            className="rounded-md border px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50"
-            title="Завантажити файли"
-          >
-            📁 Файли
-          </button>
         </div>
+      </td>
+      <td className="px-4 py-3">
+        {(book.status === "PUBLISHED" || book.moderationStatus === "APPROVED") && (
+          <Link
+            href={`/admin/books/${book.id}/distribute`}
+            className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+          >
+            {book.status === "PUBLISHED" ? "📦 Розіслати" : "📦 Публікація"}
+          </Link>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <button
+          onClick={() => onFilesClick(book)}
+          className="rounded-md border px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50"
+          title="Завантажити файли"
+        >
+          📁 Файли
+        </button>
       </td>
     </tr>
   );
@@ -448,7 +502,10 @@ export default function AdminBooksPage() {
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">Дата/час</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">Чеклист</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">D2D / KDP / Google</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-600">Дії</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Публікація</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Відхилити</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Дистрибуція</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Файли</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -467,7 +524,7 @@ export default function AdminBooksPage() {
                 ))}
                 {rejectedBooks.length > 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-2">
+                    <td colSpan={9} className="px-4 py-2">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Відхилені</span>
                         <div className="h-px flex-1 bg-gray-200" />

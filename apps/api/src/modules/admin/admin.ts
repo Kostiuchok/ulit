@@ -80,6 +80,7 @@ const BOOK_ADMIN_SELECT = {
   bbkCode: true,
   authorSign: true,
   bookChamberSubmittedAt: true,
+  rejectedAt: true,
   coverUrl: true,
   epubUrl: true,
   fb2Url: true,
@@ -373,6 +374,7 @@ export async function adminRoutes(app: FastifyInstance) {
           moderationStatus: "REJECTED",
           status: "DRAFT",
           moderationNote: body.reason ?? null,
+          rejectedAt: new Date(),
         },
         select: BOOK_ADMIN_SELECT,
       });
