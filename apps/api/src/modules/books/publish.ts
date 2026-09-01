@@ -179,7 +179,18 @@ export async function publishRoute(app: FastifyInstance) {
       }
 
       const now = new Date();
-      const timeline = { ...((book.publicationTimeline as Record<string, string>) ?? {}), submitted: now.toISOString() };
+      const prevTimeline = (book.publicationTimeline as Record<string, string>) ?? {};
+      const timeline = {
+        ...prevTimeline,
+        // "submitted" is the FIRST-ever submission -- never overwritten once
+        // set, so admin/books can show "коли автор вперше надіслав" even
+        // after several rounds of rejection+resubmit. "lastSubmitted" always
+        // reflects the most recent one (including the first, where the two
+        // are identical) -- the pair together shows how actively an author
+        // is engaging with a rejected book, not just that they touched it once.
+        submitted: prevTimeline.submitted ?? now.toISOString(),
+        lastSubmitted: now.toISOString(),
+      };
 
       // Resubmission after a rejection must clear the old REJECTED verdict --
       // moderationStatus/moderationNote otherwise stay stuck on the rejection

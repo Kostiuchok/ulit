@@ -11,6 +11,12 @@ interface Stats {
   pendingRoyalties: number;
   recentReview: ActionBook[];
   pendingRepublish: ActionBook[];
+  queueCounts: {
+    review: number;
+    distribution: number;
+    isbn: number;
+    royalties: number;
+  };
 }
 
 interface ActionBook {
@@ -254,19 +260,29 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Quick links */}
+      {/* Quick links -- each carries a count badge from stats.queueCounts,
+          mirroring exactly what the linked page itself would show, so the
+          number is never a guess (see /api/admin/stats' comments for how
+          each is computed). Doubles as a "did this fill back up" signal --
+          e.g. a resubmitted book reappearing under "Модерація книг" bumps
+          this number even if nobody's actively looking at the queue itself. */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
-          { href: "/admin/books?status=REVIEW", label: "Модерація книг", icon: "✅", color: "border-yellow-200 bg-yellow-50" },
-          { href: "/admin/distribution/queue", label: "Черга дистрибуції", icon: "📦", color: "border-blue-200 bg-blue-50" },
-          { href: "/admin/isbn-queue", label: "Реєстрація ISBN", icon: "🔖", color: "border-purple-200 bg-purple-50" },
-          { href: "/admin/royalties?status=PENDING", label: "Виплати роялті", icon: "💰", color: "border-green-200 bg-green-50" },
+          { href: "/admin/books?status=REVIEW", label: "Модерація книг", icon: "✅", color: "border-yellow-200 bg-yellow-50", count: stats?.queueCounts?.review },
+          { href: "/admin/distribution/queue", label: "Черга дистрибуції", icon: "📦", color: "border-blue-200 bg-blue-50", count: stats?.queueCounts?.distribution },
+          { href: "/admin/isbn-queue", label: "Реєстрація ISBN", icon: "🔖", color: "border-purple-200 bg-purple-50", count: stats?.queueCounts?.isbn },
+          { href: "/admin/royalties?status=PENDING", label: "Виплати роялті", icon: "💰", color: "border-green-200 bg-green-50", count: stats?.queueCounts?.royalties },
         ].map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className={`rounded-xl border p-5 hover:shadow-md transition-shadow ${link.color}`}
+            className={`relative rounded-xl border p-5 hover:shadow-md transition-shadow ${link.color}`}
           >
+            {!!link.count && (
+              <span className="absolute right-3 top-3 flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-900 px-1.5 text-xs font-bold text-white">
+                {link.count > 99 ? "99+" : link.count}
+              </span>
+            )}
             <p className="text-3xl mb-2">{link.icon}</p>
             <p className="text-sm font-semibold text-gray-900">{link.label}</p>
           </Link>

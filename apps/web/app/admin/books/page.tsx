@@ -61,8 +61,14 @@ const EXT_ICONS: Record<string, string> = {
   ERROR: "✕",
 };
 
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("uk-UA");
+function formatDateTime(date: string): string {
+  return new Date(date).toLocaleString("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function Checklist({ book }: { book: Book }) {
@@ -132,14 +138,6 @@ function BookRow({
           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${rejected ? "bg-gray-200 text-gray-500" : MOD_COLORS[book.moderationStatus] ?? "bg-gray-100 text-gray-600"}`}>
             {book.moderationStatus}
           </span>
-          {book.publicationTimeline?.submitted && (
-            <p
-              className={`text-xs ${rejected ? "text-gray-400" : "text-gray-500"}`}
-              title={new Date(book.publicationTimeline.submitted).toLocaleString("uk-UA")}
-            >
-              🕓 Надіслано {formatDate(book.publicationTimeline.submitted)}
-            </p>
-          )}
           {pendingRepublish && (
             <>
               <br />
@@ -149,6 +147,25 @@ function BookRow({
             </>
           )}
         </div>
+      </td>
+      <td className="px-4 py-3">
+        {book.publicationTimeline?.submitted ? (
+          <div className={`space-y-0.5 text-xs ${rejected ? "text-gray-400" : "text-gray-600"}`}>
+            <p title="Вперше надіслано на модерацію">🕓 {formatDateTime(book.publicationTimeline.submitted)}</p>
+            {/* lastSubmitted only differs from submitted once the author has
+                actually resubmitted at least once (e.g. after a rejection) --
+                shown as a second line so "як активно автор займається" is
+                visible at a glance, not just the original submission date. */}
+            {book.publicationTimeline.lastSubmitted &&
+              book.publicationTimeline.lastSubmitted !== book.publicationTimeline.submitted && (
+                <p title="Востаннє повторно надіслано на модерацію" className={rejected ? "" : "text-blue-600"}>
+                  ↻ {formatDateTime(book.publicationTimeline.lastSubmitted)}
+                </p>
+              )}
+          </div>
+        ) : (
+          <span className="text-xs text-gray-300">—</span>
+        )}
       </td>
       <td className="px-4 py-3">
         <Checklist book={book} />
@@ -423,6 +440,7 @@ export default function AdminBooksPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">Книга</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">Статус</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Дата/час</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">Чеклист</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-600">D2D / KDP / Google</th>
                   <th className="px-4 py-3 text-right font-semibold text-gray-600">Дії</th>
@@ -444,7 +462,7 @@ export default function AdminBooksPage() {
                 ))}
                 {rejectedBooks.length > 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-2">
+                    <td colSpan={6} className="px-4 py-2">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Відхилені</span>
                         <div className="h-px flex-1 bg-gray-200" />

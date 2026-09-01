@@ -29,7 +29,7 @@ function formatAuthorFullName(bookAuthors: unknown): string | null {
 // is actually present -- this mirrors IsbnReadinessChecklist's checks
 // (output-data/page.tsx) but server-side, since that's what gates which
 // books show up in /api/admin/isbn-queue, not just what nudges the author.
-function isIsbnReady(book: {
+export function isIsbnReady(book: {
   description: string | null;
   bookAuthors: unknown;
   coverUrl: string | null;

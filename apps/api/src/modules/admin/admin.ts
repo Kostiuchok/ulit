@@ -13,6 +13,7 @@ import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
 import { queuePublishedEmail, queueRejectedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
 import { enqueueConversionJobs } from "../../services/publishing.service";
 import { withAvatarVersion } from "../../lib/coverVersion";
+import { isIsbnReady } from "./book-chamber";
 
 const KDP_SELECT_DAYS = 90;
 const WARN_BEFORE_DAYS = 7;
@@ -124,7 +125,17 @@ const BOOK_ADMIN_SELECT = {
 export async function adminRoutes(app: FastifyInstance) {
   // ─── Stats ────────────────────────────────────────────────────────────────
   app.get("/api/admin/stats", { preHandler: requireAdmin }, async (_request, reply) => {
-    const [bookCounts, orderCounts, revenueAgg, royaltiesAgg, recentReview, pendingRepublish] = await Promise.all([
+    const [
+      bookCounts,
+      orderCounts,
+      revenueAgg,
+      royaltiesAgg,
+      pendingRoyaltiesCount,
+      recentReview,
+      pendingRepublish,
+      distributionQueueCount,
+      isbnCandidates,
+    ] = await Promise.all([
       prisma.book.groupBy({ by: ["status"], _count: { id: true } }),
       prisma.order.groupBy({ by: ["status"], _count: { id: true } }),
       prisma.order.aggregate({
@@ -135,6 +146,7 @@ export async function adminRoutes(app: FastifyInstance) {
         where: { status: "PENDING" },
         _sum: { amount: true },
       }),
+      prisma.royalty.count({ where: { status: "PENDING" } }),
       prisma.book.findMany({
         where: { status: "REVIEW" },
         select: BOOK_ADMIN_SELECT,
@@ -153,6 +165,29 @@ export async function adminRoutes(app: FastifyInstance) {
         select: BOOK_ADMIN_SELECT,
         orderBy: { republishRequestedAt: "desc" },
         take: 10,
+      }),
+      // Same where-clause as /api/admin/distribution/queue -- kept in sync
+      // manually (a Prisma `where` object isn't trivially shareable as a
+      // named export the way isIsbnReady is), just for the dashboard's quick
+      // link badge, not the actual queue list itself.
+      prisma.book.count({
+        where: {
+          status: "PUBLISHED",
+          moderationStatus: "APPROVED",
+          OR: [
+            { d2dStatus: "NOT_SENT", distributionStrategy: "WIDE" },
+            { kdpStatus: "NOT_SENT" },
+            { googleStatus: "NOT_SENT", distributionStrategy: "WIDE" },
+          ],
+        },
+      }),
+      // isIsbnReady is a JS predicate (not expressible as a Prisma `where`),
+      // same as /api/admin/isbn-queue -- fetch the same DB-filterable subset
+      // and re-use that exact function so this count can never drift from
+      // what actually shows up in the real queue.
+      prisma.book.findMany({
+        where: { moderationStatus: "APPROVED", bookChamberSubmittedAt: null, isbn: null },
+        select: { description: true, bookAuthors: true, coverUrl: true, printPdfUrl: true },
       }),
     ]);
 
@@ -176,6 +211,16 @@ export async function adminRoutes(app: FastifyInstance) {
       pendingRoyalties: Number(royaltiesAgg._sum.amount ?? 0),
       recentReview,
       pendingRepublish,
+      // Counts for the dashboard's 4 quick-link cards -- each mirrors the
+      // exact query the linked page itself uses (see comments above), so
+      // the badge number can never disagree with what clicking through
+      // actually shows.
+      queueCounts: {
+        review: books.REVIEW ?? 0,
+        distribution: distributionQueueCount,
+        isbn: isbnCandidates.filter(isIsbnReady).length,
+        royalties: pendingRoyaltiesCount,
+      },
     });
   });
 
