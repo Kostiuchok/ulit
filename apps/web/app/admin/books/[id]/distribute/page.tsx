@@ -188,9 +188,9 @@ function buildPlatforms(book: Book, coverW: number, coverH: number): Platform[] 
         check("epub_mobi", "EPUB або MOBI файл",
           (book.epubUrl || book.mobiUrl) ? "pass" : "fail",
           (book.epubUrl || book.mobiUrl) ? "" : "Потрібен EPUB або MOBI для завантаження"),
-        check("desc", `Опис ≥ 250 символів (${descLen})`,
+        check("desc", `Анотація ≥ 250 символів (${descLen})`,
           descLen >= 250 ? "pass" : descLen >= 100 ? "warn" : "fail",
-          descLen >= 250 ? "" : `Опис замалий (${descLen}/250 символів)`),
+          descLen >= 250 ? "" : `Анотація коротка для KDP (${descLen}/250 символів) — рекомендація, не блокує модерацію`),
         coverDimCheck(1600),
         check("genre", "Жанр вказано", book.genre ? "pass" : "fail",
           book.genre ? "" : "Жанр обов'язковий для KDP"),
@@ -208,9 +208,9 @@ function buildPlatforms(book: Book, coverW: number, coverH: number): Platform[] 
           book.epubUrl ? "" : "D2D вимагає EPUB файл"),
         check("isbn", "ISBN", book.isbn ? "pass" : "warn",
           book.isbn ? "" : "ISBN бажаний, але не обов'язковий для D2D"),
-        check("desc", `Опис ≥ 50 символів (${descLen})`,
+        check("desc", `Анотація ≥ 50 символів (${descLen})`,
           descLen >= 50 ? "pass" : "fail",
-          descLen >= 50 ? "" : `Опис замалий (${descLen}/50 символів)`),
+          descLen >= 50 ? "" : `Анотація закоротка (${descLen}/50 символів)`),
         check("cover", "Обкладинка", book.coverUrl ? "pass" : "fail",
           book.coverUrl ? "" : "Обкладинка обов'язкова для D2D"),
         check("price", "Ціна встановлена",
@@ -228,9 +228,9 @@ function buildPlatforms(book: Book, coverW: number, coverH: number): Platform[] 
         check("isbn", "ISBN", book.isbn ? "pass" : "fail",
           book.isbn ? "" : "ISBN обов'язковий для Google Play Books"),
         coverDimCheck(1400),
-        check("desc", `Опис ≥ 150 символів (${descLen})`,
+        check("desc", `Анотація ≥ 150 символів (${descLen})`,
           descLen >= 150 ? "pass" : descLen >= 50 ? "warn" : "fail",
-          descLen >= 150 ? "" : `Опис замалий (${descLen}/150 символів)`),
+          descLen >= 150 ? "" : `Анотація коротка для Google Play Books (${descLen}/150 символів) — рекомендація, не блокує модерацію`),
         check("lang", "Мова вказана", book.language ? "pass" : "fail",
           book.language ? "" : "Мова обов'язкова для Google"),
       ],
@@ -245,10 +245,20 @@ function countIssues(platform: Platform) {
 function buildRejectionText(platforms: Platform[]): string {
   const lines: string[] = ["Книга не відповідає вимогам платформ:\n"];
   for (const p of platforms) {
+    // Only "fail" actually blocks a platform -- "warn" (e.g. an annotation
+    // shorter than KDP/Google's own recommended length) is informational,
+    // not a real requirement: Ulit's own publish gate already requires
+    // 120-500 characters (validateBook, apps/api/.../publish.ts) before a
+    // book can even reach REVIEW, which already clears every platform's real
+    // "fail" floor (KDP<100, Google/D2D<50) -- so a warn here can never mean
+    // "doesn't meet Ulit's requirements", only "could be longer for that one
+    // store's algorithm/SEO". Including warn here previously let admins
+    // reject an otherwise-valid book over a purely optional recommendation,
+    // worded as if it were a hard requirement.
     // ISBN is never something the author can act on (admin-only, assigned
     // after approval via the dedicated "Реєстрація ISBN" flow below) -- never
     // belongs in a rejection reason sent back to them.
-    const issues = p.checks.filter((c) => c.result !== "pass" && c.id !== "isbn");
+    const issues = p.checks.filter((c) => c.result === "fail" && c.id !== "isbn");
     if (issues.length === 0) continue;
     lines.push(`${p.name}:`);
     for (const c of issues) {

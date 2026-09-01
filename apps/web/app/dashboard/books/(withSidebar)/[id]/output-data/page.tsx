@@ -132,6 +132,7 @@ interface MetadataBook {
   moderationNote?: string | null;
   epubUrl?: string | null;
   pageCount?: number | null;
+  printPageCount?: number | null;
   previewStart?: number | null;
   previewEnd?: number | null;
   originalDocxUrl?: string | null;
@@ -920,7 +921,7 @@ function OutputDataContent() {
             <FormatsAndDistribution
               language={book?.language}
               formatLabel={`${displayFormat.widthMm}×${displayFormat.heightMm}мм (${PRINT_FORMATS[displayFormat.key as keyof typeof PRINT_FORMATS]?.label ?? "Стандартний"})`}
-              pageCount={book?.pageCount}
+              pageCount={book?.printPageCount ?? book?.pageCount}
               printCost={printCost}
               channels={channels}
               onToggleChannel={toggleChannel}
@@ -1009,7 +1010,16 @@ function OutputDataContent() {
               <Row label="Назва" value={book?.title || "—"} />
               <Row label="Жанр" value={book?.genre || "—"} />
               <Row label="Розмір книги" value={`${displayFormat.label} (${displayFormat.widthMm}×${displayFormat.heightMm}мм)`} />
-              <Row label="Кількість сторінок" value={book?.pageCount ? `${book.pageCount} ст.` : "—"} />
+              {/* printPageCount (from the live generate-pdf-print.ts print job) is
+                  the real source of truth -- pageCount is only ever set by the
+                  retired PAGE_THUMBNAILS job that nothing in the current publish
+                  flow triggers anymore, so it stays null forever for every book
+                  published through today's pipeline (same fallback order as
+                  distribute/page.tsx's effectivePageCount). */}
+              <Row
+                label="Кількість сторінок"
+                value={book?.printPageCount ?? book?.pageCount ? `${book?.printPageCount ?? book?.pageCount} ст.` : "—"}
+              />
               <Row label="Рукопис" value={book?.originalDocxUrl ? "Завантажено" : "Не завантажено"} />
               <Row label="Е-книга" value={book?.priceEbook ? `${Number(book.priceEbook).toFixed(2)} грн` : "Не продається"} />
               <Row label="Друк, м'яка (кольор.)" value={book?.pricePrint ? `${Number(book.pricePrint).toFixed(2)} грн` : "Не продається"} />
