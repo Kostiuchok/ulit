@@ -12,7 +12,7 @@ import { DocxUploader } from "../dashboard/DocxUploader";
 import { ProBadge } from "../ui/pro-badge";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
-import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
+import { PRINT_FORMATS, type PrintFormatKey } from "shared-types";
 import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../books/FormatsAndDistribution";
 
 // ─── Step schemas ────────────────────────────────────────────────────────────
@@ -31,6 +31,10 @@ const step1Schema = z.object({
     .min(DESCRIPTION_MIN_LENGTH, `Анотація має містити щонайменше ${DESCRIPTION_MIN_LENGTH} символів`)
     .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
   genre: z.string().max(100).optional(),
+  // Independent from genre -- the author picks this directly, see
+  // PRINT_FORMAT_OPTIONS below (shared-types PRINT_FORMATS is the source of
+  // truth for the actual mm values).
+  printFormatKey: z.string().min(1, "Оберіть розмір книги"),
   language: z.string().length(2).default("uk"),
   ageRating: z.string().min(1, "Вкажіть вікові обмеження"),
 });
@@ -58,6 +62,16 @@ const GENRES = [
   "Проза", "Поезія", "Драматургія", "Наукова фантастика", "Фентезі",
   "Детектив", "Роман", "Повість", "Оповідання", "Нон-фікшн",
   "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
+];
+
+// Book size is its own independent selection here, not derived from genre --
+// the author picks any genre and any size, freely combined. Order matches
+// PRINT_FORMATS' rough size progression (shared-types), "standard" first as
+// the platform default. "a4" (210×297мм, ISO 216) is the odd one out here --
+// not a ДСТУ sheet-fraction format like the rest, added for authors who need
+// a plain document-like page size (workbooks, tables/schemas-heavy content).
+const PRINT_FORMAT_OPTIONS: PrintFormatKey[] = [
+  "standard", "pocket", "miniature", "encyclopedic", "enlarged", "large", "a4",
 ];
 
 // Same list as output-data/page.tsx's AGE_RATINGS — both write the same
@@ -107,7 +121,10 @@ export function BookWizard() {
     };
   }, []);
 
-  const step1 = useForm<Step1Form>({ resolver: zodResolver(step1Schema), defaultValues: { language: "uk" } });
+  const step1 = useForm<Step1Form>({
+    resolver: zodResolver(step1Schema),
+    defaultValues: { language: "uk", printFormatKey: "standard" },
+  });
 
   // ── Manuscript upload → print-cost pipeline (step "Файл") ──────────────────
   // T-2057 moved print-PDF rendering off the upload-time job batch: it now
@@ -183,16 +200,28 @@ export function BookWizard() {
     setError("");
     setSaving(true);
     try {
+      // Resolve the picked size to its actual mm values here so the request
+      // always carries a consistent {printFormatKey, printWidthMm,
+      // printHeightMm} triplet -- including on a re-submit of this step for
+      // an existing draft (PATCH), where the backend no longer re-derives
+      // size from genre once a book has any size on record.
+      const format = PRINT_FORMATS[data.printFormatKey as PrintFormatKey] ?? PRINT_FORMATS.standard;
+      const payload = {
+        ...data,
+        printFormatKey: format.key,
+        printWidthMm: format.widthMm,
+        printHeightMm: format.heightMm,
+      };
       if (!draft) {
         const { book } = await apiFetch<{ book: BookDraft }>("/api/books", {
           method: "POST",
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
         });
         setDraft(book);
       } else {
         await apiFetch(`/api/books/${draft.id}`, {
           method: "PATCH",
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
         });
       }
       setStep(1);
@@ -334,7 +363,11 @@ export function BookWizard() {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          {/* Жанр і розмір книги більше не взаємопов'язані: автор обирає
+              обидва незалежно, звідси й розміщені поруч в одному ряду.
+              Раніше розмір автоматично випливав з жанру (GENRE_TO_PRINT_FORMAT) --
+              тепер це лише fallback на бекенді, якщо книга взагалі без розміру. */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="genre">Жанр</Label>
               <select
@@ -347,6 +380,26 @@ export function BookWizard() {
               </select>
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="printFormatKey">Розмір книги *</Label>
+              <select
+                id="printFormatKey"
+                {...step1.register("printFormatKey")}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {PRINT_FORMAT_OPTIONS.map((key) => {
+                  const f = PRINT_FORMATS[key];
+                  return (
+                    <option key={key} value={key}>
+                      {f.label} ({f.widthMm}×{f.heightMm}мм)
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="language">Мова</Label>
               <select
@@ -380,16 +433,13 @@ export function BookWizard() {
           </div>
 
           {(() => {
-            const genreValue = step1.watch("genre");
-            const formatKey = genreValue ? GENRE_TO_PRINT_FORMAT[genreValue] : undefined;
-            const format = formatKey ? PRINT_FORMATS[formatKey] : PRINT_FORMATS.standard;
+            const formatKey = (step1.watch("printFormatKey") || "standard") as PrintFormatKey;
+            const format = PRINT_FORMATS[formatKey] ?? PRINT_FORMATS.standard;
             const label = `${format.widthMm} × ${format.heightMm} мм (${format.label.toLowerCase()})`;
             return (
               <div className="rounded-lg bg-gray-50 border px-4 py-3 text-sm text-gray-600">
-                Друкована версія книги матиме розмір <strong>{label}</strong>
-                {genreValue ? " — рекомендований формат для обраного жанру." : " — типовий формат, зміниться після вибору жанру."}{" "}
-                На наступному кроці підготуйте документ Word такого ж розміру сторінки, інакше
-                завантаження буде відхилено.
+                Друкована версія книги матиме розмір <strong>{label}</strong>. На наступному кроці
+                підготуйте документ Word такого ж розміру сторінки, інакше завантаження буде відхилено.
               </div>
             );
           })()}
@@ -492,9 +542,8 @@ export function BookWizard() {
 
   // Step 2 — Formats, royalty + distribution (merged T-2075)
   if (step === 2) {
-    const genreValue = step1.watch("genre");
-    const formatKey = genreValue ? GENRE_TO_PRINT_FORMAT[genreValue] : undefined;
-    const format = formatKey ? PRINT_FORMATS[formatKey] : PRINT_FORMATS.standard;
+    const formatKey = (step1.watch("printFormatKey") || "standard") as PrintFormatKey;
+    const format = PRINT_FORMATS[formatKey] ?? PRINT_FORMATS.standard;
     const formatLabel = `${format.widthMm}×${format.heightMm}мм (${format.label.toLowerCase()})`;
 
     return (
@@ -531,6 +580,7 @@ export function BookWizard() {
   if (step === 3) {
     const s1 = step1.getValues();
     const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
+    const reviewFormat = PRINT_FORMATS[s1.printFormatKey as PrintFormatKey] ?? PRINT_FORMATS.standard;
 
     return (
       <div>
@@ -541,6 +591,7 @@ export function BookWizard() {
         <div className="rounded-xl border bg-gray-50 p-5 space-y-4 text-sm mb-6">
           <Row label="Назва" value={s1.title} />
           <Row label="Жанр" value={s1.genre || "—"} />
+          <Row label="Розмір книги" value={`${reviewFormat.label} (${reviewFormat.widthMm}×${reviewFormat.heightMm}мм)`} />
           <Row label="Мова" value={LANGUAGES.find((l) => l.code === s1.language)?.label || s1.language} />
           <Row
             label="Е-книга"

@@ -103,6 +103,7 @@ const patchSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(5000).nullable().optional(),
   genre: z.string().max(100).nullable().optional(),
+  printFormatKey: z.string().max(30).nullable().optional(),
   printWidthMm: z.number().int().positive().nullable().optional(),
   printHeightMm: z.number().int().positive().nullable().optional(),
   subtitle: z.string().max(255).nullable().optional(),
@@ -141,7 +142,10 @@ const previewSchema = z.object({
 });
 
 async function assertOwnership(bookId: string, userId: string) {
-  const book = await prisma.book.findUnique({ where: { id: bookId }, select: { authorId: true, status: true } });
+  const book = await prisma.book.findUnique({
+    where: { id: bookId },
+    select: { authorId: true, status: true, printWidthMm: true, printHeightMm: true },
+  });
   if (!book) throw AppError.notFound("Book");
   if (book.authorId !== userId) throw AppError.forbidden("Not your book");
   return book;
@@ -169,14 +173,22 @@ export async function bookRoutes(app: FastifyInstance) {
 
     const data = result.data;
 
-    // Auto-derive print format from genre (ДСТУ 3018-95, GENRE_TO_PRINT_FORMAT)
-    // unless the caller explicitly set a custom trim in this same request --
-    // that's treated as a manual override and takes precedence. Re-picking a
-    // genre later without also re-specifying size will still overwrite a
-    // previous manual override -- known simplification, no separate
-    // "manually overridden" flag yet (docs/T-2060-publish-info-redesign-checklist.md).
+    // Book size is now its own independent choice (BookWizard's "Розмір
+    // книги" selector, not derived from genre) -- genre only still supplies a
+    // one-time fallback default here, for a book that has no print size on
+    // record at all yet (existing.printWidthMm/printHeightMm both null,
+    // e.g. created before this field existed, or via an API call that
+    // omitted printFormatKey). Once a book has ANY size on record -- explicit
+    // or previously auto-derived -- editing genre afterwards never touches
+    // it again, so genre and size stay decoupled from here on.
     let printFormatOverride: { printFormatKey: string; printWidthMm: number; printHeightMm: number } | undefined;
-    if (data.genre !== undefined && data.printWidthMm === undefined && data.printHeightMm === undefined) {
+    if (
+      data.genre !== undefined &&
+      data.printWidthMm === undefined &&
+      data.printHeightMm === undefined &&
+      existing.printWidthMm == null &&
+      existing.printHeightMm == null
+    ) {
       const formatKey = data.genre ? GENRE_TO_PRINT_FORMAT[data.genre] : undefined;
       const format = formatKey ? PRINT_FORMATS[formatKey] : PRINT_FORMATS.standard;
       printFormatOverride = { printFormatKey: format.key, printWidthMm: format.widthMm, printHeightMm: format.heightMm };

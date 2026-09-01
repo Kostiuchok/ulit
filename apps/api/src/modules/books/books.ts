@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { PRINT_FORMATS, PrintFormatKey } from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
@@ -9,6 +10,9 @@ const createSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
   description: z.string().max(5000).optional(),
   genre: z.string().max(100).optional(),
+  // Book size is its own independent choice in BookWizard, not derived from
+  // genre -- see packages/shared-types PRINT_FORMATS for the allowed keys.
+  printFormatKey: z.string().max(30).optional(),
   language: z.string().length(2).default("uk"),
   priceEbook: z.number().positive().optional(),
   pricePrint: z.number().positive().optional(),
@@ -90,8 +94,13 @@ export async function booksRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
     }
 
-    const { title, description, genre, language, priceEbook, pricePrint, pricePrintHardcover, distributionStrategy } = result.data;
+    const { title, description, genre, printFormatKey, language, priceEbook, pricePrint, pricePrintHardcover, distributionStrategy } = result.data;
     const slug = await uniqueBookSlug(title);
+
+    // Explicit, independent from genre -- if the wizard sent a known format
+    // key, lock it in now so upload validation/cover geometry/output-data all
+    // use it from the start instead of falling back to a genre-derived guess.
+    const format = printFormatKey ? PRINT_FORMATS[printFormatKey as PrintFormatKey] : undefined;
 
     const book = await prisma.book.create({
       data: {
@@ -99,6 +108,9 @@ export async function booksRoutes(app: FastifyInstance) {
         title,
         description,
         genre,
+        printFormatKey: format?.key,
+        printWidthMm: format?.widthMm,
+        printHeightMm: format?.heightMm,
         language,
         priceEbook: priceEbook ? priceEbook : undefined,
         pricePrint: pricePrint ? pricePrint : undefined,
