@@ -260,8 +260,27 @@ function buildRejectionText(platforms: Platform[]): string {
     if (issues.length === 0) continue;
     lines.push(`${p.name}:`);
     for (const c of issues) {
-      const marker = c.result === "warn" ? "⚠" : "✕";
-      lines.push(`  ${marker} ${c.hint || c.label}`);
+      lines.push(`  ✕ ${c.hint || c.label}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n").trim();
+}
+
+// Separate from buildRejectionText above on purpose -- "warn" checks (e.g.
+// page count not yet determined, an annotation shorter than one platform's
+// own recommended length) are real information worth handing to the author,
+// but they're recommendations, not requirements: framed and worded
+// differently here so appending this never reads as "your book was
+// rejected because of this," the way a plain merged list would.
+function buildWarningsText(platforms: Platform[]): string {
+  const lines: string[] = ["Додатково, не блокує модерацію — рекомендації для кращих результатів на платформах:\n"];
+  for (const p of platforms) {
+    const warnings = p.checks.filter((c) => c.result === "warn" && c.id !== "isbn");
+    if (warnings.length === 0) continue;
+    lines.push(`${p.name}:`);
+    for (const c of warnings) {
+      lines.push(`  ⚠ ${c.hint || c.label}`);
     }
     lines.push("");
   }
@@ -639,8 +658,23 @@ export default function DistributePage() {
     0
   );
 
+  const totalWarns = platforms.reduce(
+    (s, p) => s + p.checks.filter((c) => c.result === "warn" && c.id !== "isbn").length,
+    0
+  );
+
   function prefillRejection() {
     setRejectReason(buildRejectionText(platforms));
+  }
+
+  // Separate action on purpose -- appends rather than replaces, so an admin
+  // can combine hard requirements (prefillRejection) with these soft notes,
+  // or send warnings alone on a book that otherwise has none.
+  function appendWarnings() {
+    setRejectReason((prev) => {
+      const warningsText = buildWarningsText(platforms);
+      return prev.trim() ? `${prev.trim()}\n\n${warningsText}` : warningsText;
+    });
   }
 
   const doneFlags = [true, ...TIMELINE_STEPS.map((s) => !!book.publicationTimeline?.[s.key])];
@@ -827,15 +861,27 @@ export default function DistributePage() {
         <div className="rounded-xl border border-red-100 bg-red-50 p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-red-900">Відхилити книгу</h2>
-            {totalIssues > 0 && (
-              <button
-                type="button"
-                onClick={prefillRejection}
-                className="text-xs text-red-600 underline hover:no-underline"
-              >
-                Заповнити з вимог платформ
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {totalWarns > 0 && (
+                <button
+                  type="button"
+                  onClick={appendWarnings}
+                  title="Рекомендації для платформ (не блокують модерацію) -- додає, не замінює написане"
+                  className="text-xs text-amber-700 underline hover:no-underline"
+                >
+                  + Додати попередження
+                </button>
+              )}
+              {totalFails > 0 && (
+                <button
+                  type="button"
+                  onClick={prefillRejection}
+                  className="text-xs text-red-600 underline hover:no-underline"
+                >
+                  Заповнити з вимог платформ
+                </button>
+              )}
+            </div>
           </div>
           <textarea
             value={rejectReason}
