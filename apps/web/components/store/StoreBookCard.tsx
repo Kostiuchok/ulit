@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { resolveBookPrintFormat } from "shared-types";
 import { TabletCoverFrame } from "../books/TabletCoverFrame";
 import { PrintedCoverFrame } from "../books/PrintedCoverFrame";
 
@@ -14,6 +15,9 @@ export interface StoreBook {
   pricePrintBw?: string | null;
   pricePrintHardcoverBw?: string | null;
   genre?: string | null;
+  printFormatKey?: string | null;
+  printWidthMm?: number | null;
+  printHeightMm?: number | null;
   language?: string;
   epubUrl?: string | null;
   fb2Url?: string | null;
@@ -55,7 +59,18 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
     .filter(Boolean)
     .map(Number)
     .sort((a, b) => a - b)[0];
-  const CoverFrame = frame === "print" ? PrintedCoverFrame : TabletCoverFrame;
+  // Same source of truth as the book page's own carousel (BookCoverCarousel)
+  // -- without this, every printed book rendered inside one fixed-ratio box
+  // regardless of its real trim (pocket ~0.605 up to large ~0.759 width/
+  // height), so any book whose actual size didn't match that fixed ratio
+  // showed letterboxed white bars beside its cover.
+  const trimMm =
+    frame === "print"
+      ? (() => {
+          const format = resolveBookPrintFormat(book);
+          return { widthMm: format.widthMm, heightMm: format.heightMm };
+        })()
+      : undefined;
 
   return (
     <Link href={`/books/${book.slug}`} className="group flex flex-col">
@@ -66,7 +81,11 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
           mockups look good in isolation. Hover lifts the whole preview
           slightly (position, not size) so the shadow reads as depth. */}
       <div className="relative w-full transition-transform duration-300 ease-out group-hover:-translate-y-1.5">
-        <CoverFrame coverUrl={book.coverUrl} />
+        {frame === "print" ? (
+          <PrintedCoverFrame coverUrl={book.coverUrl} trimMm={trimMm} />
+        ) : (
+          <TabletCoverFrame coverUrl={book.coverUrl} />
+        )}
         {book.genre && (
           <span className="absolute top-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
             {book.genre}
