@@ -86,19 +86,52 @@ export const MANUSCRIPT_PROSE_CSS = `
 
       /* Front-matter-only presentational treatments (T-1962) -- a separate
          "variant" attribute from "style" so these never appear as pickable
-         options in the author-facing "Стилі тексту" panel. */
+         options in the author-facing "Стилі тексту" panel. Ridero-style
+         title/colophon layout (docs/ulit-reference/SCREENSHOTS 86/87) --
+         left-aligned throughout, none of data-style="normal"'s
+         text-indent/justify (that's body-prose formatting, wrong for these
+         standalone lines -- the original bug: author-name/year had no
+         variant at all and inherited it, rendering visibly crooked). */
+      .manuscript-prose p[data-variant="titlepage-author"] {
+        text-align: left; text-indent: 0; font-size: 0.95rem; margin: 5em 0 0;
+      }
+      .manuscript-prose p[data-variant="titlepage-title"] {
+        text-align: left; text-indent: 0; font-size: 1.7rem; font-weight: 700; margin: 0.3em 0 0;
+      }
+      .manuscript-prose p[data-variant="titlepage-subtitle"] {
+        text-align: left; text-indent: 0; font-size: 1.05rem; font-weight: 400; color: #444; margin: 0.2em 0 0;
+      }
       .manuscript-prose p[data-variant="titlepage-imprint"] {
-        text-align: center; font-size: 0.8rem; color: #888; margin-top: 8em; text-indent: 0;
+        text-align: left; font-size: 0.8rem; color: #888; margin: 1.5em 0 0; text-indent: 0;
+      }
+      .manuscript-prose p[data-variant="titlepage-year"] {
+        text-align: left; text-indent: 0; font-size: 0.85rem; color: #333; margin: 22em 0 0;
       }
       .manuscript-prose p[data-variant="colophon-code"] {
-        font-weight: 700; font-size: 0.85rem; text-align: left; text-indent: 0;
+        font-weight: 400; font-size: 0.8rem; text-align: left; text-indent: 0; margin: 0 0 0.15em;
       }
       .manuscript-prose p[data-variant="colophon-meta"] {
-        font-style: italic; font-size: 0.8rem; color: #666; text-align: left; text-indent: 0;
+        font-style: normal; font-size: 0.8rem; color: #666; text-align: left; text-indent: 0; margin: 2em 0 0;
+      }
+      .manuscript-prose p[data-variant="colophon-author"] {
+        font-weight: 700; font-size: 0.85rem; text-align: left; text-indent: 0; margin: 1.5em 0 0;
+      }
+      .manuscript-prose p[data-variant="colophon-biblio"] {
+        font-size: 0.8rem; text-align: left; text-indent: -2.2em; padding-left: 2.2em; color: #222; margin: 0.5em 0 0;
+      }
+      .manuscript-prose p[data-variant="colophon-description"] {
+        font-size: 0.8rem; text-align: left; text-indent: 0; color: #333; margin: 1em 0 0;
+      }
+      .manuscript-prose p[data-variant="colophon-code-bold"] {
+        font-weight: 700; font-size: 0.85rem; text-align: right; text-indent: 0; margin: 1em 0 0;
+      }
+      .manuscript-prose p[data-variant="colophon-age"] {
+        display: inline-block; min-width: 1.9em; padding: 0.15em 0.4em; border: 1px solid #333;
+        border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-align: center;
+        text-indent: 0; margin: 1em 0 0;
       }
       .manuscript-prose p[data-variant="colophon-footer"] {
-        text-align: center; font-size: 0.8rem; color: #888; margin-top: 3em;
-        padding-top: 0.75em; border-top: 1px solid #e5e7eb; text-indent: 0;
+        text-align: right; font-size: 0.8rem; color: #555; margin: 8em 0 0; text-indent: 0;
       }
 
       /* Live A5 page-break overlay (T-1961) -- computed client-side from the

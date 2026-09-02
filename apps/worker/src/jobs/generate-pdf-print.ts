@@ -37,6 +37,7 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
         manuscriptStyleOverrides: true,
         printWidthMm: true,
         printHeightMm: true,
+        backCoverUrl: true,
       },
     });
     if (!book) throw new Error(`Book ${bookId} not found`);
@@ -54,6 +55,7 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
       widthMm,
       heightMm,
       pageNumberPosition,
+      backCoverUrl: book.backCoverUrl,
       tmpDir,
       outputPdfPath: rawPdf,
     });

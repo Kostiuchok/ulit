@@ -34,43 +34,51 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
   const nodes: any[] = [];
   const year = meta.createdAt ? new Date(meta.createdAt).getFullYear() : new Date().getFullYear();
 
-  // --- Page 1: title page -- author, title, subtitle, publisher imprint ---
-  if (meta.authorName) nodes.push(styledParagraph("normal", meta.authorName));
-  nodes.push(styledParagraph("heading", meta.title));
-  if (meta.subtitle) nodes.push(styledParagraph("subheading", meta.subtitle));
+  // --- Page 1: title page -- author, title, subtitle, publisher imprint,
+  // year -- left-aligned, no paragraph indent/justify (that's body-prose
+  // styling, wrong for a handful of standalone title-page lines; each gets
+  // its own "titlepage-*" variant in proseStyles.ts so it never inherits
+  // data-style="normal"'s text-indent/justify by accident). Author/year get
+  // a large margin-top push each, matching the Ridero reference's rhythm
+  // (name near the top third, title bold below it, big gap, year near the
+  // bottom) -- CSS Paged Media can't flex/absolute-position "bottom of this
+  // specific page" across a fragmented div, so this is a tuned approximation
+  // for the common print formats, not pixel-exact for every trim size.
+  if (meta.authorName) nodes.push(styledParagraph("normal", meta.authorName, "titlepage-author"));
+  nodes.push(styledParagraph("heading", meta.title, "titlepage-title"));
+  if (meta.subtitle) nodes.push(styledParagraph("subheading", meta.subtitle, "titlepage-subtitle"));
   nodes.push(styledParagraph("normal", "Видано на платформі Ulit", "titlepage-imprint"));
-  nodes.push(styledParagraph("normal", String(year)));
+  nodes.push(styledParagraph("normal", String(year), "titlepage-year"));
 
   nodes.push({ type: "pageBreak" });
 
-  // --- Page 2: colophon -- catalog codes, typesetting note, bibliographic
-  // line, annotation, age rating, ISBN + copyright footer ---
-  const catalogParts: string[] = [];
-  if (meta.udcCode) catalogParts.push(`УДК ${meta.udcCode}`);
-  if (meta.bbkCode) catalogParts.push(`ББК ${meta.bbkCode}`);
-  if (meta.authorSign) catalogParts.push(meta.authorSign);
-  if (catalogParts.length > 0) nodes.push(styledParagraph("normal", catalogParts.join("   "), "colophon-code"));
+  // --- Page 2: colophon (Ridero-style випускні дані) -- catalog codes
+  // stacked top-left, typesetting note, bold author byline, hanging-indent
+  // bibliographic line (author-sign as the hanging label), annotation, bold
+  // catalog-code repeat, age-rating badge, ISBN + copyright footer pinned
+  // toward the bottom. ---
+  if (meta.udcCode) nodes.push(styledParagraph("normal", `УДК ${meta.udcCode}`, "colophon-code"));
+  if (meta.bbkCode) nodes.push(styledParagraph("normal", `ББК ${meta.bbkCode}`, "colophon-code"));
+  if (meta.authorSign) nodes.push(styledParagraph("normal", meta.authorSign, "colophon-code"));
 
   nodes.push(styledParagraph("normal", "Комп'ютерна верстка. Гарнітура Times New Roman.", "colophon-meta"));
 
-  const bibParts = [`${meta.title} : [б.м.] : Ulit, ${year}.`];
-  if (meta.pageCount) bibParts.push(`– ${meta.pageCount} ст.`);
-  if (meta.isbn) bibParts.push(`– ISBN ${meta.isbn}`);
-  nodes.push(styledParagraph("normal", bibParts.join(" ")));
+  if (meta.authorName) nodes.push(styledParagraph("normal", meta.authorName, "colophon-author"));
 
-  if (meta.description) nodes.push(styledParagraph("normal", meta.description));
+  const bibLabel = meta.authorSign ? `${meta.authorSign} ` : "";
+  const bibParts = [`${meta.title}${meta.authorName ? ` / ${meta.authorName}` : ""}. — [б.м.] : Ulit, ${year}.`];
+  if (meta.pageCount) bibParts.push(`— ${meta.pageCount} с.`);
+  if (meta.isbn) bibParts.push(`— ISBN ${meta.isbn}`);
+  nodes.push(styledParagraph("normal", `${bibLabel}${bibParts.join(" ")}`, "colophon-biblio"));
 
-  const ageCodeParts: string[] = [];
-  if (meta.udcCode || meta.bbkCode) {
-    ageCodeParts.push([meta.udcCode && `УДК ${meta.udcCode}`, meta.bbkCode && `ББК ${meta.bbkCode}`].filter(Boolean).join(" "));
-  }
-  if (meta.ageRating) ageCodeParts.push(meta.ageRating);
-  if (ageCodeParts.length > 0) nodes.push(styledParagraph("normal", ageCodeParts.join("   "), "colophon-code"));
+  if (meta.description) nodes.push(styledParagraph("normal", meta.description, "colophon-description"));
 
-  const footerParts: string[] = [];
-  if (meta.isbn) footerParts.push(`ISBN ${meta.isbn}`);
-  footerParts.push(`© ${meta.authorName ?? "Автор"}, ${year}`);
-  nodes.push(styledParagraph("normal", footerParts.join("   "), "colophon-footer"));
+  const codeRepeat = [meta.udcCode && `УДК ${meta.udcCode}`, meta.bbkCode && `ББК ${meta.bbkCode}`].filter(Boolean);
+  if (codeRepeat.length > 0) nodes.push(styledParagraph("normal", codeRepeat.join("   "), "colophon-code-bold"));
+
+  if (meta.ageRating) nodes.push(styledParagraph("normal", meta.ageRating, "colophon-age"));
+
+  nodes.push(styledParagraph("normal", `© ${meta.authorName ?? "Автор"}, ${year}`, "colophon-footer"));
 
   nodes.push({ type: "horizontalRule" });
   return nodes;

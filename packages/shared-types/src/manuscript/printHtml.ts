@@ -58,6 +58,24 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
     @page :first {
       @top-center { content: none; }
     }
+    /* Back cover -- its own named page, zero margin, so the image fills the
+       full physical page (not inset by the interior pages' text margins). */
+    @page back-cover {
+      size: ${widthMm}mm ${heightMm}mm;
+      margin: 0;
+      ${pageNumberBox} { content: none; }
+      @top-center { content: none; }
+    }
+    .back-cover-page {
+      page: back-cover;
+      break-before: page;
+    }
+    .back-cover-page img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
     body { font-size: ${BODY_FONT_PT}pt; }
 
     /* T-2057 розділ 2 -- front matter always opens on recto (WeasyPrint
@@ -67,10 +85,13 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
     .front-matter { break-before: recto; }
     .front-matter div[data-type="page-break"] { break-after: verso; }
 
-    /* Body always opens recto too -- redundant with the chapter rule below
-       when the first body block is itself a chapter heading (the normal
-       case), but a safety net when it isn't. */
-    .manuscript-body { break-before: recto; }
+    /* NOTE: no blanket ".manuscript-body { break-before: recto }" here
+       (removed) -- when Зміст (.toc, also break-before:recto below) happens
+       to fill exactly to a recto page, forcing the body onto ANOTHER recto
+       right after inserted an unwanted blank verso page in between (verified
+       against a real render, author-reported). The per-chapter rule below
+       already forces a fresh recto for an actual "Розділ" heading; a body
+       that doesn't open with one is now free to flow directly after Зміст. */
 
     /* Розділ (chapter) always starts a fresh recto page; section/heading/
        subheading intentionally force no break (natural flow). */
@@ -176,6 +197,12 @@ export interface BuildManuscriptPrintHtmlInput {
   widthMm: number;
   heightMm: number;
   pageNumberPosition?: PageNumberPosition;
+  // Rendered as the PDF's final page, full-bleed (its own zero-margin named
+  // @page, unlike every interior page) -- so a print-preview download shows
+  // the whole physical object (interior + back cover), not just the text.
+  // A public URL (storage.service.ts's publicUrl()) -- WeasyPrint fetches it
+  // like a browser would, same as the on-site cover images already are.
+  backCoverUrl?: string | null;
 }
 
 // Full standalone HTML document for WeasyPrint to render straight to PDF.
@@ -188,6 +215,7 @@ export function buildManuscriptPrintHtml({
   widthMm,
   heightMm,
   pageNumberPosition = DEFAULT_PAGE_NUMBER_POSITION,
+  backCoverUrl,
 }: BuildManuscriptPrintHtmlInput): string {
   const doc = content ?? { type: "doc", content: [] };
   const allContent: any[] = doc.content ?? [];
@@ -196,6 +224,9 @@ export function buildManuscriptPrintHtml({
   const frontHtml = front.length > 0 ? manuscriptContentToHtml({ type: "doc", content: front }) : "";
   const bodyHtml = manuscriptContentToHtml({ type: "doc", content: body });
   const tocHtml = buildTocHtml(body);
+  const backCoverHtml = backCoverUrl
+    ? `<div class="back-cover-page"><img src="${escapeHtml(backCoverUrl)}" alt=""></div>`
+    : "";
 
   return `<!doctype html>
 <html lang="uk">
@@ -210,6 +241,7 @@ ${frontHtml ? `<div class="front-matter">${frontHtml}</div>` : ""}
 ${tocHtml}
 <div class="manuscript-body">${bodyHtml}</div>
 </div>
+${backCoverHtml}
 </body>
 </html>`;
 }
