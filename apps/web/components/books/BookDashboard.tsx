@@ -38,6 +38,7 @@ interface DashboardBook {
   manuscriptImportedAt?: string | null;
   manuscriptEditedAt?: string | null;
   pdfUrl?: string | null;
+  printPdfUrl?: string | null;
   createdAt: string;
   publishedAt?: string | null;
   publicationTimeline?: any;
@@ -320,6 +321,7 @@ export function BookDashboard() {
                   pricePrint: book.pricePrint,
                   pricePrintHardcover: book.pricePrintHardcover,
                   coverUrl: book.coverUrl,
+                  printPdfUrl: book.printPdfUrl,
                 }}
               />
             )}

@@ -47,6 +47,7 @@ interface CreationInfo {
   pricePrint?: string | number | null;
   pricePrintHardcover?: string | number | null;
   coverUrl?: string | null;
+  printPdfUrl?: string | null;
 }
 
 interface Props {
@@ -202,6 +203,14 @@ export function PublicationTimeline({
   const hasPrice = !!(creation.priceEbook || creation.pricePrint || creation.pricePrintHardcover);
   const hasPrintPrice = !!(creation.pricePrint || creation.pricePrintHardcover);
   const hasCover = !!creation.coverUrl;
+  // printPdfUrl is only generated when the author opens the manuscript's
+  // "Передперегляд" (print-preview.ts) -- nothing else in the publish flow
+  // creates it (T-2057). Admin's own isIsbnReady() requires it too, so a
+  // book missing it will never appear in the admin's ISBN queue no matter
+  // how "ready" everything else looks -- the author needs a visible reason
+  // to know THEY are the blocker, not silently waiting on the admin.
+  const hasPrintPdf = !!creation.printPdfUrl;
+  const isbnBlockedOnAuthor = hasPrintPrice && !hasPrintPdf;
   const hasDistribution = distributionChannels.length > 0;
   const outputDataFilled = hasBasicInfo && hasPrice;
   const isSubmitted = bookStatus !== "DRAFT" && bookStatus !== "PROCESSING";
@@ -270,9 +279,14 @@ export function PublicationTimeline({
             />
             <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
             <CreationSubItem
-              done={false}
+              done={!!isbn}
               label="Отримати ISBN"
-              tooltip="Адмін отримав всю необхідну інформацію про книгу, і протягом 3 днів ви отримаєте унікальний код ISBN для розповсюдження книги."
+              href={isbnBlockedOnAuthor ? `/dashboard/books/${bookId}/manuscript/preview` : undefined}
+              tooltip={
+                isbnBlockedOnAuthor
+                  ? "⚠ Очікування ISBN ще не почалось: не згенеровано друкований PDF рукопису. Натисніть, щоб відкрити передперегляд рукопису — це й запустить генерацію."
+                  : "Адмін отримав всю необхідну інформацію про книгу, і протягом 3 днів ви отримаєте унікальний код ISBN для розповсюдження книги."
+              }
             />
           </div>
         )}
