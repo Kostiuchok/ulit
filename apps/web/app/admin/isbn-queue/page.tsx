@@ -20,6 +20,10 @@ interface IsbnPackage {
   annotationTxtUrl: string;
   manuscriptPdfUrl: string;
   coverUrl: string | null;
+  backCoverUrl: string | null;
+  genre: string | null;
+  language: string;
+  printPageCount: number | null;
 }
 
 export default function IsbnQueuePage() {
@@ -135,8 +139,9 @@ export default function IsbnQueuePage() {
                     {pkg && (
                       <div className="pt-3 space-y-3">
                         <p className="text-xs text-gray-500">
-                          Автор: <span className="font-medium text-gray-700">{pkg.authorFullName || "—"}</span>. Завантажте всі
-                          3 файли і надішліть їх зовнішнім каналом до Книжкової палати (або уповноваженого постачальника).
+                          Автор: <span className="font-medium text-gray-700">{pkg.authorFullName || "—"}</span> · Мова:{" "}
+                          {pkg.language} · Жанр: {pkg.genre || "—"} · Сторінок: {pkg.printPageCount ?? "—"}. Пакет
+                          покриває і ISBN, і УДК + авторський знак («шифр зберігання») — та сама установа, ті самі дані.
                         </p>
                         <div className="flex flex-wrap gap-2">
                           <button
@@ -145,7 +150,7 @@ export default function IsbnQueuePage() {
                             onClick={() => downloadAnnotation(pkg.annotationTxtUrl, book.title)}
                             className="rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                           >
-                            📄 Файл 1 — анотація + ПІБ автора (.txt)
+                            📄 Файл 1 — заявка (.txt)
                           </button>
                           <a
                             href={pkg.manuscriptPdfUrl}
@@ -162,10 +167,25 @@ export default function IsbnQueuePage() {
                               rel="noreferrer"
                               className="rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
                             >
-                              🖼 Файл 3 — обкладинка
+                              🖼 Файл 3 — обкладинка (перед)
+                            </a>
+                          )}
+                          {pkg.backCoverUrl && (
+                            <a
+                              href={pkg.backCoverUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                            >
+                              🖼 Файл 4 — обкладинка (зад)
                             </a>
                           )}
                         </div>
+                        <p className="text-xs text-gray-400">
+                          Заявку на УДК + авторський знак надсилати на{" "}
+                          <code className="text-[0.6875rem]">udc2920054@ukr.net</code>, тема листа:{" "}
+                          <code className="text-[0.6875rem]">«УДК, [назва видавця]»</code>.
+                        </p>
                         <Link
                           href={`/admin/books/${book.id}/distribute`}
                           className="inline-block text-xs text-blue-700 underline hover:no-underline"

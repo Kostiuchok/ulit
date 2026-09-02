@@ -454,7 +454,15 @@ export default function DistributePage() {
     annotationTxtUrl: string;
     manuscriptPdfUrl: string;
     coverUrl: string | null;
+    backCoverUrl: string | null;
     authorFullName: string | null;
+    genre: string | null;
+    language: string;
+    printPageCount: number | null;
+    isbn: string | null;
+    udcCode: string | null;
+    bbkCode: string | null;
+    authorSign: string | null;
   } | null>(null);
   const [isbnPkgError, setIsbnPkgError] = useState("");
   const [isbnPkgLoading, setIsbnPkgLoading] = useState(true);
@@ -911,11 +919,12 @@ export default function DistributePage() {
       {/* ── Книжкова палата / Реєстрація ISBN ─────────────────────────────────── */}
       <div className="rounded-xl border bg-white p-5 shadow-sm space-y-5">
         <div>
-          <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація ISBN</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація ISBN + УДК</h2>
           <p className="text-xs text-gray-400">
             Наступний етап після модерації. У Книжкової палати немає публічного API — цей блок нічого нікуди не
             відправляє автоматично. Подання відбувається поза системою (адмін сам надсилає дані книги в Книжкову
-            палату зовнішнім каналом).
+            палату зовнішнім каналом). ISBN і УДК+авторський знак («шифр зберігання») подаються до тієї самої
+            установи на основі тих самих даних книги — тому зібрані нижче файли покривають обидва запити одразу.
           </p>
         </div>
 
@@ -933,24 +942,52 @@ export default function DistributePage() {
                   size="sm"
                   variant="outline"
                   disabled={annotationDownloading}
-                  onClick={() => downloadAnnotation(isbnPkg.annotationTxtUrl, `${book.title}-annotation.txt`)}
+                  onClick={() => downloadAnnotation(isbnPkg.annotationTxtUrl, `${book.title}-zayavka.txt`)}
                 >
-                  📄 Файл 1 — анотація + ПІБ автора (.txt)
+                  📄 Файл 1 — заявка (назва, ПІБ, анотація, коди) (.txt)
                 </Button>
                 <a href={isbnPkg.manuscriptPdfUrl} target="_blank" rel="noreferrer">
                   <Button size="sm" variant="outline">📘 Файл 2 — рукопис (PDF)</Button>
                 </a>
                 {isbnPkg.coverUrl && (
                   <a href={isbnPkg.coverUrl} target="_blank" rel="noreferrer">
-                    <Button size="sm" variant="outline">🖼 Файл 3 — обкладинка</Button>
+                    <Button size="sm" variant="outline">🖼 Файл 3 — обкладинка (перед)</Button>
+                  </a>
+                )}
+                {isbnPkg.backCoverUrl && (
+                  <a href={isbnPkg.backCoverUrl} target="_blank" rel="noreferrer">
+                    <Button size="sm" variant="outline">🖼 Файл 4 — обкладинка (зад)</Button>
                   </a>
                 )}
               </div>
               <p className="text-xs text-gray-400">
-                Автор: {isbnPkg.authorFullName || "—"}. Для друкованого видання не забути про обов&apos;язкові
-                примірники (2 шт., за рахунок автора) для звіту в Книжкову палату — докладніше в{" "}
-                <code className="text-[0.6875rem]">docs/isbn-udc-requirements.md</code>.
+                Автор: {isbnPkg.authorFullName || "—"} · Мова: {isbnPkg.language} · Жанр: {isbnPkg.genre || "—"} ·
+                Сторінок: {isbnPkg.printPageCount ?? "—"}
+                {isbnPkg.isbn && <> · ISBN: <span className="font-mono">{isbnPkg.isbn}</span></>}
+                {isbnPkg.udcCode && <> · УДК: <span className="font-mono">{isbnPkg.udcCode}</span></>}
+                {isbnPkg.authorSign && <> · Авт. знак: <span className="font-mono">{isbnPkg.authorSign}</span></>}
               </p>
+              <p className="text-xs text-gray-400">
+                Для друкованого видання не забути про обов&apos;язкові примірники (2 шт., за рахунок автора) для
+                звіту в Книжкову палату — докладніше в{" "}
+                <code className="text-[0.6875rem]">docs/isbn-udc-requirements.md</code>. Заявку на УДК + авторський
+                знак надсилати на <code className="text-[0.6875rem]">udc2920054@ukr.net</code>, тема листа:{" "}
+                <code className="text-[0.6875rem]">«УДК, [назва видавця]»</code>.
+              </p>
+              {(isbnPkg.isbn || isbnPkg.udcCode) && (
+                <p className="text-xs text-amber-600">
+                  ⚠ ISBN/УДК фіксуються в рукописі й на обкладинці на момент їх створення, а не оновлюються
+                  автоматично після присвоєння — переконайтесь, що{" "}
+                  <Link href={`/dashboard/books/${id}/manuscript`} className="underline hover:no-underline">
+                    колофон рукопису
+                  </Link>{" "}
+                  і{" "}
+                  <Link href={`/dashboard/books/${id}/cover`} className="underline hover:no-underline">
+                    обкладинка
+                  </Link>{" "}
+                  показують актуальні значення, перш ніж надсилати файли.
+                </p>
+              )}
             </>
           ) : null}
         </div>
@@ -992,7 +1029,7 @@ export default function DistributePage() {
 
         {/* Step 3 — record what the Книжкова палата sent back, assign the ISBN */}
         <div className="space-y-3 border-t pt-4">
-          <p className="text-sm font-semibold text-gray-800">3. Присвоїти ISBN</p>
+          <p className="text-sm font-semibold text-gray-800">3. Присвоїти ISBN + УДК + авторський знак</p>
           <p className="text-xs text-gray-500">
             Внести дані, отримані від Книжкової палати, і натиснути «Присвоїти ISBN».
           </p>

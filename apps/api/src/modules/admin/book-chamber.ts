@@ -129,28 +129,77 @@ export async function bookChamberRoutes(app: FastifyInstance) {
     return reply.send({ books });
   });
 
-  // ─── ISBN submission package -- links only, nothing generated/stored ────
-  // File 1 (annotation + author's full name) is composed on the fly by the
-  // .txt route below. File 2 (manuscript) reuses printPdfUrl as-is -- it
-  // already carries our own УДК/ББК/ISBN colophon on page 2 (T-1962), which
-  // covers the "technical page" a submission needs; no separate blank-page-2
-  // render exists or is planned. File 3 is the cover, already a public file.
+  // ─── ISBN submission package ─────────────────────────────────────────────
+  // Everything needed to hand a book off to Книжкова палата for ISBN +
+  // УДК/авторський знак together (ukrbook.net/UDC_poslugy.html: "шифр
+  // зберігання" bundles УДК + авторський знак as one request, by e-mail, no
+  // online form) -- same institution, same underlying material as the ISBN
+  // submission, so one package covers both. File 1 (заявка.txt: metadata +
+  // annotation) is composed on the fly. File 2 (manuscript) reuses
+  // printPdfUrl as-is -- it already carries our own УДК/ББК/ISBN colophon on
+  // page 2 (T-1962), which covers the "technical page" a submission needs;
+  // no separate blank-page-2 render exists or is planned. Files 3/4 are the
+  // front/back cover, already public files.
+  //
+  // Deliberately NOT a single .zip download -- a prior attempt at zipping
+  // files for admin download (distribution bulk-export, admin.ts) turned out
+  // unreliable in production. Instead this stays a set of direct links the
+  // admin opens/downloads individually, same pattern as before, just with
+  // more of them (back cover + all the assigned codes) surfaced in one click.
+  const isbnPackageSelect = {
+    title: true,
+    coverUrl: true,
+    backCoverUrl: true,
+    description: true,
+    bookAuthors: true,
+    printPdfUrl: true,
+    printPageCount: true,
+    genre: true,
+    language: true,
+    isbn: true,
+    udcCode: true,
+    bbkCode: true,
+    authorSign: true,
+    author: { select: { name: true } },
+  } as const;
+
+  function buildApplicationText(book: {
+    title: string;
+    description: string | null;
+    bookAuthors: unknown;
+    genre: string | null;
+    language: string;
+    printPageCount: number | null;
+    isbn: string | null;
+    udcCode: string | null;
+    bbkCode: string | null;
+    authorSign: string | null;
+  }) {
+    const authorFullName = formatAuthorFullName(book.bookAuthors) ?? "—";
+    const lines = [
+      `Назва книги: ${book.title}`,
+      `Автор (ПІБ): ${authorFullName}`,
+      `Мова видання: ${book.language}`,
+      `Жанр: ${book.genre ?? "—"}`,
+      `Кількість сторінок: ${book.printPageCount ?? "—"}`,
+      "",
+      `ISBN: ${book.isbn ?? "ще не присвоєно"}`,
+      `УДК: ${book.udcCode ?? "ще не присвоєно"}`,
+      `ББК: ${book.bbkCode ?? "—"}`,
+      `Авторський знак: ${book.authorSign ?? "ще не присвоєно"}`,
+      "",
+      "Анотація:",
+      book.description ?? "",
+    ];
+    return lines.join("\r\n") + "\r\n";
+  }
+
   app.get(
     "/api/admin/books/:id/isbn-package",
     { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const book = await prisma.book.findUnique({
-        where: { id },
-        select: {
-          title: true,
-          coverUrl: true,
-          description: true,
-          bookAuthors: true,
-          printPdfUrl: true,
-          author: { select: { name: true } },
-        },
-      });
+      const book = await prisma.book.findUnique({ where: { id }, select: isbnPackageSelect });
       if (!book) throw AppError.notFound("Book");
 
       const authorFullName = formatAuthorFullName(book.bookAuthors);
@@ -170,6 +219,14 @@ export async function bookChamberRoutes(app: FastifyInstance) {
         annotationTxtUrl: `/api/admin/books/${id}/isbn-package/annotation.txt`,
         manuscriptPdfUrl,
         coverUrl: book.coverUrl,
+        backCoverUrl: book.backCoverUrl,
+        genre: book.genre,
+        language: book.language,
+        printPageCount: book.printPageCount,
+        isbn: book.isbn,
+        udcCode: book.udcCode,
+        bbkCode: book.bbkCode,
+        authorSign: book.authorSign,
       });
     }
   );
@@ -179,20 +236,13 @@ export async function bookChamberRoutes(app: FastifyInstance) {
     { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const book = await prisma.book.findUnique({
-        where: { id },
-        select: { title: true, description: true, bookAuthors: true },
-      });
+      const book = await prisma.book.findUnique({ where: { id }, select: isbnPackageSelect });
       if (!book) throw AppError.notFound("Book");
 
-      const authorFullName = formatAuthorFullName(book.bookAuthors) ?? "—";
-      const text =
-        `Назва книги: ${book.title}\r\n` +
-        `Автор (ПІБ): ${authorFullName}\r\n\r\n` +
-        `Анотація:\r\n${book.description ?? ""}\r\n`;
+      const text = buildApplicationText(book);
 
       reply.header("Content-Type", "text/plain; charset=utf-8");
-      reply.header("Content-Disposition", `attachment; filename="annotation.txt"`);
+      reply.header("Content-Disposition", `attachment; filename="zayavka.txt"`);
       return reply.send(text);
     }
   );
