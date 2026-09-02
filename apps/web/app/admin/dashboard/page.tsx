@@ -36,19 +36,26 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("uk-UA");
 }
 
-function reviewDeadline(book: ActionBook): { submittedAt: string | null; daysLeft: number | null } {
-  const submittedAt = book.publicationTimeline?.submitted ?? null;
-  if (!submittedAt) return { submittedAt: null, daysLeft: null };
-  const deadline = new Date(submittedAt).getTime() + REVIEW_SLA_DAYS * 24 * 60 * 60 * 1000;
+// The SLA clock has to run from the most recent submission, not the first
+// one ever -- a book unpublished, edited, and resubmitted months after its
+// original submission was showing permanently "Прострочено" here, counting
+// from a date the 3-day promise was never meant to apply to anymore.
+// firstSubmittedAt is kept alongside purely for history (shown as a second
+// line when it differs from the one the deadline is actually based on).
+function reviewDeadline(book: ActionBook): { firstSubmittedAt: string | null; lastSubmittedAt: string | null; daysLeft: number | null } {
+  const firstSubmittedAt = book.publicationTimeline?.submitted ?? null;
+  const lastSubmittedAt = book.publicationTimeline?.lastSubmitted ?? firstSubmittedAt;
+  if (!lastSubmittedAt) return { firstSubmittedAt, lastSubmittedAt: null, daysLeft: null };
+  const deadline = new Date(lastSubmittedAt).getTime() + REVIEW_SLA_DAYS * 24 * 60 * 60 * 1000;
   const daysLeft = Math.ceil((deadline - Date.now()) / (24 * 60 * 60 * 1000));
-  return { submittedAt, daysLeft };
+  return { firstSubmittedAt, lastSubmittedAt, daysLeft };
 }
 
 // One row shared by both "needs action" sub-lists in the Книги block --
 // only the trailing badge differs (SLA countdown for review, a static
 // amber "Зміни на модерації" tag for republish, matching the badge already
 // used on /admin/books, see BookRow in admin/books/page.tsx).
-function ActionBookRow({ book, dateLabel, trailingBadge }: { book: ActionBook; dateLabel: string; trailingBadge: React.ReactNode }) {
+function ActionBookRow({ book, dateLabel, trailingBadge }: { book: ActionBook; dateLabel: React.ReactNode; trailingBadge: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
       <div className="flex items-center gap-3 min-w-0">
@@ -60,7 +67,7 @@ function ActionBookRow({ book, dateLabel, trailingBadge }: { book: ActionBook; d
         <div className="min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
           <p className="text-xs text-gray-500">{book.author.name}</p>
-          <p className="text-xs text-gray-400">{dateLabel}</p>
+          <div className="text-xs text-gray-400 space-y-0.5">{dateLabel}</div>
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -146,12 +153,22 @@ export default function AdminDashboard() {
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">На перевірці</p>
               <div>
                 {stats!.recentReview.map((book) => {
-                  const { submittedAt, daysLeft } = reviewDeadline(book);
+                  const { firstSubmittedAt, lastSubmittedAt, daysLeft } = reviewDeadline(book);
+                  const resubmitted = !!firstSubmittedAt && !!lastSubmittedAt && firstSubmittedAt !== lastSubmittedAt;
                   return (
                     <ActionBookRow
                       key={book.id}
                       book={book}
-                      dateLabel={submittedAt ? `Надіслано на перевірку: ${fmtDate(submittedAt)}` : "Дату надсилання не зафіксовано"}
+                      dateLabel={
+                        lastSubmittedAt ? (
+                          <>
+                            <p>{resubmitted ? "Востаннє надіслано" : "Надіслано на перевірку"}: {fmtDate(lastSubmittedAt)}</p>
+                            {resubmitted && <p className="text-gray-300">Вперше надіслано: {fmtDate(firstSubmittedAt!)}</p>}
+                          </>
+                        ) : (
+                          <p>Дату надсилання не зафіксовано</p>
+                        )
+                      }
                       trailingBadge={
                         daysLeft != null && (
                           <span
