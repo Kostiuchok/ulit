@@ -285,6 +285,7 @@ function OutputDataContent() {
   // validation), so it gets its own small form/state instead of going
   // through infoForm.
   const [claimIsbnValue, setClaimIsbnValue] = useState("");
+  const [claimIsbnAttested, setClaimIsbnAttested] = useState(false);
   const [claimIsbnSaving, setClaimIsbnSaving] = useState(false);
   const [claimIsbnError, setClaimIsbnError] = useState("");
 
@@ -530,7 +531,7 @@ function OutputDataContent() {
 
   async function claimIsbn() {
     const isbn = claimIsbnValue.trim();
-    if (!isbn) return;
+    if (!isbn || !claimIsbnAttested) return;
     setClaimIsbnError("");
     setClaimIsbnSaving(true);
     try {
@@ -1070,6 +1071,7 @@ function OutputDataContent() {
                           size="sm"
                           className="h-9 shrink-0"
                           loading={claimIsbnSaving}
+                          disabled={!claimIsbnAttested || !claimIsbnValue.trim()}
                           onClick={claimIsbn}
                         >
                           Зберегти ISBN
@@ -1079,6 +1081,19 @@ function OutputDataContent() {
                         Лише якщо книга вже мала власний ISBN до ULIT — стане ISBN цієї книги, реєстрація в
                         Книжковій палаті через ULIT більше не знадобиться.
                       </p>
+                      {/* Платформа не звіряє номер із жодним зовнішнім реєстром ISBN --
+                          явне підтвердження автора зсуває відповідальність на нього,
+                          той самий підхід, що й у KDP/IngramSpark при "own ISBN". */}
+                      <label className="flex items-start gap-2 text-xs text-gray-500">
+                        <input
+                          type="checkbox"
+                          checked={claimIsbnAttested}
+                          onChange={(e) => setClaimIsbnAttested(e.target.checked)}
+                          className="mt-0.5 rounded border-gray-300"
+                        />
+                        Підтверджую, що цей ISBN дійсно раніше офіційно присвоєно саме цій книзі, і я несу
+                        відповідальність за коректність цих даних.
+                      </label>
                       {claimIsbnError && <p className="text-xs text-red-500">{claimIsbnError}</p>}
                     </>
                   )}
