@@ -6,7 +6,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { PublicationTimeline } from "@/components/books/PublicationTimeline";
 import { PublishButton } from "@/components/books/PublishButton";
-import { RepublishButton } from "@/components/books/RepublishButton";
+import { RepublishButton, RepublishPendingNote } from "@/components/books/RepublishButton";
 import { UnpublishButton } from "@/components/books/UnpublishButton";
 import { RelistButton } from "@/components/books/RelistButton";
 import { BookCoverCarousel } from "@/components/books/BookCoverCarousel";
@@ -202,6 +202,7 @@ export function BookDashboard() {
                   pendingTitle={book?.pendingTitle}
                   pendingDescription={book?.pendingDescription}
                   pendingGenre={book?.pendingGenre}
+                  showNote={false}
                   onSubmitted={(republishRequestedAt) =>
                     setBook((b) => (b ? { ...b, republishRequestedAt } : b))
                   }
@@ -244,6 +245,22 @@ export function BookDashboard() {
             )}
           </div>
         </div>
+        {/* Rendered on its own line below the whole button row -- inline
+            inside RepublishButton it made that one flex item taller than
+            its row siblings, which under items-center visually shifted
+            "Опублікувати із змінами" up relative to Редагувати/Зняти з
+            публікації. */}
+        {isPublished && (
+          <div className="flex justify-end">
+            <RepublishPendingNote
+              docxUpdatedAt={book?.docxUpdatedAt}
+              publishedAt={book?.publishedAt}
+              pendingTitle={book?.pendingTitle}
+              pendingDescription={book?.pendingDescription}
+              pendingGenre={book?.pendingGenre}
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[320px_1fr_260px]">
           {/* Left: cover + price */}
