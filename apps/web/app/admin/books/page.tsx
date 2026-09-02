@@ -72,12 +72,55 @@ function formatDateTime(date: string): string {
   });
 }
 
-function formatDateOnly(date: string): string {
-  return new Date(date).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" });
+interface TimelineEntry {
+  key: string;
+  title: string;
+  date: string;
+  badgeLabel: string;
+  badgeClassName: string;
 }
 
-function formatTimeOnly(date: string): string {
-  return new Date(date).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
+// One place a book's whole moderation/publication history is derived from
+// -- each lifecycle timestamp paired with the status badge it produced, so
+// "коли" and "що" are never two things an admin has to visually line up
+// across separate columns. Sorted chronologically (oldest first) since this
+// reads as a history, not a snapshot -- the last line is always the book's
+// current effective state.
+function buildStatusTimeline(book: Book): TimelineEntry[] {
+  const entries: TimelineEntry[] = [];
+  if (book.publicationTimeline?.submitted) {
+    entries.push({ key: "submitted", title: "Вперше надіслано на модерацію", date: book.publicationTimeline.submitted, badgeLabel: "REVIEW", badgeClassName: STATUS_COLORS.REVIEW });
+  }
+  if (book.publicationTimeline?.lastSubmitted && book.publicationTimeline.lastSubmitted !== book.publicationTimeline?.submitted) {
+    entries.push({ key: "lastSubmitted", title: "Востаннє повторно надіслано на модерацію", date: book.publicationTimeline.lastSubmitted, badgeLabel: "REVIEW", badgeClassName: STATUS_COLORS.REVIEW });
+  }
+  if (book.moderationStatus === "APPROVED" && book.publicationTimeline?.review_done) {
+    entries.push({ key: "approved", title: "Дата затвердження адміном", date: book.publicationTimeline.review_done, badgeLabel: "APPROVED", badgeClassName: MOD_COLORS.APPROVED });
+  }
+  if (book.status === "PUBLISHED" && book.publishedAt) {
+    entries.push({ key: "published", title: "Дата публікації в магазині", date: book.publishedAt, badgeLabel: "PUBLISHED", badgeClassName: STATUS_COLORS.PUBLISHED });
+  }
+  if (book.status === "DRAFT" && book.moderationStatus === "REJECTED" && book.rejectedAt) {
+    entries.push({ key: "rejected", title: "Дата відхилення адміном", date: book.rejectedAt, badgeLabel: "REJECTED", badgeClassName: MOD_COLORS.REJECTED });
+  }
+  if (book.status === "PUBLISHED" && book.republishRequestedAt) {
+    entries.push({ key: "republish", title: "Автор надіслав зміни в опублікованій книзі", date: book.republishRequestedAt, badgeLabel: "ЗМІНИ НА МОДЕРАЦІЇ", badgeClassName: "bg-amber-100 text-amber-700" });
+  }
+  return entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+// Events that land at the exact same instant (approve+publish both stamp
+// `now` in the same request) collapse onto one line -- two badges, one date
+// -- instead of two lines that would otherwise repeat the identical time.
+function groupTimelineByInstant(entries: TimelineEntry[]): { time: number; items: TimelineEntry[] }[] {
+  const groups: { time: number; items: TimelineEntry[] }[] = [];
+  for (const e of entries) {
+    const t = new Date(e.date).getTime();
+    const g = groups.find((g) => g.time === t);
+    if (g) g.items.push(e);
+    else groups.push({ time: t, items: [e] });
+  }
+  return groups;
 }
 
 // Resizable admin/books table -- one width per column, persisted so an
@@ -86,7 +129,6 @@ function formatTimeOnly(date: string): string {
 const TABLE_COLUMNS = [
   "Книга",
   "Статус",
-  "Дата/час",
   "Чеклист",
   "Розповсюдження",
   "Публікація",
@@ -94,7 +136,7 @@ const TABLE_COLUMNS = [
   "Дистрибуція",
   "Файли",
 ] as const;
-const DEFAULT_COLUMN_WIDTHS = [260, 110, 140, 110, 105, 100, 90, 100, 80];
+const DEFAULT_COLUMN_WIDTHS = [260, 200, 110, 105, 100, 90, 100, 80];
 const COLUMN_WIDTHS_STORAGE_KEY = "ulit-admin-books-col-widths";
 const MIN_COLUMN_WIDTH = 60;
 
@@ -229,100 +271,35 @@ function BookRow({
         </div>
       </td>
       <td className="px-4 py-3">
-        <div className="space-y-1">
-          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${rejected ? "bg-gray-200 text-gray-500" : STATUS_COLORS[book.status] ?? "bg-gray-100 text-gray-600"}`}>
-            {book.status}
-          </span>
-          <br />
-          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${rejected ? "bg-gray-200 text-gray-500" : MOD_COLORS[book.moderationStatus] ?? "bg-gray-100 text-gray-600"}`}>
-            {book.moderationStatus}
-          </span>
-          {pendingRepublish && (
-            <>
-              <br />
-              <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700" title="Автор надіслав зміни в опублікованій книзі">
-                ⏳ Зміни на модерації
-              </span>
-            </>
-          )}
-        </div>
-      </td>
-      <td className="px-4 py-3">
         {(() => {
-          // One line per lifecycle timestamp that actually happened to this
-          // book, most-recent-relevant kept alongside the submission dates --
-          // covers submit/resubmit (existing), and now also затвердження
-          // (moderationStatus APPROVED), публікація (status PUBLISHED), and
-          // відхилення (status DRAFT after a reject), each keyed off the
-          // status/moderationStatus that's actually showing in the cell
-          // next to this one, so the date always matches what's displayed.
-          const entries: { key: string; icon: string; title: string; date: string; className?: string }[] = [];
-          if (book.publicationTimeline?.submitted) {
-            entries.push({ key: "submitted", icon: "🕓", title: "Вперше надіслано на модерацію", date: book.publicationTimeline.submitted });
+          const entries = buildStatusTimeline(book);
+          if (entries.length === 0) {
+            // No history at all -- e.g. a fresh, never-submitted draft.
+            // Falls back to the plain current-status badge alone.
+            return (
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${rejected ? "bg-gray-200 text-gray-500" : STATUS_COLORS[book.status] ?? "bg-gray-100 text-gray-600"}`}>
+                {book.status}
+              </span>
+            );
           }
-          if (book.publicationTimeline?.lastSubmitted && book.publicationTimeline.lastSubmitted !== book.publicationTimeline?.submitted) {
-            entries.push({
-              key: "lastSubmitted",
-              icon: "↻",
-              title: "Востаннє повторно надіслано на модерацію",
-              date: book.publicationTimeline.lastSubmitted,
-              className: rejected ? "" : "text-blue-600",
-            });
-          }
-          if (book.moderationStatus === "APPROVED" && book.publicationTimeline?.review_done) {
-            entries.push({
-              key: "approved",
-              icon: "✅",
-              title: "Дата затвердження адміном",
-              date: book.publicationTimeline.review_done,
-              className: rejected ? "" : "text-green-600",
-            });
-          }
-          if (book.status === "PUBLISHED" && book.publishedAt) {
-            entries.push({
-              key: "published",
-              icon: "📚",
-              title: "Дата публікації в магазині",
-              date: book.publishedAt,
-              className: rejected ? "" : "text-green-700",
-            });
-          }
-          if (book.status === "DRAFT" && book.moderationStatus === "REJECTED" && book.rejectedAt) {
-            entries.push({
-              key: "rejected",
-              icon: "↩",
-              title: "Дата відхилення адміном",
-              date: book.rejectedAt,
-              className: rejected ? "" : "text-red-600",
-            });
-          }
-          if (entries.length === 0) return <span className="text-xs text-gray-300">—</span>;
-
-          // Grouped by calendar date -- the date printed once per group,
-          // followed by one compact "icon time" chip per event that day,
-          // instead of the full date+time repeated on every line. Most rows
-          // only ever have one date group (everything happened same-day),
-          // collapsing 3-4 lines down to 2.
-          const groups: { dateKey: string; items: typeof entries }[] = [];
-          for (const e of entries) {
-            const dateKey = formatDateOnly(e.date);
-            const g = groups.find((g) => g.dateKey === dateKey);
-            if (g) g.items.push(e);
-            else groups.push({ dateKey, items: [e] });
-          }
-
+          const groups = groupTimelineByInstant(entries);
           return (
             <div className={`space-y-1 text-xs ${rejected ? "text-gray-400" : "text-gray-600"}`}>
               {groups.map((g) => (
-                <div key={g.dateKey}>
-                  <p className="font-medium">{g.dateKey}</p>
-                  <p className="flex flex-wrap gap-x-1.5">
-                    {g.items.map((e) => (
-                      <span key={e.key} title={`${e.title} — ${formatDateTime(e.date)}`} className={e.className}>
-                        {e.icon} {formatTimeOnly(e.date)}
-                      </span>
-                    ))}
-                  </p>
+                <div
+                  key={g.time}
+                  className="flex flex-wrap items-center gap-1.5"
+                  title={g.items.map((e) => e.title).join(" · ")}
+                >
+                  {g.items.map((e) => (
+                    <span
+                      key={e.key}
+                      className={`inline-flex rounded-full px-1.5 py-0.5 text-[0.6875rem] font-medium ${rejected ? "bg-gray-200 text-gray-500" : e.badgeClassName}`}
+                    >
+                      {e.badgeLabel}
+                    </span>
+                  ))}
+                  <span>{formatDateTime(g.items[0].date)}</span>
                 </div>
               ))}
             </div>
@@ -679,7 +656,7 @@ export default function AdminBooksPage() {
                 ))}
                 {rejectedBooks.length > 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-2">
+                    <td colSpan={8} className="px-4 py-2">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Відхилені</span>
                         <div className="h-px flex-1 bg-gray-200" />
