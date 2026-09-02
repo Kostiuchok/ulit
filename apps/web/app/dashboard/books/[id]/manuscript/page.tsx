@@ -226,19 +226,6 @@ export default function ManuscriptEditorPage() {
           initialContent={manuscript.content}
           initialStyleOverrides={manuscript.styleOverrides}
           printFormat={printFormat ?? undefined}
-          bookMeta={{
-            title: book?.title ?? "",
-            subtitle: book?.subtitle,
-            authorName: book?.author?.name,
-            description: book?.description,
-            ageRating: book?.ageRating,
-            isbn: book?.isbn,
-            udcCode: book?.udcCode,
-            bbkCode: book?.bbkCode,
-            authorSign: book?.authorSign,
-            pageCount: book?.pageCount,
-            createdAt: book?.createdAt,
-          }}
         />
       </div>
     </div>

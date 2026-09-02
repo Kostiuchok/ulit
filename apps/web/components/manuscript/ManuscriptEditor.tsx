@@ -36,8 +36,7 @@ import {
   X,
   BookOpenCheck,
 } from "lucide-react";
-import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, ResizableImage, PageBreak, type StyledBlockStyleName } from "shared-types";
-import { buildFrontMatterNodes, hasFrontMatter, type FrontMatterMeta } from "./frontMatter";
+import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, ResizableImage, PageBreak, splitFrontMatter, type StyledBlockStyleName } from "shared-types";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
 import { computePageGeometry, DEFAULT_PAGE_GEOMETRY } from "./manuscriptLayout";
 import {
@@ -80,7 +79,6 @@ interface Props {
   bookId: string;
   initialContent: any;
   initialStyleOverrides?: Record<string, StyleOverride>;
-  bookMeta?: FrontMatterMeta;
   // Book's real print trim -- drives the toolbar's page-format check
   // (formerly hardcoded to A5 regardless of the book's actual format).
   // Undefined falls back to the platform default trim (DEFAULT_PAGE_GEOMETRY).
@@ -206,7 +204,7 @@ function extractOutline(editor: Editor): OutlineItem[] {
   return items;
 }
 
-export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, bookMeta, printFormat }: Props) {
+export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, printFormat }: Props) {
   const { apiFetch, apiUpload } = useApi();
   const searchParams = useSearchParams();
 
@@ -215,14 +213,19 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     [printFormat]
   );
 
-  // Prepend the Ridero-style title/copyright page (T-1953) the first time this
-  // manuscript is opened — everything above the horizontalRule is "page 2",
-  // pre-filled from Вихідні дані but freely editable afterwards. Computed once
-  // at mount: useEditor's `content` option only matters on creation.
+  // Title page + colophon are no longer editable manuscript content (T-1953/
+  // T-1962 inserted them once as real prosemirror nodes; now generated fresh
+  // from live Book fields at print-render time instead, see
+  // shared-types/manuscript/frontMatter.ts + printHtml.ts). Any front matter
+  // already baked into a manuscript from before this change is stripped here
+  // -- splitFrontMatter is a safe no-op (returns body === content unchanged)
+  // when there's nothing to strip, so this covers both old and new books.
+  // Computed once at mount: useEditor's `content` option only matters on
+  // creation.
   const effectiveInitialContent = useMemo(() => {
     const doc = initialContent ?? { type: "doc", content: [{ type: "paragraph", attrs: { style: "normal" } }] };
-    if (!bookMeta || hasFrontMatter(doc)) return doc;
-    return { type: "doc", content: [...buildFrontMatterNodes(bookMeta), ...(doc.content ?? [])] };
+    const { body } = splitFrontMatter(doc.content ?? []);
+    return { type: "doc", content: body };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [outline, setOutline] = useState<OutlineItem[]>([]);

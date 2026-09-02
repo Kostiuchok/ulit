@@ -2,7 +2,7 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { JSDOM } from "jsdom";
-import { buildManuscriptPrintHtml, type PageNumberPosition } from "shared-types";
+import { buildManuscriptPrintHtml, type PageNumberPosition, type FrontMatterMeta } from "shared-types";
 
 // TipTap's generateHTML() (called inside buildManuscriptPrintHtml, via
 // ProseMirror's DOMSerializer) needs a real DOM `document` to build nodes
@@ -21,6 +21,7 @@ export interface RenderManuscriptPdfInput {
   widthMm: number;
   heightMm: number;
   pageNumberPosition?: PageNumberPosition;
+  frontMatterMeta: FrontMatterMeta;
   backCoverUrl?: string | null;
   tmpDir: string;
   outputPdfPath: string;
@@ -36,11 +37,19 @@ export function renderManuscriptPdf({
   widthMm,
   heightMm,
   pageNumberPosition,
+  frontMatterMeta,
   backCoverUrl,
   tmpDir,
   outputPdfPath,
 }: RenderManuscriptPdfInput): void {
-  const html = buildManuscriptPrintHtml({ content, widthMm, heightMm, pageNumberPosition, backCoverUrl });
+  const html = buildManuscriptPrintHtml({
+    content,
+    widthMm,
+    heightMm,
+    pageNumberPosition,
+    frontMatterMeta,
+    backCoverUrl,
+  });
   const htmlPath = path.join(tmpDir, "manuscript.html");
   fs.writeFileSync(htmlPath, html, "utf-8");
 

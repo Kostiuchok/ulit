@@ -1,6 +1,7 @@
 import { MANUSCRIPT_PROSE_CSS } from "./proseStyles";
 import { manuscriptContentToHtml } from "./extensions";
 import { splitFrontMatter } from "./splitFrontMatter";
+import { buildFrontMatterNodes, type FrontMatterMeta } from "./frontMatter";
 import { DEFAULT_PAGE_NUMBER_POSITION, type PageNumberPosition } from "./pageNumberPosition";
 import { extractOutline } from "./outline";
 import {
@@ -197,6 +198,12 @@ export interface BuildManuscriptPrintHtmlInput {
   widthMm: number;
   heightMm: number;
   pageNumberPosition?: PageNumberPosition;
+  // Title page + colophon, generated fresh from live Book fields (Вихідні
+  // дані) on every render -- NOT read from `content`. Any front matter still
+  // physically present at the start of `content` (baked in by the old
+  // insert-into-manuscript approach, T-1953/T-1962) is stripped and
+  // discarded below via splitFrontMatter, same mechanism, opposite purpose.
+  frontMatterMeta: FrontMatterMeta;
   // Rendered as the PDF's final page, full-bleed (its own zero-margin named
   // @page, unlike every interior page) -- so a print-preview download shows
   // the whole physical object (interior + back cover), not just the text.
@@ -215,13 +222,17 @@ export function buildManuscriptPrintHtml({
   widthMm,
   heightMm,
   pageNumberPosition = DEFAULT_PAGE_NUMBER_POSITION,
+  frontMatterMeta,
   backCoverUrl,
 }: BuildManuscriptPrintHtmlInput): string {
   const doc = content ?? { type: "doc", content: [] };
   const allContent: any[] = doc.content ?? [];
-  const { front, body } = splitFrontMatter(allContent);
+  // `front` (if any) is old manuscript-baked front matter -- discarded, not
+  // rendered; only `body` is used. The actual front matter below is always
+  // generated fresh from frontMatterMeta instead.
+  const { body } = splitFrontMatter(allContent);
 
-  const frontHtml = front.length > 0 ? manuscriptContentToHtml({ type: "doc", content: front }) : "";
+  const frontHtml = manuscriptContentToHtml({ type: "doc", content: buildFrontMatterNodes(frontMatterMeta) });
   const bodyHtml = manuscriptContentToHtml({ type: "doc", content: body });
   const tocHtml = buildTocHtml(body);
   const backCoverHtml = backCoverUrl

@@ -1,9 +1,16 @@
-import type { StyledBlockStyleName } from "shared-types";
+import type { StyledBlockStyleName } from "./styledParagraph";
 
 export interface FrontMatterMeta {
   title: string;
   subtitle?: string | null;
-  authorName?: string | null;
+  // Two orderings, built by the caller from structured Book.bookAuthors
+  // (lastName/firstName) -- title page uses given-name-first (Ridero
+  // reference), the colophon uses surname-first (bibliographic cataloguing
+  // convention). Deliberately not derived here from one flat string: that
+  // can't be reordered reliably (which word is the surname?), only a caller
+  // with the structured fields can build both correctly.
+  authorNameDisplay?: string | null;
+  authorNameCatalog?: string | null;
   description?: string | null;
   ageRating?: string | null;
   isbn?: string | null;
@@ -23,12 +30,13 @@ function styledParagraph(style: StyledBlockStyleName, text: string, variant?: st
 }
 
 /**
- * Ridero-style title + colophon pages — two blocks of styled paragraphs the
- * author can freely edit, separated by a forced pageBreak (T-1962) and
- * followed by a horizontalRule. Everything above that rule is treated as
- * "front matter" (see docs/TASKS.md T-1953/T-1962); how many nodes precede
- * the rule doesn't matter to the sentinel check in ManuscriptEditor, only
- * that it stays within the first 15 nodes it scans.
+ * Ridero-style title + colophon pages, generated fresh at print-render time
+ * from live Book fields (Вихідні дані) -- NOT persisted into
+ * Book.manuscriptContent and not author-editable. Previously these were
+ * inserted once into the editable manuscript on first open (T-1953/T-1962),
+ * which meant ISBN/УДК/anotation baked in at that moment never updated
+ * again; this generator is now called fresh on every print-PDF render
+ * instead (see printHtml.ts), so it always reflects the current book data.
  */
 export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
   const nodes: any[] = [];
@@ -44,7 +52,7 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
   // bottom) -- CSS Paged Media can't flex/absolute-position "bottom of this
   // specific page" across a fragmented div, so this is a tuned approximation
   // for the common print formats, not pixel-exact for every trim size.
-  if (meta.authorName) nodes.push(styledParagraph("normal", meta.authorName, "titlepage-author"));
+  if (meta.authorNameDisplay) nodes.push(styledParagraph("normal", meta.authorNameDisplay, "titlepage-author"));
   nodes.push(styledParagraph("heading", meta.title, "titlepage-title"));
   if (meta.subtitle) nodes.push(styledParagraph("subheading", meta.subtitle, "titlepage-subtitle"));
   nodes.push(styledParagraph("normal", "Видано на платформі Ulit", "titlepage-imprint"));
@@ -53,20 +61,24 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
   nodes.push({ type: "pageBreak" });
 
   // --- Page 2: colophon (Ridero-style випускні дані) -- catalog codes
-  // stacked top-left, typesetting note, bold author byline, hanging-indent
-  // bibliographic line (author-sign as the hanging label), annotation, bold
-  // catalog-code repeat, age-rating badge, ISBN + copyright footer pinned
-  // toward the bottom. ---
+  // stacked top-left, typesetting note, bold author byline (surname-first),
+  // hanging-indent bibliographic line (author-sign as the hanging label),
+  // annotation, bold catalog-code repeat, age-rating badge, copyright
+  // pinned toward the bottom. ---
+  const authorCatalog = meta.authorNameCatalog ?? meta.authorNameDisplay;
+
   if (meta.udcCode) nodes.push(styledParagraph("normal", `УДК ${meta.udcCode}`, "colophon-code"));
   if (meta.bbkCode) nodes.push(styledParagraph("normal", `ББК ${meta.bbkCode}`, "colophon-code"));
   if (meta.authorSign) nodes.push(styledParagraph("normal", meta.authorSign, "colophon-code"));
 
   nodes.push(styledParagraph("normal", "Комп'ютерна верстка. Гарнітура Times New Roman.", "colophon-meta"));
 
-  if (meta.authorName) nodes.push(styledParagraph("normal", meta.authorName, "colophon-author"));
+  if (authorCatalog) nodes.push(styledParagraph("normal", authorCatalog, "colophon-author"));
 
   const bibLabel = meta.authorSign ? `${meta.authorSign} ` : "";
-  const bibParts = [`${meta.title}${meta.authorName ? ` / ${meta.authorName}` : ""}. — [б.м.] : Ulit, ${year}.`];
+  const bibParts = [
+    `${meta.title}${meta.authorNameDisplay ? ` / ${meta.authorNameDisplay}` : ""}. — [б.м.] : Ulit, ${year}.`,
+  ];
   if (meta.pageCount) bibParts.push(`— ${meta.pageCount} с.`);
   if (meta.isbn) bibParts.push(`— ISBN ${meta.isbn}`);
   nodes.push(styledParagraph("normal", `${bibLabel}${bibParts.join(" ")}`, "colophon-biblio"));
@@ -78,15 +90,8 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
 
   if (meta.ageRating) nodes.push(styledParagraph("normal", meta.ageRating, "colophon-age"));
 
-  nodes.push(styledParagraph("normal", `© ${meta.authorName ?? "Автор"}, ${year}`, "colophon-footer"));
+  nodes.push(styledParagraph("normal", `© ${authorCatalog ?? "Автор"}, ${year}`, "colophon-footer"));
 
   nodes.push({ type: "horizontalRule" });
   return nodes;
-}
-
-/** True if front matter was already generated (and possibly edited) before. */
-export function hasFrontMatter(doc: any): boolean {
-  const content = doc?.content;
-  if (!Array.isArray(content)) return false;
-  return content.slice(0, 15).some((node) => node?.type === "horizontalRule");
 }

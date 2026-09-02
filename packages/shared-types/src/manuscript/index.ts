@@ -21,3 +21,4 @@ export {
 export { MANUSCRIPT_CORE_EXTENSIONS, manuscriptContentToHtml } from "./extensions";
 export { MANUSCRIPT_PROSE_CSS } from "./proseStyles";
 export { buildManuscriptPrintHtml, type BuildManuscriptPrintHtmlInput } from "./printHtml";
+export { buildFrontMatterNodes, type FrontMatterMeta } from "./frontMatter";

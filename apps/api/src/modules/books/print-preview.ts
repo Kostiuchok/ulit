@@ -26,6 +26,7 @@ export async function printPreviewRoutes(app: FastifyInstance) {
           printPdfUrl: true,
           printPdfGeneratedAt: true,
           printPageCount: true,
+          updatedAt: true,
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -35,11 +36,20 @@ export async function printPreviewRoutes(app: FastifyInstance) {
         return reply.send({ status: "NO_MANUSCRIPT" });
       }
 
-      // Stale if never rendered, or if the author has edited/re-imported the
-      // manuscript since the last render.
+      // Stale if never rendered, if the author has edited/re-imported the
+      // manuscript since the last render, OR if any book field has changed
+      // since (title/anotation/ISBN/УДК/etc. on Вихідні дані) -- the title
+      // page/colophon are generated fresh from those live fields on every
+      // render now (frontMatter.ts), not baked into manuscriptContent, so
+      // updatedAt (bumped by any PATCH, incl. admin's ISBN/УДК assignment)
+      // has to invalidate the cache too or those changes would never show
+      // up in an already-rendered PDF. A little over-eager (also triggers on
+      // unrelated fields like price), but the render only happens on demand.
       const lastEdit = book.manuscriptEditedAt ?? book.manuscriptImportedAt;
       const stale =
-        !book.printPdfGeneratedAt || (lastEdit !== null && lastEdit > book.printPdfGeneratedAt);
+        !book.printPdfGeneratedAt ||
+        (lastEdit !== null && lastEdit > book.printPdfGeneratedAt) ||
+        book.updatedAt > book.printPdfGeneratedAt;
 
       if (stale) {
         const jobId = `print-pdf-${id}`;

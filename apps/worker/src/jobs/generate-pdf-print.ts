@@ -3,7 +3,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { PRINT_TRIM_SIZE_MM, extractPageNumberPosition } from "shared-types";
+import { PRINT_TRIM_SIZE_MM, extractPageNumberPosition, type FrontMatterMeta } from "shared-types";
 import { uploadFromFile } from "../lib/minio";
 import { prisma } from "../lib/prisma";
 import { renderManuscriptPdf } from "../lib/renderManuscriptPdf";
@@ -11,6 +11,33 @@ import { renderManuscriptPdf } from "../lib/renderManuscriptPdf";
 export interface PrintPdfData {
   bookId: string;
   format: "PRINT_PDF";
+}
+
+interface BookAuthorEntry {
+  lastName?: string;
+  firstName?: string;
+  middleName?: string;
+}
+
+// Two name orderings for the title page ("Ім'я Прізвище") vs the colophon
+// ("Прізвище Ім'я", bibliographic convention) -- same small duplication as
+// apps/api/src/modules/admin/book-chamber.ts's formatAuthorFullName, kept
+// separate rather than shared since it's a 5-line helper in a different
+// codebase (worker vs api). Falls back to the account's own display name
+// when Book.bookAuthors has no complete entry -- can't reorder a flat
+// string reliably, so both orderings just become the same value then.
+function formatAuthorNames(
+  bookAuthors: unknown,
+  accountName: string | null
+): { display: string | null; catalog: string | null } {
+  const authors = Array.isArray(bookAuthors) ? (bookAuthors as BookAuthorEntry[]) : [];
+  const a = authors.find((x) => x?.lastName?.trim() && x?.firstName?.trim());
+  if (!a) return { display: accountName, catalog: accountName };
+  const middle = a.middleName?.trim();
+  return {
+    display: [a.firstName, a.lastName].filter(Boolean).join(" "),
+    catalog: [a.lastName, a.firstName, middle].filter(Boolean).join(" "),
+  };
 }
 
 // T-2057 -- renders the print PDF straight from Book.manuscriptContent via
@@ -38,6 +65,18 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
         printWidthMm: true,
         printHeightMm: true,
         backCoverUrl: true,
+        title: true,
+        subtitle: true,
+        description: true,
+        bookAuthors: true,
+        ageRating: true,
+        isbn: true,
+        udcCode: true,
+        bbkCode: true,
+        authorSign: true,
+        printPageCount: true,
+        createdAt: true,
+        author: { select: { name: true } },
       },
     });
     if (!book) throw new Error(`Book ${bookId} not found`);
@@ -48,6 +87,21 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
     const pageNumberPosition = extractPageNumberPosition(
       (book.manuscriptStyleOverrides as Record<string, unknown> | null) ?? undefined
     );
+    const authorNames = formatAuthorNames(book.bookAuthors, book.author.name);
+    const frontMatterMeta: FrontMatterMeta = {
+      title: book.title,
+      subtitle: book.subtitle,
+      authorNameDisplay: authorNames.display,
+      authorNameCatalog: authorNames.catalog,
+      description: book.description,
+      ageRating: book.ageRating,
+      isbn: book.isbn,
+      udcCode: book.udcCode,
+      bbkCode: book.bbkCode,
+      authorSign: book.authorSign,
+      pageCount: book.printPageCount,
+      createdAt: book.createdAt.toISOString(),
+    };
 
     const rawPdf = path.join(tmpDir, "manuscript-raw.pdf");
     renderManuscriptPdf({
@@ -55,6 +109,7 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
       widthMm,
       heightMm,
       pageNumberPosition,
+      frontMatterMeta,
       backCoverUrl: book.backCoverUrl,
       tmpDir,
       outputPdfPath: rawPdf,
@@ -106,7 +161,15 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
       where: { id: bookId },
       data: {
         printPdfUrl: objectName,
-        printPdfGeneratedAt: new Date(),
+        // +5s, not just new Date() -- this same update also bumps the row's
+        // own @updatedAt (print-preview.ts's staleness check now compares
+        // printPdfGeneratedAt against updatedAt too, so front matter picks
+        // up later Вихідні дані edits). Both timestamps are independently
+        // computed "now" within this one query; without the margin,
+        // updatedAt could land a few ms after printPdfGeneratedAt purely by
+        // evaluation-order luck, making the PDF register as stale again
+        // immediately after every single render.
+        printPdfGeneratedAt: new Date(Date.now() + 5000),
         ...(printPageCount ? { printPageCount } : {}),
       },
       select: { id: true },
