@@ -56,6 +56,11 @@ const infoSchema = z.object({
   language: z.string().length(2),
   aiGenerated: z.boolean().optional(),
   aiGeneratedNote: z.string().max(1000).optional(),
+  // Only relevant for a book already published elsewhere before joining
+  // ULIT -- see "Авторське право / попередня публікація" block below.
+  copyrightYear: z.string().max(4).optional(),
+  copyrightHolder: z.string().max(255).optional(),
+  priorPublicationCertificate: z.string().max(100).optional(),
 });
 type InfoForm = z.infer<typeof infoSchema>;
 
@@ -158,6 +163,10 @@ interface MetadataBook {
   pendingTitle?: string | null;
   pendingDescription?: string | null;
   pendingGenre?: string | null;
+  isbn?: string | null;
+  copyrightYear?: string | null;
+  copyrightHolder?: string | null;
+  priorPublicationCertificate?: string | null;
 }
 
 // docs/isbn-udc-requirements.md, "Детальний технічний чекліст оформлення ISBN" (2026-08-17).
@@ -172,6 +181,23 @@ interface IsbnChecklistItem {
 }
 
 function IsbnReadinessChecklist({ book, bookAuthors }: { book: MetadataBook | null; bookAuthors: BookAuthor[] }) {
+  // A book that already has an ISBN (own admin-assigned one, or one claimed
+  // via "Авторське право / попередня публікація" below because it was
+  // already published elsewhere) will never go through Ulit's own
+  // Книжкова палата registration -- /api/admin/isbn-queue already skips it
+  // (where: { isbn: null }), so this checklist (which preps THAT submission)
+  // would be actively misleading here.
+  if (book?.isbn) {
+    return (
+      <div className="rounded-xl border bg-white p-5 text-sm">
+        <p className="flex items-center gap-2 text-gray-700">
+          <span className="text-green-600">✓</span>
+          ISBN вже присвоєно — реєстрація в Книжковій палаті не потрібна.
+        </p>
+      </div>
+    );
+  }
+
   const hasAuthorName = bookAuthors.some((a) => a.lastName.trim() && a.firstName.trim());
   const descLength = (book?.description ?? "").length;
   const annotationOk = descLength > 0 && descLength <= ISBN_ANNOTATION_HALF_PAGE_CHARS;
@@ -252,6 +278,15 @@ function OutputDataContent() {
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [newContributor, setNewContributor] = useState<Contributor>({ role: "", name: "" });
   const [authorBio, setAuthorBio] = useState("");
+
+  // "Авторське право / попередня публікація" -- claiming an existing ISBN
+  // from before the book joined ULIT is a separate action from the rest of
+  // "Інформація" (its own endpoint, PATCH .../claim-isbn, with its own
+  // validation), so it gets its own small form/state instead of going
+  // through infoForm.
+  const [claimIsbnValue, setClaimIsbnValue] = useState("");
+  const [claimIsbnSaving, setClaimIsbnSaving] = useState(false);
+  const [claimIsbnError, setClaimIsbnError] = useState("");
 
   const [priceSaved, setPriceSaved] = useState(false);
   const [priceError, setPriceError] = useState("");
@@ -339,6 +374,9 @@ function OutputDataContent() {
       language: book.language,
       aiGenerated: book.aiGenerated ?? false,
       aiGeneratedNote: book.aiGeneratedNote ?? "",
+      copyrightYear: book.copyrightYear ?? "",
+      copyrightHolder: book.copyrightHolder ?? "",
+      priorPublicationCertificate: book.priorPublicationCertificate ?? "",
     });
     priceForm.reset({
       pricePrintBw: book.pricePrintBw ? Number(book.pricePrintBw) : "",
@@ -464,6 +502,9 @@ function OutputDataContent() {
           bookAuthors: effectiveBookAuthors.length > 0 ? effectiveBookAuthors : null,
           contributors: effectiveContributors.length > 0 ? effectiveContributors : null,
           authorBio: authorBio.trim() || null,
+          copyrightYear: data.copyrightYear?.trim() || null,
+          copyrightHolder: data.copyrightHolder?.trim() || null,
+          priorPublicationCertificate: data.priorPublicationCertificate?.trim() || null,
         }),
       });
       setBook(updated);
@@ -487,6 +528,25 @@ function OutputDataContent() {
       setInfoError(e.message || "Помилка збереження");
     }
   };
+
+  async function claimIsbn() {
+    const isbn = claimIsbnValue.trim();
+    if (!isbn) return;
+    setClaimIsbnError("");
+    setClaimIsbnSaving(true);
+    try {
+      const { book: updated } = await apiFetch<{ book: MetadataBook }>(`/api/books/${id}/claim-isbn`, {
+        method: "PATCH",
+        body: JSON.stringify({ isbn }),
+      });
+      setBook(updated);
+      setClaimIsbnValue("");
+    } catch (e: any) {
+      setClaimIsbnError(e.message || "Не вдалося зберегти ISBN");
+    } finally {
+      setClaimIsbnSaving(false);
+    }
+  }
 
   const onSubmitPrice = async (data: PriceForm) => {
     setPriceError("");
@@ -949,6 +1009,83 @@ function OutputDataContent() {
                   </div>
                 </div>
 
+              {/* Тільки для книги, яка вже була опублікована десь ще (напр.
+                  proza.ru/stihi.ru) до приєднання до ULIT -- більшість
+                  авторів це поле не заповнюють взагалі. */}
+              <div className="space-y-3 rounded-lg border p-3">
+                <div>
+                  <Label>Авторське право / попередня публікація</Label>
+                  <p className="text-xs text-gray-400">
+                    Заповнюйте, лише якщо книга вже виходила раніше на іншій платформі — до приєднання до ULIT.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[100px_1fr]">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="copyrightYear" className="text-xs font-normal text-gray-500">Рік</Label>
+                    <Input id="copyrightYear" {...infoForm.register("copyrightYear")} placeholder="2013" className="h-9 text-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="copyrightHolder" className="text-xs font-normal text-gray-500">Власник авторського права</Label>
+                    <Input
+                      id="copyrightHolder"
+                      {...infoForm.register("copyrightHolder")}
+                      placeholder="Наприклад: Валентина Островська"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="priorPublicationCertificate" className="text-xs font-normal text-gray-500">
+                    Номер свідоцтва про публікацію
+                  </Label>
+                  <Input
+                    id="priorPublicationCertificate"
+                    {...infoForm.register("priorPublicationCertificate")}
+                    placeholder="Наприклад: №113122609908 (proza.ru, stihi.ru тощо)"
+                    className="h-9 text-sm"
+                  />
+                </div>
+
+                <div className="border-t pt-3 space-y-1.5">
+                  <Label htmlFor="claimIsbn" className="text-xs font-normal text-gray-500">
+                    ISBN, вже присвоєний книзі раніше
+                  </Label>
+                  {book?.isbn ? (
+                    <p className="flex items-center gap-2 rounded-md bg-green-50 px-2.5 py-1.5 text-sm text-green-700">
+                      <span>✓</span>
+                      {book.isbn}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="claimIsbn"
+                          value={claimIsbnValue}
+                          onChange={(e) => setClaimIsbnValue(e.target.value)}
+                          placeholder="978-5-4474-2357-5"
+                          className="h-9 flex-1 text-sm"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 shrink-0"
+                          loading={claimIsbnSaving}
+                          onClick={claimIsbn}
+                        >
+                          Зберегти ISBN
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        Лише якщо книга вже мала власний ISBN до ULIT — стане ISBN цієї книги, реєстрація в
+                        Книжковій палаті через ULIT більше не знадобиться.
+                      </p>
+                      {claimIsbnError && <p className="text-xs text-red-500">{claimIsbnError}</p>}
+                    </>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-2 rounded-lg border p-3">
                 <label className="flex items-center gap-2 text-sm text-gray-700">
                   <input type="checkbox" {...infoForm.register("aiGenerated")} className="rounded border-gray-300" />
@@ -1123,6 +1260,7 @@ function OutputDataContent() {
           <div className="space-y-6">
             <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
               <Row label="Назва" value={book?.title || "—"} />
+              {book?.isbn && <Row label="ISBN" value={book.isbn} />}
               <Row label="Жанр" value={book?.genre || "—"} />
               <Row label="Розмір книги" value={`${displayFormat.label} (${displayFormat.widthMm}×${displayFormat.heightMm}мм)`} />
               {/* printPageCount (from the live generate-pdf-print.ts print job) is

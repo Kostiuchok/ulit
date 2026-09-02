@@ -6,6 +6,7 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { withCoverVersion } from "../../lib/coverVersion";
+import { validateIsbn13 } from "../../services/isbn.service";
 
 const BOOK_SELECT = {
   id: true,
@@ -21,6 +22,9 @@ const BOOK_SELECT = {
   udcCode: true,
   bbkCode: true,
   authorSign: true,
+  copyrightYear: true,
+  copyrightHolder: true,
+  priorPublicationCertificate: true,
   coverUrl: true,
   backCoverUrl: true,
   spineUrl: true,
@@ -117,6 +121,12 @@ const patchSchema = z.object({
   bookAuthors: z.array(bookAuthorSchema).max(10).nullable().optional(),
   contributors: z.array(contributorSchema).max(20).nullable().optional(),
   authorBio: z.string().max(3000).nullable().optional(),
+  // Only relevant for a book that was already published elsewhere before
+  // joining ULIT -- freely re-editable, no special validation (unlike isbn
+  // itself, which has its own dedicated PATCH /api/books/:id/claim-isbn).
+  copyrightYear: z.string().max(4).nullable().optional(),
+  copyrightHolder: z.string().max(255).nullable().optional(),
+  priorPublicationCertificate: z.string().max(100).nullable().optional(),
   coverIndependentFromBookData: z.boolean().optional(),
   desiredRoyaltyAmount: z.number().positive().nullable().optional(),
   desiredRoyaltyAmountPrint: z.number().positive().nullable().optional(),
@@ -266,6 +276,45 @@ export async function bookRoutes(app: FastifyInstance) {
       where: { id },
       data: { previewStart, previewEnd },
       select: { id: true, previewStart: true, previewEnd: true, pageCount: true },
+    });
+
+    return reply.send({ book: withCoverVersion(book) });
+  });
+
+  // PATCH /api/books/:id/claim-isbn — a book already published elsewhere
+  // before joining ULIT may already have a real ISBN of its own; this lets
+  // the author record it directly as this book's ISBN instead of going
+  // through Ulit's own Книжкова палата registration (admin's book-chamber.ts
+  // route), which /api/admin/isbn-queue already correctly skips once isbn is
+  // non-null. Author-settable exactly once -- immutable afterwards (like
+  // admin-assigned ISBNs) so it can't be accidentally overwritten later.
+  app.patch("/api/books/:id/claim-isbn", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await prisma.book.findUnique({ where: { id }, select: { authorId: true, isbn: true } });
+    if (!existing) throw AppError.notFound("Book");
+    if (existing.authorId !== request.user.id) throw AppError.forbidden("Not your book");
+    if (existing.isbn) {
+      throw new AppError("ISBN вже присвоєно цій книзі", 400, "ISBN_ALREADY_SET");
+    }
+
+    const result = z.object({ isbn: z.string().min(1) }).safeParse(request.body);
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
+    }
+    const { isbn } = result.data;
+
+    if (!validateIsbn13(isbn)) {
+      throw new AppError("Невалідний ISBN-13", 400, "INVALID_ISBN");
+    }
+    const collision = await prisma.book.findFirst({ where: { isbn, NOT: { id } }, select: { id: true } });
+    if (collision) {
+      throw new AppError("Цей ISBN вже присвоєно іншій книзі", 400, "ISBN_TAKEN");
+    }
+
+    const book = await prisma.book.update({
+      where: { id },
+      data: { isbn },
+      select: BOOK_SELECT,
     });
 
     return reply.send({ book: withCoverVersion(book) });

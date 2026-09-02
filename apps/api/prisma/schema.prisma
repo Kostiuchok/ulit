@@ -147,6 +147,9 @@ model Book {
   bbkCode              String? // ББК — bibliotechno-bibliographic classification index
   authorSign           String? // авторський знак — shelving code, assigned alongside УДК/ББК
   bookChamberSubmittedAt DateTime? // admin marked the book as submitted to Книжкова палата for cataloguing
+  copyrightYear        String? // e.g. "2013" -- may predate this book's ULIT createdAt if it was published elsewhere first
+  copyrightHolder      String? // © name shown on a prior edition, if different from the account's own display name
+  priorPublicationCertificate String? // "Свідоцтво про публікацію №..." from a prior self-publishing platform (proza.ru/stihi.ru etc.)
   coverUrl             String?
   backCoverUrl         String?
   spineUrl             String? // exported crop of the spine panel (softcover/hardcover only) -- used by the 3D preview rotator

@@ -1,0 +1,3 @@
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "copyrightYear" TEXT;
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "copyrightHolder" TEXT;
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "priorPublicationCertificate" TEXT;
