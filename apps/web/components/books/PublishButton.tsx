@@ -14,11 +14,10 @@ interface ValidationError {
 interface Props {
   bookId: string;
   bookStatus: string;
-  reviewDone?: boolean;
   onSubmitted?: () => void;
 }
 
-export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: Props) {
+export function PublishButton({ bookId, bookStatus, onSubmitted }: Props) {
   const { apiFetch } = useApi();
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [contractRequired, setContractRequired] = useState(false);
@@ -36,16 +35,19 @@ export function PublishButton({ bookId, bookStatus, reviewDone, onSubmitted }: P
   }
 
   if (bookStatus === "REVIEW") {
-    if (reviewDone) {
-      return (
-        <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-700">
-          ✓ Перевірку пройдено — очікуйте на публікацію у магазинах
-        </div>
-      );
-    }
+    // No separate "review passed, awaiting publication" state here on
+    // purpose: the one-click admin approve always sets status PUBLISHED in
+    // the same request as its review-done checkpoint (apps/api/.../admin.ts),
+    // so a book that's genuinely done with review is never still sitting at
+    // REVIEW -- it's already in the PUBLISHED branch above. A book that IS
+    // still REVIEW is, by definition, still waiting.
     return (
-      <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-700">
-        ⏳ На модерації — очікує на перевірку адміністратором
+      <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 space-y-1">
+        <p>⏳ На модерації — очікує на перевірку адміністратором</p>
+        <p className="text-xs text-amber-700">
+          Будь-які зміни, які ви збережете зараз (опис, обкладинка, рукопис тощо), модератор побачить одразу —
+          повторно надсилати книгу на модерацію не потрібно.
+        </p>
       </div>
     );
   }

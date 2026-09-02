@@ -957,7 +957,14 @@ function OutputDataContent() {
                 <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{infoError}</div>
               )}
               {infoSaved && (
-                <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>
+                <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+                  ✓ Збережено
+                  {book?.status === "REVIEW" && (
+                    <span className="block text-xs text-green-600 mt-0.5">
+                      Книга на модерації — модератор побачить ці зміни одразу, повторно надсилати на модерацію не потрібно.
+                    </span>
+                  )}
+                </div>
               )}
 
               <Button type="submit" loading={infoForm.formState.isSubmitting}>
@@ -1193,7 +1200,6 @@ function OutputDataContent() {
             <PublishButton
               bookId={id}
               bookStatus={book?.status ?? ""}
-              reviewDone={!!book?.publicationTimeline?.review_done}
               onSubmitted={() => setBook((b) => (b ? { ...b, status: "REVIEW" } : b))}
             />
           </div>
