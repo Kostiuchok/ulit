@@ -13,6 +13,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/admin/books", label: "Книги", icon: "📚" },
+  { href: "/admin/isbn-queue", label: "Реєстрація ISBN", icon: "🔖" },
   {
     label: "Дистрибуція",
     icon: "📦",
