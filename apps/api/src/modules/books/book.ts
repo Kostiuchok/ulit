@@ -29,6 +29,9 @@ const BOOK_SELECT = {
   originalDocxUrl: true,
   docxUpdatedAt: true,
   republishRequestedAt: true,
+  pendingTitle: true,
+  pendingDescription: true,
+  pendingGenre: true,
   manuscriptImportedAt: true,
   manuscriptEditedAt: true,
   pdfUrl: true,
@@ -144,7 +147,7 @@ const previewSchema = z.object({
 async function assertOwnership(bookId: string, userId: string) {
   const book = await prisma.book.findUnique({
     where: { id: bookId },
-    select: { authorId: true, status: true, printWidthMm: true, printHeightMm: true },
+    select: { authorId: true, status: true, printWidthMm: true, printHeightMm: true, title: true, description: true, genre: true },
   });
   if (!book) throw AppError.notFound("Book");
   if (book.authorId !== userId) throw AppError.forbidden("Not your book");
@@ -194,11 +197,32 @@ export async function bookRoutes(app: FastifyInstance) {
       printFormatOverride = { printFormatKey: format.key, printWidthMm: format.widthMm, printHeightMm: format.heightMm };
     }
 
+    // Назва/Анотація/Жанр on an already-PUBLISHED book stage into pending*
+    // instead of writing live -- same re-moderation model already used for
+    // manuscript changes (originalDocxUrl/docxUpdatedAt, republishRequestedAt):
+    // the live storefront listing must not change until an admin approves
+    // via POST .../republish + PATCH .../admin/books/:id/republish. Anything
+    // else in this same PATCH (subtitle, print format, language, age rating,
+    // authors, bio, price, distribution...) still applies immediately, as
+    // before -- only these three are considered "sensitive" content that
+    // moderation actually reviews.
+    const isPublished = existing.status === "PUBLISHED";
+    const stageTitle = isPublished && data.title !== undefined && data.title !== existing.title;
+    const stageDescription =
+      isPublished && data.description !== undefined && (data.description ?? null) !== (existing.description ?? null);
+    const stageGenre = isPublished && data.genre !== undefined && (data.genre ?? null) !== (existing.genre ?? null);
+
     const book = await prisma.book.update({
       where: { id },
       data: {
         ...data,
         ...printFormatOverride,
+        title: stageTitle ? undefined : data.title,
+        description: stageDescription ? undefined : data.description,
+        genre: stageGenre ? undefined : data.genre,
+        pendingTitle: stageTitle ? data.title : undefined,
+        pendingDescription: stageDescription ? data.description : undefined,
+        pendingGenre: stageGenre ? data.genre : undefined,
         priceEbook: data.priceEbook !== undefined ? (data.priceEbook ?? undefined) : undefined,
         pricePrint: data.pricePrint !== undefined ? (data.pricePrint ?? undefined) : undefined,
         pricePrintHardcover: data.pricePrintHardcover !== undefined ? (data.pricePrintHardcover ?? undefined) : undefined,

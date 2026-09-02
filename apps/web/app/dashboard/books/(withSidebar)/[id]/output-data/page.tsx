@@ -13,6 +13,7 @@ import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
 import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import { PublishButton } from "@/components/books/PublishButton";
+import { RepublishButton } from "@/components/books/RepublishButton";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
@@ -151,6 +152,12 @@ interface MetadataBook {
   originalDocxUrl?: string | null;
   distributionChannels?: string[] | null;
   publicationTimeline?: Record<string, string> | null;
+  publishedAt?: string | null;
+  docxUpdatedAt?: string | null;
+  republishRequestedAt?: string | null;
+  pendingTitle?: string | null;
+  pendingDescription?: string | null;
+  pendingGenre?: string | null;
 }
 
 // docs/isbn-udc-requirements.md, "Детальний технічний чекліст оформлення ISBN" (2026-08-17).
@@ -228,6 +235,11 @@ function OutputDataContent() {
   const { book, setBook, loading } = useBook<MetadataBook>(id);
 
   const [infoSaved, setInfoSaved] = useState(false);
+  // Which sensitive fields (if any) the last save actually staged as
+  // pending instead of publishing live -- drives the "✓ Збережено" note
+  // right where the save happened, matching what RepublishButton shows
+  // further down the same page.
+  const [justStagedFields, setJustStagedFields] = useState<string[]>([]);
   const [infoError, setInfoError] = useState("");
   const [locallyFixed, setLocallyFixed] = useState(false);
   const [coAuthors, setCoAuthors] = useState<CoAuthor[]>([]);
@@ -461,6 +473,13 @@ function OutputDataContent() {
       setAuthorBio(updated.authorBio ?? "");
       if (draftAuthor.length > 0) setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
       if (draftContributor.length > 0) setNewContributor({ role: "", name: "" });
+      setJustStagedFields(
+        [
+          updated.pendingTitle != null && "назву",
+          updated.pendingDescription != null && "анотацію",
+          updated.pendingGenre != null && "жанр",
+        ].filter(Boolean) as string[]
+      );
       setInfoSaved(true);
       setLocallyFixed(true);
       setTimeout(() => setInfoSaved(false), 3000);
@@ -957,12 +976,25 @@ function OutputDataContent() {
                 <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{infoError}</div>
               )}
               {infoSaved && (
-                <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
-                  ✓ Збережено
-                  {book?.status === "REVIEW" && (
-                    <span className="block text-xs text-green-600 mt-0.5">
-                      Книга на модерації — модератор побачить ці зміни одразу, повторно надсилати на модерацію не потрібно.
-                    </span>
+                <div className={cn("rounded-md p-3 text-sm", justStagedFields.length > 0 ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700")}>
+                  {justStagedFields.length > 0 ? (
+                    <>
+                      ✓ Збережено як чернетку
+                      <span className="block text-xs text-amber-600 mt-0.5">
+                        Книга вже опублікована на сайті — зміни в {justStagedFields.join(", ")} ще НЕ з&apos;являться там, доки ви не
+                        натиснете «Опублікувати із змінами» нижче і адмін не підтвердить. Решта полів (ціна, формати, автори тощо)
+                        оновилась одразу.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      ✓ Збережено
+                      {book?.status === "REVIEW" && (
+                        <span className="block text-xs text-green-600 mt-0.5">
+                          Книга на модерації — модератор побачить ці зміни одразу, повторно надсилати на модерацію не потрібно.
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -1196,12 +1228,31 @@ function OutputDataContent() {
           className="scroll-mt-28 space-y-3"
         >
           <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.publish}</h2>
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
             <PublishButton
               bookId={id}
               bookStatus={book?.status ?? ""}
               onSubmitted={() => setBook((b) => (b ? { ...b, status: "REVIEW" } : b))}
             />
+            {/* PublishButton's PUBLISHED branch is just a static badge -- for
+                a live book, editing Назва/Анотація/Жанр above stages the
+                change (see onSubmitInfo) instead of publishing instantly, so
+                the actual "send it live" action for THOSE fields is this
+                button, not PublishButton. */}
+            {book?.status === "PUBLISHED" && (
+              <RepublishButton
+                bookId={id}
+                docxUpdatedAt={book?.docxUpdatedAt}
+                publishedAt={book?.publishedAt}
+                republishRequestedAt={book?.republishRequestedAt}
+                pendingTitle={book?.pendingTitle}
+                pendingDescription={book?.pendingDescription}
+                pendingGenre={book?.pendingGenre}
+                onSubmitted={(republishRequestedAt) =>
+                  setBook((b) => (b ? { ...b, republishRequestedAt } : b))
+                }
+              />
+            )}
           </div>
         </section>
 

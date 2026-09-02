@@ -155,6 +155,9 @@ model Book {
   originalDocxUrl      String?
   docxUpdatedAt        DateTime? // set whenever the source .docx changes; compared to publishedAt to know if a live book has unpublished file changes
   republishRequestedAt DateTime? // author submitted post-publish changes for re-moderation; cleared once admin approves or rejects
+  pendingTitle         String? // staged edit to title on an already-PUBLISHED book -- same re-moderation model as docxUpdatedAt/originalDocxUrl: live title stays untouched until admin approves via republish, applied then cleared
+  pendingDescription   String? // staged edit to description (Анотація), same model as pendingTitle
+  pendingGenre         String? // staged edit to genre, same model as pendingTitle
   unpublishedAt        DateTime? // author took the book off sale ("Зняти з публікації"); status=UNPUBLISHED, files/ISBN/publishedAt kept for /relist
   pdfUrl               String?
   epubUrl              String?

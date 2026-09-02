@@ -31,6 +31,9 @@ interface DashboardBook {
   originalDocxUrl?: string | null;
   docxUpdatedAt?: string | null;
   republishRequestedAt?: string | null;
+  pendingTitle?: string | null;
+  pendingDescription?: string | null;
+  pendingGenre?: string | null;
   unpublishedAt?: string | null;
   manuscriptImportedAt?: string | null;
   manuscriptEditedAt?: string | null;
@@ -196,6 +199,9 @@ export function BookDashboard() {
                   docxUpdatedAt={book?.docxUpdatedAt}
                   publishedAt={book?.publishedAt}
                   republishRequestedAt={book?.republishRequestedAt}
+                  pendingTitle={book?.pendingTitle}
+                  pendingDescription={book?.pendingDescription}
+                  pendingGenre={book?.pendingGenre}
                   onSubmitted={(republishRequestedAt) =>
                     setBook((b) => (b ? { ...b, republishRequestedAt } : b))
                   }

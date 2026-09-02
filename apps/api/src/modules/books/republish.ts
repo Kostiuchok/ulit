@@ -3,13 +3,15 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 
-// "Опублікувати із змінами" — the author re-uploaded a new .docx for an
-// already-PUBLISHED book (see upload.ts, which stages the file without
-// converting) and wants it live. Per the Ridero reference (docs/
-// TECHNICAL-DECISIONS.md "Референс: республікація змін на Рідеро"), this
-// submits the change for admin re-moderation rather than publishing
-// instantly — the live book/files are untouched until an admin approves
-// via PATCH /api/admin/books/:id/republish (admin.ts).
+// "Опублікувати із змінами" — the author staged a change to an already-
+// PUBLISHED book (a new .docx via upload.ts, and/or a sensitive metadata
+// edit -- Назва/Анотація/Жанр -- via book.ts's PATCH, both of which write to
+// pending*/docxUpdatedAt without touching the live fields) and wants it
+// live. Per the Ridero reference (docs/TECHNICAL-DECISIONS.md "Референс:
+// республікація змін на Рідеро"), this submits the change for admin
+// re-moderation rather than publishing instantly — the live book/files are
+// untouched until an admin approves via PATCH /api/admin/books/:id/republish
+// (admin.ts), which is also where pending* actually gets applied.
 export async function republishRoute(app: FastifyInstance) {
   app.post(
     "/api/books/:id/republish",
@@ -26,6 +28,9 @@ export async function republishRoute(app: FastifyInstance) {
           docxUpdatedAt: true,
           publishedAt: true,
           republishRequestedAt: true,
+          pendingTitle: true,
+          pendingDescription: true,
+          pendingGenre: true,
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -36,14 +41,15 @@ export async function republishRoute(app: FastifyInstance) {
       if (!book.originalDocxUrl) {
         throw new AppError("Немає файлу рукопису", 400, "NO_DOCX");
       }
-      const hasChanges =
-        book.docxUpdatedAt && (!book.publishedAt || book.docxUpdatedAt > book.publishedAt);
-      if (!hasChanges) {
+      const hasDocxChanges = book.docxUpdatedAt && (!book.publishedAt || book.docxUpdatedAt > book.publishedAt);
+      const hasPendingMetadata = book.pendingTitle != null || book.pendingDescription != null || book.pendingGenre != null;
+      if (!hasDocxChanges && !hasPendingMetadata) {
         throw new AppError("Немає нових змін для публікації", 400, "NO_CHANGES");
       }
-      const alreadyPending =
-        book.republishRequestedAt && book.docxUpdatedAt && book.republishRequestedAt >= book.docxUpdatedAt;
-      if (alreadyPending) {
+      // republishRequestedAt is always cleared back to null by the admin's
+      // approve/reject (admin.ts) -- its mere presence means a request is
+      // already in flight, no timestamp comparison needed.
+      if (book.republishRequestedAt) {
         throw new AppError("Зміни вже надіслано на модерацію", 400, "ALREADY_PENDING");
       }
 

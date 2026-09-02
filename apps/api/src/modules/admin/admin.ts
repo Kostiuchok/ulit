@@ -107,6 +107,9 @@ const BOOK_ADMIN_SELECT = {
   originalDocxUrl: true,
   docxUpdatedAt: true,
   republishRequestedAt: true,
+  pendingTitle: true,
+  pendingDescription: true,
+  pendingGenre: true,
   unpublishedAt: true,
   author: {
     select: {
@@ -532,7 +535,16 @@ export async function adminRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       const book = await prisma.book.findUnique({
         where: { id },
-        select: { status: true, originalDocxUrl: true, republishRequestedAt: true },
+        select: {
+          status: true,
+          originalDocxUrl: true,
+          republishRequestedAt: true,
+          docxUpdatedAt: true,
+          publishedAt: true,
+          pendingTitle: true,
+          pendingDescription: true,
+          pendingGenre: true,
+        },
       });
       if (!book) throw AppError.notFound("Book");
       if (book.status !== "PUBLISHED" || !book.republishRequestedAt) {
@@ -540,11 +552,29 @@ export async function adminRoutes(app: FastifyInstance) {
       }
       if (!book.originalDocxUrl) throw new AppError("Немає файлу рукопису", 400, "NO_DOCX");
 
-      await enqueueConversionJobs(id, book.originalDocxUrl, { setProcessing: false });
+      // Only re-run manuscript conversion if the .docx actually changed since
+      // the last publish -- a metadata-only republish (title/anotation/genre,
+      // no new file) shouldn't re-trigger the whole EPUB/print pipeline.
+      const docxChanged = book.docxUpdatedAt && (!book.publishedAt || book.docxUpdatedAt > book.publishedAt);
+      if (docxChanged) {
+        await enqueueConversionJobs(id, book.originalDocxUrl, { setProcessing: false });
+      }
 
       const updated = await prisma.book.update({
         where: { id },
-        data: { publishedAt: new Date(), republishRequestedAt: null },
+        data: {
+          publishedAt: new Date(),
+          republishRequestedAt: null,
+          // Apply staged Назва/Анотація/Жанр now that an admin approved them;
+          // pending* clears either way so a book with no staged metadata
+          // (pure docx republish) is unaffected.
+          title: book.pendingTitle != null ? book.pendingTitle : undefined,
+          description: book.pendingDescription != null ? book.pendingDescription : undefined,
+          genre: book.pendingGenre != null ? book.pendingGenre : undefined,
+          pendingTitle: null,
+          pendingDescription: null,
+          pendingGenre: null,
+        },
         select: BOOK_ADMIN_SELECT,
       });
 

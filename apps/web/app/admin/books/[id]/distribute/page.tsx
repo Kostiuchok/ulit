@@ -41,6 +41,10 @@ interface Book {
   moderationNote?: string | null;
   publicationTimeline?: Record<string, string> | null;
   createdAt: string;
+  republishRequestedAt?: string | null;
+  pendingTitle?: string | null;
+  pendingDescription?: string | null;
+  pendingGenre?: string | null;
   author: {
     name: string;
     email: string;
@@ -424,6 +428,9 @@ export default function DistributePage() {
   const [bookChamberError, setBookChamberError] = useState("");
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState("");
+  const [republishActionLoading, setRepublishActionLoading] = useState(false);
+  const [republishError, setRepublishError] = useState("");
+  const [republishRejectReason, setRepublishRejectReason] = useState("");
   const [isbnPkg, setIsbnPkg] = useState<{
     annotationTxtUrl: string;
     manuscriptPdfUrl: string;
@@ -576,6 +583,39 @@ export default function DistributePage() {
     }
   }
 
+  async function handleApproveRepublish() {
+    setRepublishActionLoading(true);
+    setRepublishError("");
+    try {
+      const { book: updated } = await apiFetch<{ book: Book }>(`/api/admin/books/${id}/republish`, {
+        method: "PATCH",
+        body: JSON.stringify({}),
+      });
+      setBook(updated);
+    } catch (e: any) {
+      setRepublishError(e.message || "Помилка схвалення змін");
+    } finally {
+      setRepublishActionLoading(false);
+    }
+  }
+
+  async function handleRejectRepublish() {
+    setRepublishActionLoading(true);
+    setRepublishError("");
+    try {
+      const { book: updated } = await apiFetch<{ book: Book }>(`/api/admin/books/${id}/republish/reject`, {
+        method: "PATCH",
+        body: JSON.stringify({ reason: republishRejectReason || undefined }),
+      });
+      setBook(updated);
+      setRepublishRejectReason("");
+    } catch (e: any) {
+      setRepublishError(e.message || "Помилка відхилення змін");
+    } finally {
+      setRepublishActionLoading(false);
+    }
+  }
+
   if (loading) {
     return <div className="animate-pulse text-gray-400 p-8">Завантаження…</div>;
   }
@@ -639,6 +679,77 @@ export default function DistributePage() {
           )}
         </div>
       </div>
+
+      {/* ── Republish review: staged post-publish changes ─────────────────────── */}
+      {/* Only Назва/Анотація/Жанр stage into pending* (book.ts's PATCH) --
+          everything else an author edits on a live book (price, format,
+          authors, distribution...) already applies instantly, no review
+          needed. Shows a before/after per changed field so the admin isn't
+          approving blind -- previously this queue only existed as an
+          unlabeled badge on /admin/books with no detail view at all. */}
+      {book.status === "PUBLISHED" && book.republishRequestedAt && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-amber-900">Зміни на повторну модерацію</h2>
+            <span className="text-xs text-amber-600">надіслано {fmtDate(book.republishRequestedAt)}</span>
+          </div>
+
+          <div className="space-y-2">
+            {book.pendingTitle != null && (
+              <div className="rounded-lg bg-white border border-amber-200 p-3 text-sm">
+                <p className="text-xs font-semibold text-amber-700 mb-1">Назва</p>
+                <p className="text-gray-400 line-through text-xs">{book.title}</p>
+                <p className="text-gray-900 font-medium">{book.pendingTitle}</p>
+              </div>
+            )}
+            {book.pendingDescription != null && (
+              <div className="rounded-lg bg-white border border-amber-200 p-3 text-sm">
+                <p className="text-xs font-semibold text-amber-700 mb-1">Анотація</p>
+                <p className="text-gray-400 line-through text-xs whitespace-pre-wrap">{book.description}</p>
+                <p className="text-gray-900 whitespace-pre-wrap">{book.pendingDescription}</p>
+              </div>
+            )}
+            {book.pendingGenre != null && (
+              <div className="rounded-lg bg-white border border-amber-200 p-3 text-sm">
+                <p className="text-xs font-semibold text-amber-700 mb-1">Жанр</p>
+                <p className="text-gray-400 line-through text-xs">{book.genre || "—"}</p>
+                <p className="text-gray-900 font-medium">{book.pendingGenre || "—"}</p>
+              </div>
+            )}
+            {book.pendingTitle == null && book.pendingDescription == null && book.pendingGenre == null && (
+              <p className="text-xs text-amber-700">
+                Оновлений файл рукопису (без змін у назві/анотації/жанрі) — файли перегенеруються після схвалення.
+              </p>
+            )}
+          </div>
+
+          {republishError && <p className="text-sm text-red-600">{republishError}</p>}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              className="bg-green-700 hover:bg-green-800"
+              onClick={handleApproveRepublish}
+              loading={republishActionLoading}
+            >
+              ✓ Схвалити зміни
+            </Button>
+            <input
+              value={republishRejectReason}
+              onChange={(e) => setRepublishRejectReason(e.target.value)}
+              placeholder="Причина відхилення (необов'язково)"
+              className="flex-1 min-w-[12rem] rounded-md border border-amber-200 bg-white px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400"
+            />
+            <Button
+              variant="outline"
+              className="border-red-300 text-red-700 hover:bg-red-100"
+              onClick={handleRejectRepublish}
+              loading={republishActionLoading}
+            >
+              ✕ Відхилити зміни
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* ── Distribution platforms: readiness + send status, 3-up ────────────── */}
       <div className="space-y-3">
