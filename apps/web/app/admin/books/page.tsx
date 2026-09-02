@@ -88,13 +88,13 @@ const TABLE_COLUMNS = [
   "Статус",
   "Дата/час",
   "Чеклист",
-  "D2D / KDP / Google",
+  "Розповсюдження",
   "Публікація",
   "Відхилити",
   "Дистрибуція",
   "Файли",
 ] as const;
-const DEFAULT_COLUMN_WIDTHS = [260, 110, 140, 190, 150, 140, 110, 120, 90];
+const DEFAULT_COLUMN_WIDTHS = [260, 110, 140, 110, 105, 100, 90, 100, 80];
 const COLUMN_WIDTHS_STORAGE_KEY = "ulit-admin-books-col-widths";
 const MIN_COLUMN_WIDTH = 60;
 
@@ -120,17 +120,70 @@ function Checklist({ book }: { book: Book }) {
     { label: "Ціна", ok: !!(book.priceEbook || book.pricePrint || book.pricePrintHardcover) },
   ];
   return (
-    <div className="flex gap-1.5">
+    <div className="flex flex-col gap-0.5">
       {checks.map((c) => (
         <span
           key={c.label}
-          title={c.label}
-          className={`text-xs font-medium ${c.ok ? "text-green-600" : "text-gray-300"}`}
+          className={`flex items-center gap-1.5 text-xs font-medium ${c.ok ? "text-green-600" : "text-gray-300"}`}
         >
-          {c.ok ? "✓" : "○"} {c.label}
+          <span className="w-3 shrink-0 text-center">{c.ok ? "✓" : "○"}</span>
+          <span>{c.label}</span>
         </span>
       ))}
     </div>
+  );
+}
+
+// Icon-on-top, label-below chip shared by every action in the 4 Дії
+// columns -- they used to each place their icon inline before the text in
+// whatever order felt natural at the time, which read as inconsistent
+// across buttons sitting right next to each other. One shape, one rule:
+// icon always centered on top. Renders as a Link (href given), a button
+// (onClick given), or a static badge (neither -- an already-resolved state
+// like "✓ Опубліковано").
+function ActionChip({
+  icon,
+  label,
+  onClick,
+  href,
+  disabled,
+  title,
+  className,
+}: {
+  icon: string;
+  label: string;
+  onClick?: () => void;
+  href?: string;
+  disabled?: boolean;
+  title?: string;
+  className: string;
+}) {
+  const base =
+    "flex w-full flex-col items-center gap-0.5 rounded-md border px-1.5 py-1.5 text-center leading-tight transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  const content = (
+    <>
+      <span className="text-sm leading-none">{icon}</span>
+      <span className="text-[0.6875rem] font-medium leading-tight">{label}</span>
+    </>
+  );
+  if (href) {
+    return (
+      <Link href={href} title={title} className={`${base} ${className}`}>
+        {content}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} disabled={disabled} title={title} className={`${base} ${className}`}>
+        {content}
+      </button>
+    );
+  }
+  return (
+    <span title={title} className={`${base} ${className}`}>
+      {content}
+    </span>
   );
 }
 
@@ -280,15 +333,18 @@ function BookRow({
         <Checklist book={book} />
       </td>
       <td className="px-4 py-3">
-        <div className="flex gap-2 text-xs font-medium">
-          <span className={rejected ? "text-gray-400" : EXT_COLORS[book.d2dStatus]} title="D2D">
-            {EXT_ICONS[book.d2dStatus]} D2D
+        <div className="flex flex-col gap-0.5 text-xs font-medium">
+          <span className={`flex items-center gap-1.5 ${rejected ? "text-gray-400" : EXT_COLORS[book.d2dStatus]}`}>
+            <span className="w-3 shrink-0 text-center">{EXT_ICONS[book.d2dStatus]}</span>
+            <span>D2D</span>
           </span>
-          <span className={rejected ? "text-gray-400" : EXT_COLORS[book.kdpStatus]} title="KDP">
-            {EXT_ICONS[book.kdpStatus]} KDP
+          <span className={`flex items-center gap-1.5 ${rejected ? "text-gray-400" : EXT_COLORS[book.kdpStatus]}`}>
+            <span className="w-3 shrink-0 text-center">{EXT_ICONS[book.kdpStatus]}</span>
+            <span>KDP</span>
           </span>
-          <span className={rejected ? "text-gray-400" : EXT_COLORS[book.googleStatus]} title="Google">
-            {EXT_ICONS[book.googleStatus]} G
+          <span className={`flex items-center gap-1.5 ${rejected ? "text-gray-400" : EXT_COLORS[book.googleStatus]}`}>
+            <span className="w-3 shrink-0 text-center">{EXT_ICONS[book.googleStatus]}</span>
+            <span>Google</span>
           </span>
         </div>
       </td>
@@ -296,77 +352,73 @@ function BookRow({
           kind of action always lands in the same column across every book --
           scannable at a glance instead of hunting a crowded single cell. */}
       <td className="px-4 py-3">
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-col gap-1">
           {pendingRepublish && (
-            <button
+            <ActionChip
+              icon="✓"
+              label="Схвалити зміни"
               onClick={() => onApproveRepublish(book.id)}
               disabled={actionLoading === book.id + "_approveRepublish"}
-              className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              ✓ Схвалити зміни
-            </button>
+              className="border-transparent bg-green-600 text-white hover:bg-green-700"
+            />
           )}
           {book.status === "PUBLISHED" ? (
-            <span className="rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-              ✓ Опубліковано
-            </span>
+            <ActionChip icon="✓" label="Опубліковано" className="border-green-200 bg-green-50 text-green-700" />
           ) : book.moderationStatus === "APPROVED" ? (
-            <span className="rounded-md border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-              ✓ Схвалено
-            </span>
+            <ActionChip icon="✓" label="Схвалено" className="border-green-200 bg-green-50 text-green-700" />
           ) : (
             (book.status === "REVIEW" || book.moderationStatus === "PENDING") && (
-              <button
+              <ActionChip
+                icon="✓"
+                label="Схвалити"
                 onClick={() => onApprove(book.id)}
                 disabled={actionLoading === book.id + "_approve"}
                 title="Схвалює перевірку і одразу публікує книгу на Ulit (ISBN + статус Опубліковано)"
-                className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                ✓ Схвалити й опублікувати
-              </button>
+                className="border-transparent bg-green-600 text-white hover:bg-green-700"
+              />
             )
           )}
         </div>
       </td>
       <td className="px-4 py-3">
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-col gap-1">
           {pendingRepublish && (
-            <button
+            <ActionChip
+              icon="✕"
+              label="Відхилити зміни"
               onClick={() => onRejectRepublish(book.id)}
               disabled={actionLoading === book.id + "_rejectRepublish"}
-              className="rounded-md bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
-            >
-              ✕ Відхилити зміни
-            </button>
+              className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+            />
           )}
           {book.status !== "DRAFT" && (
-            <button
+            <ActionChip
+              icon="✕"
+              label="Відхилити"
               onClick={() => onRejectClick(book.id)}
-              className="rounded-md bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
-            >
-              ✕ Відхилити
-            </button>
+              className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+            />
           )}
         </div>
       </td>
       <td className="px-4 py-3">
         {(book.status === "PUBLISHED" || book.moderationStatus === "APPROVED") && (
-          <Link
+          <ActionChip
+            icon="📦"
+            label={book.status === "PUBLISHED" ? "Розіслати" : "Публікація"}
             href={`/admin/books/${book.id}/distribute`}
-            className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-          >
-            {book.status === "PUBLISHED" ? "📦 Розіслати" : "📦 Публікація"}
-          </Link>
+            className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+          />
         )}
       </td>
       <td className="px-4 py-3">
-        <button
+        <ActionChip
+          icon="📁"
+          label="Файли"
           onClick={() => onFilesClick(book)}
-          className="rounded-md border px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50"
           title="Завантажити файли"
-        >
-          📁 Файли
-        </button>
+          className="border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+        />
       </td>
     </tr>
   );
