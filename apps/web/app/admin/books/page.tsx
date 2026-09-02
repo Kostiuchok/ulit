@@ -138,7 +138,13 @@ const TABLE_COLUMNS = [
 ] as const;
 const DEFAULT_COLUMN_WIDTHS = [260, 200, 110, 105, 100, 90, 100, 80];
 const COLUMN_WIDTHS_STORAGE_KEY = "ulit-admin-books-col-widths";
-const MIN_COLUMN_WIDTH = 60;
+// Per-column, not a single flat floor -- narrowing e.g. "Дистрибуція" down
+// to the old generic 60px let its "Розіслати"/"Публікація" label wrap onto
+// three lines and visually spill past the button's own border. Each floor
+// here is roughly the narrowest a column can go while its ActionChip
+// buttons (icon + a 1-2 word label, now wrapping instead of overflowing)
+// still read as a button, not a fixed measurement of any specific render.
+const MIN_COLUMN_WIDTHS = [160, 90, 85, 70, 70, 65, 75, 55];
 
 function loadColumnWidths(): number[] {
   if (typeof window === "undefined") return DEFAULT_COLUMN_WIDTHS;
@@ -146,7 +152,10 @@ function loadColumnWidths(): number[] {
     const raw = window.localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
     if (Array.isArray(parsed) && parsed.length === DEFAULT_COLUMN_WIDTHS.length && parsed.every((w) => typeof w === "number")) {
-      return parsed;
+      // A width saved before MIN_COLUMN_WIDTHS existed (or shrunk before
+      // this fix) could be narrower than today's floor -- clamp on load too,
+      // not just during an active drag.
+      return parsed.map((w, i) => Math.max(MIN_COLUMN_WIDTHS[i] ?? 60, w));
     }
   } catch {
     // malformed/blocked localStorage -- fall back to defaults below
@@ -200,12 +209,20 @@ function ActionChip({
   title?: string;
   className: string;
 }) {
+  // items-center (not stretch) means a child's width is its own content's
+  // natural width, not the button's -- the label span was never actually
+  // constrained to the button, so text just overflowed past the border
+  // instead of wrapping when a column got narrowed. w-full on the label
+  // forces it to the button's real width so long-enough labels wrap inside
+  // it, and min-w-0 on the button itself lets a flex/table-cell parent
+  // actually shrink it below the label's own unwrapped width in the first
+  // place.
   const base =
-    "flex w-full flex-col items-center gap-0.5 rounded-md border px-1.5 py-1.5 text-center leading-tight transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+    "flex w-full min-w-0 flex-col items-center gap-0.5 rounded-md border px-1.5 py-1.5 text-center leading-tight transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
   const content = (
     <>
       <span className="text-sm leading-none">{icon}</span>
-      <span className="text-[0.6875rem] font-medium leading-tight">{label}</span>
+      <span className="w-full break-words text-[0.6875rem] font-medium leading-tight">{label}</span>
     </>
   );
   if (href) {
@@ -426,7 +443,7 @@ export default function AdminBooksPage() {
   const handleResizeMove = useCallback((e: MouseEvent) => {
     const r = resizeRef.current;
     if (!r) return;
-    const next = Math.max(MIN_COLUMN_WIDTH, r.startWidth + (e.clientX - r.startX));
+    const next = Math.max(MIN_COLUMN_WIDTHS[r.index] ?? 60, r.startWidth + (e.clientX - r.startX));
     setColWidths((prev) => prev.map((w, i) => (i === r.index ? next : w)));
   }, []);
 
