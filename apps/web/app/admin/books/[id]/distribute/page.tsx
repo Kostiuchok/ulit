@@ -70,12 +70,6 @@ const MAIN_STEPS = TIMELINE_STEPS.filter((s) => s.key === "submitted" || s.key =
 const ADVANCED_STEPS = TIMELINE_STEPS.filter((s) => s.key !== "submitted" && s.key !== "review_done");
 
 const STATUS_OPTS = ["NOT_SENT", "SENT", "PUBLISHED", "ERROR"] as const;
-const STATUS_COLORS: Record<string, string> = {
-  NOT_SENT: "bg-gray-100 text-gray-600",
-  SENT: "bg-blue-100 text-blue-700",
-  PUBLISHED: "bg-green-100 text-green-700",
-  ERROR: "bg-red-100 text-red-700",
-};
 
 const ACCENT = "#50a406";
 
@@ -278,116 +272,128 @@ function CheckIcon({ result }: { result: CheckResult }) {
   return <span className="text-red-500 font-bold text-sm">✕</span>;
 }
 
-function PlatformSection({
+// Real trademarked logo files aren't bundled here -- these are brand-colored
+// lettermarks (same idea as e.g. a payment-provider dashboard's partner
+// badges), recognizable at a glance without shipping external logo assets.
+// Swap `mark` for an actual <img>/<svg> per platform later if real logo
+// files get added to /public.
+const PLATFORM_BRAND: Record<string, { bg: string; fg: string; mark: string }> = {
+  kdp: { bg: "#131A22", fg: "#FF9900", mark: "KDP" },
+  d2d: { bg: "#0E7C86", fg: "#ffffff", mark: "D2D" },
+  google: { bg: "#4285F4", fg: "#ffffff", mark: "G" },
+};
+
+// One card per external distribution platform -- merges what used to be two
+// separate things an admin had to visually reconcile (the "Вимоги платформ"
+// checklist above, and the "Розсилка файлів" status buttons buried inside
+// the timeline card further down): readiness and send-status for the same
+// platform now live in the same block. Laid out 3-up so all three platforms
+// are visible at once instead of one full-width accordion after another
+// with a lot of unused width per row.
+function PlatformCard({
   platform,
-  defaultOpen,
-}: {
-  platform: Platform;
-  defaultOpen: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const issues = countIssues(platform);
-  const fails = platform.checks.filter((c) => c.result === "fail").length;
-
-  return (
-    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-gray-900">{platform.name}</span>
-          <span className="text-xs text-gray-400">{platform.subtitle}</span>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          {issues === 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-              ✓ Готово до відправки
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
-              {fails > 0 ? `✕ ${fails} вимог не виконано` : `⚠ ${issues} увага`}
-            </span>
-          )}
-          <span className="text-gray-400 text-xs">{open ? "▲" : "▼"}</span>
-        </div>
-      </button>
-
-      {open && (
-        <div className="border-t divide-y">
-          {platform.checks.map((c) => (
-            <div
-              key={c.id}
-              className={`flex items-start gap-3 px-5 py-3 ${
-                c.result === "pass"
-                  ? "bg-white"
-                  : c.result === "warn"
-                  ? "bg-amber-50"
-                  : "bg-red-50"
-              }`}
-            >
-              <CheckIcon result={c.result} />
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${
-                  c.result === "pass" ? "text-gray-700" :
-                  c.result === "warn" ? "text-amber-800" : "text-red-800"
-                }`}>
-                  {c.label}
-                </p>
-                {c.hint && (
-                  <p className="text-xs text-gray-500 mt-0.5">{c.hint}</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ServiceRow({
-  name,
-  subtitle,
   status,
   sentAt,
   saving,
-  onChange,
+  onStatusChange,
+  locked,
 }: {
-  name: string;
-  subtitle: string;
+  platform: Platform;
   status: string;
   sentAt?: string | null;
   saving: boolean;
-  onChange: (status: string) => void;
+  onStatusChange: (status: string) => void;
+  locked?: boolean;
 }) {
-  const ok = status === "SENT" || status === "PUBLISHED";
+  const issues = countIssues(platform);
+  const fails = platform.checks.filter((c) => c.result === "fail").length;
+  const [open, setOpen] = useState(fails > 0);
+  const brand = PLATFORM_BRAND[platform.key] ?? { bg: "#374151", fg: "#ffffff", mark: platform.name.slice(0, 2).toUpperCase() };
+
   return (
-    <div className="py-2.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <span style={ok ? { color: ACCENT } : undefined} className={!ok ? "text-gray-300" : undefined}>
-          {ok ? "✓" : status === "ERROR" ? "✕" : "○"}
-        </span>
-        <span className="text-sm font-medium text-gray-800">{name}</span>
-        <span className="text-xs text-gray-400">{subtitle}</span>
-        <span className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-medium ${STATUS_COLORS[status]}`}>{status}</span>
-        {sentAt && <span className="text-xs text-gray-400">/ {fmtDate(sentAt)}</span>}
+    <div className="flex flex-col rounded-xl border bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 p-4 border-b">
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold tracking-tight"
+          style={{ backgroundColor: brand.bg, color: brand.fg }}
+        >
+          {brand.mark}
+        </div>
+        <div className="min-w-0">
+          <p className="font-bold text-gray-900 leading-tight truncate">{platform.name}</p>
+          <p className="text-xs text-gray-400 truncate">{platform.subtitle}</p>
+        </div>
       </div>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {STATUS_OPTS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => onChange(s)}
-            disabled={saving || status === s}
-            className={`rounded-md px-2.5 py-1 text-[0.6875rem] font-medium transition-colors disabled:opacity-50 ${
-              status === s ? "bg-gray-900 text-white" : "border hover:bg-gray-50"
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+
+      <div className="flex-1 p-4 space-y-3">
+        {issues === 0 ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+            ✓ Готово до відправки
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
+            {fails > 0 ? `✕ ${fails} вимог не виконано` : `⚠ ${issues} увага`}
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="block text-xs text-gray-400 underline hover:no-underline"
+        >
+          {open ? "Сховати вимоги ▲" : "Показати вимоги ▼"}
+        </button>
+
+        {open && (
+          <div className="-mx-4 border-t divide-y">
+            {platform.checks.map((c) => (
+              <div
+                key={c.id}
+                className={`flex items-start gap-2.5 px-4 py-2.5 ${
+                  c.result === "pass" ? "bg-white" : c.result === "warn" ? "bg-amber-50" : "bg-red-50"
+                }`}
+              >
+                <CheckIcon result={c.result} />
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`text-xs font-medium ${
+                      c.result === "pass" ? "text-gray-700" : c.result === "warn" ? "text-amber-800" : "text-red-800"
+                    }`}
+                  >
+                    {c.label}
+                  </p>
+                  {c.hint && <p className="text-[0.6875rem] text-gray-500 mt-0.5">{c.hint}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="border-t bg-gray-50 p-4 space-y-1.5">
+        <p className="text-xs font-semibold text-gray-500">Статус розсилки</p>
+        {locked ? (
+          <p className="text-xs text-orange-700">🔒 Заблоковано на час дії KDP Select</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {STATUS_OPTS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onStatusChange(s)}
+                  disabled={saving || status === s}
+                  className={`rounded-md px-2 py-1 text-[0.6875rem] font-medium transition-colors disabled:opacity-50 ${
+                    status === s ? "bg-gray-900 text-white" : "border bg-white hover:bg-gray-100"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            {sentAt && <p className="text-[0.6875rem] text-gray-400">з {fmtDate(sentAt)}</p>}
+          </>
+        )}
       </div>
     </div>
   );
@@ -634,10 +640,10 @@ export default function DistributePage() {
         </div>
       </div>
 
-      {/* ── Platform requirements checklist ──────────────────────────────────── */}
+      {/* ── Distribution platforms: readiness + send status, 3-up ────────────── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900">Вимоги платформ</h2>
+          <h2 className="text-base font-semibold text-gray-900">Розповсюдження</h2>
           {totalFails === 0 && totalIssues === 0 ? (
             <span className="text-sm text-green-700 font-medium">✓ Всі платформи готові</span>
           ) : totalFails > 0 ? (
@@ -651,9 +657,27 @@ export default function DistributePage() {
           )}
         </div>
 
-        {platforms.map((p) => (
-          <PlatformSection key={p.key} platform={p} defaultOpen={countIssues(p) > 0} />
-        ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {platforms.map((p) => {
+            const statusFor: Record<string, { status: string; sentAt: string | null | undefined; onChange: (s: string) => void; locked: boolean }> = {
+              kdp: { status: kdp, sentAt: book.kdpSentAt, onChange: (s) => saveService("kdp", s), locked: false },
+              d2d: { status: d2d, sentAt: book.d2dSentAt, onChange: (s) => saveService("d2d", s), locked: isKdpSelect },
+              google: { status: google, sentAt: book.googleSentAt, onChange: (s) => saveService("google", s), locked: isKdpSelect },
+            };
+            const wiring = statusFor[p.key];
+            return (
+              <PlatformCard
+                key={p.key}
+                platform={p}
+                status={wiring.status}
+                sentAt={wiring.sentAt}
+                saving={saving === p.key}
+                onStatusChange={wiring.onChange}
+                locked={wiring.locked}
+              />
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Moderation approval ──────────────────────────────────────────────── */}
@@ -1026,37 +1050,9 @@ export default function DistributePage() {
               <span className="text-gray-500">/ опубліковано {fmtDate(book.publicationTimeline.contract_signed)}</span>
             )}
           </div>
-          <p className="mb-2 text-xs font-semibold text-gray-500">Розсилка файлів на зовнішні платформи</p>
-          <div className="divide-y">
-            {!isKdpSelect && (
-              <ServiceRow
-                name="Draft2Digital"
-                subtitle="Apple Books, B&N, Kobo, Scribd"
-                status={d2d}
-                sentAt={book.d2dSentAt}
-                saving={saving === "d2d"}
-                onChange={(s) => saveService("d2d", s)}
-              />
-            )}
-            <ServiceRow
-              name="Amazon KDP"
-              subtitle="Kindle Direct Publishing"
-              status={kdp}
-              sentAt={book.kdpSentAt}
-              saving={saving === "kdp"}
-              onChange={(s) => saveService("kdp", s)}
-            />
-            {!isKdpSelect && (
-              <ServiceRow
-                name="Google Play Books"
-                subtitle="Google Books Partner Program"
-                status={google}
-                sentAt={book.googleSentAt}
-                saving={saving === "google"}
-                onChange={(s) => saveService("google", s)}
-              />
-            )}
-          </div>
+          <p className="text-xs text-gray-400">
+            Розсилка на зовнішні платформи (D2D/KDP/Google) — у блоці «Розповсюдження» вище.
+          </p>
         </TimelineRow>
       </div>
     </div>
