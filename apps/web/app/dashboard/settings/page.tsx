@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { AvatarUploader } from "../../../components/dashboard/AvatarUploader";
 import { SignOutButton } from "../../../components/dashboard/SignOutButton";
 import { Button } from "../../../components/ui/button";
@@ -50,6 +51,9 @@ interface UserProfile {
   bio?: string | null;
   avatarUrl?: string | null;
   role: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  patronymic?: string | null;
   _count?: { books: number };
 }
 
@@ -60,6 +64,19 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState("");
+
+  // ПІБ -- same fields "Змінити договір" (dashboard/settings/contract) writes
+  // (User.firstName/lastName/patronymic), same claim-once-then-immutable
+  // pattern already used this session for ISBN (book.ts claim-isbn): free to
+  // fill in once here with a lightweight form, but once set, only that
+  // heavier passport-backed flow may change them -- own mini-form/state,
+  // separate from the react-hook-form above, since "required" only applies
+  // pre-fill and doesn't fit that form's static zod schema well.
+  const [pibFirstName, setPibFirstName] = useState("");
+  const [pibLastName, setPibLastName] = useState("");
+  const [pibPatronymic, setPibPatronymic] = useState("");
+  const [pibSaving, setPibSaving] = useState(false);
+  const [pibError, setPibError] = useState("");
 
   const {
     register,
@@ -86,6 +103,9 @@ export default function SettingsPage() {
         setProfile(user);
         setLoadedName(user.name);
         reset({ name: user.name, slug: user.slug, bio: user.bio ?? "" });
+        setPibFirstName(user.firstName ?? "");
+        setPibLastName(user.lastName ?? "");
+        setPibPatronymic(user.patronymic ?? "");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -106,6 +126,27 @@ export default function SettingsPage() {
       setServerError(e.message || "Помилка збереження");
     }
   };
+
+  async function savePib() {
+    if (!pibFirstName.trim() || !pibLastName.trim()) return;
+    setPibError("");
+    setPibSaving(true);
+    try {
+      const { user } = await apiFetch<{ user: UserProfile }>("/api/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+          firstName: pibFirstName.trim(),
+          lastName: pibLastName.trim(),
+          patronymic: pibPatronymic.trim() || undefined,
+        }),
+      });
+      setProfile((p) => (p ? { ...p, ...user } : user));
+    } catch (e: any) {
+      setPibError(e.message || "Не вдалося зберегти ПІБ");
+    } finally {
+      setPibSaving(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -136,6 +177,64 @@ export default function SettingsPage() {
             currentAvatarUrl={profile?.avatarUrl}
             onSuccess={(url) => setProfile((p) => p ? { ...p, avatarUrl: url } : p)}
           />
+        </div>
+
+        {/* ПІБ -- same fields as "Змінити договір"; source of truth reused
+            by Вихідні дані's "Автори книги" auto-fill on every book. */}
+        <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">ПІБ</h2>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Використовується для договору на публікацію та автоматично підставляється в «Автори книги» на кожній
+              новій книзі.
+            </p>
+          </div>
+          {profile?.firstName || profile?.lastName ? (
+            <div className="space-y-1.5">
+              <p className="text-sm text-gray-900">
+                {[profile.lastName, profile.firstName, profile.patronymic].filter(Boolean).join(" ")}
+              </p>
+              <p className="text-xs text-gray-400">
+                Щоб змінити ПІБ, скористайтесь формою{" "}
+                <Link href="/dashboard/settings/contract" className="underline hover:no-underline">
+                  «Змінити договір»
+                </Link>{" "}
+                (потрібне підтвердження документом).
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="pibLastName">Прізвище *</Label>
+                  <Input id="pibLastName" value={pibLastName} onChange={(e) => setPibLastName(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pibFirstName">Ім&apos;я *</Label>
+                  <Input id="pibFirstName" value={pibFirstName} onChange={(e) => setPibFirstName(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pibPatronymic">По батькові</Label>
+                  <Input
+                    id="pibPatronymic"
+                    value={pibPatronymic}
+                    onChange={(e) => setPibPatronymic(e.target.value)}
+                  />
+                </div>
+              </div>
+              {pibError && <p className="text-sm text-red-500">{pibError}</p>}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                loading={pibSaving}
+                disabled={!pibFirstName.trim() || !pibLastName.trim()}
+                onClick={savePib}
+              >
+                Зберегти ПІБ
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Profile form */}

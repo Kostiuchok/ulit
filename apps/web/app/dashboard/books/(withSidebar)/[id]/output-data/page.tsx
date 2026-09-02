@@ -310,6 +310,47 @@ function OutputDataContent() {
   const [newContributor, setNewContributor] = useState<Contributor>({ role: "", name: "" });
   const [authorBio, setAuthorBio] = useState("");
 
+  // Account profile (Налаштування профілю) -- single source of truth for
+  // ПІБ/аватар/біографія, reused to auto-fill "Автори книги" and "Біографія
+  // автора" below when this book doesn't already have its own (never
+  // overwrites an already-customized per-book value). Bio, unlike ПІБ, syncs
+  // both ways: saving here also writes back to the account profile (see
+  // onSubmitInfo), per author's explicit request.
+  interface AccountProfile {
+    firstName?: string | null;
+    lastName?: string | null;
+    patronymic?: string | null;
+    avatarUrl?: string | null;
+    bio?: string | null;
+  }
+  const [userProfile, setUserProfile] = useState<AccountProfile | null>(null);
+  const profileAutofillApplied = useRef(false);
+
+  useEffect(() => {
+    apiFetch<{ user: AccountProfile }>("/api/users/me")
+      .then(({ user }) => setUserProfile(user))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!book || !userProfile || profileAutofillApplied.current) return;
+    profileAutofillApplied.current = true;
+
+    const bookHasAuthors = Array.isArray(book.bookAuthors) && book.bookAuthors.length > 0;
+    if (!bookHasAuthors && (userProfile.firstName || userProfile.lastName)) {
+      setNewAuthor({
+        lastName: userProfile.lastName ?? "",
+        firstName: userProfile.firstName ?? "",
+        middleName: userProfile.patronymic ?? "",
+        photoUrl: userProfile.avatarUrl ?? "",
+      });
+    }
+    if (!book.authorBio && userProfile.bio) {
+      setAuthorBio(userProfile.bio);
+    }
+  }, [book, userProfile]);
+
   // "Авторське право / попередня публікація" -- claiming an existing ISBN
   // from before the book joined ULIT is a separate action from the rest of
   // "Інформація" (its own endpoint, PATCH .../claim-isbn, with its own
@@ -544,6 +585,17 @@ function OutputDataContent() {
       setBookAuthors(Array.isArray(updated.bookAuthors) ? updated.bookAuthors : []);
       setContributors(Array.isArray(updated.contributors) ? updated.contributors : []);
       setAuthorBio(updated.authorBio ?? "");
+      // Біографія автора is meant to stay a single source of truth with
+      // Налаштування профілю (author's explicit request) -- best-effort,
+      // doesn't block/fail the book save if this secondary write fails.
+      if ((updated.authorBio ?? "") !== (userProfile?.bio ?? "")) {
+        apiFetch("/api/users/me", {
+          method: "PATCH",
+          body: JSON.stringify({ bio: updated.authorBio ?? "" }),
+        })
+          .then(() => setUserProfile((p) => (p ? { ...p, bio: updated.authorBio ?? "" } : p)))
+          .catch(() => {});
+      }
       if (draftAuthor.length > 0) setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
       if (draftContributor.length > 0) setNewContributor({ role: "", name: "" });
       setJustStagedFields(

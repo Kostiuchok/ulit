@@ -14,6 +14,13 @@ const patchSchema = z.object({
     .max(64)
     .regex(/^[a-z0-9-]+$/, "Slug may only contain lowercase letters, numbers, and hyphens")
     .optional(),
+  // Same fields "Змінити договір" (users/contract.ts) writes -- first-time
+  // fill only, via this simple route. Once set, only that heavier
+  // passport-backed flow may change them (guarded below), same
+  // claim-once-then-immutable pattern as book.ts's claim-isbn.
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  patronymic: z.string().max(100).optional(),
 });
 
 export async function usersMe(app: FastifyInstance) {
@@ -57,7 +64,7 @@ export async function usersMe(app: FastifyInstance) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
     }
 
-    const { slug, ...rest } = result.data;
+    const { slug, firstName, lastName, patronymic, ...rest } = result.data;
 
     if (slug) {
       const existing = await prisma.user.findUnique({ where: { slug } });
@@ -66,9 +73,29 @@ export async function usersMe(app: FastifyInstance) {
       }
     }
 
+    if (firstName !== undefined || lastName !== undefined || patronymic !== undefined) {
+      const current = await prisma.user.findUnique({
+        where: { id: request.user.id },
+        select: { firstName: true, lastName: true },
+      });
+      if (current?.firstName || current?.lastName) {
+        throw new AppError(
+          "ПІБ вже заповнено — змінюйте через «Змінити договір» (потрібне підтвердження документом)",
+          400,
+          "NAME_ALREADY_SET"
+        );
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id: request.user.id },
-      data: { ...rest, ...(slug ? { slug } : {}) },
+      data: {
+        ...rest,
+        ...(slug ? { slug } : {}),
+        ...(firstName !== undefined ? { firstName } : {}),
+        ...(lastName !== undefined ? { lastName } : {}),
+        ...(patronymic !== undefined ? { patronymic } : {}),
+      },
       select: {
         id: true,
         email: true,
@@ -77,6 +104,9 @@ export async function usersMe(app: FastifyInstance) {
         bio: true,
         avatarUrl: true,
         role: true,
+        firstName: true,
+        lastName: true,
+        patronymic: true,
         createdAt: true,
         updatedAt: true,
       },

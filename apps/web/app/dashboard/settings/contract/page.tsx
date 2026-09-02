@@ -16,6 +16,19 @@ interface UserContract {
   taxId: string | null;
   bankIban: string | null;
   payoutDocument: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  patronymic: string | null;
+}
+
+// Same structured ПІБ Налаштування профілю collects (and this page's own
+// "Змінити договір" form edits) -- falls back to the free-text display name
+// only for accounts that haven't filled it in yet.
+function buildAuthorName(user: UserContract | null, fallback: string) {
+  if (user?.lastName || user?.firstName) {
+    return [user.lastName, user.firstName, user.patronymic].filter(Boolean).join(" ");
+  }
+  return fallback;
 }
 
 function fmtDate(date: string) {
@@ -70,7 +83,7 @@ export default function ContractPage() {
   async function downloadContract() {
     setDownloading(true);
     try {
-      const authorName = session?.user?.name ?? "Автор";
+      const authorName = buildAuthorName(user, session?.user?.name ?? "Автор");
       const text =
         contractTextPlain("—", authorName) +
         signatureBlockPlain({
