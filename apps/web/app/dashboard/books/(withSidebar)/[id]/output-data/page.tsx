@@ -408,6 +408,32 @@ function OutputDataContent() {
       // here is what makes this selector actually independent of genre
       // (apps/api book.ts PATCH handler).
       const format = PRINT_FORMATS[data.printFormatKey as PrintFormatKey] ?? PRINT_FORMATS.standard;
+
+      // A filled-in ПІБ/contributor draft that was never explicitly "added"
+      // via its own small button looked saved (the text sits right there in
+      // the fields) but silently never reached bookAuthors/contributors --
+      // every book on prod had bookAuthors: null despite authors typing a
+      // name, confirmed via direct DB check. Folding a valid draft into the
+      // save here (same non-empty check as addBookAuthor/addContributor)
+      // means "Зберегти зміни" alone is enough, matching what typing into a
+      // visible field and saving the form actually implies.
+      const draftAuthor =
+        newAuthor.lastName.trim() && newAuthor.firstName.trim()
+          ? [{
+              lastName: newAuthor.lastName.trim(),
+              firstName: newAuthor.firstName.trim(),
+              middleName: newAuthor.middleName?.trim() || undefined,
+              photoUrl: newAuthor.photoUrl?.trim() || undefined,
+            }]
+          : [];
+      const effectiveBookAuthors = [...bookAuthors, ...draftAuthor];
+
+      const draftContributor =
+        newContributor.role.trim() && newContributor.name.trim()
+          ? [{ role: newContributor.role.trim(), name: newContributor.name.trim() }]
+          : [];
+      const effectiveContributors = [...contributors, ...draftContributor];
+
       const { book: updated } = await apiFetch<{ book: MetadataBook }>(`/api/books/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -423,8 +449,8 @@ function OutputDataContent() {
           aiGenerated: data.aiGenerated ?? false,
           aiGeneratedNote: data.aiGenerated ? (data.aiGeneratedNote || null) : null,
           coAuthors: coAuthors.length > 0 ? coAuthors : null,
-          bookAuthors: bookAuthors.length > 0 ? bookAuthors : null,
-          contributors: contributors.length > 0 ? contributors : null,
+          bookAuthors: effectiveBookAuthors.length > 0 ? effectiveBookAuthors : null,
+          contributors: effectiveContributors.length > 0 ? effectiveContributors : null,
           authorBio: authorBio.trim() || null,
         }),
       });
@@ -433,6 +459,8 @@ function OutputDataContent() {
       setBookAuthors(Array.isArray(updated.bookAuthors) ? updated.bookAuthors : []);
       setContributors(Array.isArray(updated.contributors) ? updated.contributors : []);
       setAuthorBio(updated.authorBio ?? "");
+      if (draftAuthor.length > 0) setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
+      if (draftContributor.length > 0) setNewContributor({ role: "", name: "" });
       setInfoSaved(true);
       setLocallyFixed(true);
       setTimeout(() => setInfoSaved(false), 3000);
