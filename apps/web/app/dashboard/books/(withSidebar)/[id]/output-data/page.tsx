@@ -622,279 +622,292 @@ function OutputDataContent() {
           <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.info}</h2>
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="title">Назва *</Label>
-                  <span className={cn("text-xs", titleInvalid ? "text-red-500 font-medium" : "text-gray-400")}>
-                    {titleValue.length}/255 {titleInvalid && "(мін. 3)"}
-                  </span>
-                </div>
-                <Input
-                  id="title"
-                  {...infoForm.register("title")}
-                  className={cn(titleInvalid ? "border-red-400 focus-visible:ring-red-300" : "")}
-                />
-                {infoForm.formState.errors.title && (
-                  <p className="text-sm text-red-500">{infoForm.formState.errors.title.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="subtitle">Підзаголовок</Label>
-                <Input id="subtitle" {...infoForm.register("subtitle")} placeholder="Наприклад: збірка оповідань" />
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-end gap-1.5">
-                  {DESCRIPTION_PLATFORM_TARGETS.map((p) => {
-                    const reached = descValue.length >= p.minChars;
-                    return (
-                      <span
-                        key={p.key}
-                        title={`${p.label}: рекомендовано від ${p.minChars} символів`}
-                        className={cn(
-                          "rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium transition-colors",
-                          reached ? "border-green-300 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"
-                        )}
-                      >
-                        {reached ? "✓ " : ""}
-                        {p.label} {p.minChars}+
-                      </span>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="description">Анотація *</Label>
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      descValue.length > 0 && (descValue.length < DESCRIPTION_MIN_LENGTH || descValue.length > DESCRIPTION_MAX_LENGTH)
-                        ? "text-red-500"
-                        : "text-gray-400"
-                    )}
-                  >
-                    {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
-                  </span>
-                </div>
-                <textarea
-                  id="description"
-                  {...infoForm.register("description")}
-                  rows={4}
-                  className={cn(
-                    "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
-                    infoForm.formState.errors.description
-                      ? "border-red-400 focus-visible:ring-red-300"
-                      : "border-input focus-visible:ring-ring"
+              {/* Назва і підзаголовок поруч — обидва короткі однорядкові поля,
+                  окремий рядок кожному тільки збільшував висоту форми даремно. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="title">Назва *</Label>
+                    <span className={cn("text-xs", titleInvalid ? "text-red-500 font-medium" : "text-gray-400")}>
+                      {titleValue.length}/255 {titleInvalid && "(мін. 3)"}
+                    </span>
+                  </div>
+                  <Input
+                    id="title"
+                    {...infoForm.register("title")}
+                    className={cn(titleInvalid ? "border-red-400 focus-visible:ring-red-300" : "")}
+                  />
+                  {infoForm.formState.errors.title && (
+                    <p className="text-sm text-red-500">{infoForm.formState.errors.title.message}</p>
                   )}
-                  placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
-                />
-                {infoForm.formState.errors.description && (
-                  <p className="text-sm text-red-500">{infoForm.formState.errors.description.message}</p>
-                )}
-              </div>
-
-              {/* Жанр і розмір книги — незалежні поля, поруч в одному ряду
-                  (як і в BookWizard'і при створенні книги): автор обирає
-                  обидва окремо, розмір більше не випливає з жанру. */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="genre">Жанр</Label>
-                  <select
-                    id="genre"
-                    {...infoForm.register("genre")}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Оберіть жанр</option>
-                    {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
-                  </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="printFormatKey">Розмір книги *</Label>
-                  <select
-                    id="printFormatKey"
-                    {...infoForm.register("printFormatKey")}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {PRINT_FORMAT_KEYS.map((key) => {
-                      const f = PRINT_FORMATS[key];
+                  <Label htmlFor="subtitle">Підзаголовок</Label>
+                  <Input id="subtitle" {...infoForm.register("subtitle")} placeholder="Наприклад: збірка оповідань" />
+                </div>
+              </div>
+
+              {/* Анотація зліва (найбільше тексту, потребує ширини) — жанр/
+                  розмір/мова/вік справа, стовпчиком: коротші поля, які не
+                  виграють від повної ширини форми. */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-end gap-1.5">
+                    {DESCRIPTION_PLATFORM_TARGETS.map((p) => {
+                      const reached = descValue.length >= p.minChars;
                       return (
-                        <option key={key} value={key}>
-                          {f.label} ({f.widthMm}×{f.heightMm}мм)
-                        </option>
+                        <span
+                          key={p.key}
+                          title={`${p.label}: рекомендовано від ${p.minChars} символів`}
+                          className={cn(
+                            "rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium transition-colors",
+                            reached ? "border-green-300 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"
+                          )}
+                        >
+                          {reached ? "✓ " : ""}
+                          {p.label} {p.minChars}+
+                        </span>
                       );
                     })}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="language">
-                    Мова книги *
-                    <span className="ml-1.5 text-xs font-normal text-gray-400">(потрібна для Amazon, Google Play)</span>
-                  </Label>
-                  <select
-                    id="language"
-                    {...infoForm.register("language")}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="description">Анотація *</Label>
+                    <span
+                      className={cn(
+                        "text-xs font-medium",
+                        descValue.length > 0 && (descValue.length < DESCRIPTION_MIN_LENGTH || descValue.length > DESCRIPTION_MAX_LENGTH)
+                          ? "text-red-500"
+                          : "text-gray-400"
+                      )}
+                    >
+                      {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
+                    </span>
+                  </div>
+                  <textarea
+                    id="description"
+                    {...infoForm.register("description")}
+                    rows={9}
                     className={cn(
-                      "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      languageRejected ? "border-red-400" : "border-input"
-                    )}
-                  >
-                    <option value="uk">🇺🇦 Українська</option>
-                    <option value="en">🇬🇧 English</option>
-                    <option value="de">🇩🇪 Deutsch</option>
-                    <option value="fr">🇫🇷 Français</option>
-                    <option value="pl">🇵🇱 Polski</option>
-                    <option value="es">🇪🇸 Español</option>
-                    <option value="it">🇮🇹 Italiano</option>
-                    <option value="pt">🇵🇹 Português</option>
-                    <option value="ru">Русский</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="ageRating">Вікові обмеження *</Label>
-                  <select
-                    id="ageRating"
-                    {...infoForm.register("ageRating")}
-                    className={cn(
-                      "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2",
-                      infoForm.formState.errors.ageRating
+                      "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
+                      infoForm.formState.errors.description
                         ? "border-red-400 focus-visible:ring-red-300"
                         : "border-input focus-visible:ring-ring"
                     )}
-                  >
-                    <option value="">Оберіть вікове обмеження</option>
-                    {AGE_RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                  {infoForm.formState.errors.ageRating && (
-                    <p className="text-sm text-red-500">{infoForm.formState.errors.ageRating.message}</p>
+                    placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
+                  />
+                  {infoForm.formState.errors.description && (
+                    <p className="text-sm text-red-500">{infoForm.formState.errors.description.message}</p>
                   )}
                 </div>
-              </div>
 
-              <p className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
-                📐 Друкована версія книги матиме розмір{" "}
-                <span className="font-semibold text-gray-900">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
-                {" "}({displayFormat.label.toLowerCase()})
-              </p>
-
-              {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача */}
-              <div className="space-y-2 rounded-lg border p-3">
-                <Label>Автори книги</Label>
-                <p className="text-xs text-gray-400">
-                  Якщо авторів декілька — кожен додає власне прізвище/ім&apos;я і, за бажанням, своє фото.
-                </p>
-                {bookAuthors.length > 0 && (
+                <div className="space-y-4">
                   <div className="space-y-1.5">
-                    {bookAuthors.map((a, i) => (
-                      <div key={i} className="flex items-center gap-2 rounded-md bg-gray-50 px-2.5 py-1.5 text-sm">
-                        {a.photoUrl && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={a.photoUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
-                        )}
-                        <span className="flex-1">
-                          {a.lastName} {a.firstName} {a.middleName || ""}
-                        </span>
-                        <button type="button" onClick={() => removeBookAuthor(i)} className="text-gray-400 hover:text-red-600">×</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Input
-                    value={newAuthor.lastName}
-                    onChange={(e) => setNewAuthor((p) => ({ ...p, lastName: e.target.value }))}
-                    placeholder="Прізвище"
-                    className="h-9 text-sm"
-                  />
-                  <Input
-                    value={newAuthor.firstName}
-                    onChange={(e) => setNewAuthor((p) => ({ ...p, firstName: e.target.value }))}
-                    placeholder="Ім'я"
-                    className="h-9 text-sm"
-                  />
-                  <Input
-                    value={newAuthor.middleName}
-                    onChange={(e) => setNewAuthor((p) => ({ ...p, middleName: e.target.value }))}
-                    placeholder="По батькові"
-                    className="h-9 text-sm"
-                  />
-                  <div className="col-span-2 flex items-center gap-1.5">
-                    <Input
-                      value={newAuthor.photoUrl}
-                      onChange={(e) => setNewAuthor((p) => ({ ...p, photoUrl: e.target.value }))}
-                      placeholder="URL фото (необов'язково)"
-                      className="h-9 flex-1 text-sm"
-                    />
-                    <input
-                      ref={authorPhotoInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      onChange={handleAuthorPhotoUpload}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 shrink-0 px-2.5 text-xs"
-                      loading={authorPhotoUploading}
-                      onClick={() => authorPhotoInputRef.current?.click()}
+                    <Label htmlFor="genre">Жанр</Label>
+                    <select
+                      id="genre"
+                      {...infoForm.register("genre")}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      Завантажити фото
-                    </Button>
+                      <option value="">Оберіть жанр</option>
+                      {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
                   </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="printFormatKey">Розмір книги *</Label>
+                    <select
+                      id="printFormatKey"
+                      {...infoForm.register("printFormatKey")}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {PRINT_FORMAT_KEYS.map((key) => {
+                        const f = PRINT_FORMATS[key];
+                        return (
+                          <option key={key} value={key}>
+                            {f.label} ({f.widthMm}×{f.heightMm}мм)
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="language">
+                      Мова книги *
+                      <span className="ml-1.5 text-xs font-normal text-gray-400">(потрібна для Amazon, Google Play)</span>
+                    </Label>
+                    <select
+                      id="language"
+                      {...infoForm.register("language")}
+                      className={cn(
+                        "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        languageRejected ? "border-red-400" : "border-input"
+                      )}
+                    >
+                      <option value="uk">🇺🇦 Українська</option>
+                      <option value="en">🇬🇧 English</option>
+                      <option value="de">🇩🇪 Deutsch</option>
+                      <option value="fr">🇫🇷 Français</option>
+                      <option value="pl">🇵🇱 Polski</option>
+                      <option value="es">🇪🇸 Español</option>
+                      <option value="it">🇮🇹 Italiano</option>
+                      <option value="pt">🇵🇹 Português</option>
+                      <option value="ru">Русский</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ageRating">Вікові обмеження *</Label>
+                    <select
+                      id="ageRating"
+                      {...infoForm.register("ageRating")}
+                      className={cn(
+                        "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2",
+                        infoForm.formState.errors.ageRating
+                          ? "border-red-400 focus-visible:ring-red-300"
+                          : "border-input focus-visible:ring-ring"
+                      )}
+                    >
+                      <option value="">Оберіть вікове обмеження</option>
+                      {AGE_RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    {infoForm.formState.errors.ageRating && (
+                      <p className="text-sm text-red-500">{infoForm.formState.errors.ageRating.message}</p>
+                    )}
+                  </div>
+
+                  <p className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
+                    📐 Друкована версія книги матиме розмір{" "}
+                    <span className="font-semibold text-gray-900">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
+                    {" "}({displayFormat.label.toLowerCase()})
+                  </p>
                 </div>
-                {authorPhotoError && <p className="text-xs text-red-500">{authorPhotoError}</p>}
-                <Button type="button" variant="outline" size="sm" onClick={addBookAuthor}>+ Додати автора</Button>
               </div>
 
-              {/* T-2060 п.5 — окрема сутність, не змішана з авторами */}
-              <div className="space-y-2 rounded-lg border p-3">
-                <Label>Над книгою працювали</Label>
-                <p className="text-xs text-gray-400">Редактор, ілюстратор, дизайнер обкладинки тощо.</p>
-                {contributors.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {contributors.map((c, i) => (
-                      <span key={i} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">
-                        {c.role}: {c.name}
-                        <button type="button" onClick={() => removeContributor(i)} className="text-gray-400 hover:text-red-600">×</button>
-                      </span>
-                    ))}
+              {/* Автори книги (зліва) + Над книгою працювали (справа) — раніше
+                  два окремі повношириннi блоки один під одним; обидва короткі
+                  за висотою і не потребують повної ширини кожен. Біографія
+                  автора переїхала в лівий стовпчик, поруч з рештою полів
+                  самого автора, а не окремим блоком нижче. */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача */}
+                <div className="space-y-2 rounded-lg border p-3">
+                  <Label>Автори книги</Label>
+                  <p className="text-xs text-gray-400">
+                    Якщо авторів декілька — кожен додає власне прізвище/ім&apos;я і, за бажанням, своє фото.
+                  </p>
+                  {bookAuthors.length > 0 && (
+                    <div className="space-y-1.5">
+                      {bookAuthors.map((a, i) => (
+                        <div key={i} className="flex items-center gap-2 rounded-md bg-gray-50 px-2.5 py-1.5 text-sm">
+                          {a.photoUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={a.photoUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+                          )}
+                          <span className="flex-1">
+                            {a.lastName} {a.firstName} {a.middleName || ""}
+                          </span>
+                          <button type="button" onClick={() => removeBookAuthor(i)} className="text-gray-400 hover:text-red-600">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <Input
+                      value={newAuthor.lastName}
+                      onChange={(e) => setNewAuthor((p) => ({ ...p, lastName: e.target.value }))}
+                      placeholder="Прізвище"
+                      className="h-9 text-sm"
+                    />
+                    <Input
+                      value={newAuthor.firstName}
+                      onChange={(e) => setNewAuthor((p) => ({ ...p, firstName: e.target.value }))}
+                      placeholder="Ім'я"
+                      className="h-9 text-sm"
+                    />
+                    <Input
+                      value={newAuthor.middleName}
+                      onChange={(e) => setNewAuthor((p) => ({ ...p, middleName: e.target.value }))}
+                      placeholder="По батькові"
+                      className="h-9 text-sm"
+                    />
+                    <div className="col-span-2 flex items-center gap-1.5">
+                      <Input
+                        value={newAuthor.photoUrl}
+                        onChange={(e) => setNewAuthor((p) => ({ ...p, photoUrl: e.target.value }))}
+                        placeholder="URL фото (необов'язково)"
+                        className="h-9 flex-1 text-sm"
+                      />
+                      <input
+                        ref={authorPhotoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={handleAuthorPhotoUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 shrink-0 px-2.5 text-xs"
+                        loading={authorPhotoUploading}
+                        onClick={() => authorPhotoInputRef.current?.click()}
+                      >
+                        Завантажити фото
+                      </Button>
+                    </div>
                   </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={newContributor.role}
-                    onChange={(e) => setNewContributor((p) => ({ ...p, role: e.target.value }))}
-                    placeholder="Роль (напр. редактор)"
-                    className="h-9 w-40 shrink-0 text-sm"
-                  />
-                  <Input
-                    value={newContributor.name}
-                    onChange={(e) => setNewContributor((p) => ({ ...p, name: e.target.value }))}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addContributor(); } }}
-                    placeholder="Ім'я"
-                    className="h-9 flex-1 min-w-0 text-sm"
-                  />
-                  <Button type="button" variant="outline" size="sm" onClick={addContributor} className="shrink-0">+ Додати</Button>
-                </div>
-              </div>
+                  {authorPhotoError && <p className="text-xs text-red-500">{authorPhotoError}</p>}
 
-              {/* T-2060 п.6 — канонічне джерело тексту біографії; показується й редагується вживу на обкладинці */}
-              <div className="space-y-1.5">
-                <Label htmlFor="authorBio">Біографія автора</Label>
-                <textarea
-                  id="authorBio"
-                  value={authorBio}
-                  onChange={(e) => setAuthorBio(e.target.value)}
-                  rows={3}
-                  placeholder="Наприклад: Валентина Островська народилась у…"
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-                />
+                  {/* T-2060 п.6 — канонічне джерело тексту біографії; показується й
+                      редагується вживу на обкладинці */}
+                  <div className="space-y-1.5 pt-1">
+                    <Label htmlFor="authorBio">Біографія автора</Label>
+                    <textarea
+                      id="authorBio"
+                      value={authorBio}
+                      onChange={(e) => setAuthorBio(e.target.value)}
+                      rows={3}
+                      placeholder="Наприклад: Валентина Островська народилась у…"
+                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                    />
+                  </div>
+
+                  <Button type="button" variant="outline" size="sm" onClick={addBookAuthor}>+ Додати автора</Button>
+                </div>
+
+                {/* T-2060 п.5 — окрема сутність, не змішана з авторами */}
+                <div className="space-y-2 rounded-lg border p-3">
+                  <Label>Над книгою працювали</Label>
+                  <p className="text-xs text-gray-400">Редактор, ілюстратор, дизайнер обкладинки тощо.</p>
+                  {contributors.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {contributors.map((c, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">
+                          {c.role}: {c.name}
+                          <button type="button" onClick={() => removeContributor(i)} className="text-gray-400 hover:text-red-600">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newContributor.role}
+                      onChange={(e) => setNewContributor((p) => ({ ...p, role: e.target.value }))}
+                      placeholder="Роль (напр. редактор)"
+                      className="h-9 w-40 shrink-0 text-sm"
+                    />
+                    <Input
+                      value={newContributor.name}
+                      onChange={(e) => setNewContributor((p) => ({ ...p, name: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addContributor(); } }}
+                      placeholder="Ім'я"
+                      className="h-9 flex-1 min-w-0 text-sm"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={addContributor} className="shrink-0">+ Додати</Button>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2 rounded-lg border p-3">
