@@ -29,15 +29,37 @@ function formatAuthorFullName(bookAuthors: unknown): string | null {
 // is actually present -- this mirrors IsbnReadinessChecklist's checks
 // (output-data/page.tsx) but server-side, since that's what gates which
 // books show up in /api/admin/isbn-queue, not just what nudges the author.
+// missingIsbnReadyFields() names exactly which check(s) fail, in Ukrainian,
+// so an admin looking at one specific book's error (not the queue, which
+// just silently omits not-ready books) sees why -- printPdfUrl in
+// particular is easy to miss, since it's the PRINT-format PDF, not the
+// EPUB the admin/books list's own checklist column shows as "EPUB ✓".
+export function missingIsbnReadyFields(book: {
+  description: string | null;
+  bookAuthors: unknown;
+  coverUrl: string | null;
+  printPdfUrl: string | null;
+}): string[] {
+  const missing: string[] = [];
+  const descLength = book.description?.trim().length ?? 0;
+  if (descLength === 0) {
+    missing.push("анотація відсутня");
+  } else if (descLength > ISBN_ANNOTATION_HALF_PAGE_CHARS) {
+    missing.push(`анотація задовга (${descLength} символів, максимум ${ISBN_ANNOTATION_HALF_PAGE_CHARS})`);
+  }
+  if (!formatAuthorFullName(book.bookAuthors)) missing.push("не вказано повне ПІБ автора");
+  if (!book.coverUrl) missing.push("не завантажена обкладинка");
+  if (!book.printPdfUrl) missing.push("не згенеровано друкований PDF рукопису (формат друку)");
+  return missing;
+}
+
 export function isIsbnReady(book: {
   description: string | null;
   bookAuthors: unknown;
   coverUrl: string | null;
   printPdfUrl: string | null;
 }): boolean {
-  const descLength = book.description?.trim().length ?? 0;
-  const annotationOk = descLength > 0 && descLength <= ISBN_ANNOTATION_HALF_PAGE_CHARS;
-  return annotationOk && !!formatAuthorFullName(book.bookAuthors) && !!book.coverUrl && !!book.printPdfUrl;
+  return missingIsbnReadyFields(book).length === 0;
 }
 
 const bookChamberSchema = z.object({
@@ -203,12 +225,9 @@ export async function bookChamberRoutes(app: FastifyInstance) {
       if (!book) throw AppError.notFound("Book");
 
       const authorFullName = formatAuthorFullName(book.bookAuthors);
-      if (!isIsbnReady(book)) {
-        throw new AppError(
-          "Дані книги ще не готові для пакету ISBN (анотація/ПІБ автора/обкладинка/файл рукопису)",
-          400,
-          "NOT_ISBN_READY"
-        );
+      const missing = missingIsbnReadyFields(book);
+      if (missing.length > 0) {
+        throw new AppError(`Дані книги ще не готові для пакету ISBN: ${missing.join("; ")}`, 400, "NOT_ISBN_READY");
       }
 
       const manuscriptPdfUrl = await getSignedUrl(book.printPdfUrl!);
