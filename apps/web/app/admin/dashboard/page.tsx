@@ -14,7 +14,7 @@ interface Stats {
   queueCounts: {
     review: number;
     distribution: number;
-    isbn: number;
+    udk: number;
     royalties: number;
   };
 }
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
         {[
           { href: "/admin/books?status=REVIEW", label: "Модерація книг", icon: "✅", color: "border-yellow-200 bg-yellow-50", count: stats?.queueCounts?.review },
           { href: "/admin/distribution/queue", label: "Черга дистрибуції", icon: "📦", color: "border-blue-200 bg-blue-50", count: stats?.queueCounts?.distribution },
-          { href: "/admin/isbn-queue", label: "Реєстрація ISBN", icon: "🔖", color: "border-purple-200 bg-purple-50", count: stats?.queueCounts?.isbn },
+          { href: "/admin/udk-queue", label: "Реєстрація УДК", icon: "🔖", color: "border-purple-200 bg-purple-50", count: stats?.queueCounts?.udk },
           { href: "/admin/royalties?status=PENDING", label: "Виплати роялті", icon: "💰", color: "border-green-200 bg-green-50", count: stats?.queueCounts?.royalties },
         ].map((link) => (
           <Link

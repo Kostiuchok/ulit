@@ -15,7 +15,8 @@ export interface FrontMatterMeta {
   ageRating?: string | null;
   isbn?: string | null;
   udcCode?: string | null;
-  bbkCode?: string | null;
+  // No bbkCode -- ББК officially discontinued for Ukrainian publishers
+  // (Cabinet of Ministers resolution, March 2017, mandatory switch to УДК).
   authorSign?: string | null;
   pageCount?: number | null;
   createdAt?: string | null;
@@ -68,7 +69,6 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
   const authorCatalog = meta.authorNameCatalog ?? meta.authorNameDisplay;
 
   if (meta.udcCode) nodes.push(styledParagraph("normal", `УДК ${meta.udcCode}`, "colophon-code"));
-  if (meta.bbkCode) nodes.push(styledParagraph("normal", `ББК ${meta.bbkCode}`, "colophon-code"));
   if (meta.authorSign) nodes.push(styledParagraph("normal", meta.authorSign, "colophon-code"));
 
   nodes.push(styledParagraph("normal", "Комп'ютерна верстка. Гарнітура Times New Roman.", "colophon-meta"));
@@ -85,8 +85,7 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
 
   if (meta.description) nodes.push(styledParagraph("normal", meta.description, "colophon-description"));
 
-  const codeRepeat = [meta.udcCode && `УДК ${meta.udcCode}`, meta.bbkCode && `ББК ${meta.bbkCode}`].filter(Boolean);
-  if (codeRepeat.length > 0) nodes.push(styledParagraph("normal", codeRepeat.join("   "), "colophon-code-bold"));
+  if (meta.udcCode) nodes.push(styledParagraph("normal", `УДК ${meta.udcCode}`, "colophon-code-bold"));
 
   if (meta.ageRating) nodes.push(styledParagraph("normal", meta.ageRating, "colophon-age"));
 

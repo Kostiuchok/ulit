@@ -20,7 +20,6 @@ const BOOK_SELECT = {
   unpublishedAt: true,
   isbn: true,
   udcCode: true,
-  bbkCode: true,
   authorSign: true,
   copyrightYear: true,
   copyrightHolder: true,

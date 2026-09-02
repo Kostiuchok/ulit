@@ -66,13 +66,15 @@ const bookChamberSchema = z.object({
   submittedAt: z.string().datetime().nullable().optional(),
   isbn: z.string().nullable().optional(),
   udcCode: z.string().max(50).nullable().optional(),
-  bbkCode: z.string().max(50).nullable().optional(),
   authorSign: z.string().max(50).nullable().optional(),
 });
 
-// No public Книжкова палата API exists — a registered publisher (Ulit) submits
-// books for cataloguing outside this system, then an admin records the real
-// ISBN/УДК/ББК/авторський знак here once received. See docs/TASKS.md T-1954.
+// No public Книжкова палата API exists — ISBN is self-service (Ulit
+// registers once as a publisher, gets a block of numbers, self-assigns them
+// to books -- no per-book submission needed at all). УДК + авторський знак
+// ("шифр зберігання") is the opposite: a real per-book request to the
+// Palata (e-mail), which is what this whole module's "queue"/"package"
+// machinery exists for. See docs/TASKS.md T-1954.
 export async function bookChamberRoutes(app: FastifyInstance) {
   app.patch(
     "/api/admin/books/:id/book-chamber",
@@ -87,7 +89,7 @@ export async function bookChamberRoutes(app: FastifyInstance) {
       const existing = await prisma.book.findUnique({ where: { id }, select: { id: true } });
       if (!existing) throw AppError.notFound("Book");
 
-      const { submittedAt, isbn, udcCode, bbkCode, authorSign } = result.data;
+      const { submittedAt, isbn, udcCode, authorSign } = result.data;
 
       if (isbn !== undefined && isbn !== null) {
         if (!validateIsbn13(isbn)) {
@@ -103,25 +105,26 @@ export async function bookChamberRoutes(app: FastifyInstance) {
           bookChamberSubmittedAt: submittedAt === undefined ? undefined : submittedAt ? new Date(submittedAt) : null,
           isbn: isbn === undefined ? undefined : isbn,
           udcCode: udcCode === undefined ? undefined : udcCode,
-          bbkCode: bbkCode === undefined ? undefined : bbkCode,
           authorSign: authorSign === undefined ? undefined : authorSign,
         },
-        select: { id: true, isbn: true, udcCode: true, bbkCode: true, authorSign: true, bookChamberSubmittedAt: true },
+        select: { id: true, isbn: true, udcCode: true, authorSign: true, bookChamberSubmittedAt: true },
       });
 
       return reply.send({ book });
     }
   );
 
-  // ─── ISBN registration queue ─────────────────────────────────────────────
-  // Books that have cleared moderation, aren't submitted to Книжкова палата
+  // ─── УДК registration queue ──────────────────────────────────────────────
+  // Books that have cleared moderation, aren't submitted for cataloguing
   // yet, and already have every piece of info the submission checklist
   // requires (isIsbnReady) -- i.e. nothing left for the admin to chase the
-  // author for, only to hand off externally. Mirrors the shape of
-  // /api/admin/distribution/queue.
+  // author for, only to hand off externally. Gated on udcCode, not isbn --
+  // ISBN doesn't need this workflow at all (self-service, see module
+  // comment above); a book missing only its ISBN wouldn't belong here.
+  // Mirrors the shape of /api/admin/distribution/queue.
   app.get("/api/admin/isbn-queue", { preHandler: requireAdmin }, async (_request, reply) => {
     const candidates = await prisma.book.findMany({
-      where: { moderationStatus: "APPROVED", bookChamberSubmittedAt: null, isbn: null },
+      where: { moderationStatus: "APPROVED", bookChamberSubmittedAt: null, udcCode: null },
       select: {
         id: true,
         title: true,
@@ -151,17 +154,16 @@ export async function bookChamberRoutes(app: FastifyInstance) {
     return reply.send({ books });
   });
 
-  // ─── ISBN submission package ─────────────────────────────────────────────
-  // Everything needed to hand a book off to Книжкова палата for ISBN +
-  // УДК/авторський знак together (ukrbook.net/UDC_poslugy.html: "шифр
-  // зберігання" bundles УДК + авторський знак as one request, by e-mail, no
-  // online form) -- same institution, same underlying material as the ISBN
-  // submission, so one package covers both. File 1 (заявка.txt: metadata +
-  // annotation) is composed on the fly. File 2 (manuscript) reuses
-  // printPdfUrl as-is -- it already carries our own УДК/ББК/ISBN colophon on
-  // page 2 (T-1962), which covers the "technical page" a submission needs;
-  // no separate blank-page-2 render exists or is planned. Files 3/4 are the
-  // front/back cover, already public files.
+  // ─── УДК submission package ──────────────────────────────────────────────
+  // Everything needed to hand a book off to Книжкова палата for УДК +
+  // авторський знак ("шифр зберігання", ukrbook.net/UDC_poslugy.html) --
+  // ISBN needs none of this (self-service, see module comment above), so
+  // this package is purely for the УДК e-mail request. File 1 (заявка.txt:
+  // metadata + annotation) is composed on the fly. File 2 (manuscript)
+  // reuses printPdfUrl as-is -- it already carries our own УДК/ISBN colophon
+  // on page 2 (T-1962), which covers the "technical page" a submission
+  // needs; no separate blank-page-2 render exists or is planned. Files 3/4
+  // are the front/back cover, already public files.
   //
   // Deliberately NOT a single .zip download -- a prior attempt at zipping
   // files for admin download (distribution bulk-export, admin.ts) turned out
@@ -180,7 +182,6 @@ export async function bookChamberRoutes(app: FastifyInstance) {
     language: true,
     isbn: true,
     udcCode: true,
-    bbkCode: true,
     authorSign: true,
     author: { select: { name: true } },
   } as const;
@@ -194,7 +195,6 @@ export async function bookChamberRoutes(app: FastifyInstance) {
     printPageCount: number | null;
     isbn: string | null;
     udcCode: string | null;
-    bbkCode: string | null;
     authorSign: string | null;
   }) {
     const authorFullName = formatAuthorFullName(book.bookAuthors) ?? "—";
@@ -207,7 +207,6 @@ export async function bookChamberRoutes(app: FastifyInstance) {
       "",
       `ISBN: ${book.isbn ?? "ще не присвоєно"}`,
       `УДК: ${book.udcCode ?? "ще не присвоєно"}`,
-      `ББК: ${book.bbkCode ?? "—"}`,
       `Авторський знак: ${book.authorSign ?? "ще не присвоєно"}`,
       "",
       "Анотація:",
@@ -227,7 +226,7 @@ export async function bookChamberRoutes(app: FastifyInstance) {
       const authorFullName = formatAuthorFullName(book.bookAuthors);
       const missing = missingIsbnReadyFields(book);
       if (missing.length > 0) {
-        throw new AppError(`Дані книги ще не готові для пакету ISBN: ${missing.join("; ")}`, 400, "NOT_ISBN_READY");
+        throw new AppError(`Дані книги ще не готові для пакету УДК: ${missing.join("; ")}`, 400, "NOT_ISBN_READY");
       }
 
       const manuscriptPdfUrl = await getSignedUrl(book.printPdfUrl!);
@@ -244,7 +243,6 @@ export async function bookChamberRoutes(app: FastifyInstance) {
         printPageCount: book.printPageCount,
         isbn: book.isbn,
         udcCode: book.udcCode,
-        bbkCode: book.bbkCode,
         authorSign: book.authorSign,
       });
     }

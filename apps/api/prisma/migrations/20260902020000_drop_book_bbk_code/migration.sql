@@ -1,0 +1,1 @@
+ALTER TABLE "Book" DROP COLUMN IF EXISTS "bbkCode";

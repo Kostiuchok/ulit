@@ -77,7 +77,6 @@ const BOOK_ADMIN_SELECT = {
   moderationStatus: true,
   isbn: true,
   udcCode: true,
-  bbkCode: true,
   authorSign: true,
   bookChamberSubmittedAt: true,
   rejectedAt: true,
@@ -188,9 +187,10 @@ export async function adminRoutes(app: FastifyInstance) {
       // isIsbnReady is a JS predicate (not expressible as a Prisma `where`),
       // same as /api/admin/isbn-queue -- fetch the same DB-filterable subset
       // and re-use that exact function so this count can never drift from
-      // what actually shows up in the real queue.
+      // what actually shows up in the real queue. Gated on udcCode, not
+      // isbn -- ISBN is self-service and never needs this queue at all.
       prisma.book.findMany({
-        where: { moderationStatus: "APPROVED", bookChamberSubmittedAt: null, isbn: null },
+        where: { moderationStatus: "APPROVED", bookChamberSubmittedAt: null, udcCode: null },
         select: { description: true, bookAuthors: true, coverUrl: true, printPdfUrl: true },
       }),
     ]);
@@ -222,7 +222,7 @@ export async function adminRoutes(app: FastifyInstance) {
       queueCounts: {
         review: books.REVIEW ?? 0,
         distribution: distributionQueueCount,
-        isbn: isbnCandidates.filter(isIsbnReady).length,
+        udk: isbnCandidates.filter(isIsbnReady).length,
         royalties: pendingRoyaltiesCount,
       },
     });

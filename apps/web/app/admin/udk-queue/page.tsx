@@ -115,10 +115,11 @@ export default function IsbnQueuePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Реєстрація ISBN</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Реєстрація УДК</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Книги, що пройшли модерацію, ще не подані до Книжкової палати і мають усі дані, потрібні для подання —
-          готові до відправки зовнішнім каналом.
+          ISBN — самообслуговування (видавець сам призначає номери зі свого блоку, зовнішнього подання не
+          потребує). Тут — книги, що пройшли модерацію й ще не подані на УДК + авторський знак («шифр
+          зберігання») до Книжкової палати, з усіма даними, потрібними для подання.
         </p>
       </div>
 
@@ -128,7 +129,7 @@ export default function IsbnQueuePage() {
         ) : books.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-4xl mb-3">✅</p>
-            <p className="text-gray-500">Черга порожня — немає книг, готових до подання на ISBN</p>
+            <p className="text-gray-500">Черга порожня — немає книг, готових до подання на УДК</p>
           </div>
         ) : (
           <ul className="divide-y">
@@ -168,8 +169,8 @@ export default function IsbnQueuePage() {
                           <p className="text-xs text-gray-500">
                             Автор: <span className="font-medium text-gray-700">{pkg.authorFullName || "—"}</span> ·
                             Мова: {pkg.language} · Жанр: {pkg.genre || "—"} · Сторінок: {pkg.printPageCount ?? "—"}.
-                            Пакет покриває і ISBN, і УДК + авторський знак («шифр зберігання») — та сама установа, ті
-                            самі дані.
+                            Пакет — для заявки на УДК + авторський знак («шифр зберігання»). ISBN сюди не входить —
+                            видавець призначає його сам, зі свого блоку номерів.
                           </p>
                           <div className="flex flex-wrap gap-2">
                             <button
@@ -227,7 +228,7 @@ export default function IsbnQueuePage() {
                             href={`/admin/books/${book.id}/distribute`}
                             className="inline-block text-xs text-blue-700 underline hover:no-underline"
                           >
-                            Перейти до розділу «Реєстрація ISBN» книги, щоб позначити подання →
+                            Перейти до розділу «Реєстрація УДК» книги, щоб позначити подання →
                           </Link>
                         </div>
                       )}

@@ -144,8 +144,10 @@ model Book {
   archivedAt           DateTime? // soft-delete timestamp ("Видалити книгу" — recoverable)
   isbn                 String?              @unique
   udcCode              String? // УДК — Universal Decimal Classification index, assigned by Книжкова палата
-  bbkCode              String? // ББК — bibliotechno-bibliographic classification index
-  authorSign           String? // авторський знак — shelving code, assigned alongside УДК/ББК
+  authorSign           String? // авторський знак — shelving code, assigned alongside УДК ("шифр зберігання")
+  // ББК (bibliotechno-bibliographic classification) intentionally has no
+  // field -- officially discontinued for Ukrainian publishers (Cabinet of
+  // Ministers resolution, March 2017, mandatory switch to УДК only).
   bookChamberSubmittedAt DateTime? // admin marked the book as submitted to Книжкова палата for cataloguing
   copyrightYear        String? // e.g. "2013" -- may predate this book's ULIT createdAt if it was published elsewhere first
   copyrightHolder      String? // © name shown on a prior edition, if different from the account's own display name

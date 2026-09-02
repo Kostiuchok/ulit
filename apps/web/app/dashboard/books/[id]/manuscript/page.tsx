@@ -20,7 +20,6 @@ interface ManuscriptBook {
   ageRating?: string | null;
   isbn?: string | null;
   udcCode?: string | null;
-  bbkCode?: string | null;
   authorSign?: string | null;
   pageCount?: number | null;
   createdAt?: string | null;

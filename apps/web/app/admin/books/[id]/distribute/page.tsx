@@ -14,7 +14,6 @@ interface Book {
   description?: string | null;
   isbn?: string | null;
   udcCode?: string | null;
-  bbkCode?: string | null;
   authorSign?: string | null;
   bookChamberSubmittedAt?: string | null;
   coverUrl?: string | null;
@@ -441,7 +440,6 @@ export default function DistributePage() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [bcIsbn, setBcIsbn] = useState("");
   const [bcUdc, setBcUdc] = useState("");
-  const [bcBbk, setBcBbk] = useState("");
   const [bcAuthorSign, setBcAuthorSign] = useState("");
   const [savingBookChamber, setSavingBookChamber] = useState(false);
   const [bookChamberError, setBookChamberError] = useState("");
@@ -461,7 +459,6 @@ export default function DistributePage() {
     printPageCount: number | null;
     isbn: string | null;
     udcCode: string | null;
-    bbkCode: string | null;
     authorSign: string | null;
   } | null>(null);
   const [isbnPkgError, setIsbnPkgError] = useState("");
@@ -512,7 +509,6 @@ export default function DistributePage() {
         setGoogle(b.googleStatus);
         setBcIsbn(b.isbn ?? "");
         setBcUdc(b.udcCode ?? "");
-        setBcBbk(b.bbkCode ?? "");
         setBcAuthorSign(b.authorSign ?? "");
       })
       .finally(() => setLoading(false));
@@ -850,7 +846,7 @@ export default function DistributePage() {
             <h2 className="text-sm font-semibold text-green-900">Модерація</h2>
             <p className="text-xs text-green-800">
               Схвалення публікує книгу на Ulit одразу (без ISBN — ISBN потрібен лише окремим зовнішнім магазинам,
-              не для продажу на самому Ulit). Наступний крок після цього — «Реєстрація ISBN» нижче.
+              не для продажу на самому Ulit). Наступний крок після цього — «Реєстрація УДК (+ ISBN)» нижче.
             </p>
             {approveError && <p className="text-sm text-red-600">{approveError}</p>}
             <Button
@@ -916,15 +912,15 @@ export default function DistributePage() {
         </div>
       )}
 
-      {/* ── Книжкова палата / Реєстрація ISBN ─────────────────────────────────── */}
+      {/* ── Книжкова палата / Реєстрація УДК ──────────────────────────────────── */}
       <div className="rounded-xl border bg-white p-5 shadow-sm space-y-5">
         <div>
-          <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація ISBN + УДК</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація УДК (+ ISBN)</h2>
           <p className="text-xs text-gray-400">
-            Наступний етап після модерації. У Книжкової палати немає публічного API — цей блок нічого нікуди не
-            відправляє автоматично. Подання відбувається поза системою (адмін сам надсилає дані книги в Книжкову
-            палату зовнішнім каналом). ISBN і УДК+авторський знак («шифр зберігання») подаються до тієї самої
-            установи на основі тих самих даних книги — тому зібрані нижче файли покривають обидва запити одразу.
+            ISBN — самообслуговування: видавець сам призначає номер зі свого блоку, ніякого подання до Книжкової
+            палати не потребує (крок 3 нижче). УДК + авторський знак («шифр зберігання») — навпаки, реальна заявка
+            по цій конкретній книзі, поза системою (адмін сам надсилає дані зовнішнім каналом, публічного API немає)
+            — файли для неї зібрані нижче.
           </p>
         </div>
 
@@ -1028,11 +1024,14 @@ export default function DistributePage() {
           </div>
         </div>
 
-        {/* Step 3 — record what the Книжкова палата sent back, assign the ISBN */}
+        {/* Step 3 — ISBN is self-service (впишіть номер зі свого блоку, не
+            з листа від Палати); УДК + авторський знак — це те, що прийде
+            від Книжкової палати у відповідь на заявку з кроку 1. */}
         <div className="space-y-3 border-t pt-4">
-          <p className="text-sm font-semibold text-gray-800">3. Присвоїти ISBN + УДК + авторський знак</p>
+          <p className="text-sm font-semibold text-gray-800">3. Присвоїти ISBN + УДК</p>
           <p className="text-xs text-gray-500">
-            Внести дані, отримані від Книжкової палати, і натиснути «Присвоїти ISBN».
+            ISBN — впишіть номер зі свого блоку (самообслуговування, не потребує відповіді Палати). УДК + авторський
+            знак — внесіть дані, отримані від Книжкової палати у відповідь на заявку.
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -1060,14 +1059,6 @@ export default function DistributePage() {
                 className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs text-gray-500">ББК</label>
-              <input
-                value={bcBbk}
-                onChange={(e) => setBcBbk(e.target.value)}
-                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
-              />
-            </div>
           </div>
 
           {bookChamberError && <p className="text-sm text-red-500">{bookChamberError}</p>}
@@ -1080,12 +1071,11 @@ export default function DistributePage() {
               saveBookChamber({
                 isbn: bcIsbn.trim() || null,
                 udcCode: bcUdc.trim() || null,
-                bbkCode: bcBbk.trim() || null,
                 authorSign: bcAuthorSign.trim() || null,
               })
             }
           >
-            Присвоїти ISBN
+            Присвоїти ISBN + УДК
           </Button>
         </div>
       </div>

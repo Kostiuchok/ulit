@@ -165,6 +165,7 @@ interface MetadataBook {
   pendingDescription?: string | null;
   pendingGenre?: string | null;
   isbn?: string | null;
+  udcCode?: string | null;
   copyrightYear?: string | null;
   copyrightHolder?: string | null;
   priorPublicationCertificate?: string | null;
@@ -192,18 +193,19 @@ function IsbnReadinessChecklist({
   bookAuthors: BookAuthor[];
   bookId: string;
 }) {
-  // A book that already has an ISBN (own admin-assigned one, or one claimed
-  // via "Авторське право / попередня публікація" below because it was
-  // already published elsewhere) will never go through Ulit's own
-  // Книжкова палата registration -- /api/admin/isbn-queue already skips it
-  // (where: { isbn: null }), so this checklist (which preps THAT submission)
-  // would be actively misleading here.
-  if (book?.isbn) {
+  // ISBN is self-service (видавець сам призначає з власного блоку номерів,
+  // жодного зовнішнього подання не потребує) -- this checklist is actually
+  // about readiness for УДК + авторський знак ("шифр зберігання"), the one
+  // that DOES need an external request to Книжкова палата. Gated on
+  // udcCode, not isbn -- a book can already have its ISBN self-assigned and
+  // still very much need УДК (/api/admin/isbn-queue's own where clause
+  // checks udcCode: null for exactly this reason).
+  if (book?.udcCode) {
     return (
       <div className="rounded-xl border bg-white p-5 text-sm">
         <p className="flex items-center gap-2 text-gray-700">
           <span className="text-green-600">✓</span>
-          ISBN вже присвоєно — реєстрація в Книжковій палаті не потрібна.
+          УДК вже присвоєно — реєстрація в Книжковій палаті не потрібна.
         </p>
       </div>
     );
@@ -215,12 +217,12 @@ function IsbnReadinessChecklist({
 
   const items: IsbnChecklistItem[] = [
     {
-      label: "Анотація (файл 1 для ISBN-служби) — не більше пів сторінки",
+      label: "Анотація (файл 1 для заявки на УДК) — не більше пів сторінки",
       done: annotationOk,
       hint: !annotationOk && descLength > 0 ? `${descLength} символів — орієнтовно більше пів сторінки` : undefined,
     },
     {
-      label: "Повне ПІБ автора (файл 1 для ISBN-служби)",
+      label: "Повне ПІБ автора (файл 1 для заявки на УДК)",
       done: hasAuthorName,
       hint: !hasAuthorName ? "Додайте прізвище та ім'я автора вище, у розділі «Автори книги»" : undefined,
     },
@@ -234,7 +236,7 @@ function IsbnReadinessChecklist({
     // so a book missing it silently never appears in /admin/isbn-queue no
     // matter how "ready" the rest of this checklist looks.
     {
-      label: "Друкований PDF рукопису (файл 2 для ISBN-служби)",
+      label: "Друкований PDF рукопису (файл 2 для заявки на УДК)",
       done: !!book?.printPdfUrl,
       hint: !book?.printPdfUrl ? "Ще не згенеровано — натисніть посилання нижче, щоб створити" : undefined,
       linkHref: !book?.printPdfUrl ? `/dashboard/books/${bookId}/manuscript/preview` : undefined,
@@ -245,10 +247,11 @@ function IsbnReadinessChecklist({
   return (
     <div className="rounded-xl border bg-white p-5 space-y-3 text-sm">
       <div>
-        <h2 className="text-base font-semibold">Готовність до оформлення ISBN</h2>
+        <h2 className="text-base font-semibold">Готовність до реєстрації УДК</h2>
         <p className="text-xs text-gray-500">
-          Перевірка інформації, яку потрібно надати службі присвоєння ISBN — детальніше в{" "}
-          <code className="text-xs">docs/isbn-udc-requirements.md</code>.
+          Перевірка інформації, яку потрібно надати Книжковій палаті для заявки на УДК + авторський знак —
+          детальніше в <code className="text-xs">docs/isbn-udc-requirements.md</code>. ISBN сюди не входить —
+          видавець призначає його сам, зі свого блоку номерів.
         </p>
       </div>
       <ul className="space-y-1.5">
@@ -270,7 +273,7 @@ function IsbnReadinessChecklist({
         ))}
       </ul>
       <p className="text-xs text-gray-400 border-t pt-2">
-        Структуру друкованого файлу (титул → порожня сторінка → текст, файл 2 для ISBN-служби) платформа формує
+        Структуру друкованого файлу (титул → порожня сторінка → текст, файл 2 для заявки на УДК) платформа формує
         автоматично в межах друкованого PDF вище — окремо готувати цю структуру не потрібно.
       </p>
     </div>

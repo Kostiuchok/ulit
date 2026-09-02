@@ -48,6 +48,7 @@ interface CreationInfo {
   pricePrintHardcover?: string | number | null;
   coverUrl?: string | null;
   printPdfUrl?: string | null;
+  udcCode?: string | null;
 }
 
 interface Props {
@@ -206,11 +207,14 @@ export function PublicationTimeline({
   // printPdfUrl is only generated when the author opens the manuscript's
   // "Передперегляд" (print-preview.ts) -- nothing else in the publish flow
   // creates it (T-2057). Admin's own isIsbnReady() requires it too, so a
-  // book missing it will never appear in the admin's ISBN queue no matter
+  // book missing it will never appear in the admin's УДК queue no matter
   // how "ready" everything else looks -- the author needs a visible reason
-  // to know THEY are the blocker, not silently waiting on the admin.
+  // to know THEY are the blocker, not silently waiting on the admin. Note:
+  // ISBN itself is self-service (видавець сам призначає з власного блоку) --
+  // it's УДК + авторський знак that actually needs this whole queue/e-mail
+  // process, hence "udkBlockedOnAuthor" below, not an ISBN one.
   const hasPrintPdf = !!creation.printPdfUrl;
-  const isbnBlockedOnAuthor = hasPrintPrice && !hasPrintPdf;
+  const udkBlockedOnAuthor = hasPrintPrice && !hasPrintPdf;
   const hasDistribution = distributionChannels.length > 0;
   const outputDataFilled = hasBasicInfo && hasPrice;
   const isSubmitted = bookStatus !== "DRAFT" && bookStatus !== "PROCESSING";
@@ -278,14 +282,18 @@ export function PublicationTimeline({
               href={`/dashboard/books/${bookId}/output-data`}
             />
             <CreationSubItem done={isSubmitted} label="Огляд та публікація" />
+            {/* ISBN itself needs none of this -- self-service, видавець сам
+                призначає з власного блоку номерів. This step tracks УДК +
+                авторський знак ("шифр зберігання"), the credential that
+                actually requires an external request/wait. */}
             <CreationSubItem
-              done={!!isbn}
-              label="Отримати ISBN"
-              href={isbnBlockedOnAuthor ? `/dashboard/books/${bookId}/manuscript/preview` : undefined}
+              done={!!creation.udcCode}
+              label="Отримати УДК"
+              href={udkBlockedOnAuthor ? `/dashboard/books/${bookId}/manuscript/preview` : undefined}
               tooltip={
-                isbnBlockedOnAuthor
-                  ? "⚠ Очікування ISBN ще не почалось: не згенеровано друкований PDF рукопису. Натисніть, щоб відкрити передперегляд рукопису — це й запустить генерацію."
-                  : "Адмін отримав всю необхідну інформацію про книгу, і протягом 3 днів ви отримаєте унікальний код ISBN для розповсюдження книги."
+                udkBlockedOnAuthor
+                  ? "⚠ Очікування УДК ще не почалось: не згенеровано друкований PDF рукопису. Натисніть, щоб відкрити передперегляд рукопису — це й запустить генерацію."
+                  : "Адмін надіслав заявку до Книжкової палати — термін відповіді залежить від обраної терміновості послуги."
               }
             />
           </div>
@@ -312,8 +320,8 @@ export function PublicationTimeline({
               tooltip={
                 isSubmittedStep ? (
                   <>
-                    Ми надамо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і відправимо до
-                    книжкової палати України
+                    Ми присвоїмо книзі <span style={{ color: ACCENT }}>безкоштовний ISBN</span> і подамо заявку на
+                    УДК до Книжкової палати України
                     {hasPrintPrice && (
                       <>
                         {" "}
