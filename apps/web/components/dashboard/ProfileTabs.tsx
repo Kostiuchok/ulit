@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "../../lib/utils";
 
 const TABS = [
+  { href: "/dashboard", label: "Кабінет автора" },
   { href: "/dashboard/settings", label: "Профіль" },
   { href: "/dashboard/settings/royalties", label: "Авторські відрахування" },
   { href: "/dashboard/settings/stats", label: "Загальна статистика" },
@@ -23,9 +24,14 @@ export function ProfileTabs() {
     <nav className="border-b bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 sm:px-6 py-3">
         {TABS.map((tab) => {
+          // "/dashboard" and "/dashboard/settings" both need an exact match
+          // -- every other tab (incl. every settings sub-page) lives under
+          // "/dashboard/settings/...", which is also a prefix match for
+          // plain "/dashboard", so a naive startsWith() would highlight
+          // "Кабінет автора" as active on every settings page too.
           const active =
-            tab.href === "/dashboard/settings"
-              ? pathname === "/dashboard/settings"
+            tab.href === "/dashboard" || tab.href === "/dashboard/settings"
+              ? pathname === tab.href
               : pathname === tab.href || pathname?.startsWith(`${tab.href}/`);
           return (
             <Link
