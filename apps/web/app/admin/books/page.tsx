@@ -600,10 +600,12 @@ export default function AdminBooksPage() {
                       <span className="block truncate">{label}</span>
                       {/* Drag handle -- widens/narrows this column only, persisted to
                           localStorage on mouseup so an admin's preferred layout survives
-                          a reload instead of resetting to the defaults every visit. */}
+                          a reload instead of resetting to the defaults every visit. A
+                          visible resting-state bar (not just a hover reveal) signals
+                          upfront that the column is resizable, not just on discovery. */}
                       <span
                         onMouseDown={(e) => handleResizeStart(i, e)}
-                        className="absolute right-0 top-0 h-full w-2 cursor-col-resize hover:bg-gray-300 active:bg-gray-400"
+                        className="absolute right-0 top-2 bottom-2 w-1.5 cursor-col-resize rounded-full bg-gray-300 transition-colors hover:bg-gray-400 active:bg-gray-500"
                       />
                     </th>
                   ))}
