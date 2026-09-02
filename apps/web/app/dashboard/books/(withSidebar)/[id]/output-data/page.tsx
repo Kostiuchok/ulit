@@ -669,83 +669,81 @@ function OutputDataContent() {
           <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.info}</h2>
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
-              {/* Назва і підзаголовок поруч — обидва короткі однорядкові поля,
-                  окремий рядок кожному тільки збільшував висоту форми даремно. */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="title">Назва *</Label>
-                    <span className={cn("text-xs", titleInvalid ? "text-red-500 font-medium" : "text-gray-400")}>
-                      {titleValue.length}/255 {titleInvalid && "(мін. 3)"}
-                    </span>
-                  </div>
-                  <Input
-                    id="title"
-                    {...infoForm.register("title")}
-                    className={cn(titleInvalid ? "border-red-400 focus-visible:ring-red-300" : "")}
-                  />
-                  {infoForm.formState.errors.title && (
-                    <p className="text-sm text-red-500">{infoForm.formState.errors.title.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="subtitle">Підзаголовок</Label>
-                  <Input id="subtitle" {...infoForm.register("subtitle")} placeholder="Наприклад: збірка оповідань" />
-                </div>
-              </div>
-
-              {/* Анотація зліва (найбільше тексту, потребує ширини) — жанр/
-                  розмір/мова/вік справа, стовпчиком: коротші поля, які не
-                  виграють від повної ширини форми. */}
+              {/* Назва/Підзаголовок/Анотація зліва (усі поля самого тексту
+                  книги, стовпчиком) — жанр/розмір/мова/вік справа: коротші
+                  вибіркові поля в одному стовпчику. */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-end gap-1.5">
-                    {DESCRIPTION_PLATFORM_TARGETS.map((p) => {
-                      const reached = descValue.length >= p.minChars;
-                      return (
-                        <span
-                          key={p.key}
-                          title={`${p.label}: рекомендовано від ${p.minChars} символів`}
-                          className={cn(
-                            "rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium transition-colors",
-                            reached ? "border-green-300 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"
-                          )}
-                        >
-                          {reached ? "✓ " : ""}
-                          {p.label} {p.minChars}+
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="description">Анотація *</Label>
-                    <span
-                      className={cn(
-                        "text-xs font-medium",
-                        descValue.length > 0 && (descValue.length < DESCRIPTION_MIN_LENGTH || descValue.length > DESCRIPTION_MAX_LENGTH)
-                          ? "text-red-500"
-                          : "text-gray-400"
-                      )}
-                    >
-                      {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
-                    </span>
-                  </div>
-                  <textarea
-                    id="description"
-                    {...infoForm.register("description")}
-                    rows={9}
-                    className={cn(
-                      "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
-                      infoForm.formState.errors.description
-                        ? "border-red-400 focus-visible:ring-red-300"
-                        : "border-input focus-visible:ring-ring"
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="title">Назва <span className="text-red-500">*</span></Label>
+                      <span className={cn("text-xs", titleInvalid ? "text-red-500 font-medium" : "text-gray-400")}>
+                        {titleValue.length}/255 {titleInvalid && "(мін. 3)"}
+                      </span>
+                    </div>
+                    <Input
+                      id="title"
+                      {...infoForm.register("title")}
+                      className={cn(titleInvalid ? "border-red-400 focus-visible:ring-red-300" : "")}
+                    />
+                    {infoForm.formState.errors.title && (
+                      <p className="text-sm text-red-500">{infoForm.formState.errors.title.message}</p>
                     )}
-                    placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
-                  />
-                  {infoForm.formState.errors.description && (
-                    <p className="text-sm text-red-500">{infoForm.formState.errors.description.message}</p>
-                  )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="subtitle">Підзаголовок</Label>
+                    <Input id="subtitle" {...infoForm.register("subtitle")} placeholder="Наприклад: збірка оповідань" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="description">Анотація <span className="text-red-500">*</span></Label>
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          descValue.length > 0 && (descValue.length < DESCRIPTION_MIN_LENGTH || descValue.length > DESCRIPTION_MAX_LENGTH)
+                            ? "text-red-500"
+                            : "text-gray-400"
+                        )}
+                      >
+                        {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
+                      </span>
+                    </div>
+                    <textarea
+                      id="description"
+                      {...infoForm.register("description")}
+                      rows={9}
+                      className={cn(
+                        "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
+                        infoForm.formState.errors.description
+                          ? "border-red-400 focus-visible:ring-red-300"
+                          : "border-input focus-visible:ring-ring"
+                      )}
+                      placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
+                    />
+                    {infoForm.formState.errors.description && (
+                      <p className="text-sm text-red-500">{infoForm.formState.errors.description.message}</p>
+                    )}
+                    <div className="flex items-center justify-end gap-1.5">
+                      {DESCRIPTION_PLATFORM_TARGETS.map((p) => {
+                        const reached = descValue.length >= p.minChars;
+                        return (
+                          <span
+                            key={p.key}
+                            title={`${p.label}: рекомендовано від ${p.minChars} символів`}
+                            className={cn(
+                              "rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium transition-colors",
+                              reached ? "border-green-300 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"
+                            )}
+                          >
+                            {reached ? "✓ " : ""}
+                            {p.label} {p.minChars}+
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -762,7 +760,7 @@ function OutputDataContent() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="printFormatKey">Розмір книги *</Label>
+                    <Label htmlFor="printFormatKey">Розмір книги <span className="text-red-500">*</span></Label>
                     <select
                       id="printFormatKey"
                       {...infoForm.register("printFormatKey")}
@@ -777,11 +775,16 @@ function OutputDataContent() {
                         );
                       })}
                     </select>
+                    <p className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
+                      📐 Друкована версія книги матиме розмір{" "}
+                      <span className="font-semibold text-gray-900">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
+                      {" "}({displayFormat.label.toLowerCase()})
+                    </p>
                   </div>
 
                   <div className="space-y-1.5">
                     <Label htmlFor="language">
-                      Мова книги *
+                      Мова книги <span className="text-red-500">*</span>
                       <span className="ml-1.5 text-xs font-normal text-gray-400">(потрібна для Amazon, Google Play)</span>
                     </Label>
                     <select
@@ -805,7 +808,7 @@ function OutputDataContent() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="ageRating">Вікові обмеження *</Label>
+                    <Label htmlFor="ageRating">Вікові обмеження <span className="text-red-500">*</span></Label>
                     <select
                       id="ageRating"
                       {...infoForm.register("ageRating")}
@@ -823,23 +826,13 @@ function OutputDataContent() {
                       <p className="text-sm text-red-500">{infoForm.formState.errors.ageRating.message}</p>
                     )}
                   </div>
-
-                  <p className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
-                    📐 Друкована версія книги матиме розмір{" "}
-                    <span className="font-semibold text-gray-900">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
-                    {" "}({displayFormat.label.toLowerCase()})
-                  </p>
                 </div>
               </div>
 
-              {/* Автори книги (зліва) + Над книгою працювали (справа) — раніше
-                  два окремі повношириннi блоки один під одним; обидва короткі
-                  за висотою і не потребують повної ширини кожен. Біографія
-                  автора переїхала в лівий стовпчик, поруч з рештою полів
-                  самого автора, а не окремим блоком нижче. */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача */}
-                <div className="space-y-2 rounded-lg border p-3">
+              {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача.
+                  Знову повношириннi блоки один під одним (не 2 колонки) — так було
+                  до попереднього редизайну. */}
+              <div className="space-y-2 rounded-lg border p-3">
                   <Label>Автори книги</Label>
                   <p className="text-xs text-gray-400">
                     Якщо авторів декілька — кожен додає власне прізвище/ім&apos;я і, за бажанням, своє фото.
@@ -955,7 +948,6 @@ function OutputDataContent() {
                     <Button type="button" variant="outline" size="sm" onClick={addContributor} className="shrink-0">+ Додати</Button>
                   </div>
                 </div>
-              </div>
 
               <div className="space-y-2 rounded-lg border p-3">
                 <label className="flex items-center gap-2 text-sm text-gray-700">
