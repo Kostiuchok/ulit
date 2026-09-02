@@ -523,7 +523,6 @@ function OutputDataContent() {
       );
       setInfoSaved(true);
       setLocallyFixed(true);
-      setTimeout(() => setInfoSaved(false), 3000);
     } catch (e: any) {
       setInfoError(e.message || "Помилка збереження");
     }
@@ -1041,7 +1040,7 @@ function OutputDataContent() {
                   <Input
                     id="priorPublicationCertificate"
                     {...infoForm.register("priorPublicationCertificate")}
-                    placeholder="Наприклад: №113122609908 (proza.ru, stihi.ru тощо)"
+                    placeholder="Наприклад: №113122609908"
                     className="h-9 text-sm"
                   />
                 </div>
@@ -1105,7 +1104,23 @@ function OutputDataContent() {
                 <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{infoError}</div>
               )}
               {infoSaved && (
-                <div className={cn("rounded-md p-3 text-sm", justStagedFields.length > 0 ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700")}>
+                <div
+                  className={cn(
+                    "relative rounded-md p-3 pr-8 text-sm",
+                    justStagedFields.length > 0 ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700"
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setInfoSaved(false)}
+                    aria-label="Закрити"
+                    className={cn(
+                      "absolute right-2 top-2 leading-none hover:opacity-70",
+                      justStagedFields.length > 0 ? "text-amber-500" : "text-green-500"
+                    )}
+                  >
+                    ×
+                  </button>
                   {justStagedFields.length > 0 ? (
                     <>
                       ✓ Збережено як чернетку
