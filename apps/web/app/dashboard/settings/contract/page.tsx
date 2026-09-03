@@ -19,6 +19,10 @@ interface UserContract {
   firstName: string | null;
   lastName: string | null;
   patronymic: string | null;
+  birthDate: string | null;
+  citizenship: string | null;
+  passportSeries: string | null;
+  registrationAddress: string | null;
 }
 
 // Same structured ПІБ Налаштування профілю collects (and this page's own
@@ -50,6 +54,7 @@ export default function ContractPage() {
   const [signing, setSigning] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [payoutSaved, setPayoutSaved] = useState(false);
 
   // "Змінити договір" form (already signed)
   const [showChangeForm, setShowChangeForm] = useState(false);
@@ -91,6 +96,10 @@ export default function ContractPage() {
           taxId: user?.taxId ?? undefined,
           payoutDocument: user?.payoutDocument ?? undefined,
           bankIban: user?.bankIban ?? undefined,
+          birthDate: user?.birthDate ?? undefined,
+          citizenship: user?.citizenship ?? undefined,
+          passportSeries: user?.passportSeries ?? undefined,
+          registrationAddress: user?.registrationAddress ?? undefined,
         });
       const blob = await buildContractDocxBlob(text);
       const url = URL.createObjectURL(blob);
@@ -107,12 +116,14 @@ export default function ContractPage() {
   async function handleSign() {
     setSigning(true);
     setSignError(null);
+    setPayoutSaved(false);
     try {
       const { user: updated } = await apiFetch<{ user: UserContract }>("/api/users/me/contract/sign", {
         method: "POST",
         body: JSON.stringify({ taxId, payoutDocument, bankIban }),
       });
       setUser((u) => (u ? { ...u, ...updated } : updated));
+      setPayoutSaved(true);
     } catch (e: any) {
       setSignError(e.message || "Помилка підписання");
     } finally {
@@ -195,6 +206,60 @@ export default function ContractPage() {
                   Завантажити договір
                 </Button>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Платіжні реквізити</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Використовуються для виплати роялті та потрапляють у текст договору (п. 4.4). Можна оновити
+                  в будь-який час.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-sm text-gray-700">
+                  ІПН / РНОКПП <span className="text-red-500">*</span>
+                  <input
+                    value={taxId}
+                    onChange={(e) => { setTaxId(e.target.value); setPayoutSaved(false); }}
+                    placeholder="1234567890"
+                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  />
+                </label>
+                <label className="text-sm text-gray-700">
+                  IBAN для виплат <span className="text-red-500">*</span>
+                  <input
+                    value={bankIban}
+                    onChange={(e) => { setBankIban(e.target.value); setPayoutSaved(false); }}
+                    placeholder="UA00 0000 0000 0000 0000 0000 0"
+                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  />
+                </label>
+                <label className="text-sm text-gray-700 sm:col-span-2">
+                  Паспортні дані або дані ФОП <span className="text-red-500">*</span>
+                  <input
+                    value={payoutDocument}
+                    onChange={(e) => { setPayoutDocument(e.target.value); setPayoutSaved(false); }}
+                    placeholder="Серія, номер, ким виданий — або реквізити ФОП"
+                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  />
+                </label>
+              </div>
+
+              {signError && <p className="text-sm text-red-600">{signError}</p>}
+              {payoutSaved && !signError && (
+                <p className="text-sm text-green-700">✓ Реквізити збережено</p>
+              )}
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSign}
+                loading={signing}
+                disabled={!payoutFilled}
+              >
+                Зберегти реквізити
+              </Button>
             </div>
 
             {changeSaved && (

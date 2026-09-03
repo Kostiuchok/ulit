@@ -244,14 +244,23 @@ export function signatureBlockPlain(params: {
   taxId?: string;
   payoutDocument?: string;
   bankIban?: string;
+  birthDate?: string | null;
+  citizenship?: string;
+  passportSeries?: string;
+  registrationAddress?: string;
 }): string {
-  const { authorName, taxId, payoutDocument, bankIban } = params;
+  const { authorName, taxId, payoutDocument, bankIban, birthDate, citizenship, passportSeries, registrationAddress } =
+    params;
   return `
 ПІДПИСИ СТОРІН
 
 Правообладатель (Автор):
 ПІБ: ${authorName || "—"}
+Дата народження: ${birthDate ? new Date(birthDate).toLocaleDateString("uk-UA") : "—"}
+Громадянство: ${citizenship || "—"}
 ІПН/РНОКПП: ${taxId || "—"}
+Серія та номер паспорта: ${passportSeries || "—"}
+Адреса реєстрації: ${registrationAddress || "—"}
 Паспортні дані / ФОП: ${payoutDocument || "—"}
 IBAN для виплат: ${bankIban || "—"}
 
