@@ -17,6 +17,7 @@ import {
   PRINT_FORMAT_KEYS,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
+  AGE_RATINGS,
   type PrintFormatKey,
 } from "shared-types";
 import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../books/FormatsAndDistribution";
@@ -43,9 +44,18 @@ const step1Schema = z.object({
   // Independent from genre -- the author picks this directly from
   // PRINT_FORMAT_KEYS (shared-types), which is also PRINT_FORMATS' source
   // of truth for the actual mm values.
-  printFormatKey: z.string().min(1, "Оберіть розмір книги"),
+  printFormatKey: z.enum(PRINT_FORMAT_KEYS as [PrintFormatKey, ...PrintFormatKey[]], {
+    errorMap: () => ({ message: "Оберіть розмір книги" }),
+  }),
   language: z.string().length(2).default("uk"),
-  ageRating: z.string().min(1, "Вкажіть вікові обмеження"),
+  // z.string().refine(...) rather than z.enum(AGE_RATINGS) on purpose --
+  // same reasoning as output-data/page.tsx's identical field: the <select>
+  // below has its own "" placeholder option, which a real enum's literal-
+  // union output type would reject at the TypeScript level even though both
+  // reject "" identically at runtime.
+  ageRating: z.string().refine((v) => (AGE_RATINGS as readonly string[]).includes(v), {
+    message: "Вкажіть вікові обмеження",
+  }),
 });
 
 type Step1Form = z.infer<typeof step1Schema>;
@@ -77,10 +87,6 @@ const GENRES = [
 // the author picks any genre and any size, freely combined. Same ordered
 // list (PRINT_FORMAT_KEYS, shared-types) the output-data page's own size
 // selector uses, so creation-time and post-creation editing never drift.
-
-// Same list as output-data/page.tsx's AGE_RATINGS — both write the same
-// Book.ageRating column, required by publish.ts's pre-publish validation.
-const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"];
 
 const LANGUAGES = [
   { code: "uk", label: "Українська" },

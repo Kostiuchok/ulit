@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { distributionChannelsSchema, getRequiredDescriptionMinLength } from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
@@ -7,13 +8,8 @@ import { scheduleKdpExpiryWarning } from "../../lib/email-queue";
 
 const KDP_SELECT_DAYS = 90;
 
-const VALID_CHANNELS = ["ULIT", "D2D", "KDP", "GOOGLE"] as const;
-
 const switchSchema = z.object({
-  distributionChannels: z
-    .array(z.enum(VALID_CHANNELS))
-    .min(1, "Оберіть хоча б одну платформу")
-    .refine((ch) => ch.includes("ULIT"), "Магазин Ulit завжди обов'язковий"),
+  distributionChannels: distributionChannelsSchema,
 });
 
 function deriveStrategy(channels: string[]): "WIDE" | "KDP_SELECT" {
@@ -95,6 +91,7 @@ export async function distributionRoutes(app: FastifyInstance) {
           kdpSelectExpiry: true,
           author: { select: { email: true, name: true } },
           title: true,
+          description: true,
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -105,6 +102,23 @@ export async function distributionRoutes(app: FastifyInstance) {
 
       const { distributionChannels } = result.data;
       const distributionStrategy = deriveStrategy(distributionChannels);
+
+      // This is the endpoint output-data's "Ціна та розповсюдження" section
+      // actually calls to change channels (book.ts's own patchSchema also
+      // accepts distributionChannels for defense-in-depth, but nothing sends
+      // it there in practice) -- so THIS is where enabling a channel with its
+      // own stricter annotation-length preference (KDP 250+, Google 150+)
+      // needs to be checked against the book's current description, not just
+      // book.ts's PATCH.
+      const descriptionLength = (book.description ?? "").trim().length;
+      const requiredMin = getRequiredDescriptionMinLength(distributionChannels);
+      if (descriptionLength > 0 && descriptionLength < requiredMin) {
+        throw new AppError(
+          `Анотація має містити щонайменше ${requiredMin} символів для обраних платформ розповсюдження (зараз ${descriptionLength})`,
+          400,
+          "VALIDATION_ERROR"
+        );
+      }
 
       if (kdpActive && distributionStrategy === "WIDE") {
         throw new AppError(

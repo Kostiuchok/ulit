@@ -1,6 +1,14 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { PRINT_FORMATS, PrintFormatKey } from "shared-types";
+import {
+  PRINT_FORMATS,
+  PRINT_FORMAT_KEYS,
+  ageRatingSchema,
+  distributionChannelsSchema,
+  DESCRIPTION_MIN_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+  type PrintFormatKey,
+} from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
@@ -8,21 +16,25 @@ import { withCoverVersion } from "../../lib/coverVersion";
 
 const createSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
-  description: z.string().max(5000).optional(),
+  // 120-500 (BookWizard step 1 already enforces this client-side, matching
+  // the same shared-types constants) -- required now, not just capped at
+  // 5000, so this endpoint can't itself be a way around the requirement
+  // every real caller (BookWizard) already applies before ever getting here.
+  description: z.string().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH),
   genre: z.string().max(100).optional(),
   // Book size is its own independent choice in BookWizard, not derived from
   // genre -- see packages/shared-types PRINT_FORMATS for the allowed keys.
-  printFormatKey: z.string().max(30).optional(),
+  printFormatKey: z.enum(PRINT_FORMAT_KEYS as [string, ...string[]]).optional(),
   language: z.string().length(2).default("uk"),
   // Same enum as book.ts's patchSchema -- BookWizard step 1 already collects
   // this (required there) but it was silently dropped on create since this
   // schema didn't declare it, forcing authors to re-enter it on output-data.
-  ageRating: z.enum(["0+", "0-6", "6-10", "11-14", "15-17", "18+"]).optional(),
+  ageRating: ageRatingSchema.optional(),
   priceEbook: z.number().positive().optional(),
   pricePrint: z.number().positive().optional(),
   pricePrintHardcover: z.number().positive().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).default("WIDE"),
-  distributionChannels: z.array(z.enum(["ULIT", "D2D", "KDP", "GOOGLE"])).default(["ULIT", "D2D", "KDP", "GOOGLE"]),
+  distributionChannels: distributionChannelsSchema.default(["ULIT", "D2D", "KDP", "GOOGLE"]),
 });
 
 function slugifyTitle(title: string): string {

@@ -1,7 +1,17 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { GENRE_TO_PRINT_FORMAT, PRINT_FORMATS } from "shared-types";
+import {
+  GENRE_TO_PRINT_FORMAT,
+  PRINT_FORMATS,
+  PRINT_FORMAT_KEYS,
+  ageRatingSchema,
+  distributionChannelsSchema,
+  bookAuthorSchema,
+  getRequiredDescriptionMinLength,
+  DESCRIPTION_MIN_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+} from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
@@ -94,13 +104,9 @@ const coAuthorSchema = z.object({
   photoUrl: z.string().url().optional(),
 });
 
-// T-2060 п.4 -- structured per-book authors, independent of the account profile.
-const bookAuthorSchema = z.object({
-  lastName: z.string().min(1).max(100),
-  firstName: z.string().min(1).max(100),
-  middleName: z.string().max(100).optional(),
-  photoUrl: z.string().url().optional(),
-});
+// bookAuthorSchema now lives in shared-types -- apps/web's output-data page
+// (the "Автори книги" add-author form) validates against the exact same
+// rules, instead of its own looser ad hoc `.trim()` checks.
 
 // T-2060 п.5 -- "Над книгою працювали", separate from bookAuthors/coAuthors.
 const contributorSchema = z.object({
@@ -110,13 +116,17 @@ const contributorSchema = z.object({
 
 const patchSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  description: z.string().max(5000).nullable().optional(),
+  // 120-500 enforced on save now, not just at publish time (PUBLISH_FIELD_CHECKS)
+  // -- see the description cross-check below the zod parse, which additionally
+  // raises the minimum when a distribution channel with its own stricter
+  // preference (KDP/Google) is enabled.
+  description: z.string().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH).nullable().optional(),
   genre: z.string().max(100).nullable().optional(),
-  printFormatKey: z.string().max(30).nullable().optional(),
+  printFormatKey: z.enum(PRINT_FORMAT_KEYS as [string, ...string[]]).nullable().optional(),
   printWidthMm: z.number().int().positive().nullable().optional(),
   printHeightMm: z.number().int().positive().nullable().optional(),
   subtitle: z.string().max(255).nullable().optional(),
-  ageRating: z.enum(["0+", "0-6", "6-10", "11-14", "15-17", "18+"]).nullable().optional(),
+  ageRating: ageRatingSchema.nullable().optional(),
   aiGenerated: z.boolean().optional(),
   aiGeneratedNote: z.string().max(1000).nullable().optional(),
   coAuthors: z.array(coAuthorSchema).max(10).nullable().optional(),
@@ -140,7 +150,7 @@ const patchSchema = z.object({
   pricePrintHardcoverBw: z.number().positive().nullable().optional(),
   pageCount: z.number().int().positive().nullable().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
-  distributionChannels: z.array(z.enum(["ULIT", "D2D", "KDP", "GOOGLE"])).optional(),
+  distributionChannels: distributionChannelsSchema.optional(),
   kdpSelectExpiry: z.string().datetime().nullable().optional(),
   coverDesign: z
     .object({
@@ -173,7 +183,16 @@ const previewSchema = z.object({
 async function assertOwnership(bookId: string, userId: string) {
   const book = await prisma.book.findUnique({
     where: { id: bookId },
-    select: { authorId: true, status: true, printWidthMm: true, printHeightMm: true, title: true, description: true, genre: true },
+    select: {
+      authorId: true,
+      status: true,
+      printWidthMm: true,
+      printHeightMm: true,
+      title: true,
+      description: true,
+      genre: true,
+      distributionChannels: true,
+    },
   });
   if (!book) throw AppError.notFound("Book");
   if (book.authorId !== userId) throw AppError.forbidden("Not your book");
@@ -201,6 +220,29 @@ export async function bookRoutes(app: FastifyInstance) {
     }
 
     const data = result.data;
+
+    // The zod schema above already enforces Ulit's own flat 120-500 window
+    // on `description` in isolation, but a channel like Amazon KDP prefers a
+    // longer annotation (250+) than Ulit's own floor -- once KDP is one of
+    // the book's enabled channels, that becomes a real save-time
+    // requirement, not just the informational badge output-data already
+    // showed. Checked against the EFFECTIVE post-patch state (whichever of
+    // description/distributionChannels this request actually changes,
+    // falling back to what's already on the book) since either one changing
+    // can newly violate the other -- enabling KDP without a long-enough
+    // annotation, or shortening the annotation while KDP is already enabled.
+    if (data.description !== undefined || data.distributionChannels !== undefined) {
+      const effectiveDescription = data.description !== undefined ? data.description : existing.description;
+      const effectiveChannels = data.distributionChannels !== undefined ? data.distributionChannels : existing.distributionChannels;
+      const requiredMin = getRequiredDescriptionMinLength(effectiveChannels);
+      const effectiveLength = (effectiveDescription ?? "").trim().length;
+      if (effectiveLength > 0 && effectiveLength < requiredMin) {
+        return reply.status(400).send({
+          error: `Анотація має містити щонайменше ${requiredMin} символів для обраних платформ розповсюдження (зараз ${effectiveLength})`,
+          code: "VALIDATION_ERROR",
+        });
+      }
+    }
 
     // Book size is now its own independent choice (BookWizard's "Розмір
     // книги" selector, not derived from genre) -- genre only still supplies a

@@ -27,6 +27,8 @@ import {
   isPublishStepComplete,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
+  AGE_RATINGS,
+  bookAuthorSchema,
   type PrintFormatKey,
 } from "shared-types";
 
@@ -51,7 +53,11 @@ const DESCRIPTION_PLATFORM_TARGETS = [
 ] as const;
 
 const infoSchema = z.object({
-  title: z.string().min(3, "Назва має містити щонайменше 3 символи").max(255),
+  // min(1), not min(3) -- matches every OTHER place a title gets validated
+  // (apps/api's POST/PATCH, BookWizard step 1); this field alone used to
+  // require 3+ chars, so a 2-char title BookWizard/the API both accepted
+  // could fail re-saving here for no documented reason.
+  title: z.string().min(1, "Назва обов'язкова").max(255),
   subtitle: z.string().max(255).optional(),
   description: z
     .string()
@@ -61,8 +67,21 @@ const infoSchema = z.object({
   // Independent from genre -- the author picks this directly, from
   // PRINT_FORMAT_KEYS (shared-types), same list BookWizard's creation-time
   // selector uses.
-  printFormatKey: z.string().min(1, "Оберіть розмір книги"),
-  ageRating: z.string().min(1, "Вкажіть вікові обмеження"),
+  printFormatKey: z.enum(PRINT_FORMAT_KEYS as [PrintFormatKey, ...PrintFormatKey[]], {
+    errorMap: () => ({ message: "Оберіть розмір книги" }),
+  }),
+  // Validated against the real enum (shared-types AGE_RATINGS) instead of a
+  // bare non-empty string -- the <select> below already only offers these 6
+  // values, but the schema itself used to accept any string, silently
+  // relying on the UI never sending anything else. z.string().refine(...)
+  // rather than z.enum(...) on purpose -- the <select>'s own placeholder
+  // option ("") needs to stay assignable as an initial/reset value (before
+  // the author picks anything), which a real z.enum's literal-union output
+  // type would reject at the TypeScript level even though both reject ""
+  // identically at runtime.
+  ageRating: z.string().refine((v) => (AGE_RATINGS as readonly string[]).includes(v), {
+    message: "Вкажіть вікові обмеження",
+  }),
   language: z.string().length(2),
   aiGenerated: z.boolean().optional(),
   aiGeneratedNote: z.string().max(1000).optional(),
@@ -108,8 +127,6 @@ const GENRES = [
   "Детектив", "Роман", "Повість", "Оповідання", "Нон-фікшн",
   "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
 ];
-
-const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"];
 
 // T-2060 п.7 -- section labels for the single-scroll layout (used as plain
 // headings now, not a StepIndicator/paginated wizard). T-2073 reuses these
@@ -359,6 +376,7 @@ function OutputDataContent() {
   const [newCoAuthorName, setNewCoAuthorName] = useState("");
   const [authorPhotoUploading, setAuthorPhotoUploading] = useState(false);
   const [authorPhotoError, setAuthorPhotoError] = useState("");
+  const [newAuthorError, setNewAuthorError] = useState("");
   const authorPhotoInputRef = useRef<HTMLInputElement>(null);
   const [bookAuthors, setBookAuthors] = useState<BookAuthor[]>([]);
   const [newAuthor, setNewAuthor] = useState<BookAuthor>({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
@@ -580,13 +598,26 @@ function OutputDataContent() {
   }
 
   function addBookAuthor() {
-    if (!newAuthor.lastName.trim() || !newAuthor.firstName.trim()) return;
-    setBookAuthors((prev) => [...prev, {
+    setNewAuthorError("");
+    // Nothing typed at all -- treat as a no-op click, not a validation
+    // error (matches the old behavior for an accidental/empty click).
+    if (!newAuthor.lastName.trim() && !newAuthor.firstName.trim()) return;
+    // Same bookAuthorSchema (shared-types) apps/api's book.ts PATCH already
+    // enforces -- this form used to only check "did the author type
+    // something" (.trim() truthiness), with no length caps and no photoUrl
+    // format check at all, silently relying on the backend to catch what
+    // this UI let through.
+    const result = bookAuthorSchema.safeParse({
       lastName: newAuthor.lastName.trim(),
       firstName: newAuthor.firstName.trim(),
       middleName: newAuthor.middleName?.trim() || undefined,
       photoUrl: newAuthor.photoUrl?.trim() || undefined,
-    }]);
+    });
+    if (!result.success) {
+      setNewAuthorError(result.error.errors[0].message);
+      return;
+    }
+    setBookAuthors((prev) => [...prev, result.data]);
     setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
   }
 
@@ -1224,6 +1255,7 @@ function OutputDataContent() {
                     />
                   </div>
 
+                  {newAuthorError && <p className="text-xs text-red-500">{newAuthorError}</p>}
                   <Button type="button" variant="outline" size="sm" onClick={addBookAuthor}>+ Додати автора</Button>
                 </div>
 

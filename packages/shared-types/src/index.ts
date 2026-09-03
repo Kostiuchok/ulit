@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export * from "./manuscript";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
@@ -11,6 +13,22 @@ export type ModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type DistributionStrategy = "WIDE" | "KDP_SELECT";
 
 export type DistributionChannel = "ULIT" | "D2D" | "KDP" | "GOOGLE";
+
+// Runtime companion to the DistributionChannel type above -- z.enum (and any
+// `<select>`/checkbox list rendering the same options) needs an actual
+// array, not just a type. Single source for apps/api's distribution.ts
+// (switchSchema), book.ts (patchSchema), and books.ts (createSchema), which
+// each previously declared this exact 4-value tuple independently.
+export const DISTRIBUTION_CHANNELS = ["ULIT", "D2D", "KDP", "GOOGLE"] as const;
+
+// Was four independent copies of this exact 6-value list -- apps/api's
+// book.ts patchSchema and books.ts createSchema each had their own z.enum([
+// ...]), and apps/web's output-data/page.tsx and BookWizard.tsx each had
+// their own plain `const AGE_RATINGS = [...]` (checked only via
+// z.string().min(1) client-side, not a real enum -- see ageRatingSchema
+// below).
+export const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"] as const;
+export type AgeRating = (typeof AGE_RATINGS)[number];
 
 export type ExternalStatus = "NOT_SENT" | "SENT" | "PUBLISHED" | "ERROR";
 
@@ -281,6 +299,57 @@ export function isPublishStepComplete(step: PublishStepKey, book: PublishStepBoo
 export function isReadyToPublish(book: PublishStepBook): boolean {
   return (Object.keys(PUBLISH_STEP_FIELDS) as PublishStepKey[]).every((step) => isPublishStepComplete(step, book));
 }
+
+// Per-channel minimum annotation length a STORE actually prefers, beyond
+// Ulit's own baseline (DESCRIPTION_MIN_LENGTH) -- same numbers as the
+// existing informational badges (output-data/page.tsx's
+// DESCRIPTION_PLATFORM_TARGETS, admin's distribute/page.tsx per-platform
+// checklist), which stay purely advisory (⚠, never blocking) for a channel
+// the author hasn't enabled. Once a channel IS enabled, its length becomes
+// an actual save-time requirement instead of a hint -- an author who turns
+// on Amazon KDP distribution but never lengthens the annotation past Ulit's
+// own 120-char floor would otherwise ship a book KDP's own algorithm
+// penalizes, with no signal stronger than a badge that's easy to miss.
+const CHANNEL_DESCRIPTION_MIN_LENGTH: Partial<Record<DistributionChannel, number>> = {
+  KDP: 250,
+  GOOGLE: 150,
+};
+
+export function getRequiredDescriptionMinLength(channels: readonly string[] | null | undefined): number {
+  let min = DESCRIPTION_MIN_LENGTH;
+  for (const channel of channels ?? []) {
+    const channelMin = CHANNEL_DESCRIPTION_MIN_LENGTH[channel as DistributionChannel];
+    if (channelMin && channelMin > min) min = channelMin;
+  }
+  return min;
+}
+
+// ─── Book field schemas (Zod) ─────────────────────────────────────────────────
+
+// Single source for a handful of Book-field rules that were independently
+// reimplemented (and had already drifted -- see the field-by-field audit
+// behind this change) across apps/api's book.ts (PATCH) + books.ts (POST)
+// and apps/web's output-data/page.tsx + BookWizard.tsx. Not every Book field
+// lives here -- only the ones that had multiple independent copies; fields
+// validated in exactly one place stay defined there.
+
+export const ageRatingSchema = z.enum(AGE_RATINGS);
+
+export const distributionChannelsSchema = z
+  .array(z.enum(DISTRIBUTION_CHANNELS))
+  .min(1, "Оберіть хоча б одну платформу")
+  .refine((ch) => ch.includes("ULIT"), "Магазин Ulit завжди обов'язковий");
+
+// T-2060 п.4 -- structured per-book authors, independent of the account
+// profile. Previously validated ONLY on the backend (apps/api's book.ts) --
+// the frontend's "Автори книги" add-author form had no length/URL checks of
+// its own at all, just ad hoc `.trim()` truthiness.
+export const bookAuthorSchema = z.object({
+  lastName: z.string().min(1).max(100),
+  firstName: z.string().min(1).max(100),
+  middleName: z.string().max(100).optional(),
+  photoUrl: z.string().url().optional(),
+});
 
 // ─── Rejection reasons (admin reject flow) ───────────────────────────────────
 
