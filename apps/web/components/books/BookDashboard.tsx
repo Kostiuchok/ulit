@@ -12,18 +12,22 @@ import { RelistButton } from "@/components/books/RelistButton";
 import { BookCoverCarousel } from "@/components/books/BookCoverCarousel";
 import { BookPromoSidebar } from "@/components/books/BookPromoSidebar";
 import { useBook } from "@/hooks/useBook";
-import { splitRejectionLines } from "@/lib/rejectedBlocks";
+import { splitRejectionLines, getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
 
 interface DashboardBook {
   status: string;
   title: string;
   slug: string;
+  description?: string | null;
   coverUrl?: string | null;
   backCoverUrl?: string | null;
   priceEbook?: string | number | null;
   pricePrint?: string | number | null;
   pricePrintHardcover?: string | number | null;
+  pricePrintBw?: string | number | null;
+  pricePrintHardcoverBw?: string | number | null;
+  bookAuthors?: { lastName: string; firstName: string }[] | null;
   genre?: string | null;
   printWidthMm?: number | null;
   printHeightMm?: number | null;
@@ -88,11 +92,18 @@ export function BookDashboard() {
   // cover exists -- no save/dismiss action required to notice that), and
   // -- if the rejection was cover-only -- skip the generic block entirely
   // rather than repeat the same line twice.
+  //
+  // The generic "other" block now reads getUnresolvedRejectionLines -- the
+  // exact same per-line live-field check output-data/page.tsx's own banner
+  // uses -- instead of raw splitRejectionLines, so the two pages can never
+  // show conflicting state: a genre/description/etc. line disappears here
+  // the moment that field has a value, same as it does there, without
+  // needing the author to click dismiss or to have saved on THIS page.
   const rejectionLines = book?.moderationStatus === "REJECTED" && book.moderationNote
     ? splitRejectionLines(book.moderationNote)
     : [];
   const coverLines = rejectionLines.filter((l) => l.category === "cover");
-  const otherLines = rejectionLines.filter((l) => l.category !== "cover");
+  const unresolvedOtherLines = book ? getUnresolvedRejectionLines(book).filter((l) => l.category !== "cover") : [];
   const hasCoverNotice = coverLines.length > 0 && !coverNoticeDismissed;
   const coverResolved = !!book?.coverUrl;
   // No categorized lines matched at all (freeform note that didn't hit any
@@ -100,7 +111,7 @@ export function BookDashboard() {
   // never silently shows nothing.
   const showGenericFallback =
     book?.moderationStatus === "REJECTED" && rejectionLines.length === 0 && !otherNoticeDismissed;
-  const showOtherBlock = (otherLines.length > 0 || showGenericFallback) && !otherNoticeDismissed;
+  const showOtherBlock = (unresolvedOtherLines.length > 0 || showGenericFallback) && !otherNoticeDismissed;
 
   return (
     <div className="min-h-screen bg-white p-8">
@@ -170,9 +181,9 @@ export function BookDashboard() {
             </div>
             {showGenericFallback ? (
               <p className="text-sm text-red-700 whitespace-pre-wrap">{book!.moderationNote}</p>
-            ) : otherLines.length > 0 ? (
+            ) : unresolvedOtherLines.length > 0 ? (
               <div className="space-y-0.5">
-                {otherLines.map((l, i) => (
+                {unresolvedOtherLines.map((l, i) => (
                   <p key={i} className="text-sm text-red-700 whitespace-pre-wrap">{l.text}</p>
                 ))}
               </div>
