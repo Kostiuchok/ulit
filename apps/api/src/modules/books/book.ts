@@ -246,11 +246,17 @@ export async function bookRoutes(app: FastifyInstance) {
         pendingTitle: stageTitle ? data.title : undefined,
         pendingDescription: stageDescription ? data.description : undefined,
         pendingGenre: stageGenre ? data.genre : undefined,
-        priceEbook: data.priceEbook !== undefined ? (data.priceEbook ?? undefined) : undefined,
-        pricePrint: data.pricePrint !== undefined ? (data.pricePrint ?? undefined) : undefined,
-        pricePrintHardcover: data.pricePrintHardcover !== undefined ? (data.pricePrintHardcover ?? undefined) : undefined,
-        pricePrintBw: data.pricePrintBw !== undefined ? (data.pricePrintBw ?? undefined) : undefined,
-        pricePrintHardcoverBw: data.pricePrintHardcoverBw !== undefined ? (data.pricePrintHardcoverBw ?? undefined) : undefined,
+        // No override needed for priceEbook/pricePrint/pricePrintHardcover/
+        // pricePrintBw/pricePrintHardcoverBw (unlike kdpSelectExpiry/
+        // coAuthors/etc. below, which map a JSON null to a Prisma-specific
+        // null marker) -- the `...data` spread above already passes an
+        // explicit `null` straight through as-is, which Prisma correctly
+        // treats as "clear this column", exactly like desiredRoyaltyAmount/
+        // desiredRoyaltyAmountPrint (same nullable().optional() schema,
+        // also with no override). A previous `field ?? undefined` override
+        // here silently coerced an explicit null BACK to undefined --
+        // Prisma treats undefined as "don't touch this column" -- so
+        // clearing a price via this endpoint never actually reached the DB.
         kdpSelectExpiry: data.kdpSelectExpiry !== undefined
           ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
           : undefined,

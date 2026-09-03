@@ -312,6 +312,30 @@ function SectionHeading({ label, done }: { label: string; done: boolean }) {
   );
 }
 
+// The sticky nav's active-pill tracking needs the REAL scrolling element --
+// dashboard/layout.tsx scrolls its own <main overflow-y-auto>, not the
+// window, so `window.scrollY`/`document.documentElement.scrollHeight` never
+// change here no matter how far the author scrolls.
+type ScrollTarget = HTMLElement | (Window & typeof globalThis);
+
+function findScrollParent(el: HTMLElement | null): ScrollTarget {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) return node;
+    node = node.parentElement;
+  }
+  return window;
+}
+
+function isScrolledToBottom(target: ScrollTarget): boolean {
+  if (target === window) {
+    const doc = document.documentElement;
+    return doc.scrollHeight - window.innerHeight - window.scrollY <= 4;
+  }
+  const el = target as HTMLElement;
+  return el.scrollHeight - el.clientHeight - el.scrollTop <= 4;
+}
+
 function OutputDataContent() {
   const { id } = useParams<{ id: string }>();
   const { apiFetch, apiUpload } = useApi();
@@ -409,6 +433,19 @@ function OutputDataContent() {
   // whole viewport's worth of sections.
   const [activeSection, setActiveSection] = useState<(typeof SECTION_ORDER)[number]>("info");
   const sectionRefs = useRef<Partial<Record<(typeof SECTION_ORDER)[number], HTMLElement | null>>>({});
+  const pageRootRef = useRef<HTMLDivElement | null>(null);
+  // Every section CURRENTLY intersecting the trigger band, keyed by section
+  // -> its live boundingClientRect.top. A single IntersectionObserver
+  // callback only reports entries whose intersection state just changed
+  // (e.g. only the one section that just exited), not every section that's
+  // still intersecting -- computing "topmost visible" from just that delta
+  // instead of the full current set is what made the pill switch reliably
+  // in one scroll direction but not the other (an exit-only callback could
+  // find zero still-"visible" entries even though another section was
+  // already active and stayed on screen). This map is merged across every
+  // callback instead, so "topmost" is always computed from everything
+  // that's actually still intersecting right now.
+  const visibleSectionsRef = useRef<Map<(typeof SECTION_ORDER)[number], number>>(new Map());
   // T-2076 -- a rejection-reason line the author clicks (resolveRejectionLineSection)
   // scrolls to AND rings the target section in yellow for a bit, so "go fix this"
   // lands on the exact block instead of just the top of the page.
@@ -423,11 +460,17 @@ function OutputDataContent() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) {
-          setActiveSection(visible[0].target.id.replace("section-", "") as (typeof SECTION_ORDER)[number]);
+        for (const entry of entries) {
+          const key = entry.target.id.replace("section-", "") as (typeof SECTION_ORDER)[number];
+          if (entry.isIntersecting) {
+            visibleSectionsRef.current.set(key, entry.boundingClientRect.top);
+          } else {
+            visibleSectionsRef.current.delete(key);
+          }
+        }
+        if (visibleSectionsRef.current.size > 0) {
+          const topKey = Array.from(visibleSectionsRef.current.entries()).sort((a, b) => a[1] - b[1])[0][0];
+          setActiveSection(topKey);
         }
       },
       { rootMargin: "-104px 0px -70% 0px", threshold: 0 }
@@ -436,7 +479,26 @@ function OutputDataContent() {
       const el = sectionRefs.current[key];
       if (el) observer.observe(el);
     });
-    return () => observer.disconnect();
+
+    // The rootMargin above shrinks the trigger band to roughly the top 30%
+    // of the viewport -- the LAST section ("Публікація") often has no more
+    // page left below it to scroll its top up into that band at all (the
+    // document simply ends), so pure intersection could never activate it.
+    // Reaching the actual bottom of the scrollable page is treated as its
+    // own "activate the last section" signal instead.
+    const scrollParent = findScrollParent(pageRootRef.current);
+    function onScroll() {
+      if (isScrolledToBottom(scrollParent)) {
+        visibleSectionsRef.current.clear();
+        setActiveSection(SECTION_ORDER[SECTION_ORDER.length - 1]);
+      }
+    }
+    scrollParent.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      scrollParent.removeEventListener("scroll", onScroll);
+    };
   }, [book]);
 
   function scrollToSection(key: (typeof SECTION_ORDER)[number]) {
@@ -803,7 +865,7 @@ function OutputDataContent() {
   const titleInvalid = titleValue.length > 0 && titleValue.length < 3;
 
   return (
-    <div className="p-8">
+    <div className="p-8" ref={pageRootRef}>
       <div className="space-y-6">
         {/* T-2073 -- sticky header: title + anchor nav pinned together, not
             real tabs -- clicking a pill just scrolls to that section,
