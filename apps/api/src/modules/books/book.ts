@@ -143,7 +143,17 @@ const patchSchema = z.object({
     .object({
       front: z.array(z.any()),
       backSpine: z.array(z.any()),
-      background: z.object({ color: z.string(), imageUrl: z.string().optional() }),
+      // left/top/scaleX/scaleY -- the author's own pan/zoom/crop of the
+      // background image, so it survives a format switch or reload instead
+      // of resetting to the auto-centered cover-fit every time.
+      background: z.object({
+        color: z.string(),
+        imageUrl: z.string().optional(),
+        left: z.number().optional(),
+        top: z.number().optional(),
+        scaleX: z.number().optional(),
+        scaleY: z.number().optional(),
+      }),
     })
     .optional(),
 });

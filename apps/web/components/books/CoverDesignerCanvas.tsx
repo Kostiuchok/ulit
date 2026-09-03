@@ -615,16 +615,43 @@ function applyImageToSlot(canvas: fabric.Canvas, url: string, slot: PanelRect) {
   );
 }
 
+interface BgImageTransform {
+  left: number;
+  top: number;
+  scaleX: number;
+  scaleY: number;
+}
+
+// Same shape persisted in Book.coverDesign.background (apps/api's book.ts
+// patchSchema) and CoverTemplate.design.background -- left/top/scaleX/scaleY
+// are the author's own pan/zoom of the uploaded image, optional so existing
+// saved designs (color+imageUrl only) keep loading fine.
+interface BackgroundDesign {
+  color: string;
+  imageUrl?: string;
+  left?: number;
+  top?: number;
+  scaleX?: number;
+  scaleY?: number;
+}
+
 // Background image behind the front panel only (bands, photo-slot, text) —
-// locked in place (not selectable), so it can't be accidentally dragged like
-// the front-panel illustration can. For ebook layouts the front panel IS the
-// whole canvas, so this covers everything same as before; for softcover/
-// hardcover it's clipped to the front panel (x=front.x..front.x+front.w) so
-// it doesn't bleed onto the spine/back — those keep only the solid accent
-// color (still full-width, drawn separately by addAccentBg) plus whatever
-// text the author places there. Uploading a cover photo is meant to dress up
-// the e-book/print-front face, not double as full print-wrap art.
-function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: string) {
+// movable/scalable by the author just like the photo-slot illustration
+// (selectable/evented, proportional resize only), clipped to the front
+// panel so it can't be dragged into bleeding onto the spine/back. For ebook
+// layouts the front panel IS the whole canvas, so this covers everything
+// same as before; for softcover/hardcover those side panels keep only the
+// solid accent color (still full-width, drawn separately by addAccentBg)
+// plus whatever text the author places there. Uploading a cover photo is
+// meant to dress up the e-book/print-front face, not double as full
+// print-wrap art.
+// `transform` is the author's own last pan/zoom, read back from the saved
+// design (captureDesignState) — passing it in re-applies exactly where they
+// left it instead of recomputing the auto-centered cover-fit, which used to
+// silently reset their positioning on every format switch/reload. Omit it
+// (a fresh upload, or re-picking a background with no transform recorded
+// yet) to fall back to that auto-fit-and-center default.
+function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: string, transform?: BgImageTransform) {
   const { front } = layout;
   const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" as const };
   fabric.Image.fromURL(
@@ -633,16 +660,17 @@ function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: s
       if (isCanvasDisposed(canvas)) return;
       const iw = img.width ?? front.w;
       const ih = img.height ?? front.h;
-      const scale = Math.max(front.w / iw, front.h / ih);
+      const fitScale = Math.max(front.w / iw, front.h / ih);
       img.set({
         originX: "left",
         originY: "top",
-        left: front.x - (iw * scale - front.w) / 2,
-        top: front.y - (ih * scale - front.h) / 2,
-        scaleX: scale,
-        scaleY: scale,
-        selectable: false,
-        evented: false,
+        left: transform?.left ?? front.x - (iw * fitScale - front.w) / 2,
+        top: transform?.top ?? front.y - (ih * fitScale - front.h) / 2,
+        scaleX: transform?.scaleX ?? fitScale,
+        scaleY: transform?.scaleY ?? fitScale,
+        selectable: true,
+        evented: true,
+        lockUniScaling: true, // resize handles stay proportional — no stretching
         data: { role: "bg-image" },
         clipPath: new fabric.Rect({ left: front.x, top: front.y, width: front.w, height: front.h, absolutePositioned: true }),
       });
@@ -744,16 +772,35 @@ function touchActiveObj<T extends object>(obj: T): T {
   return Object.assign(Object.create(Object.getPrototypeOf(obj)), obj);
 }
 
+// Reads the accent color + (if present) the background image's src AND its
+// author-set pan/zoom off a flat array of live/serialized canvas objects —
+// shared by captureDesignState and the format-switch "leaving format"
+// snapshot so a custom background position survives both a save and a plain
+// tab switch, not just one of them. left/top are stored relative to the
+// LEAVING layout's own front-panel origin (same reasoning as
+// splitObjectsByPanel's front-relative objects) -- storing the raw absolute
+// canvas position would misplace the image on restore into a different
+// format, since ebook's front panel and print's front panel sit at
+// different x-offsets (exactly the class of bug repositionFrontObjects
+// fixes for the photo-slot illustration).
+function captureBackground(currentObjects: any[], layout: CoverLayout, fallbackColor: string): BackgroundDesign {
+  const accent = currentObjects.find((o: any) => o.data?.role === "accent") as any;
+  const bgImage = currentObjects.find((o: any) => o.data?.role === "bg-image") as any;
+  return {
+    color: (accent?.fill as string) ?? fallbackColor,
+    imageUrl: (bgImage?.src as string) ?? undefined,
+    left: bgImage ? (bgImage.left ?? 0) - layout.front.x : undefined,
+    top: bgImage ? (bgImage.top ?? 0) - layout.front.y : undefined,
+    scaleX: bgImage?.scaleX,
+    scaleY: bgImage?.scaleY,
+  };
+}
+
 function captureDesignState(canvas: fabric.Canvas, layout: CoverLayout, cachedBackSpine: any[] | null) {
   const currentObjects = ((canvas.toJSON(["data"]) as any).objects ?? []) as any[];
   const { front, backSpine: liveBackSpine } = splitObjectsByPanel(currentObjects, layout);
   const backSpine = layout.back ? liveBackSpine : (cachedBackSpine ?? []);
-  const accent = currentObjects.find((o: any) => o.data?.role === "accent") as any;
-  const bgImage = currentObjects.find((o: any) => o.data?.role === "bg-image") as any;
-  const background = {
-    color: (accent?.fill as string) ?? "#1a1a2e",
-    imageUrl: (bgImage?.src as string) ?? undefined,
-  };
+  const background = captureBackground(currentObjects, layout, "#1a1a2e");
   return { front, backSpine, background };
 }
 
@@ -773,16 +820,19 @@ function buildFreshPanelObjects(ctx: TemplateCtx, template: Template, layout: Co
 // layout's dimensions — reuses addAccentBg/applyBackgroundImage, which are
 // already parameterized by layout for exactly this reason, rather than
 // trying to reposition/rescale a cached background object across formats.
-function applyBackground(
-  canvas: fabric.Canvas,
-  layout: CoverLayout,
-  bg: { color: string; imageUrl?: string } | null,
-  fallbackColor: string
-) {
+function applyBackground(canvas: fabric.Canvas, layout: CoverLayout, bg: BackgroundDesign | null, fallbackColor: string) {
   addAccentBg(canvas, layout, bg?.color ?? fallbackColor);
   const accent = canvas.getObjects().find((o: any) => o.data?.role === "accent");
   if (accent) canvas.sendToBack(accent);
-  if (bg?.imageUrl) applyBackgroundImage(canvas, layout, bg.imageUrl);
+  if (bg?.imageUrl) {
+    // bg.left/top are front-relative (see captureBackground) -- re-add the
+    // CURRENT format's front-panel origin to place it correctly here.
+    const transform =
+      bg.left !== undefined && bg.top !== undefined && bg.scaleX !== undefined && bg.scaleY !== undefined
+        ? { left: bg.left + layout.front.x, top: bg.top + layout.front.y, scaleX: bg.scaleX, scaleY: bg.scaleY }
+        : undefined;
+    applyBackgroundImage(canvas, layout, bg.imageUrl, transform);
+  }
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -791,7 +841,7 @@ interface CoverTemplateEntry {
   id: string;
   name: string;
   createdAt: string;
-  design: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } };
+  design: { front: any[]; backSpine: any[]; background: BackgroundDesign };
 }
 
 interface Props {
@@ -813,7 +863,7 @@ interface Props {
   trimMm?: { widthMm: number; heightMm: number } | null;
   format: CoverFormat;
   existingCoverUrl?: string | null;
-  savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
+  savedDesign?: { front: any[]; backSpine: any[]; background: BackgroundDesign } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   // T-2060 п.8 -- "незалежно від даних книги" (Ridero pattern). Default true
   // (synced) when the caller doesn't pass it, matching the DB default for
@@ -878,7 +928,7 @@ export default function CoverDesignerCanvas({
   // layout for exactly this reason.
   const frontStateRef = useRef<any[] | null>(null);
   const backSpineStateRef = useRef<any[] | null>(null);
-  const backgroundRef = useRef<{ color: string; imageUrl?: string } | null>(null);
+  const backgroundRef = useRef<BackgroundDesign | null>(null);
   const pauseHistoryRef = useRef(false);
   const snapshotScheduledRef = useRef(false);
   // Crop mode: temporarily removes the photo-slot image's clipPath so the
@@ -1003,6 +1053,21 @@ export default function CoverDesignerCanvas({
         });
         canvas.discardActiveObject();
         canvas.requestRenderAll();
+        return;
+      }
+      if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const active = canvas.getActiveObject() as any;
+        if (!active || active.isEditing) return; // let text cursor movement happen normally
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+        const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+        canvas.getActiveObjects().forEach((obj) => {
+          obj.set({ left: (obj.left ?? 0) + dx, top: (obj.top ?? 0) + dy });
+          obj.setCoords();
+        });
+        canvas.requestRenderAll();
+        saveSnapshot();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -1078,12 +1143,7 @@ export default function CoverDesignerCanvas({
       frontStateRef.current = front;
       if (leavingLayout.back) backSpineStateRef.current = backSpine;
 
-      const accent = currentObjects.find((o: any) => o.data?.role === "accent") as any;
-      const bgImage = currentObjects.find((o: any) => o.data?.role === "bg-image") as any;
-      backgroundRef.current = {
-        color: (accent?.fill as string) ?? backgroundRef.current?.color ?? "#1a1a2e",
-        imageUrl: (bgImage?.src as string) ?? undefined,
-      };
+      backgroundRef.current = captureBackground(currentObjects, leavingLayout, backgroundRef.current?.color ?? "#1a1a2e");
     }
 
     canvas.setWidth(ctx.layout.totalW);
@@ -1416,7 +1476,7 @@ export default function CoverDesignerCanvas({
     }
 
     const obj = canvas.getActiveObject() as any;
-    if (!obj || obj.data?.role !== "photo-slot") return;
+    if (!obj || (obj.data?.role !== "photo-slot" && obj.data?.role !== "bg-image")) return;
 
     const clip = obj.clipPath as fabric.Rect | undefined;
     const slot: PanelRect = clip
@@ -2131,7 +2191,7 @@ export default function CoverDesignerCanvas({
           </div>
         )}
 
-        {((activeObj as any)?.data?.role === "photo-slot" || croppingSlot) && (
+        {(["photo-slot", "bg-image"].includes((activeObj as any)?.data?.role) || croppingSlot) && (
           <Button variant="outline" size="sm" className="w-full" onClick={toggleCropMode}>
             {croppingSlot ? "✓ Застосувати кадрування" : "Кадрувати зображення"}
           </Button>
