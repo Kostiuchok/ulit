@@ -1,24 +1,8 @@
+import { REJECTION_REASONS, isRejectionReasonResolved, type RejectionReasonKey } from "shared-types";
+
 interface ModeratedBook {
   moderationStatus?: string | null;
   moderationNote?: string | null;
-}
-
-export interface RejectedConcerns {
-  cover: boolean;
-  manuscript: boolean;
-  metadata: boolean;
-}
-
-export function parseRejectedConcerns(book: ModeratedBook): RejectedConcerns {
-  if (book.moderationStatus !== "REJECTED" || !book.moderationNote) {
-    return { cover: false, manuscript: false, metadata: false };
-  }
-  const n = book.moderationNote.toLowerCase();
-  return {
-    cover: /обкладин/.test(n),
-    manuscript: /рукопис|docx|файл|конверт/.test(n),
-    metadata: /назв|опис|жанр|мов|ціна|price|isbn|метадан/.test(n),
-  };
 }
 
 // Shared with output-data/page.tsx's infoSchema (zod) so the "still counts
@@ -36,35 +20,26 @@ export type OutputDataSectionKey = "info" | "file" | "price" | "review" | "publi
 // Per-line target for a rejection-reason bullet -- lets the author's
 // rejection banner turn each line into a jump-link to the exact block to
 // fix, instead of one flat paragraph of text the author has to match up to
-// a page section themselves. Best-effort keyword match against the admin's
-// rejection text, which is freeform/editable (prefilled from
-// buildRejectionText in distribute/page.tsx but not guaranteed to stay in
-// that shape) -- returns null when a line isn't something the author can
-// act on from either page (e.g. ISBN, which only the admin can enter via
-// "Книжкова палата"; or the pageCount pipeline bug, which isn't a content
-// problem at all).
+// a page section themselves. `resolved` is always computed live against the
+// current book record (never a point-in-time flag) -- see getAllRejectionLines.
 export interface RejectionLine {
   text: string;
-  category: "cover" | "manuscript" | "language" | "title" | "description" | "genre" | "author" | "price" | "other";
+  category: RejectionReasonKey | "other";
+  section: OutputDataSectionKey | "cover-page" | null;
+  resolved: boolean;
 }
 
-// Same keyword rules as parseRejectedConcerns above, applied per-line
-// instead of to the whole note -- lets a caller isolate just the cover
-// line(s) from a mixed rejection (e.g. show a dedicated, monitored cover
-// block plus a generic block for everything else, instead of one
-// undifferentiated paragraph the author has to parse themselves).
-//
-// "language" was the first category split out of a generic "metadata"
-// bucket (checked before it, its own category) so a field-level UI can
-// point a red ring at exactly the "Мова книги" select only when a rejection
-// line actually mentions language -- not at every metadata-adjacent field
-// whenever ANY of them is mentioned. title/description/genre/author/price
-// split the same "metadata" bucket further, the same way, for the same
-// reason: isRejectionLineResolved below needs to know exactly WHICH field a
-// line is about to check whether that specific field now has a value --
-// one shared "metadata" bucket can't answer "is THIS line fixed", only "is
-// something in this vague pile of fields fixed".
-export function splitRejectionLines(note: string): RejectionLine[] {
+// Legacy path only: best-effort keyword match against a freeform rejection
+// note, for a book rejected before the structured REJECTION_REASONS system
+// existed (moderationReasons empty/absent). "language" was the first
+// category split out of a generic "metadata" bucket (its own category,
+// checked before it) so a field-level UI can point a red ring at exactly the
+// "Мова книги" select only when a rejection line actually mentions
+// language -- not at every metadata-adjacent field whenever ANY of them is
+// mentioned. title/description/genre/author/price split the same bucket
+// further, for the same reason: isRejectionLineResolved needs to know
+// exactly WHICH field a line is about.
+function splitLegacyNote(note: string): { text: string; category: RejectionReasonKey | "other" }[] {
   return note
     .split("\n")
     .filter((line) => line.trim().length > 0)
@@ -92,36 +67,43 @@ export function resolveRejectionLineSection(line: string): OutputDataSectionKey 
   return null;
 }
 
-// Fields isRejectionLineResolved needs to decide whether a specific rejected
-// line has already been addressed. Optional throughout -- callers (e.g. the
-// cover editor page) that only care about a subset just pass what they have.
+// Fields needed to decide whether a rejection concern has already been
+// addressed -- both the legacy presence-based checks below and shared-types'
+// snapshot-diff checks read from this same shape. Optional throughout --
+// callers (e.g. the cover editor page) that only care about a subset just
+// pass what they have.
 export interface RejectionFieldState {
   title?: string | null;
   description?: string | null;
   genre?: string | null;
+  language?: string | null;
   coverUrl?: string | null;
   originalDocxUrl?: string | null;
   pdfUrl?: string | null;
   epubUrl?: string | null;
+  docxUpdatedAt?: string | null;
   priceEbook?: number | string | null;
   pricePrint?: number | string | null;
   pricePrintHardcover?: number | string | null;
   pricePrintBw?: number | string | null;
   pricePrintHardcoverBw?: number | string | null;
+  desiredRoyaltyAmount?: number | string | null;
+  desiredRoyaltyAmountPrint?: number | string | null;
   bookAuthors?: { lastName: string; firstName: string }[] | null;
+  moderationReasons?: string[] | null;
+  moderationCustomNote?: string | null;
+  moderationFieldSnapshot?: unknown;
 }
 
-// Whether a specific rejection line's concern has already been addressed by
-// the CURRENT field values -- checked live against the book record every
-// render, not a point-in-time flag. Replaces the old "locallyFixed" trick
-// (set once on save, reset to false on next mount/navigation) which made
-// the rejection banner and its red border reappear on reload even after the
-// flagged field was actually fixed, since nothing about the persisted
-// moderationStatus/moderationNote itself had changed -- same live-field
-// pattern the cover editor page already uses for its own cover-only
-// rejection banner (coverResolved = !!book?.coverUrl).
-export function isRejectionLineResolved(line: RejectionLine, book: RejectionFieldState): boolean {
-  switch (line.category) {
+// Legacy-only presence check (no snapshot recorded) -- "is this field
+// non-empty", which can't distinguish a rejection for a MISSING value from
+// one for a WRONG-but-already-present value. Kept only for books rejected
+// before the structured REJECTION_REASONS system existed; every new
+// rejection uses isRejectionReasonResolved (shared-types) instead, which
+// compares against the value snapshotted at the moment of rejection and so
+// catches both cases.
+function isLegacyLineResolved(category: RejectionReasonKey | "other", book: RejectionFieldState): boolean {
+  switch (category) {
     case "cover":
       return !!book.coverUrl;
     case "manuscript":
@@ -149,17 +131,60 @@ export function isRejectionLineResolved(line: RejectionLine, book: RejectionFiel
     default:
       // No single field reliably signals "this specific concern is fixed"
       // -- language always holds SOME value (nothing to detect a "wrong
-      // language" fix by), and "other" covers freeform/ISBN-ish text with
-      // no field of its own on this page. These stay flagged until the
-      // admin re-reviews rather than risk auto-clearing something that
-      // hasn't actually been addressed.
+      // language" fix by, in the legacy freeform path), and "other" covers
+      // freeform/ISBN-ish text with no field of its own on this page. These
+      // stay flagged until the admin re-reviews rather than risk
+      // auto-clearing something that hasn't actually been addressed.
       return false;
   }
 }
 
-// Convenience for a caller that just wants "what's left to fix" -- filters
-// out lines already resolved against the live book record.
+// Every rejection line for this book, resolved or not -- the structured path
+// (book.moderationReasons non-empty, i.e. rejected via the admin's
+// checkboxes) reads REJECTION_REASONS directly and checks resolution via
+// isRejectionReasonResolved's snapshot-diff (catches "was wrong, still
+// unchanged" the legacy presence-checks below never could); a book rejected
+// before that system existed (no moderationReasons recorded) falls back to
+// best-effort keyword matching against the raw freeform note. Callers that
+// only want what's left to fix should use getUnresolvedRejectionLines
+// instead -- this is for anything that also wants to show already-resolved
+// concerns (e.g. a green "✓ fixed" confirmation).
+export function getAllRejectionLines(book: ModeratedBook & RejectionFieldState): RejectionLine[] {
+  if (book.moderationStatus !== "REJECTED") return [];
+
+  const reasons = book.moderationReasons;
+  if (Array.isArray(reasons) && reasons.length > 0) {
+    const snapshot = book.moderationFieldSnapshot as Partial<Record<RejectionReasonKey, unknown>> | null | undefined;
+    const lines: RejectionLine[] = reasons
+      .filter((k): k is RejectionReasonKey => REJECTION_REASONS.some((d) => d.key === k))
+      .map((key) => {
+        const def = REJECTION_REASONS.find((d) => d.key === key)!;
+        return {
+          text: def.noteText,
+          category: key,
+          section: def.section,
+          resolved: isRejectionReasonResolved(key, book, snapshot),
+        };
+      });
+    // The admin's own free-text addition (if any) never auto-resolves --
+    // no field of its own to compare against, same treatment as a legacy
+    // "other" line.
+    if (book.moderationCustomNote?.trim()) {
+      lines.push({ text: book.moderationCustomNote.trim(), category: "other", section: null, resolved: false });
+    }
+    return lines;
+  }
+
+  if (!book.moderationNote) return [];
+  return splitLegacyNote(book.moderationNote).map((l) => ({
+    text: l.text,
+    category: l.category,
+    section: resolveRejectionLineSection(l.text),
+    resolved: isLegacyLineResolved(l.category, book),
+  }));
+}
+
+// Convenience for a caller that just wants "what's left to fix".
 export function getUnresolvedRejectionLines(book: ModeratedBook & RejectionFieldState): RejectionLine[] {
-  if (book.moderationStatus !== "REJECTED" || !book.moderationNote) return [];
-  return splitRejectionLines(book.moderationNote).filter((l) => !isRejectionLineResolved(l, book));
+  return getAllRejectionLines(book).filter((l) => !l.resolved);
 }

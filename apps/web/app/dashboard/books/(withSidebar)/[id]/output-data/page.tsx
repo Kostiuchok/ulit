@@ -20,7 +20,6 @@ import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
 import {
   getUnresolvedRejectionLines,
-  resolveRejectionLineSection,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
 } from "@/lib/rejectedBlocks";
@@ -156,6 +155,9 @@ interface MetadataBook {
   authorBio?: string | null;
   moderationStatus?: string | null;
   moderationNote?: string | null;
+  moderationReasons?: string[] | null;
+  moderationCustomNote?: string | null;
+  moderationFieldSnapshot?: unknown;
   epubUrl?: string | null;
   pdfUrl?: string | null;
   pageCount?: number | null;
@@ -820,21 +822,6 @@ function OutputDataContent() {
     book?.desiredRoyaltyAmount ||
     book?.desiredRoyaltyAmountPrint
   );
-  const readyToPublish = infoSectionDone && fileSectionDone && coverSectionDone && priceSectionDone;
-
-  // Single source of truth for "is this section done" -- both the sticky
-  // nav's checkbox (added so the author sees the whole scope of remaining
-  // work without scrolling) and each section's own SectionHeading ✓/○ read
-  // the SAME booleans here, so the two can never disagree with each other.
-  const sectionDone: Record<(typeof SECTION_ORDER)[number], boolean> = {
-    info: infoSectionDone,
-    file: fileSectionDone,
-    cover: coverSectionDone,
-    price: priceSectionDone,
-    review: readyToPublish,
-    publish: readyToPublish,
-  };
-
   // Which of the admin's rejection lines are STILL relevant, checked live
   // against the current field values (getUnresolvedRejectionLines) instead
   // of a "locallyFixed" flag that was set once on save and forgotten again
@@ -856,13 +843,26 @@ function OutputDataContent() {
   const authorRejected = unresolvedCategory("author");
   const languageRejected = unresolvedCategory("language");
   const priceCardRejected = unresolvedCategory("price");
-  // The "Інформація" card's own blanket red border -- only for concerns that
-  // actually live in that card (title/description/genre/author/language),
-  // not price (its own card, see priceCardRejected) or cover/manuscript
-  // (their own pages already show/monitor their own rejection banners).
+  const manuscriptRejected = unresolvedCategory("manuscript");
+  const coverRejected = unresolvedCategory("cover");
   const infoCardRejected = titleRejected || descriptionRejected || genreRejected || authorRejected || languageRejected;
-  const showRejection = infoCardRejected || priceCardRejected;
+  const showRejection = infoCardRejected || priceCardRejected || manuscriptRejected;
   const titleInvalid = titleValue.length > 0 && titleValue.length < 3;
+
+  const readyToPublish =
+    infoSectionDone && !infoCardRejected &&
+    fileSectionDone && !manuscriptRejected &&
+    coverSectionDone && !coverRejected &&
+    priceSectionDone && !priceCardRejected;
+
+  const sectionDone: Record<(typeof SECTION_ORDER)[number], boolean> = {
+    info: infoSectionDone && !infoCardRejected,
+    file: fileSectionDone && !manuscriptRejected,
+    cover: coverSectionDone && !coverRejected,
+    price: priceSectionDone && !priceCardRejected,
+    review: readyToPublish,
+    publish: readyToPublish,
+  };
 
   return (
     <div className="p-8" ref={pageRootRef}>
@@ -939,11 +939,11 @@ function OutputDataContent() {
             <p className="mb-1.5 font-medium">Модератор зазначив зауваження щодо метаданих:</p>
             <div className="space-y-0.5">
               {/* Only STILL-unresolved lines -- a line disappears here the
-                  moment its own field gets a value (isRejectionLineResolved),
-                  it doesn't wait for a page reload or the admin's next
-                  review. */}
+                  moment its own field changes since rejection (structured
+                  reasons) or gets a value (legacy freeform fallback), it
+                  doesn't wait for a page reload or the admin's next review. */}
               {unresolvedRejectionLines.map((l, i) => {
-                const target = resolveRejectionLineSection(l.text);
+                const target = l.section;
                 if (target === "cover-page") {
                   return (
                     <Link
@@ -1430,7 +1430,7 @@ function OutputDataContent() {
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "file" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
           <SectionHeading label={SECTION_LABELS.file} done={sectionDone.file} />
-          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
+          <div className={cn("rounded-xl bg-white p-6 shadow-sm space-y-4", manuscriptRejected ? "border-2 border-red-400" : "border")}>
             <div>
               <h3 className="text-base font-semibold mb-1">Рукопис (.docx)</h3>
               <p className="text-xs text-gray-500">Завантажте файл або замініть уже завантажений.</p>
@@ -1438,7 +1438,13 @@ function OutputDataContent() {
             <DocxUploader
               bookId={id}
               currentDocxUrl={book?.originalDocxUrl}
-              onUploadSuccess={() => setBook((b) => (b ? { ...b, originalDocxUrl: "uploaded" } : b))}
+              onUploadSuccess={(docxPath) =>
+                setBook((b) =>
+                  b
+                    ? { ...b, originalDocxUrl: docxPath ?? b.originalDocxUrl, docxUpdatedAt: new Date().toISOString() }
+                    : b
+                )
+              }
             />
             <Link
               href={`/dashboard/books/${id}/manuscript`}
@@ -1461,7 +1467,7 @@ function OutputDataContent() {
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "cover" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
           <SectionHeading label={SECTION_LABELS.cover} done={sectionDone.cover} />
-          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
+          <div className={cn("rounded-xl bg-white p-6 shadow-sm space-y-3", coverRejected ? "border-2 border-red-400" : "border")}>
             <div className="flex items-start gap-2 text-sm">
               <span className={cn("mt-0.5", book?.coverUrl ? "text-green-600" : "text-amber-500")}>
                 {book?.coverUrl ? "✓" : "○"}

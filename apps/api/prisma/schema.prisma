@@ -145,6 +145,9 @@ model Book {
   status               BookStatus           @default(DRAFT)
   moderationStatus     ModerationStatus     @default(PENDING)
   moderationNote       String?
+  moderationReasons    String[]             @default([]) // fixed RejectionReasonDef keys (shared-types) the admin picked when rejecting -- empty for a legacy freeform-only rejection
+  moderationCustomNote String? // admin's own free-text addition alongside moderationReasons -- never auto-resolves (no field to compare), kept separate from moderationNote (which is the composed display/email text)
+  moderationFieldSnapshot Json? // {[reasonKey]: value} snapshot of each picked reason's field (getRejectionSnapshotValue, shared-types) at the moment of rejection -- a reason counts as resolved once the CURRENT value differs from here, not merely "is non-empty" (catches "wrong but present" rejections, not just "missing" ones)
   rejectedAt           DateTime? // set by admin reject; "коли книжка змінила статус на DRAFT" (admin/books "Дата/час" column) -- distinct from createdAt (a never-submitted DRAFT has no rejectedAt)
   previousStatus       String? // status before soft-delete, restored on undo
   archivedAt           DateTime? // soft-delete timestamp ("Видалити книгу" — recoverable)

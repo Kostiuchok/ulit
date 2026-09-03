@@ -130,8 +130,12 @@ export default function ManuscriptEditorPage() {
               <DocxUploader
                 bookId={id}
                 currentDocxUrl={book?.originalDocxUrl}
-                onUploadSuccess={() => {
-                  setBook((b) => (b ? { ...b, originalDocxUrl: "uploaded" } : b));
+                onUploadSuccess={(docxPath) => {
+                  setBook((b) =>
+                    b
+                      ? { ...b, originalDocxUrl: docxPath ?? b.originalDocxUrl, docxUpdatedAt: new Date().toISOString() }
+                      : b
+                  );
                 }}
               />
             </div>

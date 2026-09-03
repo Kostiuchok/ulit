@@ -9,7 +9,7 @@ import type { CoverFormat } from "@/components/books/CoverDesignerCanvas";
 import { useApi } from "@/hooks/useApi";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { parseRejectedConcerns, splitRejectionLines } from "@/lib/rejectedBlocks";
+import { getAllRejectionLines } from "@/lib/rejectedBlocks";
 import { resolveBookPrintFormat } from "shared-types";
 
 interface BookAuthor {
@@ -32,6 +32,9 @@ interface BookInfo {
   pageCount?: number | null;
   moderationStatus?: string | null;
   moderationNote?: string | null;
+  moderationReasons?: string[] | null;
+  moderationCustomNote?: string | null;
+  moderationFieldSnapshot?: unknown;
   bookAuthors?: BookAuthor[] | null;
   authorBio?: string | null;
   coverIndependentFromBookData?: boolean;
@@ -77,11 +80,17 @@ export default function CoverPage() {
   }, [token, id]);
 
   const trimFormat = resolveBookPrintFormat(book ?? {});
-  const coverRejected = !!book && parseRejectedConcerns(book).cover;
-  const coverResolved = !!book?.coverUrl;
-  const coverNoteLines = book?.moderationNote
-    ? splitRejectionLines(book.moderationNote).filter((l) => l.category === "cover")
-    : [];
+  // Resolved via the same snapshot-diff every other rejection-aware page
+  // uses (rejectedBlocks.ts) -- for a book rejected via the admin's
+  // structured reasons, "resolved" means the cover CHANGED since rejection,
+  // not merely "a cover exists" (a cover flagged for bad quality already
+  // has one, so a bare presence check would show it "fixed" immediately,
+  // before the author touched anything). A legacy freeform-only rejection
+  // falls back to the old presence check.
+  const coverLines = book ? getAllRejectionLines(book).filter((l) => l.category === "cover") : [];
+  const coverRejected = coverLines.length > 0;
+  const coverResolved = coverRejected && coverLines.every((l) => l.resolved);
+  const coverNoteLines = coverLines;
 
   async function toggleIndependent(next: boolean) {
     setBook((b) => (b ? { ...b, coverIndependentFromBookData: next } : b));
@@ -101,9 +110,9 @@ export default function CoverPage() {
   }
 
   function handleSaved(patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) {
-    // No separate "locally fixed" flag needed anymore -- coverRejected's
-    // resolved/pending state above already derives straight from
-    // book.coverUrl, which this same patch just updated.
+    // No separate "locally fixed" flag needed anymore -- coverResolved above
+    // already derives straight from book.coverUrl (compared against its
+    // rejection-time snapshot), which this same patch just updated.
     setBook((b) => (b ? { ...b, ...patch } : b));
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useApi } from "../../../../../hooks/useApi";
 import { Button } from "../../../../../components/ui/button";
 import { cn } from "../../../../../lib/utils";
+import { REJECTION_REASONS } from "shared-types";
 
 interface Book {
   id: string;
@@ -434,6 +435,7 @@ export default function DistributePage() {
   const [google, setGoogle] = useState("NOT_SENT");
   const [coverDims, setCoverDims] = useState({ w: 0, h: 0 });
   const [rejectReason, setRejectReason] = useState("");
+  const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [rejecting, setRejecting] = useState(false);
   const [rejectDone, setRejectDone] = useState(false);
   const [savingStep, setSavingStep] = useState<string | null>(null);
@@ -592,13 +594,17 @@ export default function DistributePage() {
     }
   }
 
+  function toggleReason(key: string) {
+    setSelectedReasons((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  }
+
   async function handleReject() {
-    if (!rejectReason.trim()) return;
+    if (selectedReasons.length === 0 && !rejectReason.trim()) return;
     setRejecting(true);
     try {
       await apiFetch(`/api/admin/books/${id}/reject`, {
         method: "PATCH",
-        body: JSON.stringify({ reason: rejectReason }),
+        body: JSON.stringify({ reasons: selectedReasons, note: rejectReason.trim() || undefined }),
       });
       setRejectDone(true);
     } finally {
@@ -887,11 +893,31 @@ export default function DistributePage() {
               )}
             </div>
           </div>
+
+          {/* Fixed taxonomy (shared-types) instead of freeform text -- lets
+              every author-facing page know EXACTLY which field a rejection is
+              about, and detect "resolved" as "this field changed since
+              rejection" instead of merely "this field is non-empty" (which
+              can't tell a MISSING value apart from a WRONG-but-present one). */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-4">
+            {REJECTION_REASONS.map((r) => (
+              <label key={r.key} className="flex items-center gap-1.5 text-xs text-red-900">
+                <input
+                  type="checkbox"
+                  checked={selectedReasons.includes(r.key)}
+                  onChange={() => toggleReason(r.key)}
+                  className="rounded border-red-300"
+                />
+                {r.label}
+              </label>
+            ))}
+          </div>
+
           <textarea
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="Причина відхилення (буде надіслана автору)"
-            rows={5}
+            placeholder="Додатковий коментар (необов'язково) -- не автоматизується, лишається доти, доки ви не переглянете книгу повторно"
+            rows={4}
             className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 font-mono"
           />
           <Button
@@ -899,7 +925,7 @@ export default function DistributePage() {
             className="border-red-300 text-red-700 hover:bg-red-100"
             onClick={handleReject}
             loading={rejecting}
-            disabled={!rejectReason.trim()}
+            disabled={selectedReasons.length === 0 && !rejectReason.trim()}
           >
             Відхилити книгу
           </Button>

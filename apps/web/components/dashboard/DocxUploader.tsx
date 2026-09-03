@@ -9,7 +9,7 @@ import { useApi } from "../../hooks/useApi";
 interface Props {
   bookId: string;
   currentDocxUrl?: string | null;
-  onUploadSuccess: () => void;
+  onUploadSuccess: (docxPath?: string) => void;
 }
 
 export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props) {
@@ -69,7 +69,7 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
           setSelectedFile(null);
           resolve();
           // Brief delay so user sees 100% before parent hides the uploader
-          setTimeout(() => onUploadSuccess(), 300);
+          setTimeout(() => onUploadSuccess(body.docxPath), 300);
         } else {
           const body = JSON.parse(xhr.responseText || "{}");
           reject(new Error(body.error || `Помилка ${xhr.status}`));

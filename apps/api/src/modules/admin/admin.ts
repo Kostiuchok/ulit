@@ -9,7 +9,8 @@ import type { Archiver as ArchiverType } from "archiver";
 const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<string, unknown>) => ArchiverType };
 import { Readable } from "stream";
 import { Client } from "minio";
-import { BookStatus, ModerationStatus, RoyaltyStatus } from "@prisma/client";
+import { BookStatus, ModerationStatus, RoyaltyStatus, Prisma } from "@prisma/client";
+import { REJECTION_REASONS, getRejectionSnapshotValue, type RejectionReasonKey } from "shared-types";
 import { queuePublishedEmail, queueRejectedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
 import { enqueueConversionJobs } from "../../services/publishing.service";
 import { withAvatarVersion } from "../../lib/coverVersion";
@@ -75,6 +76,10 @@ const BOOK_ADMIN_SELECT = {
   description: true,
   status: true,
   moderationStatus: true,
+  moderationNote: true,
+  moderationReasons: true,
+  moderationCustomNote: true,
+  moderationFieldSnapshot: true,
   isbn: true,
   udcCode: true,
   authorSign: true,
@@ -369,32 +374,77 @@ export async function adminRoutes(app: FastifyInstance) {
   );
 
   // ─── Reject ───────────────────────────────────────────────────────────────
+  // The admin picks structured reasons (checkboxes, REJECTION_REASONS in
+  // shared-types) instead of writing free text -- lets every author-facing
+  // page (output-data, book dashboard, cover editor) know EXACTLY which
+  // field a rejection is about, and detect "resolved" as "this field
+  // changed since rejection" (isRejectionReasonResolved) rather than merely
+  // "this field is non-empty", which couldn't tell a MISSING value apart
+  // from a WRONG-but-already-present one. `note` is an optional free-text
+  // addition alongside the picked reasons -- it never auto-resolves (no
+  // field to compare it against), same as a legacy freeform-only rejection.
   app.patch(
     "/api/admin/books/:id/reject",
     { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const body = (request.body ?? {}) as { reason?: string };
+      const body = (request.body ?? {}) as { reasons?: string[]; note?: string };
 
       const book = await prisma.book.findUnique({
         where: { id },
-        select: { title: true, author: { select: { id: true, email: true, name: true } } },
+        select: {
+          title: true,
+          description: true,
+          genre: true,
+          language: true,
+          coverUrl: true,
+          docxUpdatedAt: true,
+          bookAuthors: true,
+          priceEbook: true,
+          pricePrint: true,
+          pricePrintHardcover: true,
+          pricePrintBw: true,
+          pricePrintHardcoverBw: true,
+          desiredRoyaltyAmount: true,
+          desiredRoyaltyAmountPrint: true,
+          author: { select: { id: true, email: true, name: true } },
+        },
       });
       if (!book) throw AppError.notFound("Book");
+
+      const reasons = (Array.isArray(body.reasons) ? body.reasons : []).filter(
+        (r): r is RejectionReasonKey => REJECTION_REASONS.some((d) => d.key === r)
+      );
+      const customNote = body.note?.trim() || null;
+
+      const snapshot: Partial<Record<RejectionReasonKey, unknown>> = {};
+      for (const key of reasons) {
+        snapshot[key] = getRejectionSnapshotValue(key, book);
+      }
+
+      const combinedNote = [
+        ...reasons.map((k) => REJECTION_REASONS.find((d) => d.key === k)!.noteText),
+        customNote,
+      ]
+        .filter((s): s is string => !!s)
+        .join("\n");
 
       const updated = await prisma.book.update({
         where: { id },
         data: {
           moderationStatus: "REJECTED",
           status: "DRAFT",
-          moderationNote: body.reason ?? null,
+          moderationNote: combinedNote || null,
+          moderationCustomNote: customNote,
+          moderationReasons: reasons,
+          moderationFieldSnapshot: reasons.length > 0 ? (snapshot as Prisma.InputJsonValue) : Prisma.JsonNull,
           rejectedAt: new Date(),
         },
         select: BOOK_ADMIN_SELECT,
       });
 
       app.log.info(
-        { bookId: id, reason: body.reason, author: book.author.email },
+        { bookId: id, reasons, author: book.author.email },
         "Book rejected"
       );
 
@@ -403,7 +453,7 @@ export async function adminRoutes(app: FastifyInstance) {
         name: book.author.name,
         bookTitle: book.title,
         bookId: id,
-        reason: body.reason,
+        reason: combinedNote || undefined,
       }).catch((err) => console.error("[email] rejected notification failed:", err));
 
       prisma.notification
@@ -412,14 +462,14 @@ export async function adminRoutes(app: FastifyInstance) {
             userId: book.author.id,
             bookId: id,
             type: "BOOK_REJECTED",
-            message: body.reason
-              ? `Книгу «${book.title}» відхилено: ${body.reason}`
+            message: combinedNote
+              ? `Книгу «${book.title}» відхилено: ${combinedNote}`
               : `Книгу «${book.title}» відхилено`,
           },
         })
         .catch((err) => console.error("[notification] book rejected failed:", err));
 
-      return reply.send({ book: updated, reason: body.reason });
+      return reply.send({ book: updated, reason: combinedNote });
     }
   );
 

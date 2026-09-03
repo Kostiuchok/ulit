@@ -12,7 +12,7 @@ import { RelistButton } from "@/components/books/RelistButton";
 import { BookCoverCarousel } from "@/components/books/BookCoverCarousel";
 import { BookPromoSidebar } from "@/components/books/BookPromoSidebar";
 import { useBook } from "@/hooks/useBook";
-import { splitRejectionLines, getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
+import { getAllRejectionLines } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
 
 interface DashboardBook {
@@ -28,11 +28,15 @@ interface DashboardBook {
   pricePrintBw?: string | number | null;
   pricePrintHardcoverBw?: string | number | null;
   bookAuthors?: { lastName: string; firstName: string }[] | null;
+  desiredRoyaltyAmount?: string | number | null;
+  desiredRoyaltyAmountPrint?: string | number | null;
   genre?: string | null;
+  language?: string | null;
   printWidthMm?: number | null;
   printHeightMm?: number | null;
   printFormatKey?: string | null;
   originalDocxUrl?: string | null;
+  epubUrl?: string | null;
   docxUpdatedAt?: string | null;
   republishRequestedAt?: string | null;
   pendingTitle?: string | null;
@@ -60,6 +64,9 @@ interface DashboardBook {
   googleSentAt?: string | null;
   moderationStatus?: string | null;
   moderationNote?: string | null;
+  moderationReasons?: string[] | null;
+  moderationCustomNote?: string | null;
+  moderationFieldSnapshot?: unknown;
   author?: { contractAcceptedAt?: string | null } | null;
 }
 
@@ -84,33 +91,31 @@ export function BookDashboard() {
   // moderationNote until the author saved *anything* on the relevant page
   // (locallyFixed, cover/page.tsx and output-data/page.tsx), which is a
   // blind dismissal -- saving an unrelated tweak clears a still-unresolved
-  // "обкладинка застара" note just as readily as actually fixing it. The
-  // cover concern specifically can be checked against real data instead of
-  // guessing from "did the author click save": book.coverUrl either exists
-  // now or it doesn't. Split the note so the cover line(s) get their own
-  // monitored block (red while missing, flips green+checked the moment a
-  // cover exists -- no save/dismiss action required to notice that), and
-  // -- if the rejection was cover-only -- skip the generic block entirely
-  // rather than repeat the same line twice.
+  // "обкладинка застара" note just as readily as actually fixing it.
   //
-  // The generic "other" block now reads getUnresolvedRejectionLines -- the
-  // exact same per-line live-field check output-data/page.tsx's own banner
-  // uses -- instead of raw splitRejectionLines, so the two pages can never
-  // show conflicting state: a genre/description/etc. line disappears here
-  // the moment that field has a value, same as it does there, without
-  // needing the author to click dismiss or to have saved on THIS page.
-  const rejectionLines = book?.moderationStatus === "REJECTED" && book.moderationNote
-    ? splitRejectionLines(book.moderationNote)
-    : [];
-  const coverLines = rejectionLines.filter((l) => l.category === "cover");
-  const unresolvedOtherLines = book ? getUnresolvedRejectionLines(book).filter((l) => l.category !== "cover") : [];
+  // getAllRejectionLines gives every concern (resolved or not) via the same
+  // shared logic every other rejection-aware page reads (rejectedBlocks.ts):
+  // for a book rejected via the admin's structured reason checkboxes, a
+  // concern resolves once its field differs from its value AT the moment of
+  // rejection (catches "cover existed but was flagged as bad quality,
+  // author reuploaded a different one" -- not just "cover exists", which a
+  // rejected-for-quality cover would already satisfy without any real fix);
+  // a legacy freeform-only rejection falls back to best-effort presence
+  // checks. Split so the cover line(s) get their own monitored block (red
+  // while unresolved, flips green+checked the moment it's fixed -- no
+  // save/dismiss needed to notice that), and -- if the rejection was
+  // cover-only -- the generic block is skipped entirely rather than
+  // repeating the same line twice.
+  const allRejectionLines = book ? getAllRejectionLines(book) : [];
+  const coverLines = allRejectionLines.filter((l) => l.category === "cover");
+  const unresolvedOtherLines = allRejectionLines.filter((l) => l.category !== "cover" && !l.resolved);
   const hasCoverNotice = coverLines.length > 0 && !coverNoticeDismissed;
-  const coverResolved = !!book?.coverUrl;
-  // No categorized lines matched at all (freeform note that didn't hit any
-  // keyword) -- fall back to the old undifferentiated block so a rejection
-  // never silently shows nothing.
-  const showGenericFallback =
-    book?.moderationStatus === "REJECTED" && rejectionLines.length === 0 && !otherNoticeDismissed;
+  const coverResolved = coverLines.length > 0 && coverLines.every((l) => l.resolved);
+  // REJECTED with literally no note text at all (shouldn't happen via the
+  // current admin UI, which requires picking a reason or writing a note,
+  // but a stray API call could still leave a book in this state) -- fall
+  // back to a generic notice so a rejection never silently shows nothing.
+  const showGenericFallback = book?.moderationStatus === "REJECTED" && !book?.moderationNote && !otherNoticeDismissed;
   const showOtherBlock = (unresolvedOtherLines.length > 0 || showGenericFallback) && !otherNoticeDismissed;
 
   return (

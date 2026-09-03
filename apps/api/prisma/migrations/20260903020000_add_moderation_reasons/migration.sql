@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "moderationReasons" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "moderationCustomNote" TEXT;
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "moderationFieldSnapshot" JSONB;

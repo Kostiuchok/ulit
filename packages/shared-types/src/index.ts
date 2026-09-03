@@ -180,6 +180,127 @@ export interface Book {
   publishedAt?: string;
 }
 
+// ─── Rejection reasons (admin reject flow) ───────────────────────────────────
+
+// Fixed taxonomy the admin picks from (checkboxes) when rejecting a book,
+// instead of a single freeform textarea -- lets author-facing pages know
+// EXACTLY which field a rejection is about (no more guessing from keywords
+// in a note), and lets them detect "resolved" as "this field's value
+// differs from what it was at the moment of rejection"
+// (isRejectionReasonResolved below) instead of merely "this field is
+// non-empty". The latter can't tell a rejection for a MISSING value apart
+// from one for a WRONG-but-present value (e.g. admin picks "Жанр" because
+// the genre is wrong, not missing -- genre already has a value both before
+// and after rejection until the author actually changes it).
+export type RejectionReasonKey =
+  | "cover"
+  | "manuscript"
+  | "title"
+  | "description"
+  | "genre"
+  | "author"
+  | "language"
+  | "price";
+
+export interface RejectionReasonDef {
+  key: RejectionReasonKey;
+  label: string; // admin checkbox label
+  noteText: string; // canonical sentence composed into moderationNote (email + legacy display)
+  section: "info" | "file" | "price" | "cover-page"; // which author-facing page/section this jumps to
+}
+
+export const REJECTION_REASONS: RejectionReasonDef[] = [
+  { key: "cover", label: "Обкладинка", noteText: "Обкладинка не відповідає вимогам.", section: "cover-page" },
+  { key: "manuscript", label: "Рукопис", noteText: "Рукопис потребує доопрацювання.", section: "file" },
+  { key: "title", label: "Назва книги", noteText: "Назву книги потрібно виправити.", section: "info" },
+  { key: "description", label: "Анотація", noteText: "Анотацію потрібно виправити.", section: "info" },
+  { key: "genre", label: "Жанр", noteText: "Жанр вказано некоректно.", section: "info" },
+  { key: "author", label: "Автори книги", noteText: "Дані про авторів потребують виправлення.", section: "info" },
+  { key: "language", label: "Мова книги", noteText: "Мову книги вказано некоректно.", section: "info" },
+  { key: "price", label: "Ціна та розповсюдження", noteText: "Ціна та умови розповсюдження потребують перегляду.", section: "price" },
+];
+
+// Loose on purpose -- Decimal price fields arrive as string|number depending
+// on the caller (Prisma client vs already-JSON-serialized API response), and
+// isRejectionReasonResolved compares via JSON.stringify, which doesn't care.
+export interface RejectionSnapshotBook {
+  title?: string | null;
+  description?: string | null;
+  genre?: string | null;
+  language?: string | null;
+  coverUrl?: string | null;
+  docxUpdatedAt?: string | Date | null;
+  bookAuthors?: unknown;
+  // `unknown` rather than string|number|null -- Prisma's own Decimal type
+  // (priceEbook etc. are `Decimal? @db.Decimal` in schema.prisma) isn't
+  // assignable to either, and getRejectionSnapshotValue only ever reads
+  // these through JSON.stringify (Decimal serializes to a string via its
+  // own toJSON()), so exact typing here buys nothing but friction for every
+  // caller.
+  priceEbook?: unknown;
+  pricePrint?: unknown;
+  pricePrintHardcover?: unknown;
+  pricePrintBw?: unknown;
+  pricePrintHardcoverBw?: unknown;
+  desiredRoyaltyAmount?: unknown;
+  desiredRoyaltyAmountPrint?: unknown;
+}
+
+// The single value a rejection reason's "resolved" check hinges on -- read
+// fresh both when the admin rejects (the snapshot written then) and whenever
+// a page wants to know "has this changed since". Serialized identically at
+// both sites (this same function), so a plain JSON.stringify comparison in
+// isRejectionReasonResolved is enough, no per-field equality logic needed.
+export function getRejectionSnapshotValue(key: RejectionReasonKey, book: RejectionSnapshotBook): unknown {
+  switch (key) {
+    case "cover":
+      return book.coverUrl ?? null;
+    case "manuscript":
+      // docxUpdatedAt (not originalDocxUrl) -- it exists specifically to
+      // track "did the source content change" (same field the republish
+      // flow already keys off), so re-uploading the same file under the
+      // same URL still wouldn't falsely look "unchanged" the way comparing
+      // a URL string could.
+      return book.docxUpdatedAt ? String(book.docxUpdatedAt) : null;
+    case "title":
+      return book.title ?? null;
+    case "description":
+      return book.description ?? null;
+    case "genre":
+      return book.genre ?? null;
+    case "author":
+      return book.bookAuthors ?? null;
+    case "language":
+      return book.language ?? null;
+    case "price":
+      return {
+        priceEbook: book.priceEbook ?? null,
+        pricePrint: book.pricePrint ?? null,
+        pricePrintHardcover: book.pricePrintHardcover ?? null,
+        pricePrintBw: book.pricePrintBw ?? null,
+        pricePrintHardcoverBw: book.pricePrintHardcoverBw ?? null,
+        desiredRoyaltyAmount: book.desiredRoyaltyAmount ?? null,
+        desiredRoyaltyAmountPrint: book.desiredRoyaltyAmountPrint ?? null,
+      };
+  }
+}
+
+// A reason is resolved once the field it's about differs from its value at
+// the moment of rejection (the snapshot) -- catches both "was missing, now
+// has a value" AND "had a wrong value, now has a different one", which
+// simple presence-checking never could. No snapshot recorded for this key
+// (a legacy rejection from before this system existed) means "can't tell" --
+// stays flagged until the admin re-reviews, same as before.
+export function isRejectionReasonResolved(
+  key: RejectionReasonKey,
+  book: RejectionSnapshotBook,
+  snapshot: Partial<Record<RejectionReasonKey, unknown>> | null | undefined
+): boolean {
+  if (!snapshot || !(key in snapshot)) return false;
+  const current = getRejectionSnapshotValue(key, book);
+  return JSON.stringify(current) !== JSON.stringify(snapshot[key]);
+}
+
 // ─── Order ───────────────────────────────────────────────────────────────────
 
 export interface OrderItem {
