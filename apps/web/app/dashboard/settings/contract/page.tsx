@@ -210,18 +210,30 @@ export default function ContractPage() {
                   <p className="text-sm text-gray-500">Щоб змінити договір, заповніть усі поля</p>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label>Ім&rsquo;я</Label>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Прізвище" />
-                    <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Ім'я" />
-                    <Input value={patronymic} onChange={(e) => setPatronymic(e.target.value)} placeholder="По батькові" />
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="lastName">
+                      Прізвище <span className="text-red-500">*</span>
+                    </Label>
+                    <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="firstName">
+                      Ім&rsquo;я <span className="text-red-500">*</span>
+                    </Label>
+                    <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="patronymic">По батькові</Label>
+                    <Input id="patronymic" value={patronymic} onChange={(e) => setPatronymic(e.target.value)} />
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="birthDate">Дата народження</Label>
+                    <Label htmlFor="birthDate">
+                      Дата народження <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="birthDate"
                       type="date"
@@ -259,7 +271,9 @@ export default function ContractPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="passportSeries">Серія та номер паспорта</Label>
+                  <Label htmlFor="passportSeries">
+                    Серія та номер паспорта <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="passportSeries"
                     value={passportSeries}
@@ -269,7 +283,9 @@ export default function ContractPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="registrationAddress">Адреса реєстрації</Label>
+                  <Label htmlFor="registrationAddress">
+                    Адреса реєстрації <span className="text-red-500">*</span>
+                  </Label>
                   <textarea
                     id="registrationAddress"
                     value={registrationAddress}
@@ -331,7 +347,7 @@ export default function ContractPage() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm text-gray-700">
-                  ІПН / РНОКПП
+                  ІПН / РНОКПП <span className="text-red-500">*</span>
                   <input
                     value={taxId}
                     onChange={(e) => setTaxId(e.target.value)}
@@ -340,7 +356,7 @@ export default function ContractPage() {
                   />
                 </label>
                 <label className="text-sm text-gray-700">
-                  IBAN для виплат
+                  IBAN для виплат <span className="text-red-500">*</span>
                   <input
                     value={bankIban}
                     onChange={(e) => setBankIban(e.target.value)}
@@ -349,7 +365,7 @@ export default function ContractPage() {
                   />
                 </label>
                 <label className="text-sm text-gray-700 sm:col-span-2">
-                  Паспортні дані або дані ФОП
+                  Паспортні дані або дані ФОП <span className="text-red-500">*</span>
                   <input
                     value={payoutDocument}
                     onChange={(e) => setPayoutDocument(e.target.value)}
