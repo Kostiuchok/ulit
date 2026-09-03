@@ -18,14 +18,20 @@ import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
-import { parseRejectedConcerns, resolveRejectionLineSection, splitRejectionLines } from "@/lib/rejectedBlocks";
+import {
+  getUnresolvedRejectionLines,
+  resolveRejectionLineSection,
+  DESCRIPTION_MIN_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+} from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
 import { PRINT_FORMATS, PRINT_FORMAT_KEYS, resolveBookPrintFormat, type PrintFormatKey } from "shared-types";
 
 // T-2060 п.1/п.3 -- confirmed by live Ridero test (2026-08-17), matches
 // apps/api/src/modules/books/publish.ts's DESCRIPTION_MIN_LENGTH/MAX_LENGTH.
-const DESCRIPTION_MIN_LENGTH = 120;
-const DESCRIPTION_MAX_LENGTH = 500;
+// (Values live in rejectedBlocks.ts now -- isRejectionLineResolved's
+// description check needs the exact same thresholds this form validates
+// against, so there's one definition instead of two that could drift.)
 
 // Each external platform's own annotation-length recommendation -- kept in
 // sync manually with admin/books/[id]/distribute/page.tsx's per-platform
@@ -318,7 +324,6 @@ function OutputDataContent() {
   // further down the same page.
   const [justStagedFields, setJustStagedFields] = useState<string[]>([]);
   const [infoError, setInfoError] = useState("");
-  const [locallyFixed, setLocallyFixed] = useState(false);
   const [coAuthors, setCoAuthors] = useState<CoAuthor[]>([]);
   const [newCoAuthorName, setNewCoAuthorName] = useState("");
   const [authorPhotoUploading, setAuthorPhotoUploading] = useState(false);
@@ -638,7 +643,6 @@ function OutputDataContent() {
         ].filter(Boolean) as string[]
       );
       setInfoSaved(true);
-      setLocallyFixed(true);
     } catch (e: any) {
       setInfoError(e.message || "Помилка збереження");
     }
@@ -769,17 +773,33 @@ function OutputDataContent() {
     publish: readyToPublish,
   };
 
-  const rejected = book ? parseRejectedConcerns(book) : { cover: false, manuscript: false, metadata: false };
-  const showRejection = rejected.metadata && !locallyFixed;
-  // "Мова книги" gets its own precise check instead of sharing showRejection
-  // (the whole-section flag) with every other field in "Інформація" -- a
-  // rejection about description length or genre used to also turn this
-  // unrelated dropdown red, since showRejection didn't distinguish which
-  // metadata field the note actually complained about.
-  const languageRejected =
-    book?.moderationStatus === "REJECTED" && !!book.moderationNote
-      ? splitRejectionLines(book.moderationNote).some((l) => l.category === "language")
-      : false;
+  // Which of the admin's rejection lines are STILL relevant, checked live
+  // against the current field values (getUnresolvedRejectionLines) instead
+  // of a "locallyFixed" flag that was set once on save and forgotten again
+  // on the next page load -- that flag hid the banner/red border right
+  // after saving, but reloading or navigating back re-derived everything
+  // from the still-REJECTED moderationStatus with nothing tracking that the
+  // flagged field had actually been fixed, so both reappeared. Per-line
+  // resolution instead means a line (and any red ring tied to it) simply
+  // stops showing once the field it's about has a value, and stays gone.
+  const unresolvedRejectionLines = book ? getUnresolvedRejectionLines(book) : [];
+  const unresolvedCategory = (cat: (typeof unresolvedRejectionLines)[number]["category"]) =>
+    unresolvedRejectionLines.some((l) => l.category === cat);
+  // "Ще не виконано" per exact field this page can highlight, so a
+  // rejection about e.g. genre only rings the Жанр select red -- not the
+  // whole "Інформація" card, and not unrelated fields like Мова.
+  const titleRejected = unresolvedCategory("title");
+  const descriptionRejected = unresolvedCategory("description");
+  const genreRejected = unresolvedCategory("genre");
+  const authorRejected = unresolvedCategory("author");
+  const languageRejected = unresolvedCategory("language");
+  const priceCardRejected = unresolvedCategory("price");
+  // The "Інформація" card's own blanket red border -- only for concerns that
+  // actually live in that card (title/description/genre/author/language),
+  // not price (its own card, see priceCardRejected) or cover/manuscript
+  // (their own pages already show/monitor their own rejection banners).
+  const infoCardRejected = titleRejected || descriptionRejected || genreRejected || authorRejected || languageRejected;
+  const showRejection = infoCardRejected || priceCardRejected;
   const titleInvalid = titleValue.length > 0 && titleValue.length < 3;
 
   return (
@@ -817,20 +837,20 @@ function OutputDataContent() {
               >
                 {/* Read-only progress checkbox, not a real form control -- it
                     mirrors sectionDone (same booleans SectionHeading's ✓/○
-                    below reads), it never toggles independently on click. */}
+                    below reads), it never toggles independently on click. A
+                    solid fill in both states (not just a border) -- a thin
+                    outline for "not done" barely registered against the
+                    active pill's dark background, reading as "not
+                    reacting" rather than as a distinct unchecked state. */}
                 <span
                   aria-hidden
                   title={sectionDone[key] ? "Виконано" : "Ще не виконано"}
                   className={cn(
-                    "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[0.625rem] font-black leading-none",
-                    sectionDone[key]
-                      ? "border-green-500 bg-green-500 text-white"
-                      : activeSection === key
-                        ? "border-white/50"
-                        : "border-gray-300"
+                    "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-black leading-none",
+                    sectionDone[key] ? "bg-green-500 text-white" : "bg-gray-300 text-transparent"
                   )}
                 >
-                  {sectionDone[key] && "✓"}
+                  ✓
                 </span>
                 {SECTION_LABELS[key]}
               </button>
@@ -856,9 +876,12 @@ function OutputDataContent() {
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             <p className="mb-1.5 font-medium">Модератор зазначив зауваження щодо метаданих:</p>
             <div className="space-y-0.5">
-              {(book?.moderationNote ?? "").split("\n").map((line, i) => {
-                if (!line.trim()) return <div key={i} className="h-2" />;
-                const target = resolveRejectionLineSection(line);
+              {/* Only STILL-unresolved lines -- a line disappears here the
+                  moment its own field gets a value (isRejectionLineResolved),
+                  it doesn't wait for a page reload or the admin's next
+                  review. */}
+              {unresolvedRejectionLines.map((l, i) => {
+                const target = resolveRejectionLineSection(l.text);
                 if (target === "cover-page") {
                   return (
                     <Link
@@ -866,7 +889,7 @@ function OutputDataContent() {
                       href={`/dashboard/books/${id}/cover`}
                       className="block whitespace-pre-wrap underline decoration-red-300 hover:decoration-red-600"
                     >
-                      {line}
+                      {l.text}
                     </Link>
                   );
                 }
@@ -878,13 +901,13 @@ function OutputDataContent() {
                       onClick={() => jumpToRejectionTarget(target)}
                       className="block whitespace-pre-wrap text-left underline decoration-red-300 hover:decoration-red-600"
                     >
-                      {line}
+                      {l.text}
                     </button>
                   );
                 }
                 return (
                   <p key={i} className="whitespace-pre-wrap">
-                    {line}
+                    {l.text}
                   </p>
                 );
               })}
@@ -898,7 +921,7 @@ function OutputDataContent() {
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "info" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
           <SectionHeading label={SECTION_LABELS.info} done={sectionDone.info} />
-          <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
+          <div className={cn("rounded-xl bg-white p-6 shadow-sm", infoCardRejected || titleInvalid ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
               {/* Назва/Підзаголовок/Анотація зліва (усі поля самого тексту
                   книги, стовпчиком) — жанр/розмір/мова/вік справа: коротші
@@ -915,7 +938,7 @@ function OutputDataContent() {
                     <Input
                       id="title"
                       {...infoForm.register("title")}
-                      className={cn(titleInvalid ? "border-red-400 focus-visible:ring-red-300" : "")}
+                      className={cn(titleInvalid || titleRejected ? "border-red-400 focus-visible:ring-red-300" : "")}
                     />
                     {infoForm.formState.errors.title && (
                       <p className="text-sm text-red-500">{infoForm.formState.errors.title.message}</p>
@@ -947,7 +970,7 @@ function OutputDataContent() {
                       rows={9}
                       className={cn(
                         "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
-                        infoForm.formState.errors.description
+                        infoForm.formState.errors.description || descriptionRejected
                           ? "border-red-400 focus-visible:ring-red-300"
                           : "border-input focus-visible:ring-ring"
                       )}
@@ -983,7 +1006,10 @@ function OutputDataContent() {
                     <select
                       id="genre"
                       {...infoForm.register("genre")}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className={cn(
+                        "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        genreRejected ? "border-red-400" : "border-input"
+                      )}
                     >
                       <option value="">Оберіть жанр</option>
                       {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
@@ -1063,7 +1089,7 @@ function OutputDataContent() {
               {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача.
                   Знову повношириннi блоки один під одним (не 2 колонки) — так було
                   до попереднього редизайну. */}
-              <div className="space-y-2 rounded-lg border p-3">
+              <div className={cn("space-y-2 rounded-lg border p-3", authorRejected && "border-2 border-red-400")}>
                   <Label>Автори книги</Label>
                   <p className="text-xs text-gray-400">
                     Якщо авторів декілька — кожен додає власне прізвище/ім&apos;я і, за бажанням, своє фото.
@@ -1402,7 +1428,7 @@ function OutputDataContent() {
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "price" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
           <SectionHeading label={SECTION_LABELS.price} done={sectionDone.price} />
-          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
+          <div className={cn("rounded-xl bg-white p-6 shadow-sm space-y-5", priceCardRejected ? "border-2 border-red-400" : "border")}>
             <FormatsAndDistribution
               language={book?.language}
               formatLabel={`${displayFormat.widthMm}×${displayFormat.heightMm}мм (${PRINT_FORMATS[displayFormat.key as keyof typeof PRINT_FORMATS]?.label ?? "Стандартний"})`}
