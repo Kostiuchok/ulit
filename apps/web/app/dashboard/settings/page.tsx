@@ -244,6 +244,11 @@ export default function SettingsPage() {
             <div className="space-y-1.5">
               <Label htmlFor="name">Ім&apos;я автора</Label>
               <Input id="name" {...register("name")} placeholder="Іван Франко" />
+              <p className="text-xs text-gray-500">
+                Псевдонім за бажанням — саме це ім&apos;я бачитимуть читачі на ваших книгах. У
+                транслітерованому вигляді воно також формує посилання на вашу сторінку автора (поле
+                «Публічний slug» нижче).
+              </p>
               {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
             </div>
 
