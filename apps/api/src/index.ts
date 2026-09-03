@@ -40,6 +40,7 @@ import { royaltiesMeRoutes } from "./modules/royalties/me";
 import { liqpayRoutes } from "./modules/payments/liqpay";
 import { adminRoutes } from "./modules/admin/admin";
 import { bookChamberRoutes } from "./modules/admin/book-chamber";
+import { publisherDocumentsRoutes } from "./modules/admin/publisher-documents";
 import { printCostSettingsRoutes } from "./modules/admin/print-cost-settings";
 import { startEmailWorker } from "./lib/email-queue";
 import { metricsRegistry } from "./lib/metrics";
@@ -136,6 +137,7 @@ async function bootstrap() {
   await app.register(liqpayRoutes);
   await app.register(adminRoutes);
   await app.register(bookChamberRoutes);
+  await app.register(publisherDocumentsRoutes);
   await app.register(printCostSettingsRoutes);
 
   // Auto-promote ADMIN_EMAIL to ADMIN role (safe: only upgrades AUTHOR, never downgrades)

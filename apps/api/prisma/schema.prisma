@@ -299,3 +299,15 @@ model PrintCostSettings {
   bulkTiers         Json     @default("[]")
   updatedAt         DateTime @updatedAt
 }
+
+// Publisher-level (ULIT itself, not per-book/per-author) documents needed to
+// register for a block of ISBN numbers and to submit УДК requests to
+// Книжкова палата (docs/instr_isbn.pdf §2.1, ukrbook.net/UDC_poslugy.html).
+// One row per fixed document type (see PUBLISHER_DOCUMENT_KEYS in
+// publisher-documents.ts) -- created on demand via upsert, not seeded.
+model PublisherDocument {
+  id         String    @id @default(cuid())
+  key        String    @unique
+  url        String? // private MinIO object key -- signed URL generated on read, same as identity docs
+  uploadedAt DateTime?
+}

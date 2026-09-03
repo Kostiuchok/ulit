@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
+import { PublisherDocumentsCard } from "../../../components/admin/PublisherDocumentsCard";
 
 interface Stats {
   books: Record<string, number>;
@@ -305,6 +306,8 @@ export default function AdminDashboard() {
           </Link>
         ))}
       </div>
+
+      <PublisherDocumentsCard />
     </div>
   );
 }
