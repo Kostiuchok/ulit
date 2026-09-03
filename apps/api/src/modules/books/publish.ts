@@ -1,65 +1,40 @@
 import { FastifyInstance, FastifyRequest } from "fastify";
+import { Prisma } from "@prisma/client";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
+import { PUBLISH_FIELD_CHECKS, DESCRIPTION_MIN_LENGTH, DESCRIPTION_MAX_LENGTH, type PublishStepBook } from "shared-types";
 
 interface ValidationError {
   field: string;
   message: string;
 }
 
-// T-2060 п.1/п.3 -- confirmed by live Ridero test (2026-08-17), see
-// docs/T-2060-publish-info-redesign-checklist.md.
-const DESCRIPTION_MIN_LENGTH = 120;
-const DESCRIPTION_MAX_LENGTH = 500;
+// Per-field error message -- the ONE thing that stays backend-only (the
+// author-facing output-data page has its own section labels/headings, not
+// per-field prose). The actual "is this field ok" checks live in
+// PUBLISH_FIELD_CHECKS (shared-types) -- this is the real pre-publish gate,
+// and output-data/page.tsx's per-section checkbox reads the exact same
+// checks (isPublishStepComplete), so the two can never disagree about what
+// counts as done.
+const FIELD_MESSAGES: Record<string, (book: PublishStepBook) => string> = {
+  title: () => "Назва відсутня",
+  description: (b) => {
+    const len = (b.description ?? "").trim().length;
+    return `Анотація має бути від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів (зараз ${len})`;
+  },
+  ageRating: () => "Вкажіть вікові обмеження",
+  cover: () => "Обкладинка не завантажена",
+  file: () => "Файл рукопису не завантажено",
+  price: () => "Вкажіть ціну або бажане роялті",
+};
 
-function validateBook(book: {
-  title: string;
-  description: string | null;
-  ageRating: string | null;
-  coverUrl: string | null;
-  originalDocxUrl: string | null;
-  pdfUrl: string | null;
-  epubUrl: string | null;
-  priceEbook: any;
-  pricePrint: any;
-  pricePrintHardcover: any;
-  pricePrintBw: any;
-  pricePrintHardcoverBw: any;
-  desiredRoyaltyAmount: any;
-  desiredRoyaltyAmountPrint: any;
-  status: string;
-}): ValidationError[] {
-  const errors: ValidationError[] = [];
+function validateBook(book: PublishStepBook & { status: string }): ValidationError[] {
+  const errors: ValidationError[] = PUBLISH_FIELD_CHECKS.filter((c) => !c.isComplete(book)).map((c) => ({
+    field: c.key,
+    message: FIELD_MESSAGES[c.key](book),
+  }));
 
-  if (!book.title?.trim()) errors.push({ field: "title", message: "Назва відсутня" });
-  const descLength = book.description?.trim().length ?? 0;
-  if (descLength < DESCRIPTION_MIN_LENGTH || descLength > DESCRIPTION_MAX_LENGTH) {
-    errors.push({
-      field: "description",
-      message: `Анотація має бути від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів (зараз ${descLength})`,
-    });
-  }
-  if (!book.ageRating) errors.push({ field: "ageRating", message: "Вкажіть вікові обмеження" });
-  if (!book.coverUrl) errors.push({ field: "cover", message: "Обкладинка не завантажена" });
-  if (!book.originalDocxUrl && !book.pdfUrl && !book.epubUrl) {
-    errors.push({ field: "file", message: "Файл рукопису не завантажено" });
-  }
-  // T-2060 п.9/п.11 -- either the legacy per-format prices or the new
-  // desired-royalty-per-unit satisfies this. desiredRoyaltyAmount is set via
-  // the per-channel royalty calculator (DistributionChannelPicker.tsx) --
-  // it live-derives a suggested price for every enabled channel from its own
-  // commission formula, but our schema only stores ONE price per format
-  // (not one per channel), so there is no separate per-channel price value
-  // to individually require here. Storing desiredRoyaltyAmount IS the
-  // "price resolved on every enabled channel" state for this schema shape.
-  if (
-    !book.priceEbook && !book.pricePrint && !book.pricePrintHardcover &&
-    !book.pricePrintBw && !book.pricePrintHardcoverBw &&
-    !book.desiredRoyaltyAmount && !book.desiredRoyaltyAmountPrint
-  ) {
-    errors.push({ field: "price", message: "Вкажіть ціну або бажане роялті" });
-  }
   if (book.status === "PROCESSING") {
     errors.push({ field: "status", message: "Дочекайтесь завершення конвертації файлів" });
   }
@@ -195,16 +170,24 @@ export async function publishRoute(app: FastifyInstance) {
       // Resubmission after a rejection must clear the old REJECTED verdict --
       // moderationStatus/moderationNote otherwise stay stuck on the rejection
       // from a previous round forever (nothing else ever resets them), so
-      // the author's rejection banner (parseRejectedConcerns, keyed off
+      // the author's rejection banner (getAllRejectionLines, keyed off
       // moderationStatus === "REJECTED") kept showing even after fixing the
       // issues and resubmitting. Unconditional reset to PENDING is correct
       // for a first-time submission too (already the schema default).
+      // moderationReasons/moderationCustomNote/moderationFieldSnapshot reset
+      // for the same reason -- moderationStatus short-circuits them to unused
+      // the moment it's PENDING, but leaving stale values around is still
+      // worth clearing so a future `SELECT * FROM "Book"` doesn't show a
+      // "rejection" that no longer means anything.
       const submitted = await prisma.book.update({
         where: { id },
         data: {
           status: "REVIEW",
           moderationStatus: "PENDING",
           moderationNote: null,
+          moderationReasons: [],
+          moderationCustomNote: null,
+          moderationFieldSnapshot: Prisma.JsonNull,
           publicationTimeline: timeline,
         },
         select: { id: true, status: true, title: true },

@@ -18,19 +18,24 @@ import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
+import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
+import { cn } from "@/lib/utils";
 import {
-  getUnresolvedRejectionLines,
+  PRINT_FORMATS,
+  PRINT_FORMAT_KEYS,
+  resolveBookPrintFormat,
+  isPublishStepComplete,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
-} from "@/lib/rejectedBlocks";
-import { cn } from "@/lib/utils";
-import { PRINT_FORMATS, PRINT_FORMAT_KEYS, resolveBookPrintFormat, type PrintFormatKey } from "shared-types";
+  type PrintFormatKey,
+} from "shared-types";
 
-// T-2060 п.1/п.3 -- confirmed by live Ridero test (2026-08-17), matches
-// apps/api/src/modules/books/publish.ts's DESCRIPTION_MIN_LENGTH/MAX_LENGTH.
-// (Values live in rejectedBlocks.ts now -- isRejectionLineResolved's
-// description check needs the exact same thresholds this form validates
-// against, so there's one definition instead of two that could drift.)
+// T-2060 п.1/п.3 -- confirmed by live Ridero test (2026-08-17). Lives in
+// shared-types now (PUBLISH_FIELD_CHECKS' own "description" check, and
+// rejectedBlocks.ts's resolved-check, both need this exact threshold) so
+// apps/api/publish.ts's actual pre-publish gate and every place on the web
+// app that mirrors it (this form, BookWizard, the rejection banner) read
+// one definition instead of four independent copies that could drift.
 
 // Each external platform's own annotation-length recommendation -- kept in
 // sync manually with admin/books/[id]/distribute/page.tsx's per-platform
@@ -798,30 +803,16 @@ function OutputDataContent() {
     );
   }
 
-  // Same readiness bar as the backend's own pre-publish gate
-  // (apps/api/src/modules/books/publish.ts's validateBook) -- read from the
-  // persisted book, not live form state, so a heading only turns green once
-  // the section is actually saved, not just typed into.
-  const infoSectionDone = (() => {
-    const descLen = (book?.description ?? "").trim().length;
-    return (
-      !!book?.title?.trim() &&
-      descLen >= DESCRIPTION_MIN_LENGTH &&
-      descLen <= DESCRIPTION_MAX_LENGTH &&
-      !!book?.ageRating
-    );
-  })();
-  const fileSectionDone = !!(book?.originalDocxUrl || book?.pdfUrl || book?.epubUrl);
-  const coverSectionDone = !!book?.coverUrl;
-  const priceSectionDone = !!(
-    book?.priceEbook ||
-    book?.pricePrint ||
-    book?.pricePrintHardcover ||
-    book?.pricePrintBw ||
-    book?.pricePrintHardcoverBw ||
-    book?.desiredRoyaltyAmount ||
-    book?.desiredRoyaltyAmountPrint
-  );
+  // Same PUBLISH_FIELD_CHECKS (shared-types) as the backend's own
+  // pre-publish gate (apps/api/src/modules/books/publish.ts's validateBook)
+  // -- one shared source instead of two independently-reimplemented copies
+  // that could drift. Read from the persisted book, not live form state, so
+  // a heading only turns green once the section is actually saved, not just
+  // typed into.
+  const infoSectionDone = isPublishStepComplete("info", book ?? {});
+  const fileSectionDone = isPublishStepComplete("file", book ?? {});
+  const coverSectionDone = isPublishStepComplete("cover", book ?? {});
+  const priceSectionDone = isPublishStepComplete("price", book ?? {});
   // Which of the admin's rejection lines are STILL relevant, checked live
   // against the current field values (getUnresolvedRejectionLines) instead
   // of a "locallyFixed" flag that was set once on save and forgotten again

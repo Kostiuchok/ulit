@@ -1,15 +1,15 @@
-import { REJECTION_REASONS, isRejectionReasonResolved, type RejectionReasonKey } from "shared-types";
+import {
+  REJECTION_REASONS,
+  isRejectionReasonResolved,
+  DESCRIPTION_MIN_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+  type RejectionReasonKey,
+} from "shared-types";
 
 interface ModeratedBook {
   moderationStatus?: string | null;
   moderationNote?: string | null;
 }
-
-// Shared with output-data/page.tsx's infoSchema (zod) so the "still counts
-// as long enough" check below can never drift from what the save form
-// actually validates against.
-export const DESCRIPTION_MIN_LENGTH = 120;
-export const DESCRIPTION_MAX_LENGTH = 500;
 
 // output-data's own section keys (SECTION_LABELS in output-data/page.tsx) --
 // duplicated here rather than imported, since that page isn't a module

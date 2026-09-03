@@ -12,17 +12,16 @@ import { DocxUploader } from "../dashboard/DocxUploader";
 import { ProBadge } from "../ui/pro-badge";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
-import { PRINT_FORMATS, PRINT_FORMAT_KEYS, type PrintFormatKey } from "shared-types";
+import {
+  PRINT_FORMATS,
+  PRINT_FORMAT_KEYS,
+  DESCRIPTION_MIN_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+  type PrintFormatKey,
+} from "shared-types";
 import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../books/FormatsAndDistribution";
 
 // ─── Step schemas ────────────────────────────────────────────────────────────
-
-// Same bounds as output-data/page.tsx's "Анотація" field and
-// apps/api/src/modules/books/publish.ts's DESCRIPTION_MIN_LENGTH/MAX_LENGTH —
-// this is the same Book.description column, just filled in earlier in the
-// flow, so it must validate identically wherever it's edited.
-const DESCRIPTION_MIN_LENGTH = 120;
-const DESCRIPTION_MAX_LENGTH = 500;
 
 // Same per-platform recommendations as output-data/page.tsx's badges --
 // kept in sync manually with admin/books/[id]/distribute/page.tsx's

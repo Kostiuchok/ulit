@@ -180,6 +180,108 @@ export interface Book {
   publishedAt?: string;
 }
 
+// ─── Publish readiness ────────────────────────────────────────────────────────
+
+// Was independently reimplemented in THREE places before this: the
+// backend's actual pre-publish gate (apps/api/.../publish.ts validateBook),
+// the author-facing "Вихідні дані" page's per-section checkbox/heading
+// (apps/web/.../output-data/page.tsx), and a second copy of these same two
+// constants in apps/web/lib/rejectedBlocks.ts -- e.g. this exact number,
+// confirmed by a live Ridero test (2026-08-17, T-2060 п.1/п.3), had three
+// independent copies that could each drift without the other two noticing.
+export const DESCRIPTION_MIN_LENGTH = 120;
+export const DESCRIPTION_MAX_LENGTH = 500;
+
+// Fields every check below reads. Loose (`unknown`) for the price fields --
+// same reasoning as RejectionSnapshotBook above: Prisma's Decimal type isn't
+// assignable to string|number|null, and these are only ever read through a
+// truthiness check, never arithmetic.
+export interface PublishStepBook {
+  title?: string | null;
+  description?: string | null;
+  ageRating?: string | null;
+  coverUrl?: string | null;
+  originalDocxUrl?: string | null;
+  pdfUrl?: string | null;
+  epubUrl?: string | null;
+  priceEbook?: unknown;
+  pricePrint?: unknown;
+  pricePrintHardcover?: unknown;
+  pricePrintBw?: unknown;
+  pricePrintHardcoverBw?: unknown;
+  desiredRoyaltyAmount?: unknown;
+  desiredRoyaltyAmountPrint?: unknown;
+}
+
+export type PublishFieldKey = "title" | "description" | "ageRating" | "cover" | "file" | "price";
+
+export interface PublishFieldCheck {
+  key: PublishFieldKey;
+  isComplete: (book: PublishStepBook) => boolean;
+}
+
+// One check per field the backend's pre-publish gate actually enforces --
+// kept at this granularity (not grouped into sections yet) because the
+// backend also needs a per-FIELD error message ("Анотація має бути від 120
+// до 500 символів (зараз 43)", not just "Інформація неповна"), which is a
+// backend-only concern that stays in publish.ts; the shared, importable
+// part is only "is this field ok", not how to phrase telling someone it isn't.
+export const PUBLISH_FIELD_CHECKS: PublishFieldCheck[] = [
+  { key: "title", isComplete: (b) => !!b.title?.trim() },
+  {
+    key: "description",
+    isComplete: (b) => {
+      const len = (b.description ?? "").trim().length;
+      return len >= DESCRIPTION_MIN_LENGTH && len <= DESCRIPTION_MAX_LENGTH;
+    },
+  },
+  { key: "ageRating", isComplete: (b) => !!b.ageRating },
+  { key: "cover", isComplete: (b) => !!b.coverUrl },
+  { key: "file", isComplete: (b) => !!(b.originalDocxUrl || b.pdfUrl || b.epubUrl) },
+  {
+    // T-2060 п.9/п.11 -- either the legacy per-format prices or the new
+    // desired-royalty-per-unit satisfies this; see publish.ts for why there's
+    // no separate per-channel price to require individually.
+    key: "price",
+    isComplete: (b) =>
+      !!(
+        b.priceEbook ||
+        b.pricePrint ||
+        b.pricePrintHardcover ||
+        b.pricePrintBw ||
+        b.pricePrintHardcoverBw ||
+        b.desiredRoyaltyAmount ||
+        b.desiredRoyaltyAmountPrint
+      ),
+  },
+];
+
+export function isPublishFieldComplete(key: PublishFieldKey, book: PublishStepBook): boolean {
+  return PUBLISH_FIELD_CHECKS.find((c) => c.key === key)!.isComplete(book);
+}
+
+export type PublishStepKey = "info" | "file" | "cover" | "price";
+
+// output-data/page.tsx's own section keys (info/file/cover/price -- "review"
+// and "publish" aren't readiness checks of their own, they read off these
+// four) -- each maps to the PUBLISH_FIELD_CHECKS keys that make up that
+// section, so a section's checkbox/heading can never disagree with what
+// validateBook (the actual pre-publish gate) requires of the same fields.
+export const PUBLISH_STEP_FIELDS: Record<PublishStepKey, PublishFieldKey[]> = {
+  info: ["title", "description", "ageRating"],
+  file: ["file"],
+  cover: ["cover"],
+  price: ["price"],
+};
+
+export function isPublishStepComplete(step: PublishStepKey, book: PublishStepBook): boolean {
+  return PUBLISH_STEP_FIELDS[step].every((key) => isPublishFieldComplete(key, book));
+}
+
+export function isReadyToPublish(book: PublishStepBook): boolean {
+  return (Object.keys(PUBLISH_STEP_FIELDS) as PublishStepKey[]).every((step) => isPublishStepComplete(step, book));
+}
+
 // ─── Rejection reasons (admin reject flow) ───────────────────────────────────
 
 // Fixed taxonomy the admin picks from (checkboxes) when rejecting a book,
