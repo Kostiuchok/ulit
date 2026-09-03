@@ -434,8 +434,20 @@ function OutputDataContent() {
   const selectedFormatKey = (infoForm.watch("printFormatKey") || "standard") as PrintFormatKey;
   const displayFormat = PRINT_FORMATS[selectedFormatKey] ?? PRINT_FORMATS.standard;
 
+  // Hydrates every editable field from the freshly-loaded book -- but only
+  // ONCE, on initial load. useBook() silently refetches in the background
+  // whenever the tab regains focus (switching windows/apps and back), which
+  // gives `book` a new object reference on every such refetch; without this
+  // guard, that silent refetch re-ran this whole effect and clobbered any
+  // unsaved typing (subtitle, age rating, a just-typed author name never
+  // yet clicked "+ Додати автора"...) with whatever was still on the server.
+  // Every save handler on this page already calls setBook(updated) itself
+  // and keeps its own local state in sync with what it just submitted, so
+  // there's nothing this effect needs to pick up after the first load.
+  const bookHydratedRef = useRef(false);
   useEffect(() => {
-    if (!book) return;
+    if (!book || bookHydratedRef.current) return;
+    bookHydratedRef.current = true;
     setCoAuthors(Array.isArray(book.coAuthors) ? book.coAuthors : []);
     setBookAuthors(Array.isArray(book.bookAuthors) ? book.bookAuthors : []);
     setContributors(Array.isArray(book.contributors) ? book.contributors : []);
