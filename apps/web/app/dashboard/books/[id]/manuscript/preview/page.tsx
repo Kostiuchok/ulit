@@ -11,6 +11,7 @@ import { PrintFlipViewer } from "@/components/books/PrintFlipViewer";
 interface PreviewBook {
   title: string;
   coverUrl?: string | null;
+  backCoverUrl?: string | null;
   genre?: string | null;
   printWidthMm?: number | null;
   printHeightMm?: number | null;
@@ -185,6 +186,7 @@ export default function ManuscriptPreviewPage() {
             printPdfUrl={state.printPdfUrl}
             printPageCount={state.printPageCount}
             coverUrl={book?.coverUrl}
+            backCoverUrl={book?.backCoverUrl}
             trimMm={trimMm}
             grayscale={grayscale}
           />

@@ -35,6 +35,7 @@ interface Props {
   printPdfUrl: string;
   printPageCount: number;
   coverUrl?: string | null;
+  backCoverUrl?: string | null;
   trimMm?: { widthMm: number; heightMm: number } | null;
   grayscale?: boolean;
 }
@@ -46,9 +47,10 @@ interface FlipEvent {
 type FlipLeaf =
   | { kind: "cover"; url: string }
   | { kind: "blank" }
-  | { kind: "page"; pageNumber: number };
+  | { kind: "page"; pageNumber: number }
+  | { kind: "backCover"; url: string };
 
-export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, trimMm, grayscale = false }: Props) {
+export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCoverUrl, trimMm, grayscale = false }: Props) {
   const effectiveTrim = trimMm && trimMm.widthMm > 0 && trimMm.heightMm > 0 ? trimMm : PRINT_TRIM_SIZE_MM;
   const pageW = DISPLAY_W;
   const pageH = Math.round(DISPLAY_W * (effectiveTrim.heightMm / effectiveTrim.widthMm));
@@ -57,18 +59,29 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, trimMm,
   const [current, setCurrent] = useState(0);
 
   const hasCover = !!coverUrl;
+  const hasBackCover = !!backCoverUrl;
 
   // Same binding convention as the retired ManuscriptPagePreview.tsx: a
   // closed book's front cover is "page 1" alone, so the interior's own page
   // 1 always lands on the first spread's right (recto) side -- this blank
   // leaf is what pushes it there, with or without a cover set.
+  //
+  // When there's a back cover, the print PDF (buildManuscriptPrintHtml)
+  // already bakes it in as that PDF's literal last page -- rendering it
+  // through the same <Page pageNumber> interior-page component every other
+  // page uses made it look like just another plain interior page instead of
+  // the outside of a closed book. Excluded from the interior page range
+  // here and rendered as its own leaf below, the same full-bleed <img>
+  // treatment the front cover leaf already gets.
+  const interiorPageCount = hasBackCover ? Math.max(0, printPageCount - 1) : printPageCount;
   const flipLeaves: FlipLeaf[] = useMemo(
     () => [
       ...(hasCover ? [{ kind: "cover" as const, url: coverUrl! }] : []),
       { kind: "blank" as const },
-      ...Array.from({ length: printPageCount }, (_, i) => ({ kind: "page" as const, pageNumber: i + 1 })),
+      ...Array.from({ length: interiorPageCount }, (_, i) => ({ kind: "page" as const, pageNumber: i + 1 })),
+      ...(hasBackCover ? [{ kind: "backCover" as const, url: backCoverUrl! }] : []),
     ],
-    [hasCover, coverUrl, printPageCount]
+    [hasCover, coverUrl, hasBackCover, backCoverUrl, interiorPageCount]
   );
   const totalLeaves = flipLeaves.length;
 
@@ -139,6 +152,14 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, trimMm,
               if (leaf.kind === "cover") {
                 return (
                   <div key="cover" className="h-full w-full bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={leaf.url} alt="" className="h-full w-full object-cover" loading="eager" />
+                  </div>
+                );
+              }
+              if (leaf.kind === "backCover") {
+                return (
+                  <div key="back-cover" className="h-full w-full bg-white">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={leaf.url} alt="" className="h-full w-full object-cover" loading="eager" />
                   </div>
