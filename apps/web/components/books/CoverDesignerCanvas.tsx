@@ -1010,7 +1010,16 @@ export default function CoverDesignerCanvas({
   // Init canvas once
   useEffect(() => {
     if (!canvasEl.current) return;
-    const canvas = new fabric.Canvas(canvasEl.current, { width: ctx.layout.totalW, height: ctx.layout.totalH });
+    // preserveObjectStacking -- Fabric's default behavior temporarily
+    // bumps the active object to the very top of the stack while selected,
+    // which visibly jumped elements (e.g. the background image) in front of
+    // everything else on the cover just from clicking them. true keeps every
+    // object at its real z-index regardless of selection.
+    const canvas = new fabric.Canvas(canvasEl.current, {
+      width: ctx.layout.totalW,
+      height: ctx.layout.totalH,
+      preserveObjectStacking: true,
+    });
     canvasRef.current = canvas;
 
     canvas.on("object:added", saveSnapshot);
@@ -1424,12 +1433,51 @@ export default function CoverDesignerCanvas({
       }
     }
 
+    // Hover highlight -- a bright outline around whichever element is under
+    // the cursor, so an author can tell what's clickable before clicking it.
+    // Uses the clipPath's own rect (not the object's raw bounding box) for
+    // photo-slot/bg-image, since those two are usually panned/zoomed larger
+    // than their visible crop window -- outlining the unclipped image would
+    // draw well outside what's actually visible on the cover.
+    function boundsForHover(obj: any) {
+      const clip = obj.clipPath;
+      if (clip && clip.left !== undefined) {
+        return { left: clip.left, top: clip.top, width: clip.width, height: clip.height };
+      }
+      const r = obj.getBoundingRect(true, true);
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    }
+
+    function drawHoverOutline(obj: any) {
+      clearGuides();
+      const { left, top, width, height } = boundsForHover(obj);
+      const c = fCanvas.contextTop as CanvasRenderingContext2D;
+      c.save();
+      c.strokeStyle = "#00c2ff";
+      c.lineWidth = 2;
+      c.setLineDash([]);
+      c.strokeRect(left, top, width, height);
+      c.restore();
+    }
+
+    function onMouseOver(e: fabric.IEvent) {
+      const obj = e.target as any;
+      if (!obj || obj === fCanvas.getActiveObject()) return;
+      const role = obj.data?.role;
+      if (role === "accent" || role === "pattern") return; // non-interactive layers never get a hover cue
+      drawHoverOutline(obj);
+    }
+
     canvas.on("object:moving", onMoving);
     canvas.on("mouse:up", clearGuides);
+    canvas.on("mouse:over", onMouseOver);
+    canvas.on("mouse:out", clearGuides);
 
     return () => {
       canvas.off("object:moving", onMoving);
       canvas.off("mouse:up", clearGuides);
+      canvas.off("mouse:over", onMouseOver);
+      canvas.off("mouse:out", clearGuides);
       // T-2067 round 3 -- this cleanup runs on every unmount, and the main
       // init effect's cleanup (canvas.dispose()) always runs before this one
       // (declared earlier in the component, and React tears down effects in
