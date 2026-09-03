@@ -17,6 +17,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
+import { useNotifications } from "@/hooks/useNotifications";
 import { getBookStatusLabel } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
 import { DeleteBookModal } from "@/components/books/DeleteBookModal";
@@ -148,6 +149,7 @@ function GroupLabel({ label, expanded, onClick }: { label: string; expanded: boo
 
 export function AuthorBooksSidebar() {
   const { apiFetch, token } = useApi();
+  const { unreadBookIds } = useNotifications();
   const pathname = usePathname();
   const router = useRouter();
   const { id: routeId } = useParams<{ id?: string }>();
@@ -230,9 +232,15 @@ export function AuthorBooksSidebar() {
             return (
               <div key={book.id} className="border-b border-gray-200">
                 <div
-                  className="flex h-[65px] items-center gap-3 px-8 cursor-pointer bg-white hover:bg-gray-50"
+                  className="relative flex h-[65px] items-center gap-3 px-8 cursor-pointer bg-white hover:bg-gray-50"
                   onClick={() => setExpandedBookId((prev) => (prev === book.id ? null : book.id))}
                 >
+                  {unreadBookIds.has(book.id) && (
+                    <span
+                      title="Нове сповіщення"
+                      className="absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-[#ff5900] ring-2 ring-white"
+                    />
+                  )}
                   {book.coverUrl ? (
                     <img
                       src={book.coverUrl}

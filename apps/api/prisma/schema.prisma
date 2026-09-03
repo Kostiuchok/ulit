@@ -59,6 +59,11 @@ enum ConversionStatus {
   FAILED
 }
 
+enum NotificationType {
+  BOOK_APPROVED
+  BOOK_REJECTED
+}
+
 model User {
   id                           String    @id @default(cuid())
   email                        String    @unique
@@ -90,11 +95,12 @@ model User {
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 
-  books     Book[]
-  orders    Order[]
-  royalties Royalty[]
-  styleSets AuthorStyleSet[]
+  books         Book[]
+  orders        Order[]
+  royalties     Royalty[]
+  styleSets     AuthorStyleSet[]
   coverTemplates CoverTemplate[]
+  notifications Notification[]
 
   @@index([slug])
   @@index([email])
@@ -218,6 +224,7 @@ model Book {
   orderItems      OrderItem[]
   royalties       Royalty[]
   conversionJobs  ConversionJob[]
+  notifications   Notification[]
 
   @@index([authorId])
   @@index([slug])
@@ -280,6 +287,25 @@ model ConversionJob {
   updatedAt DateTime         @updatedAt
 
   @@unique([bookId, format])
+  @@index([bookId])
+}
+
+// In-app notification for the author's bell/badge UI, created when admin
+// moderation changes a book's status (approve/reject) -- separate from the
+// fire-and-forget emails in email-queue.ts, which don't leave any record the
+// UI can query for unread state.
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId    String?
+  book      Book?            @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  message   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
   @@index([bookId])
 }
 

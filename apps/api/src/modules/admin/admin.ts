@@ -345,6 +345,17 @@ export async function adminRoutes(app: FastifyInstance) {
           isbn,
         }).catch((err) => console.error("[email] published notification failed:", err));
 
+        prisma.notification
+          .create({
+            data: {
+              userId: book.author.id,
+              bookId: id,
+              type: "BOOK_APPROVED",
+              message: `Книгу «${book.title}» схвалено та опубліковано`,
+            },
+          })
+          .catch((err) => console.error("[notification] book approved failed:", err));
+
         if (book.distributionStrategy === "KDP_SELECT" && !book.kdpSelectEnrolled && kdpSelectExpiry) {
           scheduleKdpExpiryWarning(
             { email: book.author.email, name: book.author.name, bookTitle: book.title, bookId: id, expiryDate: kdpSelectExpiry.toISOString() },
@@ -394,6 +405,19 @@ export async function adminRoutes(app: FastifyInstance) {
         bookId: id,
         reason: body.reason,
       }).catch((err) => console.error("[email] rejected notification failed:", err));
+
+      prisma.notification
+        .create({
+          data: {
+            userId: book.author.id,
+            bookId: id,
+            type: "BOOK_REJECTED",
+            message: body.reason
+              ? `Книгу «${book.title}» відхилено: ${body.reason}`
+              : `Книгу «${book.title}» відхилено`,
+          },
+        })
+        .catch((err) => console.error("[notification] book rejected failed:", err));
 
       return reply.send({ book: updated, reason: body.reason });
     }

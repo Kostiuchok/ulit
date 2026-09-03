@@ -26,9 +26,10 @@ interface Book {
 interface Props {
   book: Book;
   onDelete?: (id: string) => void;
+  hasUnreadNotification?: boolean;
 }
 
-export function BookCard({ book, onDelete }: Props) {
+export function BookCard({ book, onDelete, hasUnreadNotification }: Props) {
   const status = getBookStatusLabel(book.status, book.publicationTimeline);
   // Prefer the real print-trim page count (T-2057, printPdfUrl) over the
   // online-viewer estimate (pageCount, derived from Word's own page size) --
@@ -60,9 +61,17 @@ export function BookCard({ book, onDelete }: Props) {
             <Link href={`/dashboard/books/${book.id}`} className="min-w-0 hover:underline">
               <h2 className="truncate">{book.title}</h2>
             </Link>
-            <span className={cn("flex-shrink-0 rounded-full px-2.5 py-0.5 text-[0.8125rem] font-medium", status.className)}>
-              {status.label}
-            </span>
+            <div className="flex flex-shrink-0 items-center gap-1.5">
+              {hasUnreadNotification && (
+                <span className="flex items-center gap-1 rounded-full bg-[#ff5900] px-2 py-0.5 text-[0.75rem] font-semibold text-white">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                  Нове
+                </span>
+              )}
+              <span className={cn("rounded-full px-2.5 py-0.5 text-[0.8125rem] font-medium", status.className)}>
+                {status.label}
+              </span>
+            </div>
           </div>
 
           {book.genre && <h3 className="mt-0.5 font-normal text-gray-500">{book.genre}</h3>}

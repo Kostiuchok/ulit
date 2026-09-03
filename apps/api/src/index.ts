@@ -37,6 +37,7 @@ import { coverTemplateRoutes } from "./modules/books/cover-templates";
 import { storeBooksRoutes } from "./modules/store/store-books";
 import { ordersRoutes } from "./modules/orders/orders";
 import { royaltiesMeRoutes } from "./modules/royalties/me";
+import { notificationsRoutes } from "./modules/notifications/notifications";
 import { liqpayRoutes } from "./modules/payments/liqpay";
 import { adminRoutes } from "./modules/admin/admin";
 import { bookChamberRoutes } from "./modules/admin/book-chamber";
@@ -134,6 +135,7 @@ async function bootstrap() {
   await app.register(storeBooksRoutes);
   await app.register(ordersRoutes);
   await app.register(royaltiesMeRoutes);
+  await app.register(notificationsRoutes);
   await app.register(liqpayRoutes);
   await app.register(adminRoutes);
   await app.register(bookChamberRoutes);
