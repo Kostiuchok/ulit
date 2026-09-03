@@ -24,6 +24,16 @@ import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../
 const DESCRIPTION_MIN_LENGTH = 120;
 const DESCRIPTION_MAX_LENGTH = 500;
 
+// Same per-platform recommendations as output-data/page.tsx's badges --
+// kept in sync manually with admin/books/[id]/distribute/page.tsx's
+// per-platform checklist. Ulit's own gate above (120-500) is the only
+// thing that actually blocks /publish; these are informational.
+const DESCRIPTION_PLATFORM_TARGETS = [
+  { key: "d2d", label: "D2D", minChars: 50 },
+  { key: "google", label: "Google Play", minChars: 150 },
+  { key: "kdp", label: "Amazon KDP", minChars: 250 },
+] as const;
+
 const step1Schema = z.object({
   title: z.string().min(1, "Назва обов'язкова").max(255),
   description: z
@@ -353,6 +363,24 @@ export function BookWizard() {
             {step1.formState.errors.description && (
               <p className="text-sm text-red-500">{step1.formState.errors.description.message}</p>
             )}
+            <div className="flex items-center justify-end gap-1.5">
+              {DESCRIPTION_PLATFORM_TARGETS.map((p) => {
+                const reached = descValue.length >= p.minChars;
+                return (
+                  <span
+                    key={p.key}
+                    title={`${p.label}: рекомендовано від ${p.minChars} символів`}
+                    className={cn(
+                      "rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium transition-colors",
+                      reached ? "border-green-300 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"
+                    )}
+                  >
+                    {reached ? "✓ " : ""}
+                    {p.label} {p.minChars}+
+                  </span>
+                );
+              })}
+            </div>
             <p className="text-xs text-gray-500">
               Ця анотація одразу з&apos;явиться на кроці &quot;Вихідні дані&quot; — редагувати можна буде тут або там, поле спільне.
             </p>
