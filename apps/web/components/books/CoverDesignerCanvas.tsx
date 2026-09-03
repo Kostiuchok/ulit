@@ -699,6 +699,32 @@ function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
   return { front, backSpine };
 }
 
+// Restores front-panel objects (front-relative left, from splitObjectsByPanel
+// or a saved template) onto the CURRENT format's front panel. A "photo-slot"
+// illustration (and any other front object with a lockUniScaling crop
+// clipPath, e.g. a future front-only overlay) carries an absolutePositioned
+// clipPath rect that was frozen at whichever format's front-panel coordinates
+// were active when it was captured/serialized — shifting only `.left` left
+// the clip window itself stale. Since ebook's front panel and print's BACK
+// panel happen to share the exact same rect ({x:0,y:0,w:DISPLAY_W,h:DISPLAY_H}),
+// a stale clip window silently coincided with the back panel instead of
+// clipping to nothing — the illustration then rendered wherever its own
+// (correctly repositioned) pixels happened to fall relative to that stale
+// window, which is why it visually ended up looking like it was on the back
+// panel (or hidden behind the background) after switching format/reloading a
+// saved design. The background-image layer never had this bug because it's
+// excluded from this front/backSpine split entirely and gets its clipPath
+// rebuilt from scratch every time via applyBackground/applyBackgroundImage.
+function repositionFrontObjects(objs: any[], front: PanelRect): any[] {
+  return objs.map((o) => {
+    const repositioned = { ...o, left: (o.left ?? 0) + front.x };
+    if (o.clipPath) {
+      repositioned.clipPath = { ...o.clipPath, left: front.x, top: front.y, width: front.w, height: front.h };
+    }
+    return repositioned;
+  });
+}
+
 // Snapshots what should be persisted as the book's editable cover design.
 // Front and background always exist in the current live canvas regardless of
 // format, so they're read live; back+spine only exists in print layouts —
@@ -994,7 +1020,7 @@ export default function CoverDesignerCanvas({
       const needFresh = !frontStateRef.current || (!!ctx.layout.back && !backSpineStateRef.current);
       const fresh = needFresh ? buildFreshPanelObjects(ctx, template, ctx.layout) : null;
       const frontRelative = frontStateRef.current ?? fresh!.front;
-      const frontObjs = frontRelative.map((o: any) => ({ ...o, left: (o.left ?? 0) + ctx.layout.front.x }));
+      const frontObjs = repositionFrontObjects(frontRelative, ctx.layout.front);
       const backSpineObjs = ctx.layout.back ? (backSpineStateRef.current ?? fresh!.backSpine) : [];
 
       canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
@@ -1070,7 +1096,7 @@ export default function CoverDesignerCanvas({
       const fresh = needFresh ? buildFreshPanelObjects(ctx, template, ctx.layout) : null;
 
       const frontRelative = frontStateRef.current ?? fresh!.front;
-      const frontObjs = frontRelative.map((o: any) => ({ ...o, left: (o.left ?? 0) + ctx.layout.front.x }));
+      const frontObjs = repositionFrontObjects(frontRelative, ctx.layout.front);
       const backSpineObjs = ctx.layout.back ? (backSpineStateRef.current ?? fresh!.backSpine) : [];
 
       canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
@@ -1785,7 +1811,7 @@ export default function CoverDesignerCanvas({
       backgroundRef.current = design.background;
       if (design.background.imageUrl) setBgImageUrl(design.background.imageUrl);
 
-      const frontObjs = design.front.map((o: any) => ({ ...o, left: (o.left ?? 0) + ctx.layout.front.x }));
+      const frontObjs = repositionFrontObjects(design.front, ctx.layout.front);
       const backSpineObjs = ctx.layout.back ? design.backSpine : [];
 
       pauseHistoryRef.current = true;
