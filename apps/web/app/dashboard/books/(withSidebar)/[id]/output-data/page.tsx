@@ -756,6 +756,19 @@ function OutputDataContent() {
   );
   const readyToPublish = infoSectionDone && fileSectionDone && coverSectionDone && priceSectionDone;
 
+  // Single source of truth for "is this section done" -- both the sticky
+  // nav's checkbox (added so the author sees the whole scope of remaining
+  // work without scrolling) and each section's own SectionHeading ✓/○ read
+  // the SAME booleans here, so the two can never disagree with each other.
+  const sectionDone: Record<(typeof SECTION_ORDER)[number], boolean> = {
+    info: infoSectionDone,
+    file: fileSectionDone,
+    cover: coverSectionDone,
+    price: priceSectionDone,
+    review: readyToPublish,
+    publish: readyToPublish,
+  };
+
   const rejected = book ? parseRejectedConcerns(book) : { cover: false, manuscript: false, metadata: false };
   const showRejection = rejected.metadata && !locallyFixed;
   // "Мова книги" gets its own precise check instead of sharing showRejection
@@ -796,12 +809,29 @@ function OutputDataContent() {
                 type="button"
                 onClick={() => scrollToSection(key)}
                 className={cn(
-                  "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                  "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                   activeSection === key
                     ? "bg-gray-900 text-white"
                     : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                 )}
               >
+                {/* Read-only progress checkbox, not a real form control -- it
+                    mirrors sectionDone (same booleans SectionHeading's ✓/○
+                    below reads), it never toggles independently on click. */}
+                <span
+                  aria-hidden
+                  title={sectionDone[key] ? "Виконано" : "Ще не виконано"}
+                  className={cn(
+                    "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[0.625rem] font-black leading-none",
+                    sectionDone[key]
+                      ? "border-green-500 bg-green-500 text-white"
+                      : activeSection === key
+                        ? "border-white/50"
+                        : "border-gray-300"
+                  )}
+                >
+                  {sectionDone[key] && "✓"}
+                </span>
                 {SECTION_LABELS[key]}
               </button>
             ))}
@@ -867,7 +897,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.info = el; }}
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "info" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
-          <SectionHeading label={SECTION_LABELS.info} done={infoSectionDone} />
+          <SectionHeading label={SECTION_LABELS.info} done={sectionDone.info} />
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
               {/* Назва/Підзаголовок/Анотація зліва (усі поля самого тексту
@@ -1311,7 +1341,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.file = el; }}
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "file" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
-          <SectionHeading label={SECTION_LABELS.file} done={fileSectionDone} />
+          <SectionHeading label={SECTION_LABELS.file} done={sectionDone.file} />
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
             <div>
               <h3 className="text-base font-semibold mb-1">Рукопис (.docx)</h3>
@@ -1342,7 +1372,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.cover = el; }}
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "cover" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
-          <SectionHeading label={SECTION_LABELS.cover} done={coverSectionDone} />
+          <SectionHeading label={SECTION_LABELS.cover} done={sectionDone.cover} />
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
             <div className="flex items-start gap-2 text-sm">
               <span className={cn("mt-0.5", book?.coverUrl ? "text-green-600" : "text-amber-500")}>
@@ -1371,7 +1401,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.price = el; }}
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "price" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
-          <SectionHeading label={SECTION_LABELS.price} done={priceSectionDone} />
+          <SectionHeading label={SECTION_LABELS.price} done={sectionDone.price} />
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
             <FormatsAndDistribution
               language={book?.language}
@@ -1462,7 +1492,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.review = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <SectionHeading label={SECTION_LABELS.review} done={readyToPublish} />
+          <SectionHeading label={SECTION_LABELS.review} done={sectionDone.review} />
           <div className="space-y-6">
             <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
               <Row label="Назва" value={book?.title || "—"} />
@@ -1564,7 +1594,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.publish = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <SectionHeading label={SECTION_LABELS.publish} done={readyToPublish} />
+          <SectionHeading label={SECTION_LABELS.publish} done={sectionDone.publish} />
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
             <PublishButton
               bookId={id}
