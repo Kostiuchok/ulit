@@ -116,6 +116,7 @@ const AGE_RATINGS = ["0+", "0-6", "6-10", "11-14", "15-17", "18+"];
 const SECTION_LABELS = {
   info: "Інформація",
   file: "Рукопис",
+  cover: "Обкладинка",
   price: "Ціна та розповсюдження",
   review: "Огляд перед публікацією",
   publish: "Публікація",
@@ -150,6 +151,7 @@ interface MetadataBook {
   moderationStatus?: string | null;
   moderationNote?: string | null;
   epubUrl?: string | null;
+  pdfUrl?: string | null;
   pageCount?: number | null;
   printPageCount?: number | null;
   printPdfUrl?: string | null;
@@ -286,6 +288,21 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="text-gray-500">{label}</span>
       <span className="font-medium text-gray-900">{value}</span>
     </div>
+  );
+}
+
+// Same ✓/○ language as IsbnReadinessChecklist and every other readiness
+// list on this page -- the circle sits left of the section's own vertical
+// line (not inside it) so it reads as "status of everything past this
+// line", matching the request to place it before the divider, not after.
+function SectionHeading({ label, done }: { label: string; done: boolean }) {
+  return (
+    <h2 className="flex items-center gap-2 text-base font-bold text-gray-900">
+      <span className={done ? "text-green-600" : "text-amber-500"} title={done ? "Виконано" : "Ще не виконано"}>
+        {done ? "✓" : "○"}
+      </span>
+      <span className="border-l-2 border-gray-900 pl-3">{label}</span>
+    </h2>
   );
 }
 
@@ -713,6 +730,32 @@ function OutputDataContent() {
     );
   }
 
+  // Same readiness bar as the backend's own pre-publish gate
+  // (apps/api/src/modules/books/publish.ts's validateBook) -- read from the
+  // persisted book, not live form state, so a heading only turns green once
+  // the section is actually saved, not just typed into.
+  const infoSectionDone = (() => {
+    const descLen = (book?.description ?? "").trim().length;
+    return (
+      !!book?.title?.trim() &&
+      descLen >= DESCRIPTION_MIN_LENGTH &&
+      descLen <= DESCRIPTION_MAX_LENGTH &&
+      !!book?.ageRating
+    );
+  })();
+  const fileSectionDone = !!(book?.originalDocxUrl || book?.pdfUrl || book?.epubUrl);
+  const coverSectionDone = !!book?.coverUrl;
+  const priceSectionDone = !!(
+    book?.priceEbook ||
+    book?.pricePrint ||
+    book?.pricePrintHardcover ||
+    book?.pricePrintBw ||
+    book?.pricePrintHardcoverBw ||
+    book?.desiredRoyaltyAmount ||
+    book?.desiredRoyaltyAmountPrint
+  );
+  const readyToPublish = infoSectionDone && fileSectionDone && coverSectionDone && priceSectionDone;
+
   const rejected = book ? parseRejectedConcerns(book) : { cover: false, manuscript: false, metadata: false };
   const showRejection = rejected.metadata && !locallyFixed;
   // "Мова книги" gets its own precise check instead of sharing showRejection
@@ -824,7 +867,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.info = el; }}
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "info" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
-          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.info}</h2>
+          <SectionHeading label={SECTION_LABELS.info} done={infoSectionDone} />
           <div className={cn("rounded-xl bg-white p-6 shadow-sm", showRejection || titleInvalid ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
               {/* Назва/Підзаголовок/Анотація зліва (усі поля самого тексту
@@ -1268,7 +1311,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.file = el; }}
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "file" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
-          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.file}</h2>
+          <SectionHeading label={SECTION_LABELS.file} done={fileSectionDone} />
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
             <div>
               <h3 className="text-base font-semibold mb-1">Рукопис (.docx)</h3>
@@ -1288,12 +1331,47 @@ function OutputDataContent() {
           </div>
         </section>
 
+        {/* Without its own section here, authors routinely skipped straight
+            to "Надіслати на модерацію" with no cover at all -- admin kept
+            bouncing the same books back for doopracyuvannya. A dedicated,
+            checklist-styled block (✓/○, same language as
+            IsbnReadinessChecklist below) makes the missing step visible
+            instead of only surfacing as a rejection after the fact. */}
+        <section
+          id="section-cover"
+          ref={(el) => { sectionRefs.current.cover = el; }}
+          className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "cover" && "ring-2 ring-yellow-400 ring-offset-2")}
+        >
+          <SectionHeading label={SECTION_LABELS.cover} done={coverSectionDone} />
+          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
+            <div className="flex items-start gap-2 text-sm">
+              <span className={cn("mt-0.5", book?.coverUrl ? "text-green-600" : "text-amber-500")}>
+                {book?.coverUrl ? "✓" : "○"}
+              </span>
+              <span className={book?.coverUrl ? "text-gray-700" : "text-gray-500"}>
+                {book?.coverUrl ? "Обкладинка завантажена" : "Обкладинка ще не створена"}
+                {!book?.coverUrl && (
+                  <span className="block text-xs text-amber-600">
+                    Обов&apos;язково для модерації — без обкладинки адмін поверне книгу на доопрацювання.
+                  </span>
+                )}
+              </span>
+            </div>
+            <Link
+              href={`/dashboard/books/${id}/cover`}
+              className="inline-block text-sm text-black underline hover:no-underline"
+            >
+              {book?.coverUrl ? "Редагувати обкладинку →" : "Створити обкладинку →"}
+            </Link>
+          </div>
+        </section>
+
         <section
           id="section-price"
           ref={(el) => { sectionRefs.current.price = el; }}
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "price" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
-          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.price}</h2>
+          <SectionHeading label={SECTION_LABELS.price} done={priceSectionDone} />
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
             <FormatsAndDistribution
               language={book?.language}
@@ -1384,7 +1462,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.review = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.review}</h2>
+          <SectionHeading label={SECTION_LABELS.review} done={readyToPublish} />
           <div className="space-y-6">
             <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
               <Row label="Назва" value={book?.title || "—"} />
@@ -1402,6 +1480,7 @@ function OutputDataContent() {
                 value={book?.printPageCount ?? book?.pageCount ? `${book?.printPageCount ?? book?.pageCount} ст.` : "—"}
               />
               <Row label="Рукопис" value={book?.originalDocxUrl ? "Завантажено" : "Не завантажено"} />
+              <Row label="Обкладинка" value={book?.coverUrl ? "Завантажено" : "Не завантажено"} />
               <Row label="Е-книга" value={book?.priceEbook ? `${Number(book.priceEbook).toFixed(2)} грн` : "Не продається"} />
               <Row label="Друк, м'яка (кольор.)" value={book?.pricePrint ? `${Number(book.pricePrint).toFixed(2)} грн` : "Не продається"} />
               <Row label="Друк, тверда (кольор.)" value={book?.pricePrintHardcover ? `${Number(book.pricePrintHardcover).toFixed(2)} грн` : "Не продається"} />
@@ -1485,7 +1564,7 @@ function OutputDataContent() {
           ref={(el) => { sectionRefs.current.publish = el; }}
           className="scroll-mt-28 space-y-3"
         >
-          <h2 className="border-l-2 border-gray-900 pl-3 text-base font-bold text-gray-900">{SECTION_LABELS.publish}</h2>
+          <SectionHeading label={SECTION_LABELS.publish} done={readyToPublish} />
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
             <PublishButton
               bookId={id}
