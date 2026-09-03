@@ -14,6 +14,10 @@ const createSchema = z.object({
   // genre -- see packages/shared-types PRINT_FORMATS for the allowed keys.
   printFormatKey: z.string().max(30).optional(),
   language: z.string().length(2).default("uk"),
+  // Same enum as book.ts's patchSchema -- BookWizard step 1 already collects
+  // this (required there) but it was silently dropped on create since this
+  // schema didn't declare it, forcing authors to re-enter it on output-data.
+  ageRating: z.enum(["0+", "0-6", "6-10", "11-14", "15-17", "18+"]).optional(),
   priceEbook: z.number().positive().optional(),
   pricePrint: z.number().positive().optional(),
   pricePrintHardcover: z.number().positive().optional(),
@@ -94,7 +98,7 @@ export async function booksRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
     }
 
-    const { title, description, genre, printFormatKey, language, priceEbook, pricePrint, pricePrintHardcover, distributionStrategy } = result.data;
+    const { title, description, genre, printFormatKey, language, ageRating, priceEbook, pricePrint, pricePrintHardcover, distributionStrategy } = result.data;
     const slug = await uniqueBookSlug(title);
 
     // Explicit, independent from genre -- if the wizard sent a known format
@@ -112,6 +116,7 @@ export async function booksRoutes(app: FastifyInstance) {
         printWidthMm: format?.widthMm,
         printHeightMm: format?.heightMm,
         language,
+        ageRating,
         priceEbook: priceEbook ? priceEbook : undefined,
         pricePrint: pricePrint ? pricePrint : undefined,
         pricePrintHardcover: pricePrintHardcover ? pricePrintHardcover : undefined,
