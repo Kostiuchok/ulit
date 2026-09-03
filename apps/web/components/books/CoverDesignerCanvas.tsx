@@ -625,7 +625,12 @@ interface BgImageTransform {
 // Same shape persisted in Book.coverDesign.background (apps/api's book.ts
 // patchSchema) and CoverTemplate.design.background -- left/top/scaleX/scaleY
 // are the author's own pan/zoom of the uploaded image, optional so existing
-// saved designs (color+imageUrl only) keep loading fine.
+// saved designs (color+imageUrl only) keep loading fine. layoutW/layoutH are
+// the totalW/totalH the transform was captured at (see captureBackground) --
+// needed to rescale the pan/zoom proportionally when the format switches to
+// a different total width (ebook <-> print, or spine width changing with
+// page count) instead of reusing raw pixel values sized for a different
+// canvas width.
 interface BackgroundDesign {
   color: string;
   imageUrl?: string;
@@ -633,18 +638,20 @@ interface BackgroundDesign {
   top?: number;
   scaleX?: number;
   scaleY?: number;
+  layoutW?: number;
+  layoutH?: number;
 }
 
-// Background image behind the front panel only (bands, photo-slot, text) —
-// movable/scalable by the author just like the photo-slot illustration
-// (selectable/evented, proportional resize only), clipped to the front
-// panel so it can't be dragged into bleeding onto the spine/back. For ebook
-// layouts the front panel IS the whole canvas, so this covers everything
-// same as before; for softcover/hardcover those side panels keep only the
-// solid accent color (still full-width, drawn separately by addAccentBg)
-// plus whatever text the author places there. Uploading a cover photo is
-// meant to dress up the e-book/print-front face, not double as full
-// print-wrap art.
+// Full-bleed background image — covers the entire cover spread (back +
+// spine + front for print, the single panel for ebook), same footprint as
+// the solid accent color drawn by addAccentBg. Previously this only covered
+// the front panel (bands, photo-slot, text) and left the spine/back panels
+// on the plain accent color, which read as broken for any author uploading
+// a full-wrap cover photo instead of a front-only illustration — a print
+// cover's background is one continuous image/color, not a front-only crop.
+// Movable/scalable by the author (selectable/evented, proportional resize
+// only), clipped to the full cover so it can never be dragged past the
+// bleed edge.
 // `transform` is the author's own last pan/zoom, read back from the saved
 // design (captureDesignState) — passing it in re-applies exactly where they
 // left it instead of recomputing the auto-centered cover-fit, which used to
@@ -652,27 +659,27 @@ interface BackgroundDesign {
 // (a fresh upload, or re-picking a background with no transform recorded
 // yet) to fall back to that auto-fit-and-center default.
 function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: string, transform?: BgImageTransform) {
-  const { front } = layout;
+  const box = { x: 0, y: 0, w: layout.totalW, h: layout.totalH };
   const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" as const };
   fabric.Image.fromURL(
     url,
     (img) => {
       if (isCanvasDisposed(canvas)) return;
-      const iw = img.width ?? front.w;
-      const ih = img.height ?? front.h;
-      const fitScale = Math.max(front.w / iw, front.h / ih);
+      const iw = img.width ?? box.w;
+      const ih = img.height ?? box.h;
+      const fitScale = Math.max(box.w / iw, box.h / ih);
       img.set({
         originX: "left",
         originY: "top",
-        left: transform?.left ?? front.x - (iw * fitScale - front.w) / 2,
-        top: transform?.top ?? front.y - (ih * fitScale - front.h) / 2,
+        left: transform?.left ?? box.x - (iw * fitScale - box.w) / 2,
+        top: transform?.top ?? box.y - (ih * fitScale - box.h) / 2,
         scaleX: transform?.scaleX ?? fitScale,
         scaleY: transform?.scaleY ?? fitScale,
         selectable: true,
         evented: true,
         lockUniScaling: true, // resize handles stay proportional — no stretching
         data: { role: "bg-image" },
-        clipPath: new fabric.Rect({ left: front.x, top: front.y, width: front.w, height: front.h, absolutePositioned: true }),
+        clipPath: new fabric.Rect({ left: box.x, top: box.y, width: box.w, height: box.h, absolutePositioned: true }),
       });
       const existing = canvas.getObjects().find((o: any) => o.data?.role === "bg-image");
       if (existing) canvas.remove(existing);
@@ -776,23 +783,25 @@ function touchActiveObj<T extends object>(obj: T): T {
 // author-set pan/zoom off a flat array of live/serialized canvas objects —
 // shared by captureDesignState and the format-switch "leaving format"
 // snapshot so a custom background position survives both a save and a plain
-// tab switch, not just one of them. left/top are stored relative to the
-// LEAVING layout's own front-panel origin (same reasoning as
-// splitObjectsByPanel's front-relative objects) -- storing the raw absolute
-// canvas position would misplace the image on restore into a different
-// format, since ebook's front panel and print's front panel sit at
-// different x-offsets (exactly the class of bug repositionFrontObjects
-// fixes for the photo-slot illustration).
+// tab switch, not just one of them. The background now spans the whole
+// cover (layout's origin is always (0,0) regardless of format — see
+// computeCoverLayout), so left/top are stored as plain absolute canvas
+// coordinates, no per-panel offset needed. layoutW/layoutH record the
+// layout this was captured at, so applyBackground can rescale the pan/zoom
+// proportionally if restored into a layout with a different total width
+// (ebook <-> print, or spine width changing with page count).
 function captureBackground(currentObjects: any[], layout: CoverLayout, fallbackColor: string): BackgroundDesign {
   const accent = currentObjects.find((o: any) => o.data?.role === "accent") as any;
   const bgImage = currentObjects.find((o: any) => o.data?.role === "bg-image") as any;
   return {
     color: (accent?.fill as string) ?? fallbackColor,
     imageUrl: (bgImage?.src as string) ?? undefined,
-    left: bgImage ? (bgImage.left ?? 0) - layout.front.x : undefined,
-    top: bgImage ? (bgImage.top ?? 0) - layout.front.y : undefined,
+    left: bgImage?.left,
+    top: bgImage?.top,
     scaleX: bgImage?.scaleX,
     scaleY: bgImage?.scaleY,
+    layoutW: bgImage ? layout.totalW : undefined,
+    layoutH: bgImage ? layout.totalH : undefined,
   };
 }
 
@@ -825,12 +834,19 @@ function applyBackground(canvas: fabric.Canvas, layout: CoverLayout, bg: Backgro
   const accent = canvas.getObjects().find((o: any) => o.data?.role === "accent");
   if (accent) canvas.sendToBack(accent);
   if (bg?.imageUrl) {
-    // bg.left/top are front-relative (see captureBackground) -- re-add the
-    // CURRENT format's front-panel origin to place it correctly here.
-    const transform =
-      bg.left !== undefined && bg.top !== undefined && bg.scaleX !== undefined && bg.scaleY !== undefined
-        ? { left: bg.left + layout.front.x, top: bg.top + layout.front.y, scaleX: bg.scaleX, scaleY: bg.scaleY }
-        : undefined;
+    // bg.left/top/scaleX/scaleY are absolute pixel values captured at
+    // bg.layoutW/layoutH's total width (see captureBackground) -- if the
+    // CURRENT layout has a different total width (format switch, or spine
+    // width shifting with page count), rescale proportionally instead of
+    // reusing pixel values sized for a different canvas width. Heights
+    // never differ between formats for the same book trim (only side panels
+    // are added), so only the width ratio is needed.
+    const hasTransform =
+      bg.left !== undefined && bg.top !== undefined && bg.scaleX !== undefined && bg.scaleY !== undefined;
+    const ratio = hasTransform && bg.layoutW ? layout.totalW / bg.layoutW : 1;
+    const transform = hasTransform
+      ? { left: bg.left! * ratio, top: bg.top!, scaleX: bg.scaleX! * ratio, scaleY: bg.scaleY! * ratio }
+      : undefined;
     applyBackgroundImage(canvas, layout, bg.imageUrl, transform);
   }
 }

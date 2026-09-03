@@ -145,7 +145,9 @@ const patchSchema = z.object({
       backSpine: z.array(z.any()),
       // left/top/scaleX/scaleY -- the author's own pan/zoom/crop of the
       // background image, so it survives a format switch or reload instead
-      // of resetting to the auto-centered cover-fit every time.
+      // of resetting to the auto-centered cover-fit every time. layoutW/H --
+      // the cover's total width/height this was captured at, so it can be
+      // rescaled proportionally on restore into a different-width format.
       background: z.object({
         color: z.string(),
         imageUrl: z.string().optional(),
@@ -153,6 +155,8 @@ const patchSchema = z.object({
         top: z.number().optional(),
         scaleX: z.number().optional(),
         scaleY: z.number().optional(),
+        layoutW: z.number().optional(),
+        layoutH: z.number().optional(),
       }),
     })
     .optional(),
