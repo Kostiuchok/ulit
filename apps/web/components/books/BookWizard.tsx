@@ -33,8 +33,14 @@ import { FormatsAndDistribution, computeAnchorPrices, parsePrice, type PrintCost
 // kept in sync manually with admin/books/[id]/distribute/page.tsx's
 // per-platform checklist. Ulit's own gate above (120-500) is the only
 // thing that actually blocks /publish; these are informational.
+// "УДК" isn't a store -- see output-data/page.tsx's own comment on this
+// same constant: it's the same annotation text used for the Book Chamber's
+// УДК application, and DESCRIPTION_MIN_LENGTH already doubles as its real
+// (only ever binding) threshold, since Ulit's own 500-char cap is well
+// under Книжкова палата's "не більше пів сторінки".
 const DESCRIPTION_PLATFORM_TARGETS = [
   { key: "d2d", label: "D2D", minChars: 50 },
+  { key: "udk", label: "УДК", minChars: DESCRIPTION_MIN_LENGTH },
   { key: "google", label: "Google Play", minChars: 150 },
   { key: "kdp", label: "Amazon KDP", minChars: 250 },
 ] as const;

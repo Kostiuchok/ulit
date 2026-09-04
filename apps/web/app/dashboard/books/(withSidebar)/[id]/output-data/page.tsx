@@ -25,6 +25,7 @@ import {
   PRINT_FORMAT_KEYS,
   resolveBookPrintFormat,
   isPublishStepComplete,
+  isPublishFieldComplete,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
   AGE_RATINGS,
@@ -50,8 +51,16 @@ import {
 // informational -- live badges here let the author see, while typing,
 // which stores their annotation is already long enough for, in ascending
 // order so badges light up left-to-right as they keep writing.
+// "УДК" isn't a store -- it's the same text used as file 1 of the Book
+// Chamber's УДК application (IsbnReadinessChecklist below). Its only real
+// constraint ("не більше пів сторінки") is already satisfied by construction
+// once the annotation is within DESCRIPTION_MIN_LENGTH at all (Ulit's own
+// 500-char cap is well under Книжкова палата's own "half page"), so
+// DESCRIPTION_MIN_LENGTH doubles as the threshold this badge needs -- there
+// is no separate УДК-specific number to keep in sync.
 const DESCRIPTION_PLATFORM_TARGETS = [
   { key: "d2d", label: "D2D", minChars: 50 },
+  { key: "udk", label: "УДК", minChars: DESCRIPTION_MIN_LENGTH },
   { key: "google", label: "Google Play", minChars: 150 },
   { key: "kdp", label: "Amazon KDP", minChars: 250 },
 ] as const;
@@ -199,11 +208,6 @@ interface MetadataBook {
   priorPublicationCertificate?: string | null;
 }
 
-// docs/isbn-udc-requirements.md, "Детальний технічний чекліст оформлення ISBN" (2026-08-17).
-// Орієнтовно "пів сторінки" ≈ 900-1000 знаків -- м'якший поріг, ніж наша сувора верхня межа
-// анотації (500, T-2060), тому це окрема (не блокуюча) перевірка, не заміна existing validation.
-const ISBN_ANNOTATION_HALF_PAGE_CHARS = 1000;
-
 interface IsbnChecklistItem {
   label: string;
   done: boolean;
@@ -240,14 +244,32 @@ function IsbnReadinessChecklist({
   }
 
   const hasAuthorName = bookAuthors.some((a) => a.lastName.trim() && a.firstName.trim());
-  const descLength = (book?.description ?? "").length;
-  const annotationOk = descLength > 0 && descLength <= ISBN_ANNOTATION_HALF_PAGE_CHARS;
+  // docs/isbn-udc-requirements.md's own wording is "не більше пів сторінки"
+  // (Книжкова палата gives no exact character count) -- there is no SEPARATE
+  // annotation written just for УДК, it's the same field authors write for
+  // the store listing, so this used to approximate "half a page" as a
+  // looser, independent ≤1000-char threshold. That was two overlapping
+  // rules for one field: Ulit's own hard cap (DESCRIPTION_MAX_LENGTH, 500)
+  // already guarantees "not more than half a page" by construction (500 <
+  // ~900-1000), so the real, only-ever-binding constraint is the same
+  // 120-500 the "Анотація" textarea itself enforces on save
+  // (PUBLISH_FIELD_CHECKS' "description" check, shared-types) -- reusing it
+  // here instead of a second number means this item can never disagree with
+  // whether the annotation is actually valid everywhere else on this page.
+  const descLength = (book?.description ?? "").trim().length;
+  const annotationOk = isPublishFieldComplete("description", book ?? {});
 
   const items: IsbnChecklistItem[] = [
     {
-      label: "Анотація (файл 1 для заявки на УДК) — не більше пів сторінки",
+      label: `Анотація (файл 1 для заявки на УДК) — ${DESCRIPTION_MIN_LENGTH}–${DESCRIPTION_MAX_LENGTH} символів`,
       done: annotationOk,
-      hint: !annotationOk && descLength > 0 ? `${descLength} символів — орієнтовно більше пів сторінки` : undefined,
+      hint: !annotationOk
+        ? descLength === 0
+          ? "Анотація ще не заповнена"
+          : descLength < DESCRIPTION_MIN_LENGTH
+            ? `${descLength} символів — потрібно щонайменше ${DESCRIPTION_MIN_LENGTH}`
+            : `${descLength} символів — забагато, максимум ${DESCRIPTION_MAX_LENGTH}`
+        : undefined,
     },
     {
       label: "Повне ПІБ автора (файл 1 для заявки на УДК)",
