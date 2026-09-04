@@ -113,7 +113,7 @@ type ManuscriptStage = "idle" | "polling" | "done" | "failed" | "skipped";
 
 export function BookWizard() {
   const router = useRouter();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<BookDraft | null>(null);
   const [channels, setChannels] = useState<string[]>(["ULIT", "D2D", "KDP", "GOOGLE"]);
@@ -150,12 +150,22 @@ export function BookWizard() {
     avatarUrl?: string | null;
   }
   const [userProfile, setUserProfile] = useState<AccountProfile | null>(null);
+  // T-2076 -- live network trace on prod caught this returning 401: on
+  // mount, useSession() (inside useApi()) hasn't resolved yet, so `token` is
+  // still undefined and this request goes out with no Authorization header.
+  // The old `[]`-deps version fired exactly once, swallowed that 401
+  // silently (`.catch(() => {})`), and never retried once the session
+  // actually loaded a moment later -- the badge below is entirely gated on
+  // `userProfile` being non-null, so the author saw nothing at all, not even
+  // the "fill in your name" fallback. Depending on `token` and guarding on
+  // it re-fires this the moment the session is actually ready, same pattern
+  // manuscript/preview/page.tsx's polling effect already uses.
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ user: AccountProfile }>("/api/users/me")
       .then(({ user }) => setUserProfile(user))
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token, apiFetch]);
 
   // Same bookAuthorSchema (shared-types) apps/api's book.ts PATCH and
   // books.ts POST both enforce -- checked here too so the badge can warn

@@ -380,7 +380,7 @@ function isScrolledToBottom(target: ScrollTarget): boolean {
 
 function OutputDataContent() {
   const { id } = useParams<{ id: string }>();
-  const { apiFetch, apiUpload } = useApi();
+  const { apiFetch, apiUpload, token } = useApi();
   const { book, setBook, loading } = useBook<MetadataBook>(id);
 
   const [infoSaved, setInfoSaved] = useState(false);
@@ -418,12 +418,18 @@ function OutputDataContent() {
   const [userProfile, setUserProfile] = useState<AccountProfile | null>(null);
   const profileAutofillApplied = useRef(false);
 
+  // T-2076 -- same fix as BookWizard's own copy of this effect: `[]` deps
+  // fired this before useSession() (inside useApi()) resolved `token`, so it
+  // silently 401'd and never retried once the session actually loaded. Less
+  // visible here (bookAuthors below already renders from the persisted
+  // `book`, this is only a same-session autofill convenience), but still a
+  // real miss worth fixing the same way.
   useEffect(() => {
+    if (!token) return;
     apiFetch<{ user: AccountProfile }>("/api/users/me")
       .then(({ user }) => setUserProfile(user))
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token, apiFetch]);
 
   useEffect(() => {
     if (!book || !userProfile || profileAutofillApplied.current) return;
