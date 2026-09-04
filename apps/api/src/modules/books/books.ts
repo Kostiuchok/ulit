@@ -6,7 +6,6 @@ import {
   ageRatingSchema,
   genreSchema,
   languageSchema,
-  distributionChannelsSchema,
   bookAuthorSchema,
   priceFieldSchema,
   DESCRIPTION_MIN_LENGTH,
@@ -42,8 +41,14 @@ const createSchema = z.object({
   pricePrintHardcover: priceFieldSchema,
   pricePrintBw: priceFieldSchema,
   pricePrintHardcoverBw: priceFieldSchema,
+  // Real distribution channel selection never arrives here -- BookWizard
+  // collects it on step 2, AFTER this draft already exists, via the
+  // dedicated PATCH /api/books/:id/distribution (distribution.ts's own
+  // switchSchema, already the real source of truth). A `distributionChannels`
+  // field used to live in this schema too, parsed/defaulted but never
+  // destructured or passed to prisma.book.create() below -- dead code,
+  // removed (book-form-validation-audit.md's C.13 candidate).
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).default("WIDE"),
-  distributionChannels: distributionChannelsSchema.default(["ULIT", "D2D", "KDP", "GOOGLE"]),
   // BookWizard shows the author's account-profile name as a read-only badge
   // ("ці дані беруться з Кабінету автора") and submits it here on create --
   // same bookAuthorSchema book.ts's PATCH already validates against, so even
