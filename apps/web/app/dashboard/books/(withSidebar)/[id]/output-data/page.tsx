@@ -832,6 +832,13 @@ function OutputDataContent() {
   const fileSectionDone = isPublishStepComplete("file", book ?? {});
   const coverSectionDone = isPublishStepComplete("cover", book ?? {});
   const priceSectionDone = isPublishStepComplete("price", book ?? {});
+  // Same check as PUBLISH_FIELD_CHECKS' "bookAuthors" entry -- surfaced here
+  // too so an empty author list is visibly incomplete in the "Автори книги"
+  // card itself, not just an invisible reason "info" won't turn green
+  // (previously NOTHING required at least one author: a book could reach
+  // REVIEW/PUBLISHED with bookAuthors: [] if the author removed their own
+  // auto-added entry and never added anyone else).
+  const hasAnyAuthor = Array.isArray(book?.bookAuthors) && book!.bookAuthors!.some((a) => a.lastName?.trim() && a.firstName?.trim());
   // Which of the admin's rejection lines are STILL relevant, checked live
   // against the current field values (getUnresolvedRejectionLines) instead
   // of a "locallyFixed" flag that was set once on save and forgotten again
@@ -1186,6 +1193,16 @@ function OutputDataContent() {
                   <p className="text-xs text-gray-400">
                     Якщо авторів декілька — кожен додає власне прізвище/ім&apos;я і, за бажанням, своє фото.
                   </p>
+                  <div className="flex items-start gap-2 text-xs">
+                    <span className={cn("mt-0.5", hasAnyAuthor ? "text-green-600" : "text-amber-500")}>
+                      {hasAnyAuthor ? "✓" : "○"}
+                    </span>
+                    <span className={hasAnyAuthor ? "text-gray-500" : "text-amber-600"}>
+                      {hasAnyAuthor
+                        ? "Автор вказаний"
+                        : "Обов'язково: додайте принаймні одного автора (прізвище + ім'я) нижче — без цього книгу не можна відправити на модерацію"}
+                    </span>
+                  </div>
                   {bookAuthors.length > 0 && (
                     <div className="space-y-1.5">
                       {bookAuthors.map((a, i) => (

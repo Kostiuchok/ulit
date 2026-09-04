@@ -303,9 +303,14 @@ export interface PublishStepBook {
   pricePrintHardcoverBw?: unknown;
   desiredRoyaltyAmount?: unknown;
   desiredRoyaltyAmountPrint?: unknown;
+  // `unknown`, same reasoning as the price fields above -- the backend reads
+  // this straight off a Prisma `Json?` column (no structural array type),
+  // while the frontend's own Book interface already has a real
+  // `BookAuthor[]`. Narrowed safely inside the check below either way.
+  bookAuthors?: unknown;
 }
 
-export type PublishFieldKey = "title" | "description" | "ageRating" | "cover" | "file" | "price";
+export type PublishFieldKey = "title" | "description" | "ageRating" | "cover" | "file" | "price" | "bookAuthors";
 
 export interface PublishFieldCheck {
   key: PublishFieldKey;
@@ -328,6 +333,22 @@ export const PUBLISH_FIELD_CHECKS: PublishFieldCheck[] = [
     },
   },
   { key: "ageRating", isComplete: (b) => !!b.ageRating },
+  {
+    // Previously nothing at all required at least one listed author -- a
+    // book could reach REVIEW/PUBLISHED with an empty bookAuthors array (e.g.
+    // the author removed their own auto-added entry and never added anyone
+    // else). Same non-empty-name check IsbnReadinessChecklist already used
+    // for its own (non-blocking) "ПІБ автора" item -- promoted here so it
+    // actually gates the "info" step/nav pill/pre-publish validate, not just
+    // a hint that only ever showed up once a print price was set.
+    key: "bookAuthors",
+    isComplete: (b) => {
+      const authors = Array.isArray(b.bookAuthors) ? (b.bookAuthors as Array<Record<string, unknown>>) : [];
+      return authors.some(
+        (a) => typeof a?.lastName === "string" && a.lastName.trim() && typeof a?.firstName === "string" && a.firstName.trim()
+      );
+    },
+  },
   { key: "cover", isComplete: (b) => !!b.coverUrl },
   { key: "file", isComplete: (b) => !!(b.originalDocxUrl || b.pdfUrl || b.epubUrl) },
   {
@@ -360,7 +381,7 @@ export type PublishStepKey = "info" | "file" | "cover" | "price";
 // section, so a section's checkbox/heading can never disagree with what
 // validateBook (the actual pre-publish gate) requires of the same fields.
 export const PUBLISH_STEP_FIELDS: Record<PublishStepKey, PublishFieldKey[]> = {
-  info: ["title", "description", "ageRating"],
+  info: ["title", "description", "ageRating", "bookAuthors"],
   file: ["file"],
   cover: ["cover"],
   price: ["price"],

@@ -11,6 +11,7 @@ import {
   priceFieldSchema,
   priceInputSchema,
   getRequiredDescriptionMinLength,
+  isPublishFieldComplete,
 } from "shared-types";
 
 // Unlike schemas.test.ts's hand-copied mirrors, these import the REAL
@@ -149,6 +150,26 @@ describe("priceFieldSchema (priceEbook/pricePrint/pricePrintHardcover/pricePrint
   it("rejects zero and negative numbers", () => {
     expect(priceFieldSchema.safeParse(0).success).toBe(false);
     expect(priceFieldSchema.safeParse(-5).success).toBe(false);
+  });
+});
+
+describe("bookAuthors publish-readiness check (PUBLISH_FIELD_CHECKS' \"bookAuthors\" key)", () => {
+  it("rejects an empty author list", () => {
+    expect(isPublishFieldComplete("bookAuthors", { bookAuthors: [] })).toBe(false);
+  });
+
+  it("rejects a missing bookAuthors field entirely", () => {
+    expect(isPublishFieldComplete("bookAuthors", {})).toBe(false);
+  });
+
+  it("rejects an author with a blank name", () => {
+    expect(isPublishFieldComplete("bookAuthors", { bookAuthors: [{ lastName: "  ", firstName: "" }] })).toBe(false);
+  });
+
+  it("accepts at least one author with a real name", () => {
+    expect(
+      isPublishFieldComplete("bookAuthors", { bookAuthors: [{ lastName: "Шевченко", firstName: "Тарас" }] })
+    ).toBe(true);
   });
 });
 

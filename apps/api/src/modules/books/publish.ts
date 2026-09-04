@@ -24,6 +24,7 @@ const FIELD_MESSAGES: Record<string, (book: PublishStepBook) => string> = {
     return `Анотація має бути від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів (зараз ${len})`;
   },
   ageRating: () => "Вкажіть вікові обмеження",
+  bookAuthors: () => "Додайте принаймні одного автора книги (прізвище та ім'я) в розділі «Автори книги»",
   cover: () => "Обкладинка не завантажена",
   file: () => "Файл рукопису не завантажено",
   price: () => "Вкажіть ціну або бажане роялті",
@@ -67,6 +68,7 @@ export async function publishRoute(app: FastifyInstance) {
           pricePrintHardcoverBw: true,
           desiredRoyaltyAmount: true,
           desiredRoyaltyAmountPrint: true,
+          bookAuthors: true,
           status: true,
         },
       });
@@ -109,6 +111,7 @@ export async function publishRoute(app: FastifyInstance) {
           pricePrintHardcoverBw: true,
           desiredRoyaltyAmount: true,
           desiredRoyaltyAmountPrint: true,
+          bookAuthors: true,
           publicationTimeline: true,
           author: { select: { id: true, contractAcceptedAt: true } },
         },
