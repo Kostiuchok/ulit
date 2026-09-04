@@ -205,7 +205,7 @@ export function PublicationTimeline({
   const hasPrintPrice = !!(creation.pricePrint || creation.pricePrintHardcover);
   const hasCover = !!creation.coverUrl;
   // printPdfUrl is only generated when the author opens the manuscript's
-  // "Передперегляд" (print-preview.ts) -- nothing else in the publish flow
+  // "Друкований PDF" link (print-preview.ts) -- nothing else in the publish flow
   // creates it (T-2057). Admin's own isIsbnReady() requires it too, so a
   // book missing it will never appear in the admin's УДК queue no matter
   // how "ready" everything else looks -- the author needs a visible reason
@@ -292,7 +292,7 @@ export function PublicationTimeline({
               href={udkBlockedOnAuthor ? `/dashboard/books/${bookId}/manuscript/preview` : undefined}
               tooltip={
                 udkBlockedOnAuthor
-                  ? "⚠ Очікування УДК ще не почалось: не згенеровано друкований PDF рукопису. Натисніть, щоб відкрити передперегляд рукопису — це й запустить генерацію."
+                  ? "⚠ Очікування УДК ще не почалось: не згенеровано друкований PDF рукопису. Натисніть, щоб відкрити «Друкований PDF» — це й запустить генерацію."
                   : "Адмін надіслав заявку до Книжкової палати — термін відповіді залежить від обраної терміновості послуги."
               }
             />

@@ -56,7 +56,7 @@ export default function ManuscriptPreviewPage() {
         pollRef.current = null;
       }
     } catch (e: any) {
-      setError(e.message || "Не вдалося сформувати передперегляд");
+      setError(e.message || "Не вдалося сформувати друкований PDF");
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;

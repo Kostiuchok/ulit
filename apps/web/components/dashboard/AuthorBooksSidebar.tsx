@@ -8,7 +8,7 @@ import {
   MessageSquare,
   Download,
   ImagePlus,
-  Eye,
+  FileText,
   BarChart3,
   Users,
   Percent,
@@ -54,8 +54,14 @@ const EDIT_GROUP: SubNavItem[] = [
   // T-2057 -- one real preview, not two: this used to point at the old
   // page-thumbnail flipbook (`(withSidebar)/[id]/preview`), a separate,
   // unrelated render pipeline from the one the manuscript editor's own
-  // "Передперегляд" button used. Both now point at the same route.
-  { label: "Передперегляд", icon: <Eye size={14} />, href: (id) => `/dashboard/books/${id}/manuscript/preview` },
+  // button used. Both now point at the same route.
+  // T-2076 -- renamed from "Передперегляд": this is the same route that
+  // lazily generates the print PDF on open (print-preview.ts), a fact
+  // "Передперегляд" alone didn't convey -- unified across every place that
+  // links here (this sidebar item, the editor toolbar button, the cover
+  // editor link, the ISBN checklist link, FormatsAndDistribution's hint,
+  // output-data's own manuscript-section hint, and PublicationTimeline's).
+  { label: "Друкований PDF", icon: <FileText size={14} />, href: (id) => `/dashboard/books/${id}/manuscript/preview` },
   { label: "Видалити", icon: <Trash2 size={14} />, action: "delete" },
 ];
 

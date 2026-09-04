@@ -29,7 +29,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
-  Eye,
+  FileText,
   SeparatorHorizontal,
   Eraser,
   Search,
@@ -491,13 +491,17 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           <ToolbarButton title="Зберегти" onClick={saveNow}>
             <Save size={15} />
           </ToolbarButton>
+          {/* T-2076 -- renamed from "Передперегляд": this route lazily
+              generates the print PDF on open (print-preview.ts), which that
+              name didn't convey -- unified with the sidebar nav item, the
+              ISBN checklist link, and PublicationTimeline's hint. */}
           <Link
             href={`/dashboard/books/${bookId}/manuscript/preview`}
             className="flex h-7 items-center gap-1.5 rounded px-2 text-[0.8125rem] text-gray-600 hover:bg-gray-100"
-            title="Передперегляд"
+            title="Друкований PDF"
           >
-            <Eye size={15} />
-            Передперегляд
+            <FileText size={15} />
+            Друкований PDF
           </Link>
           <div className="mx-1 h-5 w-px bg-gray-200" />
           <ToolbarButton title="Скасувати" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
