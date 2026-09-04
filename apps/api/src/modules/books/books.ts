@@ -8,6 +8,7 @@ import {
   languageSchema,
   distributionChannelsSchema,
   bookAuthorSchema,
+  priceFieldSchema,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
   type PrintFormatKey,
@@ -33,9 +34,11 @@ const createSchema = z.object({
   // this (required there) but it was silently dropped on create since this
   // schema didn't declare it, forcing authors to re-enter it on output-data.
   ageRating: ageRatingSchema.optional(),
-  priceEbook: z.number().positive().optional(),
-  pricePrint: z.number().positive().optional(),
-  pricePrintHardcover: z.number().positive().optional(),
+  priceEbook: priceFieldSchema,
+  pricePrint: priceFieldSchema,
+  pricePrintHardcover: priceFieldSchema,
+  pricePrintBw: priceFieldSchema,
+  pricePrintHardcoverBw: priceFieldSchema,
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).default("WIDE"),
   distributionChannels: distributionChannelsSchema.default(["ULIT", "D2D", "KDP", "GOOGLE"]),
   // BookWizard shows the author's account-profile name as a read-only badge
@@ -118,7 +121,11 @@ export async function booksRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
     }
 
-    const { title, description, genre, printFormatKey, language, ageRating, priceEbook, pricePrint, pricePrintHardcover, distributionStrategy, bookAuthors } = result.data;
+    const {
+      title, description, genre, printFormatKey, language, ageRating,
+      priceEbook, pricePrint, pricePrintHardcover, pricePrintBw, pricePrintHardcoverBw,
+      distributionStrategy, bookAuthors,
+    } = result.data;
     const slug = await uniqueBookSlug(title);
 
     // Explicit, independent from genre -- if the wizard sent a known format
@@ -140,6 +147,8 @@ export async function booksRoutes(app: FastifyInstance) {
         priceEbook: priceEbook ? priceEbook : undefined,
         pricePrint: pricePrint ? pricePrint : undefined,
         pricePrintHardcover: pricePrintHardcover ? pricePrintHardcover : undefined,
+        pricePrintBw: pricePrintBw ? pricePrintBw : undefined,
+        pricePrintHardcoverBw: pricePrintHardcoverBw ? pricePrintHardcoverBw : undefined,
         distributionStrategy,
         bookAuthors: bookAuthors && bookAuthors.length > 0 ? bookAuthors : undefined,
         authorId: request.user.id,

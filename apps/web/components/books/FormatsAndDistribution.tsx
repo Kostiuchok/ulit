@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { priceInputSchema } from "shared-types";
 import { cn } from "@/lib/utils";
 import { DISTRIBUTION_PLATFORMS, KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "@/lib/distributionPlatforms";
 
@@ -40,6 +42,17 @@ const ULIT_RATE = 0.7; // DISTRIBUTION_PLATFORMS "ULIT" -- fixed, not a range, s
 function parseRoyalty(v: string): number | undefined {
   const n = Number(v.replace(",", "."));
   return v.trim() !== "" && Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+// pricePrintBw/pricePrintHardcoverBw are the only two price fields still
+// typed directly (everything else is derived from a royalty input via
+// computeAnchorPrices below) -- shared priceInputSchema (shared-types) is
+// the same shape apps/api's book.ts/books.ts validate the saved value
+// against, minus the DB-facing `.nullable()` a raw controlled <input>
+// doesn't need (its own empty-string state covers "not set").
+export function parsePrice(v: string): number | undefined {
+  const result = priceInputSchema.safeParse(v);
+  return result.success && result.data !== "" ? result.data : undefined;
 }
 
 // Shared by both BookWizard (on step submit) and output-data (on save) --
@@ -184,6 +197,13 @@ export function FormatsAndDistribution({
   onRoyaltyEbookChange,
   royaltyPrint,
   onRoyaltyPrintChange,
+  pricePrintBw,
+  onPricePrintBwChange,
+  pricePrintHardcoverBw,
+  onPricePrintHardcoverBwChange,
+  hasManuscript,
+  bookId,
+  onUploadManuscript,
 }: {
   language?: string;
   formatLabel: string;
@@ -195,6 +215,27 @@ export function FormatsAndDistribution({
   onRoyaltyEbookChange: (v: string) => void;
   royaltyPrint: string;
   onRoyaltyPrintChange: (v: string) => void;
+  // Optional B&W alternative prices -- direct numbers, no royalty
+  // calculator (no per-B&W production cost in print-cost.ts to build one
+  // against). Merged into this same "Продаж друкованої книги" card now
+  // (T-2075 follow-up) instead of living in its own separate card+save
+  // action -- black-and-white is a print OPTION, not an unrelated concern.
+  pricePrintBw: string;
+  onPricePrintBwChange: (v: string) => void;
+  pricePrintHardcoverBw: string;
+  onPricePrintHardcoverBwChange: (v: string) => void;
+  // Whether a manuscript (.docx) has been uploaded at all -- distinguishes
+  // "nothing uploaded yet" from "uploaded, but the print PDF (and so the
+  // page count print-cost needs) hasn't been generated yet", which used to
+  // show the exact same generic "завантажте рукопис" message even when a
+  // manuscript very much had been uploaded.
+  hasManuscript: boolean;
+  bookId: string;
+  // Caller-specific "go fix it" action for the "nothing uploaded" case --
+  // BookWizard jumps back to its own "Файл" step, output-data scrolls to
+  // its "Рукопис" section; neither is something this shared component can
+  // know how to do on its own.
+  onUploadManuscript?: () => void;
 }) {
   const isKdpSelect = channels.includes("KDP") && !channels.includes("D2D") && !channels.includes("GOOGLE");
   const kdpEbookUnsupported = !!language && KDP_EBOOK_UNSUPPORTED_LANGUAGES.includes(language);
@@ -216,11 +257,30 @@ export function FormatsAndDistribution({
         </div>
 
         {!cost ? (
-          <p className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
-            {printCost?.status === "NO_SETTINGS"
-              ? "Собівартість друку ще не налаштована адміном."
-              : "Завантажте рукопис, щоб побачити собівартість виготовлення й порахувати ціну."}
-          </p>
+          <div className="space-y-1.5 rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
+            {printCost?.status === "NO_SETTINGS" ? (
+              <p>Собівартість друку ще не налаштована адміном.</p>
+            ) : hasManuscript ? (
+              <>
+                <p>Рукопис завантажено, але кількість друкованих сторінок ще не визначена.</p>
+                <Link
+                  href={`/dashboard/books/${bookId}/manuscript/preview`}
+                  className="block text-primary underline hover:no-underline"
+                >
+                  Згенерувати друкований PDF (відкриє передперегляд рукопису) →
+                </Link>
+              </>
+            ) : (
+              <>
+                <p>Завантажте рукопис (.docx), щоб побачити собівартість виготовлення й порахувати ціну.</p>
+                {onUploadManuscript && (
+                  <button type="button" onClick={onUploadManuscript} className="text-primary underline hover:no-underline">
+                    Перейти до розділу «Рукопис» →
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         ) : (
           <>
             <RoyaltyInput
@@ -246,6 +306,53 @@ export function FormatsAndDistribution({
                 )}
               </div>
             )}
+
+            {/* T-2075 follow-up -- used to be its own separate card lower on
+                the page, with its own "Зберегти ч/б ціни" save button.
+                Black-and-white is a print OPTION, not an unrelated concern,
+                so it lives inside "Продаж друкованої книги" now, saved
+                together with everything else in this section. */}
+            <div className="rounded-lg border border-dashed p-3 space-y-2.5">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Чорно-білий друк (опційно)</p>
+                <p className="text-xs text-gray-500">
+                  Дешевше в типографії — запропонуйте покупцю дешевший варіант поруч із кольоровим. Пряма ціна для
+                  покупця, без калькулятора гонорару.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label htmlFor="pricePrintBw" className="block text-xs font-medium text-gray-700">
+                    М&apos;яка (грн)
+                  </label>
+                  <input
+                    id="pricePrintBw"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={pricePrintBw}
+                    onChange={(e) => onPricePrintBwChange(e.target.value)}
+                    placeholder="149.99"
+                    className="h-9 w-full rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="pricePrintHardcoverBw" className="block text-xs font-medium text-gray-700">
+                    Тверда (грн)
+                  </label>
+                  <input
+                    id="pricePrintHardcoverBw"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={pricePrintHardcoverBw}
+                    onChange={(e) => onPricePrintHardcoverBwChange(e.target.value)}
+                    placeholder="229.99"
+                    className="h-9 w-full rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {DISTRIBUTION_PLATFORMS.filter((p) => PRINT_CAPABLE_CHANNELS.has(p.key)).map((p) => {

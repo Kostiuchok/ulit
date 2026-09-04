@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
-import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "@/components/books/FormatsAndDistribution";
+import { FormatsAndDistribution, computeAnchorPrices, parsePrice, type PrintCost } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import { PublishButton } from "@/components/books/PublishButton";
 import { RepublishButton } from "@/components/books/RepublishButton";
@@ -104,17 +104,6 @@ const infoSchema = z.object({
   priorPublicationCertificate: z.string().max(100).optional(),
 });
 type InfoForm = z.infer<typeof infoSchema>;
-
-// T-2075 -- only the optional B&W alternative prices are still raw manual
-// inputs. priceEbook/pricePrint/pricePrintHardcover moved to the merged
-// "Ціна та розповсюдження" section (FormatsAndDistribution + anchor pricing,
-// same as BookWizard's step 2) -- there's no per-B&W production cost in
-// print-cost.ts to build a royalty calculator against, so this stays as-is.
-const priceSchema = z.object({
-  pricePrintBw: z.coerce.number().positive().optional().or(z.literal("")),
-  pricePrintHardcoverBw: z.coerce.number().positive().optional().or(z.literal("")),
-});
-type PriceForm = z.infer<typeof priceSchema>;
 
 interface CoAuthor {
   name: string;
@@ -442,12 +431,12 @@ function OutputDataContent() {
   const [claimIsbnSaving, setClaimIsbnSaving] = useState(false);
   const [claimIsbnError, setClaimIsbnError] = useState("");
 
-  const [priceSaved, setPriceSaved] = useState(false);
-  const [priceError, setPriceError] = useState("");
   const [printCost, setPrintCost] = useState<PrintCost | null>(null);
   const [channels, setChannels] = useState<string[]>(["ULIT"]);
   const [royaltyEbook, setRoyaltyEbook] = useState("");
   const [royaltyPrint, setRoyaltyPrint] = useState("");
+  const [pricePrintBw, setPricePrintBw] = useState("");
+  const [pricePrintHardcoverBw, setPricePrintHardcoverBw] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -538,7 +527,6 @@ function OutputDataContent() {
   }
 
   const infoForm = useForm<InfoForm>({ resolver: zodResolver(infoSchema) });
-  const priceForm = useForm<PriceForm>({ resolver: zodResolver(priceSchema) });
 
   const titleValue = infoForm.watch("title") ?? "";
   const descValue = infoForm.watch("description") ?? "";
@@ -589,13 +577,11 @@ function OutputDataContent() {
       copyrightHolder: book.copyrightHolder ?? "",
       priorPublicationCertificate: book.priorPublicationCertificate ?? "",
     });
-    priceForm.reset({
-      pricePrintBw: book.pricePrintBw ? Number(book.pricePrintBw) : "",
-      pricePrintHardcoverBw: book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : "",
-    });
     setChannels(Array.isArray(book.distributionChannels) && book.distributionChannels.length > 0 ? book.distributionChannels : ["ULIT"]);
     setRoyaltyEbook(book.desiredRoyaltyAmount ? String(Number(book.desiredRoyaltyAmount)) : "");
     setRoyaltyPrint(book.desiredRoyaltyAmountPrint ? String(Number(book.desiredRoyaltyAmountPrint)) : "");
+    setPricePrintBw(book.pricePrintBw ? String(Number(book.pricePrintBw)) : "");
+    setPricePrintHardcoverBw(book.pricePrintHardcoverBw ? String(Number(book.pricePrintHardcoverBw)) : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book]);
 
@@ -781,32 +767,15 @@ function OutputDataContent() {
     }
   }
 
-  const onSubmitPrice = async (data: PriceForm) => {
-    setPriceError("");
-    setPriceSaved(false);
-    try {
-      const { book: updated } = await apiFetch<{ book: MetadataBook }>(`/api/books/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          pricePrintBw: data.pricePrintBw ? Number(data.pricePrintBw) : null,
-          pricePrintHardcoverBw: data.pricePrintHardcoverBw ? Number(data.pricePrintHardcoverBw) : null,
-        }),
-      });
-      setBook(updated);
-      setPriceSaved(true);
-      setTimeout(() => setPriceSaved(false), 3000);
-    } catch (e: any) {
-      setPriceError(e.message || "Помилка збереження");
-    }
-  };
-
   // T-2075 -- one save action for the merged "Ціна та розповсюдження"
   // section: derives the concrete Ulit-anchored priceEbook/pricePrint/
   // pricePrintHardcover from the two royalty inputs (same helper BookWizard's
   // step 2 uses, computeAnchorPrices in FormatsAndDistribution.tsx, so the
   // formula can't drift between the two places), then saves both the price
   // PATCH and the distributionChannels PATCH together -- they're one
-  // decision now, not two.
+  // decision now, not two. pricePrintBw/pricePrintHardcoverBw folded in here
+  // too (used to be a separate card with its own "Зберегти ч/б ціни" button)
+  // -- black-and-white is a print OPTION, not an unrelated save action.
   const [formatsSaving, setFormatsSaving] = useState(false);
   const [formatsSaved, setFormatsSaved] = useState(false);
   const [formatsError, setFormatsError] = useState("");
@@ -816,6 +785,8 @@ function OutputDataContent() {
     setFormatsSaving(true);
     try {
       const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
+      const bw = parsePrice(pricePrintBw);
+      const hardcoverBw = parsePrice(pricePrintHardcoverBw);
       const { book: updated } = await apiFetch<{ book: MetadataBook }>(`/api/books/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -824,6 +795,8 @@ function OutputDataContent() {
           priceEbook: anchor.priceEbook ?? null,
           pricePrint: anchor.pricePrint ?? null,
           pricePrintHardcover: anchor.pricePrintHardcover ?? null,
+          pricePrintBw: bw ?? null,
+          pricePrintHardcoverBw: hardcoverBw ?? null,
         }),
       });
       setBook(updated);
@@ -1536,6 +1509,13 @@ function OutputDataContent() {
               onRoyaltyEbookChange={setRoyaltyEbook}
               royaltyPrint={royaltyPrint}
               onRoyaltyPrintChange={setRoyaltyPrint}
+              pricePrintBw={pricePrintBw}
+              onPricePrintBwChange={setPricePrintBw}
+              pricePrintHardcoverBw={pricePrintHardcoverBw}
+              onPricePrintHardcoverBwChange={setPricePrintHardcoverBw}
+              hasManuscript={fileSectionDone}
+              bookId={id}
+              onUploadManuscript={() => scrollToSection("file")}
             />
 
             {formatsError && (
@@ -1547,59 +1527,6 @@ function OutputDataContent() {
             <Button onClick={saveFormatsAndDistribution} loading={formatsSaving}>
               Зберегти зміни
             </Button>
-          </div>
-
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <form onSubmit={priceForm.handleSubmit(onSubmitPrice)} className="space-y-3">
-              <div>
-                <h3 className="text-base font-bold text-gray-900">Чорно-білий друк</h3>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Дешевше в типографії, опційно — заповніть, якщо хочете запропонувати покупцю дешевший варіант
-                  поруч із кольоровим. Пряма ціна для покупця, без калькулятора гонорару.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="pricePrintBw">Друк ч/б, м&apos;яка (грн)</Label>
-                  <Input
-                    id="pricePrintBw"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...priceForm.register("pricePrintBw")}
-                    placeholder="149.99"
-                  />
-                  {priceForm.formState.errors.pricePrintBw && (
-                    <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintBw.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pricePrintHardcoverBw">Друк ч/б, тверда (грн)</Label>
-                  <Input
-                    id="pricePrintHardcoverBw"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...priceForm.register("pricePrintHardcoverBw")}
-                    placeholder="229.99"
-                  />
-                  {priceForm.formState.errors.pricePrintHardcoverBw && (
-                    <p className="text-xs text-red-500">{priceForm.formState.errors.pricePrintHardcoverBw.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {priceError && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{priceError}</div>
-              )}
-              {priceSaved && (
-                <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>
-              )}
-
-              <Button type="submit" variant="outline" loading={priceForm.formState.isSubmitting}>
-                Зберегти ч/б ціни
-              </Button>
-            </form>
           </div>
 
           {book?.status === "PUBLISHED" && (

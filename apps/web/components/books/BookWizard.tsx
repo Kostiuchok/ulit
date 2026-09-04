@@ -25,7 +25,7 @@ import {
   bookAuthorSchema,
   type PrintFormatKey,
 } from "shared-types";
-import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../books/FormatsAndDistribution";
+import { FormatsAndDistribution, computeAnchorPrices, parsePrice, type PrintCost } from "../books/FormatsAndDistribution";
 
 // ─── Step schemas ────────────────────────────────────────────────────────────
 
@@ -115,6 +115,8 @@ export function BookWizard() {
   const [error, setError] = useState("");
   const [royaltyEbook, setRoyaltyEbook] = useState("");
   const [royaltyPrint, setRoyaltyPrint] = useState("");
+  const [pricePrintBw, setPricePrintBw] = useState("");
+  const [pricePrintHardcoverBw, setPricePrintHardcoverBw] = useState("");
 
   const [manuscriptStage, setManuscriptStage] = useState<ManuscriptStage>("idle");
   const [printCost, setPrintCost] = useState<PrintCost | null>(null);
@@ -305,6 +307,8 @@ export function BookWizard() {
           priceEbook: anchor.priceEbook,
           pricePrint: anchor.pricePrint,
           pricePrintHardcover: anchor.pricePrintHardcover,
+          pricePrintBw: parsePrice(pricePrintBw),
+          pricePrintHardcoverBw: parsePrice(pricePrintHardcoverBw),
         }),
       });
       await apiFetch(`/api/books/${draft.id}/distribution`, {
@@ -675,6 +679,13 @@ export function BookWizard() {
           onRoyaltyEbookChange={setRoyaltyEbook}
           royaltyPrint={royaltyPrint}
           onRoyaltyPrintChange={setRoyaltyPrint}
+          pricePrintBw={pricePrintBw}
+          onPricePrintBwChange={setPricePrintBw}
+          pricePrintHardcoverBw={pricePrintHardcoverBw}
+          onPricePrintHardcoverBwChange={setPricePrintHardcoverBw}
+          hasManuscript={manuscriptStage !== "idle" && manuscriptStage !== "skipped"}
+          bookId={draft!.id}
+          onUploadManuscript={() => setStep(1)}
         />
 
         {errorBanner}

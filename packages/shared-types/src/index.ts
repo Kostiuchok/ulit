@@ -249,6 +249,29 @@ export interface Book {
   publishedAt?: string;
 }
 
+// ─── Price fields ─────────────────────────────────────────────────────────────
+
+// One shape for every per-format sale price (priceEbook, pricePrint,
+// pricePrintHardcover, pricePrintBw, pricePrintHardcoverBw) -- was five
+// fields independently written out field-by-field in both apps/api's
+// book.ts patchSchema and books.ts createSchema (POST's copy didn't even
+// have `.nullable()`, and didn't list the two Bw fields at all), while
+// pricePrintBw/pricePrintHardcoverBw ALSO had their own separate frontend
+// z.coerce schema on output-data (priceEbook/pricePrint/pricePrintHardcover
+// had no frontend schema at all, computed via computeAnchorPrices and sent
+// raw). Same underlying rule for all five either way: a positive number, or
+// null/absent to mean "not sold in this format".
+export const priceFieldSchema = z.number().positive().nullable().optional();
+
+// Frontend raw-<input type="number">-specific companion -- "" is a valid
+// "author hasn't typed anything (yet)" state a controlled input needs to
+// hold, which priceFieldSchema's `number` type can't represent; coerces to
+// a real number once non-empty. Only pricePrintBw/pricePrintHardcoverBw are
+// ever typed directly through a raw input like this -- priceEbook/
+// pricePrint/pricePrintHardcover are derived from a royalty input via
+// computeAnchorPrices (FormatsAndDistribution.tsx), never typed directly.
+export const priceInputSchema = z.coerce.number().positive().optional().or(z.literal(""));
+
 // ─── Publish readiness ────────────────────────────────────────────────────────
 
 // Was independently reimplemented in THREE places before this: the

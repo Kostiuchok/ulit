@@ -8,6 +8,8 @@ import {
   LANGUAGES,
   distributionChannelsSchema,
   bookAuthorSchema,
+  priceFieldSchema,
+  priceInputSchema,
   getRequiredDescriptionMinLength,
 } from "shared-types";
 
@@ -134,5 +136,36 @@ describe("getRequiredDescriptionMinLength", () => {
 
   it("takes the strictest channel when both KDP and Google are enabled", () => {
     expect(getRequiredDescriptionMinLength(["ULIT", "KDP", "GOOGLE"])).toBe(250);
+  });
+});
+
+describe("priceFieldSchema (priceEbook/pricePrint/pricePrintHardcover/pricePrintBw/pricePrintHardcoverBw)", () => {
+  it("accepts a positive number, null, and undefined", () => {
+    expect(priceFieldSchema.safeParse(149.99).success).toBe(true);
+    expect(priceFieldSchema.safeParse(null).success).toBe(true);
+    expect(priceFieldSchema.safeParse(undefined).success).toBe(true);
+  });
+
+  it("rejects zero and negative numbers", () => {
+    expect(priceFieldSchema.safeParse(0).success).toBe(false);
+    expect(priceFieldSchema.safeParse(-5).success).toBe(false);
+  });
+});
+
+describe("priceInputSchema (raw <input> state for pricePrintBw/HardcoverBw)", () => {
+  it("coerces a non-empty numeric string to a number", () => {
+    const result = priceInputSchema.safeParse("149.99");
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBe(149.99);
+  });
+
+  it("accepts an empty string as \"not set yet\"", () => {
+    const result = priceInputSchema.safeParse("");
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBe("");
+  });
+
+  it("rejects a non-numeric string", () => {
+    expect(priceInputSchema.safeParse("abc").success).toBe(false);
   });
 });
