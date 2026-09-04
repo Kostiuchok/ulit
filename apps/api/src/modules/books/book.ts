@@ -161,9 +161,10 @@ const patchSchema = z.object({
       backSpine: z.array(z.any()),
       // left/top/scaleX/scaleY -- the author's own pan/zoom/crop of the
       // background image, so it survives a format switch or reload instead
-      // of resetting to the auto-centered cover-fit every time. layoutW/H --
-      // the cover's total width/height this was captured at, so it can be
-      // rescaled proportionally on restore into a different-width format.
+      // of resetting to the auto-centered cover-fit every time. layoutW/H/
+      // layoutFrontX -- the layout this was captured at, so it can be
+      // repositioned correctly on restore into a layout with a different
+      // front-panel offset (CoverDesignerCanvas.tsx's computeRestoreTransform).
       background: z.object({
         color: z.string(),
         imageUrl: z.string().optional(),
@@ -173,7 +174,24 @@ const patchSchema = z.object({
         scaleY: z.number().optional(),
         layoutW: z.number().optional(),
         layoutH: z.number().optional(),
+        layoutFrontX: z.number().optional(),
       }),
+      // T-2081 -- the front-panel illustration, promoted to its own full-wrap
+      // layer (same shape as background minus color) so it can be panned
+      // across the whole print spread instead of being clipped to a
+      // front-only window forever.
+      illustration: z
+        .object({
+          imageUrl: z.string().optional(),
+          left: z.number().optional(),
+          top: z.number().optional(),
+          scaleX: z.number().optional(),
+          scaleY: z.number().optional(),
+          layoutW: z.number().optional(),
+          layoutH: z.number().optional(),
+          layoutFrontX: z.number().optional(),
+        })
+        .optional(),
     })
     .optional(),
 });

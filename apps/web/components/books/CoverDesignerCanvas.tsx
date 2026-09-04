@@ -549,26 +549,6 @@ function normalizeBackgroundStack(canvas: fabric.Canvas) {
   }
 }
 
-function replaceSlotObject(canvas: fabric.Canvas, obj: fabric.Object, slot: PanelRect) {
-  obj.set({
-    left: slot.x,
-    top: slot.y,
-    selectable: true,
-    evented: true,
-    lockUniScaling: true, // resize handles stay proportional — no stretching
-    data: { role: "photo-slot" },
-    // absolutePositioned clipPath is anchored to canvas coordinates, not the
-    // object's own transform — so dragging/scaling the image inside it pans
-    // and zooms (crops) without ever spilling outside the slot.
-    clipPath: new fabric.Rect({ left: slot.x, top: slot.y, width: slot.w, height: slot.h, absolutePositioned: true }),
-  });
-  const existing = canvas.getObjects().find((o: any) => o.data?.role === "photo-slot");
-  if (existing) canvas.remove(existing);
-  canvas.add(obj);
-  normalizeBackgroundStack(canvas);
-  canvas.renderAll();
-}
-
 function replacePatternObject(canvas: fabric.Canvas, group: fabric.Object) {
   group.set({ selectable: false, evented: false, data: { role: "pattern" } });
   const existing = canvas.getObjects().find((o: any) => o.data?.role === "pattern");
@@ -599,21 +579,6 @@ function backgroundFloorIndex(canvas: fabric.Canvas): number {
   return floor;
 }
 
-function applyImageToSlot(canvas: fabric.Canvas, url: string, slot: PanelRect) {
-  const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" as const };
-  fabric.Image.fromURL(
-    url,
-    (img) => {
-      if (isCanvasDisposed(canvas)) return;
-      const iw = img.width ?? slot.w;
-      const ih = img.height ?? slot.h;
-      const scale = Math.max(slot.w / iw, slot.h / ih);
-      img.set({ originX: "left", originY: "top", scaleX: scale, scaleY: scale, left: slot.x - (iw * scale - slot.w) / 2, top: slot.y - (ih * scale - slot.h) / 2 });
-      replaceSlotObject(canvas, img, slot);
-    },
-    opts
-  );
-}
 
 interface BgImageTransform {
   left: number;
@@ -625,12 +590,11 @@ interface BgImageTransform {
 // Same shape persisted in Book.coverDesign.background (apps/api's book.ts
 // patchSchema) and CoverTemplate.design.background -- left/top/scaleX/scaleY
 // are the author's own pan/zoom of the uploaded image, optional so existing
-// saved designs (color+imageUrl only) keep loading fine. layoutW/layoutH are
-// the totalW/totalH the transform was captured at (see captureBackground) --
-// needed to rescale the pan/zoom proportionally when the format switches to
-// a different total width (ebook <-> print, or spine width changing with
-// page count) instead of reusing raw pixel values sized for a different
-// canvas width.
+// saved designs (color+imageUrl only) keep loading fine. layoutW/layoutH/
+// layoutFrontX are the layout this was captured at (see captureBackground) --
+// needed to reposition the pan/zoom correctly when the format switches to a
+// different total width (ebook <-> print, or spine width changing with page
+// count) instead of reusing raw pixel values sized for a different canvas.
 interface BackgroundDesign {
   color: string;
   imageUrl?: string;
@@ -640,25 +604,77 @@ interface BackgroundDesign {
   scaleY?: number;
   layoutW?: number;
   layoutH?: number;
+  layoutFrontX?: number;
 }
 
-// Full-bleed background image — covers the entire cover spread (back +
-// spine + front for print, the single panel for ebook), same footprint as
-// the solid accent color drawn by addAccentBg. Previously this only covered
-// the front panel (bands, photo-slot, text) and left the spine/back panels
-// on the plain accent color, which read as broken for any author uploading
-// a full-wrap cover photo instead of a front-only illustration — a print
-// cover's background is one continuous image/color, not a front-only crop.
-// Movable/scalable by the author (selectable/evented, proportional resize
-// only), clipped to the full cover so it can never be dragged past the
-// bleed edge.
-// `transform` is the author's own last pan/zoom, read back from the saved
-// design (captureDesignState) — passing it in re-applies exactly where they
-// left it instead of recomputing the auto-centered cover-fit, which used to
-// silently reset their positioning on every format switch/reload. Omit it
-// (a fresh upload, or re-picking a background with no transform recorded
-// yet) to fall back to that auto-fit-and-center default.
-function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: string, transform?: BgImageTransform) {
+// Same shape as BackgroundDesign minus color -- the front-panel illustration
+// ("photo-slot" role), promoted (T-2081) from a front-only crop to its own
+// full-wrap layer living directly above bg-image, so it can be panned across
+// the ENTIRE print spread (back+spine+front) exactly like the background
+// photo already could, not just within a front-sized window. Whatever
+// portion currently overlaps the front panel is what shows in ebook mode --
+// same front-alignment restore (computeRestoreTransform) the background uses.
+interface IllustrationDesign {
+  imageUrl?: string;
+  left?: number;
+  top?: number;
+  scaleX?: number;
+  scaleY?: number;
+  layoutW?: number;
+  layoutH?: number;
+  layoutFrontX?: number;
+}
+
+// Restoring a full-wrap image's (background OR illustration) pan/zoom into a
+// layout with a different front-panel offset (ebook <-> print, or spine
+// width changing with page count). The front panel is exactly DISPLAY_W wide
+// in EVERY format -- only back/spine come and go around it -- so shifting by
+// the front.x delta (scale untouched) keeps showing exactly the same crop
+// over the front panel that was showing there before, instead of
+// proportionally rescaling the whole wrap image by however much wider the
+// print spread happens to be (which used to make ebook mode show a squashed
+// view of the ENTIRE back+spine+front photo, not specifically "the part that
+// was on the front"). Legacy saved designs (from before layoutFrontX
+// existed) fall back to the old proportional-rescale-by-total-width
+// approach -- imperfect, but harmless, and self-corrects the moment the
+// author touches the image again (the next capture writes a real
+// layoutFrontX).
+function computeRestoreTransform(
+  saved: { left?: number; top?: number; scaleX?: number; scaleY?: number; layoutW?: number; layoutFrontX?: number },
+  layout: CoverLayout
+): BgImageTransform {
+  if (saved.layoutFrontX !== undefined) {
+    const dx = layout.front.x - saved.layoutFrontX;
+    return { left: saved.left! + dx, top: saved.top!, scaleX: saved.scaleX!, scaleY: saved.scaleY! };
+  }
+  const ratio = saved.layoutW ? layout.totalW / saved.layoutW : 1;
+  return { left: saved.left! * ratio, top: saved.top!, scaleX: saved.scaleX! * ratio, scaleY: saved.scaleY! * ratio };
+}
+
+// Full-bleed image layer — covers the entire cover spread (back + spine +
+// front for print, the single panel for ebook), same footprint as the solid
+// accent color drawn by addAccentBg. Shared by both "bg-image" (background
+// photo) and "photo-slot" (illustration) -- previously bg-image only covered
+// the front panel and illustration was hard-clipped to a front-sized window
+// forever; a print cover's background/illustration is one continuous
+// image, not a front-only crop.
+// `fitMode` "height" (background) fits the image to the cover's height,
+// proportionally, letting width over/under-run -- "cover" (illustration)
+// fills both dimensions, cropping whichever overflows, same as before.
+// `transform` is the author's own last pan/zoom (from captureBackground/
+// captureIllustration) -- passing it in re-applies exactly where they left
+// it instead of recomputing the auto-centered fit, which used to silently
+// reset their positioning on every format switch/reload. Omit it (a fresh
+// upload, or re-picking an image with no transform recorded yet) to fall
+// back to that auto-fit-and-center default.
+function applyFullWrapImage(
+  canvas: fabric.Canvas,
+  layout: CoverLayout,
+  url: string,
+  role: "bg-image" | "photo-slot",
+  fitMode: "cover" | "height",
+  transform?: BgImageTransform
+) {
   const box = { x: 0, y: 0, w: layout.totalW, h: layout.totalH };
   const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" as const };
   fabric.Image.fromURL(
@@ -667,7 +683,7 @@ function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: s
       if (isCanvasDisposed(canvas)) return;
       const iw = img.width ?? box.w;
       const ih = img.height ?? box.h;
-      const fitScale = Math.max(box.w / iw, box.h / ih);
+      const fitScale = fitMode === "height" ? box.h / ih : Math.max(box.w / iw, box.h / ih);
       img.set({
         originX: "left",
         originY: "top",
@@ -678,10 +694,10 @@ function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: s
         selectable: true,
         evented: true,
         lockUniScaling: true, // resize handles stay proportional — no stretching
-        data: { role: "bg-image" },
+        data: { role },
         clipPath: new fabric.Rect({ left: box.x, top: box.y, width: box.w, height: box.h, absolutePositioned: true }),
       });
-      const existing = canvas.getObjects().find((o: any) => o.data?.role === "bg-image");
+      const existing = canvas.getObjects().find((o: any) => o.data?.role === role);
       if (existing) canvas.remove(existing);
       canvas.add(img);
       normalizeBackgroundStack(canvas);
@@ -689,6 +705,14 @@ function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: s
     },
     opts
   );
+}
+
+function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: string, transform?: BgImageTransform) {
+  applyFullWrapImage(canvas, layout, url, "bg-image", "height", transform);
+}
+
+function applyIllustrationImage(canvas: fabric.Canvas, layout: CoverLayout, url: string, transform?: BgImageTransform) {
+  applyFullWrapImage(canvas, layout, url, "photo-slot", "cover", transform);
 }
 
 // ─── Cross-format shared state (front / back+spine / background) ──────────
@@ -702,25 +726,26 @@ function isInFrontRange(left: number | undefined, layout: CoverLayout): boolean 
 }
 
 // Roles are classified primarily by their semantic `data.role` tag, not by
-// raw canvas position — the "photo-slot" illustration can be freely panned
-// and zoomed by the author inside its locked clipPath crop, which can push
-// its actual Fabric `.left` far outside the visible front-panel x-range even
-// though it still renders cropped-and-correct on screen. Classifying it (and
-// every other system-drawn role) by position caused it to intermittently get
-// bucketed into back+spine instead of front, which is what desynced the
-// front/back/dashboard covers. Position is only used as a fallback for
-// objects with no recognized role, e.g. extra images/text the author added
-// freely with no fixed "panel" of their own.
-const FRONT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "band", "photo-slot"]);
+// raw canvas position. Position is only used as a fallback for objects with
+// no recognized role, e.g. extra images/text the author added freely with no
+// fixed "panel" of their own.
+// "photo-slot" (the illustration) is NOT in this set (T-2081) -- it's now a
+// full-wrap layer captured/restored via captureIllustration/applyIllustration,
+// same as "bg-image", excluded from this front/backSpine split entirely
+// rather than bucketed as a front object.
+const FRONT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "band"]);
 const BACK_SPINE_ROLES = new Set(["text-blurb", "text-bio", "text-spine", "barcode"]);
 
-// Splits a flat array of Fabric object JSON descriptors (background objects
-// already excluded by the caller) into front vs back+spine buckets. Front
-// positions come back relative to the front panel's own x-origin, since that
-// offset differs between ebook (x=0) and print (x=DISPLAY_W+spineW) layouts —
-// callers add the *current* format's front.x back on restore.
+// Splits a flat array of Fabric object JSON descriptors (background/
+// illustration objects already excluded by the caller) into front vs
+// back+spine buckets. Front positions come back relative to the front
+// panel's own x-origin, since that offset differs between ebook (x=0) and
+// print (x=DISPLAY_W+spineW) layouts — callers add the *current* format's
+// front.x back on restore.
 function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
-  const nonBg = objects.filter((o) => o.data?.role !== "accent" && o.data?.role !== "bg-image");
+  const nonBg = objects.filter(
+    (o) => o.data?.role !== "accent" && o.data?.role !== "bg-image" && o.data?.role !== "photo-slot"
+  );
   const isFront = (o: any) => {
     const role = o.data?.role;
     if (role && FRONT_ROLES.has(role)) return true;
@@ -735,21 +760,13 @@ function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
 }
 
 // Restores front-panel objects (front-relative left, from splitObjectsByPanel
-// or a saved template) onto the CURRENT format's front panel. A "photo-slot"
-// illustration (and any other front object with a lockUniScaling crop
-// clipPath, e.g. a future front-only overlay) carries an absolutePositioned
-// clipPath rect that was frozen at whichever format's front-panel coordinates
-// were active when it was captured/serialized — shifting only `.left` left
-// the clip window itself stale. Since ebook's front panel and print's BACK
-// panel happen to share the exact same rect ({x:0,y:0,w:DISPLAY_W,h:DISPLAY_H}),
-// a stale clip window silently coincided with the back panel instead of
-// clipping to nothing — the illustration then rendered wherever its own
-// (correctly repositioned) pixels happened to fall relative to that stale
-// window, which is why it visually ended up looking like it was on the back
-// panel (or hidden behind the background) after switching format/reloading a
-// saved design. The background-image layer never had this bug because it's
-// excluded from this front/backSpine split entirely and gets its clipPath
-// rebuilt from scratch every time via applyBackground/applyBackgroundImage.
+// or a saved template) onto the CURRENT format's front panel. Any front
+// object carrying its own clipPath (e.g. a future front-only overlay) gets
+// that clip window rebuilt at the current front rect too, so a stale clip
+// frozen at a different format's coordinates can never silently coincide
+// with the wrong panel. "photo-slot" and "bg-image" never reach this
+// function at all (T-2081) -- both are full-wrap layers with their clipPath
+// rebuilt from scratch every time via applyBackground/applyIllustration.
 function repositionFrontObjects(objs: any[], front: PanelRect): any[] {
   return objs.map((o) => {
     const repositioned = { ...o, left: (o.left ?? 0) + front.x };
@@ -786,10 +803,10 @@ function touchActiveObj<T extends object>(obj: T): T {
 // tab switch, not just one of them. The background now spans the whole
 // cover (layout's origin is always (0,0) regardless of format — see
 // computeCoverLayout), so left/top are stored as plain absolute canvas
-// coordinates, no per-panel offset needed. layoutW/layoutH record the
-// layout this was captured at, so applyBackground can rescale the pan/zoom
-// proportionally if restored into a layout with a different total width
-// (ebook <-> print, or spine width changing with page count).
+// coordinates, no per-panel offset needed. layoutW/layoutH/layoutFrontX
+// record the layout this was captured at, so applyBackground can reposition
+// the pan/zoom correctly if restored into a layout with a different front
+// offset (ebook <-> print, or spine width changing with page count).
 function captureBackground(currentObjects: any[], layout: CoverLayout, fallbackColor: string): BackgroundDesign {
   const accent = currentObjects.find((o: any) => o.data?.role === "accent") as any;
   const bgImage = currentObjects.find((o: any) => o.data?.role === "bg-image") as any;
@@ -802,6 +819,25 @@ function captureBackground(currentObjects: any[], layout: CoverLayout, fallbackC
     scaleY: bgImage?.scaleY,
     layoutW: bgImage ? layout.totalW : undefined,
     layoutH: bgImage ? layout.totalH : undefined,
+    layoutFrontX: bgImage ? layout.front.x : undefined,
+  };
+}
+
+// Same idea as captureBackground, for the "photo-slot" illustration layer.
+// Returns {} (no imageUrl) when no illustration is present -- applyIllustration
+// treats a missing imageUrl as "nothing to restore", same as applyBackground.
+function captureIllustration(currentObjects: any[], layout: CoverLayout): IllustrationDesign {
+  const slot = currentObjects.find((o: any) => o.data?.role === "photo-slot") as any;
+  if (!slot) return {};
+  return {
+    imageUrl: slot.src as string,
+    left: slot.left,
+    top: slot.top,
+    scaleX: slot.scaleX,
+    scaleY: slot.scaleY,
+    layoutW: layout.totalW,
+    layoutH: layout.totalH,
+    layoutFrontX: layout.front.x,
   };
 }
 
@@ -810,7 +846,8 @@ function captureDesignState(canvas: fabric.Canvas, layout: CoverLayout, cachedBa
   const { front, backSpine: liveBackSpine } = splitObjectsByPanel(currentObjects, layout);
   const backSpine = layout.back ? liveBackSpine : (cachedBackSpine ?? []);
   const background = captureBackground(currentObjects, layout, "#1a1a2e");
-  return { front, backSpine, background };
+  const illustration = captureIllustration(currentObjects, layout);
+  return { front, backSpine, background, illustration };
 }
 
 // Draws the given template on an offscreen scratch canvas to get "fresh"
@@ -828,27 +865,26 @@ function buildFreshPanelObjects(ctx: TemplateCtx, template: Template, layout: Co
 // Regenerates the background (color + optional image) fresh at the current
 // layout's dimensions — reuses addAccentBg/applyBackgroundImage, which are
 // already parameterized by layout for exactly this reason, rather than
-// trying to reposition/rescale a cached background object across formats.
+// trying to reposition a cached background object across formats.
 function applyBackground(canvas: fabric.Canvas, layout: CoverLayout, bg: BackgroundDesign | null, fallbackColor: string) {
   addAccentBg(canvas, layout, bg?.color ?? fallbackColor);
   const accent = canvas.getObjects().find((o: any) => o.data?.role === "accent");
   if (accent) canvas.sendToBack(accent);
   if (bg?.imageUrl) {
-    // bg.left/top/scaleX/scaleY are absolute pixel values captured at
-    // bg.layoutW/layoutH's total width (see captureBackground) -- if the
-    // CURRENT layout has a different total width (format switch, or spine
-    // width shifting with page count), rescale proportionally instead of
-    // reusing pixel values sized for a different canvas width. Heights
-    // never differ between formats for the same book trim (only side panels
-    // are added), so only the width ratio is needed.
     const hasTransform =
       bg.left !== undefined && bg.top !== undefined && bg.scaleX !== undefined && bg.scaleY !== undefined;
-    const ratio = hasTransform && bg.layoutW ? layout.totalW / bg.layoutW : 1;
-    const transform = hasTransform
-      ? { left: bg.left! * ratio, top: bg.top!, scaleX: bg.scaleX! * ratio, scaleY: bg.scaleY! * ratio }
-      : undefined;
+    const transform = hasTransform ? computeRestoreTransform(bg, layout) : undefined;
     applyBackgroundImage(canvas, layout, bg.imageUrl, transform);
   }
+}
+
+// Same idea as applyBackground, for the "photo-slot" illustration layer.
+function applyIllustration(canvas: fabric.Canvas, layout: CoverLayout, ill: IllustrationDesign | null) {
+  if (!ill?.imageUrl) return;
+  const hasTransform =
+    ill.left !== undefined && ill.top !== undefined && ill.scaleX !== undefined && ill.scaleY !== undefined;
+  const transform = hasTransform ? computeRestoreTransform(ill, layout) : undefined;
+  applyIllustrationImage(canvas, layout, ill.imageUrl, transform);
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -857,7 +893,7 @@ interface CoverTemplateEntry {
   id: string;
   name: string;
   createdAt: string;
-  design: { front: any[]; backSpine: any[]; background: BackgroundDesign };
+  design: { front: any[]; backSpine: any[]; background: BackgroundDesign; illustration?: IllustrationDesign };
 }
 
 interface Props {
@@ -879,7 +915,7 @@ interface Props {
   trimMm?: { widthMm: number; heightMm: number } | null;
   format: CoverFormat;
   existingCoverUrl?: string | null;
-  savedDesign?: { front: any[]; backSpine: any[]; background: BackgroundDesign } | null;
+  savedDesign?: { front: any[]; backSpine: any[]; background: BackgroundDesign; illustration?: IllustrationDesign } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   // T-2060 п.8 -- "незалежно від даних книги" (Ridero pattern). Default true
   // (synced) when the caller doesn't pass it, matching the DB default for
@@ -941,10 +977,13 @@ export default function CoverDesignerCanvas({
   // tracked separately as a plain value, not Fabric JSON, and regenerated
   // fresh at whatever the current format's dimensions are — reusing
   // addAccentBg/applyBackgroundImage, which are already parameterized by
-  // layout for exactly this reason.
+  // layout for exactly this reason. The illustration ("photo-slot") is
+  // tracked the same way as background (T-2081) -- it's a full-wrap layer
+  // now too, not a front object.
   const frontStateRef = useRef<any[] | null>(null);
   const backSpineStateRef = useRef<any[] | null>(null);
   const backgroundRef = useRef<BackgroundDesign | null>(null);
+  const illustrationRef = useRef<IllustrationDesign | null>(null);
   const pauseHistoryRef = useRef(false);
   const snapshotScheduledRef = useRef(false);
   // Crop mode: temporarily removes the photo-slot image's clipPath so the
@@ -1105,6 +1144,7 @@ export default function CoverDesignerCanvas({
       frontStateRef.current = savedDesign.front;
       backSpineStateRef.current = savedDesign.backSpine;
       backgroundRef.current = savedDesign.background;
+      illustrationRef.current = savedDesign.illustration ?? null;
       if (savedDesign.background.imageUrl) setBgImageUrl(savedDesign.background.imageUrl);
 
       const needFresh = !frontStateRef.current || (!!ctx.layout.back && !backSpineStateRef.current);
@@ -1122,6 +1162,7 @@ export default function CoverDesignerCanvas({
         // exception -- bail out if this callback is stale.
         if (canvasRef.current !== canvas) return;
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
+        applyIllustration(canvas, ctx.layout, illustrationRef.current);
         canvas.renderAll();
         historyRef.current = [];
         historyIndexRef.current = -1;
@@ -1169,6 +1210,7 @@ export default function CoverDesignerCanvas({
       if (leavingLayout.back) backSpineStateRef.current = backSpine;
 
       backgroundRef.current = captureBackground(currentObjects, leavingLayout, backgroundRef.current?.color ?? "#1a1a2e");
+      illustrationRef.current = captureIllustration(currentObjects, leavingLayout);
     }
 
     canvas.setWidth(ctx.layout.totalW);
@@ -1188,6 +1230,7 @@ export default function CoverDesignerCanvas({
         // T-2067 -- same stale-callback-after-unmount race as the init effect above.
         if (canvasRef.current !== canvas) return;
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
+        applyIllustration(canvas, ctx.layout, illustrationRef.current);
         canvas.renderAll();
         pauseHistoryRef.current = false;
         historyRef.current = [];
@@ -1689,7 +1732,7 @@ export default function CoverDesignerCanvas({
             applyBackgroundImage(canvas, ctx.layout, url);
             setBgImageUrl(url);
           } else {
-            applyImageToSlot(canvas, url, ctx.layout.front);
+            applyIllustrationImage(canvas, ctx.layout, url);
           }
         }
       } catch (e: any) {
@@ -1933,6 +1976,7 @@ export default function CoverDesignerCanvas({
       frontStateRef.current = design.front;
       backSpineStateRef.current = design.backSpine;
       backgroundRef.current = design.background;
+      illustrationRef.current = design.illustration ?? null;
       if (design.background.imageUrl) setBgImageUrl(design.background.imageUrl);
 
       const frontObjs = repositionFrontObjects(design.front, ctx.layout.front);
@@ -1943,6 +1987,7 @@ export default function CoverDesignerCanvas({
         canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
           if (canvasRef.current !== canvas) { resolve(); return; } // T-2067 -- stale callback after unmount
           applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
+          applyIllustration(canvas, ctx.layout, illustrationRef.current);
           canvas.renderAll();
           pauseHistoryRef.current = false;
           saveSnapshot();
@@ -2424,7 +2469,7 @@ export default function CoverDesignerCanvas({
                         type="button"
                         onClick={() => {
                           const canvas = canvasRef.current;
-                          if (canvas) applyImageToSlot(canvas, img.url, ctx.layout.front);
+                          if (canvas) applyIllustrationImage(canvas, ctx.layout, img.url);
                         }}
                         className="h-full w-full"
                       >
