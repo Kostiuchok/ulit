@@ -18,6 +18,8 @@ import {
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
   AGE_RATINGS,
+  GENRES,
+  genreSchema,
   type PrintFormatKey,
 } from "shared-types";
 import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../books/FormatsAndDistribution";
@@ -40,7 +42,10 @@ const step1Schema = z.object({
     .string()
     .min(DESCRIPTION_MIN_LENGTH, `Анотація має містити щонайменше ${DESCRIPTION_MIN_LENGTH} символів`)
     .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
-  genre: z.string().max(100).optional(),
+  // Real enum (shared-types GENRES), same as output-data/page.tsx's
+  // identical field -- .or(z.literal("")) for the <select>'s own "not
+  // chosen yet" placeholder option.
+  genre: genreSchema.optional().or(z.literal("")),
   // Independent from genre -- the author picks this directly from
   // PRINT_FORMAT_KEYS (shared-types), which is also PRINT_FORMATS' source
   // of truth for the actual mm values.
@@ -77,11 +82,6 @@ const STEPS = [
   { label: "Огляд" },
 ];
 
-const GENRES = [
-  "Проза", "Поезія", "Драматургія", "Наукова фантастика", "Фентезі",
-  "Детектив", "Роман", "Повість", "Оповідання", "Нон-фікшн",
-  "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
-];
 
 // Book size is its own independent selection here, not derived from genre --
 // the author picks any genre and any size, freely combined. Same ordered

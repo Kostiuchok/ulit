@@ -6,6 +6,7 @@ import {
   PRINT_FORMATS,
   PRINT_FORMAT_KEYS,
   ageRatingSchema,
+  genreSchema,
   distributionChannelsSchema,
   bookAuthorSchema,
   getRequiredDescriptionMinLength,
@@ -121,7 +122,7 @@ const patchSchema = z.object({
   // raises the minimum when a distribution channel with its own stricter
   // preference (KDP/Google) is enabled.
   description: z.string().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH).nullable().optional(),
-  genre: z.string().max(100).nullable().optional(),
+  genre: genreSchema.nullable().optional(),
   printFormatKey: z.enum(PRINT_FORMAT_KEYS as [string, ...string[]]).nullable().optional(),
   printWidthMm: z.number().int().positive().nullable().optional(),
   printHeightMm: z.number().int().positive().nullable().optional(),

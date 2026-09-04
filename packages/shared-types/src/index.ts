@@ -83,14 +83,29 @@ export const PRINT_FORMAT_KEYS: PrintFormatKey[] = [
   "standard", "pocket", "miniature", "encyclopedic", "enlarged", "large", "a4", "statement", "executive",
 ];
 
-// Genre (from GENRES in BookWizard.tsx / output-data page) -> recommended
-// default print format. A proposed mapping (2026-08-17), not independently
-// re-confirmed per-genre against ДСТУ -- open to correction. BookWizard now
-// has its own independent "Розмір книги" selector (not derived from genre) --
-// this mapping only still matters server-side (apps/api books.ts POST/book.ts
-// PATCH) as the fallback default for a book that has no print size on record
-// yet (e.g. the format field was omitted from the create request).
-export const GENRE_TO_PRINT_FORMAT: Record<string, PrintFormatKey> = {
+// Fixed genre list -- was three independent copies (BookWizard.tsx and
+// output-data/page.tsx each had their own `const GENRES = [...]`, validated
+// as free text with only a max(100) length cap at the Zod level on both the
+// frontend AND apps/api's book.ts/books.ts -- a real enum only existed
+// implicitly, as GENRE_TO_PRINT_FORMAT's object keys below, which nothing
+// actually validated against). A book's genre must be one of these to be
+// usable as a lookup key (GENRE_TO_PRINT_FORMAT, future genre-based
+// features) instead of arbitrary free text.
+export const GENRES = [
+  "Проза", "Поезія", "Драматургія", "Наукова фантастика", "Фентезі",
+  "Детектив", "Роман", "Повість", "Оповідання", "Нон-фікшн",
+  "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
+] as const;
+export type Genre = (typeof GENRES)[number];
+
+// Genre -> recommended default print format. A proposed mapping
+// (2026-08-17), not independently re-confirmed per-genre against ДСТУ --
+// open to correction. BookWizard now has its own independent "Розмір книги"
+// selector (not derived from genre) -- this mapping only still matters
+// server-side (apps/api books.ts POST/book.ts PATCH) as the fallback
+// default for a book that has no print size on record yet (e.g. the format
+// field was omitted from the create request).
+export const GENRE_TO_PRINT_FORMAT: Record<Genre, PrintFormatKey> = {
   "Проза": "standard",
   "Поезія": "pocket",
   "Драматургія": "standard",
@@ -107,6 +122,11 @@ export const GENRE_TO_PRINT_FORMAT: Record<string, PrintFormatKey> = {
   "Дитяча": "enlarged",
   "Інше": "standard",
 };
+
+// Pure enum membership check -- the .optional()/"" escape hatch for a
+// <select>'s empty placeholder option lives at each call site (output-data,
+// BookWizard), not here, same reasoning as ageRatingSchema's own comment.
+export const genreSchema = z.enum(GENRES);
 
 // Platform's default print trim size when no genre-derived format applies yet
 // (e.g. before the author picks a genre) -- ДСТУ "Стандартний", 130x200mm,
@@ -138,8 +158,13 @@ export function resolveBookPrintFormat(book: {
   printHeightMm?: number | null;
   printFormatKey?: string | null;
 }): PrintFormat {
+  // Cast, not a narrowed type -- this reads whatever is already on a Book
+  // record, including rows saved before genre was enforced as an enum
+  // (or any other legacy free text); the `?? "standard"` fallback is what
+  // actually keeps this safe for a genre that isn't a real Genre key, the
+  // cast just satisfies the stricter Record<Genre, ...> index type.
   const genreFormat = book.genre
-    ? PRINT_FORMATS[GENRE_TO_PRINT_FORMAT[book.genre] ?? "standard"]
+    ? PRINT_FORMATS[GENRE_TO_PRINT_FORMAT[book.genre as Genre] ?? "standard"]
     : PRINT_FORMATS.standard;
   if (book.printWidthMm && book.printHeightMm) {
     return {

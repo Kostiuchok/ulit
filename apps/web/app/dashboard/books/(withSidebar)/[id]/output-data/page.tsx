@@ -28,6 +28,8 @@ import {
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
   AGE_RATINGS,
+  GENRES,
+  genreSchema,
   bookAuthorSchema,
   type PrintFormatKey,
 } from "shared-types";
@@ -63,7 +65,12 @@ const infoSchema = z.object({
     .string()
     .min(DESCRIPTION_MIN_LENGTH, `Анотація має містити щонайменше ${DESCRIPTION_MIN_LENGTH} символів`)
     .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
-  genre: z.string().max(100).optional(),
+  // Real enum (shared-types GENRES) instead of free text capped at 100
+  // chars -- lets genre actually be used as a lookup key elsewhere
+  // (GENRE_TO_PRINT_FORMAT, future genre-based features), which arbitrary
+  // free text never reliably could. .or(z.literal("")) for the <select>'s
+  // own "not chosen yet" placeholder option, same reasoning as ageRating.
+  genre: genreSchema.optional().or(z.literal("")),
   // Independent from genre -- the author picks this directly, from
   // PRINT_FORMAT_KEYS (shared-types), same list BookWizard's creation-time
   // selector uses.
@@ -122,11 +129,6 @@ interface Contributor {
   name: string;
 }
 
-const GENRES = [
-  "Проза", "Поезія", "Драматургія", "Наукова фантастика", "Фентезі",
-  "Детектив", "Роман", "Повість", "Оповідання", "Нон-фікшн",
-  "Мемуари", "Бізнес", "Самодопомога", "Дитяча", "Інше",
-];
 
 // T-2060 п.7 -- section labels for the single-scroll layout (used as plain
 // headings now, not a StepIndicator/paginated wizard). T-2073 reuses these
@@ -565,7 +567,11 @@ function OutputDataContent() {
       title: book.title,
       subtitle: book.subtitle ?? "",
       description: book.description ?? "",
-      genre: book.genre ?? "",
+      // Cast, not a narrowed type -- seeds the <select> from whatever's
+      // already on the book, including a legacy free-text genre saved
+      // before this field was enforced as an enum (falls back to no
+      // <option> matching, same as an unset genre, rather than crashing).
+      genre: (book.genre ?? "") as InfoForm["genre"],
       printFormatKey: resolveBookPrintFormat(book).key,
       ageRating: book.ageRating ?? "",
       language: book.language,

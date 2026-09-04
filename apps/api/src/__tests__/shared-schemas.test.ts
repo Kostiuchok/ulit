@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   ageRatingSchema,
+  genreSchema,
+  GENRES,
+  GENRE_TO_PRINT_FORMAT,
   distributionChannelsSchema,
   bookAuthorSchema,
   getRequiredDescriptionMinLength,
@@ -21,6 +24,28 @@ describe("ageRatingSchema", () => {
 
   it("rejects an arbitrary string", () => {
     expect(ageRatingSchema.safeParse("13+").success).toBe(false);
+  });
+});
+
+describe("genreSchema", () => {
+  it("accepts every real genre", () => {
+    for (const g of GENRES) {
+      expect(genreSchema.safeParse(g).success).toBe(true);
+    }
+  });
+
+  it("rejects free text that isn't one of the fixed genres", () => {
+    expect(genreSchema.safeParse("Кулінарія").success).toBe(false);
+  });
+
+  it("rejects an empty string (callers add .or(z.literal(\"\")) themselves if needed)", () => {
+    expect(genreSchema.safeParse("").success).toBe(false);
+  });
+
+  it("has a print-format mapping for every genre (GENRE_TO_PRINT_FORMAT can't silently miss one)", () => {
+    for (const g of GENRES) {
+      expect(GENRE_TO_PRINT_FORMAT[g]).toBeDefined();
+    }
   });
 });
 

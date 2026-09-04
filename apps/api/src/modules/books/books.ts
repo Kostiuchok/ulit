@@ -4,6 +4,7 @@ import {
   PRINT_FORMATS,
   PRINT_FORMAT_KEYS,
   ageRatingSchema,
+  genreSchema,
   distributionChannelsSchema,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
@@ -21,7 +22,7 @@ const createSchema = z.object({
   // 5000, so this endpoint can't itself be a way around the requirement
   // every real caller (BookWizard) already applies before ever getting here.
   description: z.string().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH),
-  genre: z.string().max(100).optional(),
+  genre: genreSchema.optional(),
   // Book size is its own independent choice in BookWizard, not derived from
   // genre -- see packages/shared-types PRINT_FORMATS for the allowed keys.
   printFormatKey: z.enum(PRINT_FORMAT_KEYS as [string, ...string[]]).optional(),
