@@ -47,14 +47,30 @@ export function useApi() {
 
   const apiFetch = useCallback(
     async <T,>(path: string, init?: RequestInit): Promise<T> => {
+      // Bug found live (T-2079): a bodyless PATCH/POST/DELETE (e.g.
+      // { method: "PATCH" }, no body -- used by every "just flip a flag"
+      // call: notifications mark-read, book delete, admin payout/user-delete,
+      // manuscript reimport, accept-agreement) got a 415
+      // FST_ERR_CTP_INVALID_MEDIA_TYPE from Fastify. The browser's fetch()
+      // still sets Content-Length: 0 for these methods even with no body,
+      // and Fastify treats a present Content-Length with no matching
+      // Content-Type as "there's a body I can't parse" -- it does NOT special-
+      // case "empty body, no header" the way curl's bodyless request (no
+      // Content-Length at all) does, which is why this went unnoticed in
+      // manual/curl testing. Every affected route already expects this
+      // (`request.body ?? {}`), Fastify's own default JSON parser resolves
+      // an empty string body to `undefined` -- the routes just never got a
+      // chance to hit that path because the parser lookup failed first.
+      const method = (init?.method ?? "GET").toUpperCase();
       const hasBody = init?.body != null;
+      const needsContentType = hasBody || (method !== "GET" && method !== "HEAD");
       const res = await withTokenRetry(
         (authToken) =>
           fetch(path, {
             cache: "no-store",
             ...init,
             headers: {
-              ...(hasBody ? { "Content-Type": "application/json" } : {}),
+              ...(needsContentType ? { "Content-Type": "application/json" } : {}),
               ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
               ...(init?.headers ?? {}),
             },
