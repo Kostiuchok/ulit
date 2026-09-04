@@ -4,6 +4,8 @@ import {
   genreSchema,
   GENRES,
   GENRE_TO_PRINT_FORMAT,
+  languageSchema,
+  LANGUAGES,
   distributionChannelsSchema,
   bookAuthorSchema,
   getRequiredDescriptionMinLength,
@@ -24,6 +26,22 @@ describe("ageRatingSchema", () => {
 
   it("rejects an arbitrary string", () => {
     expect(ageRatingSchema.safeParse("13+").success).toBe(false);
+  });
+});
+
+describe("languageSchema", () => {
+  it("accepts every real language code", () => {
+    for (const l of LANGUAGES) {
+      expect(languageSchema.safeParse(l.code).success).toBe(true);
+    }
+  });
+
+  it("has all 9 languages (output-data and BookWizard used to disagree on this count)", () => {
+    expect(LANGUAGES.length).toBe(9);
+  });
+
+  it("rejects an arbitrary 2-letter code that isn't a real option", () => {
+    expect(languageSchema.safeParse("xx").success).toBe(false);
   });
 });
 

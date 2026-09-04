@@ -20,6 +20,9 @@ import {
   AGE_RATINGS,
   GENRES,
   genreSchema,
+  LANGUAGES,
+  languageSchema,
+  bookAuthorSchema,
   type PrintFormatKey,
 } from "shared-types";
 import { FormatsAndDistribution, computeAnchorPrices, type PrintCost } from "../books/FormatsAndDistribution";
@@ -52,7 +55,11 @@ const step1Schema = z.object({
   printFormatKey: z.enum(PRINT_FORMAT_KEYS as [PrintFormatKey, ...PrintFormatKey[]], {
     errorMap: () => ({ message: "Оберіть розмір книги" }),
   }),
-  language: z.string().length(2).default("uk"),
+  // Real enum (shared-types LANGUAGES), same as output-data/page.tsx's
+  // identical field -- was only 5 languages here (missing es/it/pt/ru
+  // entirely) vs output-data's 9, so a book created in the wizard couldn't
+  // even be set to Spanish/Italian/Portuguese/Russian at creation time.
+  language: languageSchema.default("uk"),
   // z.string().refine(...) rather than z.enum(AGE_RATINGS) on purpose --
   // same reasoning as output-data/page.tsx's identical field: the <select>
   // below has its own "" placeholder option, which a real enum's literal-
@@ -88,14 +95,6 @@ const STEPS = [
 // list (PRINT_FORMAT_KEYS, shared-types) the output-data page's own size
 // selector uses, so creation-time and post-creation editing never drift.
 
-const LANGUAGES = [
-  { code: "uk", label: "Українська" },
-  { code: "en", label: "English" },
-  { code: "de", label: "Deutsch" },
-  { code: "fr", label: "Français" },
-  { code: "pl", label: "Polski" },
-];
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 interface BookDraft {
@@ -130,6 +129,39 @@ export function BookWizard() {
       if (tickRef.current) clearInterval(tickRef.current);
     };
   }, []);
+
+  // Account profile (Кабінет автора) -- shown as a read-only badge on step 1
+  // so the author sees up front whose name the book will be published
+  // under, instead of only discovering it later on output-data's "Автори
+  // книги" (which silently auto-fills from the same profile). Same shape
+  // output-data/page.tsx already fetches from /api/users/me.
+  interface AccountProfile {
+    firstName?: string | null;
+    lastName?: string | null;
+    patronymic?: string | null;
+    avatarUrl?: string | null;
+  }
+  const [userProfile, setUserProfile] = useState<AccountProfile | null>(null);
+  useEffect(() => {
+    apiFetch<{ user: AccountProfile }>("/api/users/me")
+      .then(({ user }) => setUserProfile(user))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Same bookAuthorSchema (shared-types) apps/api's book.ts PATCH and
+  // books.ts POST both enforce -- checked here too so the badge can warn
+  // ("заповніть ім'я в Кабінеті автора") instead of only failing silently at
+  // submit time with a payload the author never typed themselves.
+  const profileAuthor = userProfile
+    ? {
+        lastName: userProfile.lastName?.trim() ?? "",
+        firstName: userProfile.firstName?.trim() ?? "",
+        middleName: userProfile.patronymic?.trim() || undefined,
+        photoUrl: userProfile.avatarUrl?.trim() || undefined,
+      }
+    : null;
+  const profileAuthorResult = profileAuthor ? bookAuthorSchema.safeParse(profileAuthor) : null;
 
   const step1 = useForm<Step1Form>({
     resolver: zodResolver(step1Schema),
@@ -223,9 +255,20 @@ export function BookWizard() {
         printHeightMm: format.heightMm,
       };
       if (!draft) {
+        // bookAuthors only on the initial create -- a re-submit of this
+        // step for an already-created draft goes through the PATCH branch
+        // below, which must NOT touch bookAuthors: the author may have
+        // already edited it by hand on output-data (added a co-author,
+        // fixed a typo) after creating the book, and re-deriving from the
+        // profile every time this step is saved would silently overwrite
+        // that (same "only fill if empty" guard output-data's own
+        // profile-autofill effect already applies).
         const { book } = await apiFetch<{ book: BookDraft }>("/api/books", {
           method: "POST",
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            ...payload,
+            bookAuthors: profileAuthorResult?.success ? [profileAuthorResult.data] : undefined,
+          }),
         });
         setDraft(book);
       } else {
@@ -329,7 +372,45 @@ export function BookWizard() {
     return (
       <div>
         {progress}
-        <h2 className="text-lg font-semibold mb-5">Основна інформація про книгу</h2>
+        <h2 className="text-lg font-semibold mb-1">Основна інформація про книгу</h2>
+
+        {/* Read-only -- not an editable field on this step. Shows up front
+            whose name the book publishes under (previously only surfaced
+            later, on output-data's "Автори книги", as a silent auto-fill
+            the author might not even notice happened). */}
+        {userProfile && (
+          <div className="mb-5">
+            {profileAuthorResult?.success ? (
+              <div className="inline-flex items-center gap-2.5 rounded-full border bg-gray-50 py-1.5 pl-1.5 pr-4">
+                {profileAuthor?.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profileAuthor.photoUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-300 text-xs font-medium text-white">
+                    {profileAuthorResult.data.firstName[0]}
+                  </div>
+                )}
+                <span className="text-sm font-medium text-gray-800">
+                  {[profileAuthorResult.data.lastName, profileAuthorResult.data.firstName, profileAuthorResult.data.middleName]
+                    .filter(Boolean)
+                    .join(" ")}
+                </span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-sm text-amber-700">
+                ⚠ Заповніть ім&apos;я та прізвище в Кабінеті автора
+              </div>
+            )}
+            <p className="mt-1.5 text-xs text-gray-400">
+              Ці дані беруться з{" "}
+              <a href="/dashboard/settings" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">
+                Кабінету автора
+              </a>
+              {" "}— книга публікується під цим іменем. Співавторів можна додати пізніше, на кроці «Вихідні дані».
+            </p>
+          </div>
+        )}
+
         <form onSubmit={submitStep1} className="space-y-5">
           <div className="space-y-1.5">
             <Label htmlFor="title">Назва книги *</Label>

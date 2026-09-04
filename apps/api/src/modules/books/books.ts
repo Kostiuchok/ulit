@@ -5,7 +5,9 @@ import {
   PRINT_FORMAT_KEYS,
   ageRatingSchema,
   genreSchema,
+  languageSchema,
   distributionChannelsSchema,
+  bookAuthorSchema,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
   type PrintFormatKey,
@@ -26,7 +28,7 @@ const createSchema = z.object({
   // Book size is its own independent choice in BookWizard, not derived from
   // genre -- see packages/shared-types PRINT_FORMATS for the allowed keys.
   printFormatKey: z.enum(PRINT_FORMAT_KEYS as [string, ...string[]]).optional(),
-  language: z.string().length(2).default("uk"),
+  language: languageSchema.default("uk"),
   // Same enum as book.ts's patchSchema -- BookWizard step 1 already collects
   // this (required there) but it was silently dropped on create since this
   // schema didn't declare it, forcing authors to re-enter it on output-data.
@@ -36,6 +38,11 @@ const createSchema = z.object({
   pricePrintHardcover: z.number().positive().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).default("WIDE"),
   distributionChannels: distributionChannelsSchema.default(["ULIT", "D2D", "KDP", "GOOGLE"]),
+  // BookWizard shows the author's account-profile name as a read-only badge
+  // ("ці дані беруться з Кабінету автора") and submits it here on create --
+  // same bookAuthorSchema book.ts's PATCH already validates against, so even
+  // auto-derived data (not hand-typed) is checked, not just trusted.
+  bookAuthors: z.array(bookAuthorSchema).max(10).optional(),
 });
 
 function slugifyTitle(title: string): string {
@@ -111,7 +118,7 @@ export async function booksRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: result.error.errors[0].message, code: "VALIDATION_ERROR" });
     }
 
-    const { title, description, genre, printFormatKey, language, ageRating, priceEbook, pricePrint, pricePrintHardcover, distributionStrategy } = result.data;
+    const { title, description, genre, printFormatKey, language, ageRating, priceEbook, pricePrint, pricePrintHardcover, distributionStrategy, bookAuthors } = result.data;
     const slug = await uniqueBookSlug(title);
 
     // Explicit, independent from genre -- if the wizard sent a known format
@@ -134,6 +141,7 @@ export async function booksRoutes(app: FastifyInstance) {
         pricePrint: pricePrint ? pricePrint : undefined,
         pricePrintHardcover: pricePrintHardcover ? pricePrintHardcover : undefined,
         distributionStrategy,
+        bookAuthors: bookAuthors && bookAuthors.length > 0 ? bookAuthors : undefined,
         authorId: request.user.id,
         status: "DRAFT",
       },

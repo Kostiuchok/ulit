@@ -83,6 +83,32 @@ export const PRINT_FORMAT_KEYS: PrintFormatKey[] = [
   "standard", "pocket", "miniature", "encyclopedic", "enlarged", "large", "a4", "statement", "executive",
 ];
 
+// Fixed language list -- was two independently maintained copies with
+// actually different content, not just different code: output-data/page.tsx
+// had 9 languages with flag emoji baked into the label; BookWizard.tsx had
+// only 5 (missing es/it/pt/ru entirely) with no flags -- an author could
+// pick Spanish for their book in the wizard's own <select>, save, reload on
+// output-data, and see a 9-option list where "Español" was there all along
+// (just never offered at creation time). Neither page's Zod schema checked
+// the value was actually one of these anyway (see languageSchema below).
+export const LANGUAGES = [
+  { code: "uk", label: "🇺🇦 Українська" },
+  { code: "en", label: "🇬🇧 English" },
+  { code: "de", label: "🇩🇪 Deutsch" },
+  { code: "fr", label: "🇫🇷 Français" },
+  { code: "pl", label: "🇵🇱 Polski" },
+  { code: "es", label: "🇪🇸 Español" },
+  { code: "it", label: "🇮🇹 Italiano" },
+  { code: "pt", label: "🇵🇹 Português" },
+  { code: "ru", label: "Русский" },
+] as const;
+
+export type LanguageCode = (typeof LANGUAGES)[number]["code"];
+
+export const languageSchema = z.enum(
+  LANGUAGES.map((l) => l.code) as [LanguageCode, ...LanguageCode[]]
+);
+
 // Fixed genre list -- was three independent copies (BookWizard.tsx and
 // output-data/page.tsx each had their own `const GENRES = [...]`, validated
 // as free text with only a max(100) length cap at the Zod level on both the

@@ -30,6 +30,8 @@ import {
   AGE_RATINGS,
   GENRES,
   genreSchema,
+  LANGUAGES,
+  languageSchema,
   bookAuthorSchema,
   type PrintFormatKey,
 } from "shared-types";
@@ -89,7 +91,10 @@ const infoSchema = z.object({
   ageRating: z.string().refine((v) => (AGE_RATINGS as readonly string[]).includes(v), {
     message: "Вкажіть вікові обмеження",
   }),
-  language: z.string().length(2),
+  // Real enum (shared-types LANGUAGES/languageSchema) instead of a bare
+  // 2-char string -- the <select> only ever offered these 9 languages, but
+  // the schema itself accepted any 2-letter code.
+  language: languageSchema,
   aiGenerated: z.boolean().optional(),
   aiGeneratedNote: z.string().max(1000).optional(),
   // Only relevant for a book already published elsewhere before joining
@@ -574,7 +579,10 @@ function OutputDataContent() {
       genre: (book.genre ?? "") as InfoForm["genre"],
       printFormatKey: resolveBookPrintFormat(book).key,
       ageRating: book.ageRating ?? "",
-      language: book.language,
+      // Cast -- same reasoning as genre above: seeds the <select> from
+      // whatever's already on the book, including a language code from
+      // before this was an enforced enum.
+      language: book.language as InfoForm["language"],
       aiGenerated: book.aiGenerated ?? false,
       aiGeneratedNote: book.aiGeneratedNote ?? "",
       copyrightYear: book.copyrightYear ?? "",
@@ -1141,15 +1149,7 @@ function OutputDataContent() {
                         languageRejected ? "border-red-400" : "border-input"
                       )}
                     >
-                      <option value="uk">🇺🇦 Українська</option>
-                      <option value="en">🇬🇧 English</option>
-                      <option value="de">🇩🇪 Deutsch</option>
-                      <option value="fr">🇫🇷 Français</option>
-                      <option value="pl">🇵🇱 Polski</option>
-                      <option value="es">🇪🇸 Español</option>
-                      <option value="it">🇮🇹 Italiano</option>
-                      <option value="pt">🇵🇹 Português</option>
-                      <option value="ru">Русский</option>
+                      {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
                     </select>
                   </div>
 
