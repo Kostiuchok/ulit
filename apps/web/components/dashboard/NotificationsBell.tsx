@@ -11,7 +11,7 @@ const TYPE_ICON: Record<string, string> = {
 };
 
 export function NotificationsBell() {
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -43,10 +43,17 @@ export function NotificationsBell() {
         <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-gray-200 bg-white text-left shadow-lg">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
             <span className="text-sm font-semibold text-gray-900">Сповіщення</span>
-            {unreadCount > 0 && (
-              <button type="button" onClick={markAllRead} className="text-xs text-primary hover:underline">
-                Позначити всі прочитаними
-              </button>
+            {notifications.length > 0 && (
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button type="button" onClick={markAllRead} className="text-xs text-primary hover:underline">
+                    Прочитати всі
+                  </button>
+                )}
+                <button type="button" onClick={clearAll} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">
+                  Очистити
+                </button>
+              </div>
             )}
           </div>
           <div className="max-h-96 overflow-y-auto">

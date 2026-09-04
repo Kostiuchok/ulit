@@ -81,5 +81,18 @@ export function useNotifications() {
     }
   }, [apiFetch, load]);
 
-  return { notifications, unreadCount, markRead, markAllRead, refresh: load };
+  // T-2080 -- distinct from markAllRead: empties the list entirely instead
+  // of just flipping its status, same "Clear all" a standard notification
+  // center offers as a second, separate action.
+  const clearAll = useCallback(async () => {
+    setNotifications([]);
+    setUnreadCount(0);
+    try {
+      await apiFetch("/api/notifications", { method: "DELETE" });
+    } catch {
+      load();
+    }
+  }, [apiFetch, load]);
+
+  return { notifications, unreadCount, markRead, markAllRead, clearAll, refresh: load };
 }

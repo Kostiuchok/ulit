@@ -53,4 +53,12 @@ export async function notificationsRoutes(app: FastifyInstance) {
     });
     return reply.send({ ok: true });
   });
+
+  // T-2080 -- "прочитати всі" (above) only changes status; this actually
+  // empties the list, same "Clear all" a standard notification center
+  // offers alongside "mark all read" as two distinct actions.
+  app.delete("/api/notifications", { preHandler: authenticate }, async (request, reply) => {
+    await prisma.notification.deleteMany({ where: { userId: request.user.id } });
+    return reply.send({ ok: true });
+  });
 }

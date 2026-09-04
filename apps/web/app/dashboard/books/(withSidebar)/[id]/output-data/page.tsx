@@ -552,6 +552,16 @@ function OutputDataContent() {
   }, [book]);
 
   function scrollToSection(key: (typeof SECTION_ORDER)[number]) {
+    // T-2080 -- a click used to rely entirely on the IntersectionObserver
+    // noticing the new scroll position, but a SHORT section (e.g.
+    // "Обкладинка" -- just one small card) can already fit inside the
+    // trigger band both before and after the click if it sits close to
+    // its neighbor, so the observer sees no threshold crossing at all and
+    // never fires -- the pill silently stayed on whichever section was
+    // active before the click. Setting it directly gives instant feedback
+    // regardless of section height; the observer still takes back over
+    // once the author scrolls manually afterwards.
+    setActiveSection(key);
     sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
