@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useApi } from "./useApi";
 
 export interface AppNotification {
@@ -15,9 +15,12 @@ export interface AppNotification {
 
 // Admin actions (approve/reject) happen in a different browser session than
 // the author's, so there's no in-tab event to react to -- polling is the only
-// way this dashboard learns about it. Also refreshes on `ulit:books-changed`
-// so an author's own action (e.g. resubmitting after a rejection) clears the
-// stale badge without waiting for the next poll tick.
+// way the bell learns about it. Also refreshes on `ulit:books-changed` so
+// marking read/resubmitting doesn't wait for the next poll tick. Per-book
+// "needs attention" badges (sidebar, book list) are a SEPARATE, live-computed
+// flag from GET /api/books (needsAttention) -- not driven by this hook, so
+// they never go stale just because a notification was marked read without
+// the underlying issue actually being fixed.
 const POLL_INTERVAL_MS = 30000;
 
 export function useNotifications() {
@@ -78,10 +81,5 @@ export function useNotifications() {
     }
   }, [apiFetch, load]);
 
-  const unreadBookIds = useMemo(
-    () => new Set(notifications.filter((n) => !n.read && n.bookId).map((n) => n.bookId as string)),
-    [notifications]
-  );
-
-  return { notifications, unreadCount, unreadBookIds, markRead, markAllRead, refresh: load };
+  return { notifications, unreadCount, markRead, markAllRead, refresh: load };
 }

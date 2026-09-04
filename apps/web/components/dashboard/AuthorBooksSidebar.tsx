@@ -17,7 +17,6 @@ import {
   Plus,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
-import { useNotifications } from "@/hooks/useNotifications";
 import { getBookStatusLabel } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
 import { DeleteBookModal } from "@/components/books/DeleteBookModal";
@@ -28,6 +27,7 @@ interface SidebarBook {
   coverUrl?: string | null;
   status: string;
   publicationTimeline?: Record<string, string> | null;
+  needsAttention?: boolean;
 }
 
 type SubNavItem =
@@ -155,7 +155,6 @@ function GroupLabel({ label, expanded, onClick }: { label: string; expanded: boo
 
 export function AuthorBooksSidebar() {
   const { apiFetch, token } = useApi();
-  const { unreadBookIds } = useNotifications();
   const pathname = usePathname();
   const router = useRouter();
   const { id: routeId } = useParams<{ id?: string }>();
@@ -241,10 +240,10 @@ export function AuthorBooksSidebar() {
                   className="relative flex h-[65px] items-center gap-3 px-8 cursor-pointer bg-white hover:bg-gray-50"
                   onClick={() => setExpandedBookId((prev) => (prev === book.id ? null : book.id))}
                 >
-                  {unreadBookIds.has(book.id) && (
+                  {book.needsAttention && (
                     <span
-                      title="Нове сповіщення"
-                      className="absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-[#ff5900] ring-2 ring-white"
+                      title="Потребує уваги: є зауваження модератора або не всі кроки заповнені"
+                      className="absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white"
                     />
                   )}
                   {book.coverUrl ? (

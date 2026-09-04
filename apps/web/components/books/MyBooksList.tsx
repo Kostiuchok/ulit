@@ -8,7 +8,6 @@ import { DeleteBookModal } from "@/components/books/DeleteBookModal";
 import { PurgeArchivedModal } from "@/components/books/PurgeArchivedModal";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/hooks/useApi";
-import { useNotifications } from "@/hooks/useNotifications";
 
 interface Book {
   id: string;
@@ -32,6 +31,7 @@ interface Book {
   publishedAt?: string | null;
   archivedAt?: string | null;
   publicationTimeline?: Record<string, string> | null;
+  needsAttention?: boolean;
 }
 
 // Rendered both under the book-management sidebar (/dashboard/books) and
@@ -50,7 +50,6 @@ const FILTERS: Record<string, { label: string; test: (b: Book) => boolean }> = {
 
 export function MyBooksList() {
   const { apiFetch, token } = useApi();
-  const { unreadBookIds } = useNotifications();
   const searchParams = useSearchParams();
   const activeFilter = searchParams.get("filter");
   const [books, setBooks] = useState<Book[]>([]);
@@ -150,7 +149,7 @@ export function MyBooksList() {
                 key={book.id}
                 book={book}
                 onDelete={setDeleteBookId}
-                hasUnreadNotification={unreadBookIds.has(book.id)}
+                needsAttention={book.needsAttention}
               />
             ))}
           </div>

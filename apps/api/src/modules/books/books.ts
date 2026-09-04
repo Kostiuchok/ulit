@@ -11,6 +11,9 @@ import {
   priceFieldSchema,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
+  isReadyToPublish,
+  isRejectionReasonResolved,
+  type RejectionReasonKey,
   type PrintFormatKey,
 } from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
@@ -109,9 +112,49 @@ export async function booksRoutes(app: FastifyInstance) {
         createdAt: true,
         publishedAt: true,
         archivedAt: true,
+        // Selected only to compute `needsAttention` below -- stripped from
+        // the response afterwards, the list UI never needed these directly.
+        ageRating: true,
+        originalDocxUrl: true,
+        pdfUrl: true,
+        epubUrl: true,
+        docxUpdatedAt: true,
+        bookAuthors: true,
+        pricePrintBw: true,
+        pricePrintHardcoverBw: true,
+        desiredRoyaltyAmount: true,
+        desiredRoyaltyAmountPrint: true,
+        moderationReasons: true,
+        moderationFieldSnapshot: true,
       },
     });
-    return reply.send({ books: books.map(withCoverVersion) });
+
+    // T-2078 -- replaces the old "unread notification" badge (a book you'd
+    // already opened once looked "fine" forever after, even if the
+    // underlying rejection was never actually fixed). This is a live
+    // computed state instead: true while either (a) the admin's rejection
+    // has a reason whose flagged field still matches its snapshot value
+    // (same "resolved" check output-data's own red-border banner uses), or
+    // (b) isReadyToPublish (shared-types) -- the exact same check that
+    // gates output-data's "Публікація" nav pill -- is false. Never derived
+    // from moderationStatus alone: it would stay REJECTED forever until the
+    // author actually resubmits, even after every flagged field is fixed.
+    const withFlags = books.map((book) => {
+      const snapshot = (book.moderationFieldSnapshot as Partial<Record<RejectionReasonKey, unknown>> | null) ?? null;
+      const hasUnresolvedRejection = (book.moderationReasons as RejectionReasonKey[]).some(
+        (key) => !isRejectionReasonResolved(key, book, snapshot)
+      );
+      const needsAttention = hasUnresolvedRejection || !isReadyToPublish(book);
+      const {
+        ageRating, originalDocxUrl, pdfUrl, epubUrl, docxUpdatedAt, bookAuthors,
+        pricePrintBw, pricePrintHardcoverBw, desiredRoyaltyAmount, desiredRoyaltyAmountPrint,
+        moderationReasons, moderationFieldSnapshot,
+        ...rest
+      } = book;
+      return { ...rest, needsAttention };
+    });
+
+    return reply.send({ books: withFlags.map(withCoverVersion) });
   });
 
   // Create draft book

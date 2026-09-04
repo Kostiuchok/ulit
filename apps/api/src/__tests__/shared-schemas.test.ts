@@ -12,6 +12,8 @@ import {
   priceInputSchema,
   getRequiredDescriptionMinLength,
   isPublishFieldComplete,
+  isReadyToPublish,
+  isRejectionReasonResolved,
 } from "shared-types";
 
 // Unlike schemas.test.ts's hand-copied mirrors, these import the REAL
@@ -170,6 +172,47 @@ describe("bookAuthors publish-readiness check (PUBLISH_FIELD_CHECKS' \"bookAutho
     expect(
       isPublishFieldComplete("bookAuthors", { bookAuthors: [{ lastName: "Шевченко", firstName: "Тарас" }] })
     ).toBe(true);
+  });
+});
+
+// books.ts's GET /api/books route composes exactly these two primitives into
+// a single `needsAttention` flag (T-2078) -- guards that composition against
+// either primitive silently changing behavior out from under it.
+describe("isReadyToPublish + isRejectionReasonResolved (books.ts's needsAttention)", () => {
+  const completeBook = {
+    title: "Кобзар",
+    description: "А".repeat(150),
+    ageRating: "12+",
+    coverUrl: "https://example.com/cover.jpg",
+    originalDocxUrl: "https://example.com/book.docx",
+    priceEbook: 100,
+    bookAuthors: [{ lastName: "Шевченко", firstName: "Тарас" }],
+  };
+
+  it("is ready to publish once every field check passes", () => {
+    expect(isReadyToPublish(completeBook)).toBe(true);
+  });
+
+  it("is not ready to publish when any single field is missing (e.g. cover)", () => {
+    expect(isReadyToPublish({ ...completeBook, coverUrl: null })).toBe(false);
+  });
+
+  it("a rejection reason is unresolved while its flagged field still matches the snapshot", () => {
+    const snapshot = { title: "Стара назва" };
+    expect(isRejectionReasonResolved("title", { title: "Стара назва" }, snapshot)).toBe(false);
+  });
+
+  it("a rejection reason resolves once its flagged field differs from the snapshot", () => {
+    const snapshot = { title: "Стара назва" };
+    expect(isRejectionReasonResolved("title", { title: "Нова назва" }, snapshot)).toBe(true);
+  });
+
+  it("an empty moderationReasons list means no unresolved rejection at all", () => {
+    const moderationReasons: string[] = [];
+    const hasUnresolvedRejection = moderationReasons.some(
+      (key) => !isRejectionReasonResolved(key as any, completeBook, null)
+    );
+    expect(hasUnresolvedRejection).toBe(false);
   });
 });
 
