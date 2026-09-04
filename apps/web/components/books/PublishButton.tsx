@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { useApi } from "../../hooks/useApi";
@@ -15,9 +15,24 @@ interface Props {
   bookId: string;
   bookStatus: string;
   onSubmitted?: () => void;
+  // T-2076 -- the sticky nav's "Публікація" pill is now the real trigger
+  // (see output-data/page.tsx), not this component's own button, so the
+  // DRAFT branch's initial CTA is replaced with a hint instead of rendering
+  // a second, redundant "Надіслати на модерацію" button on the page.
+  hideTrigger?: boolean;
+  // Only meaningful together with hideTrigger -- decides which hint text
+  // shows before the nav pill has been clicked.
+  readyToPublish?: boolean;
 }
 
-export function PublishButton({ bookId, bookStatus, onSubmitted }: Props) {
+export interface PublishButtonHandle {
+  submit: () => void;
+}
+
+export const PublishButton = forwardRef<PublishButtonHandle, Props>(function PublishButton(
+  { bookId, bookStatus, onSubmitted, hideTrigger, readyToPublish }: Props,
+  ref
+) {
   const { apiFetch } = useApi();
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [contractRequired, setContractRequired] = useState(false);
@@ -25,6 +40,10 @@ export function PublishButton({ bookId, bookStatus, onSubmitted }: Props) {
   const [validating, setValidating] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [appearanceConfirmed, setAppearanceConfirmed] = useState(false);
+
+  // Exposed unconditionally, before any early return below, so hook order
+  // never changes between renders regardless of bookStatus.
+  useImperativeHandle(ref, () => ({ submit: handleValidate }));
 
   if (bookStatus === "PUBLISHED") {
     return (
@@ -117,9 +136,19 @@ export function PublishButton({ bookId, bookStatus, onSubmitted }: Props) {
   return (
     <div className={cn("space-y-3", expanded && "w-full")}>
       {!showConfirm ? (
-        <Button onClick={handleValidate} loading={validating} className="w-full">
-          Надіслати на модерацію →
-        </Button>
+        hideTrigger ? (
+          <p className="text-sm text-gray-500">
+            {validating
+              ? "Перевірка…"
+              : readyToPublish
+                ? "Натисніть «Публікація» у меню вгорі, щоб надіслати книгу на модерацію."
+                : "Заповніть усі розділи вище (позначені сірим у меню), щоб надіслати книгу на модерацію."}
+          </p>
+        ) : (
+          <Button onClick={handleValidate} loading={validating} className="w-full">
+            Надіслати на модерацію →
+          </Button>
+        )
       ) : (
         <div className="rounded-xl border border-green-200 bg-green-50 p-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -175,4 +204,4 @@ export function PublishButton({ bookId, bookStatus, onSubmitted }: Props) {
       )}
     </div>
   );
-}
+});

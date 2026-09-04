@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
 import { FormatsAndDistribution, computeAnchorPrices, parsePrice, type PrintCost } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
-import { PublishButton } from "@/components/books/PublishButton";
+import { PublishButton, type PublishButtonHandle } from "@/components/books/PublishButton";
 import { RepublishButton } from "@/components/books/RepublishButton";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { useBook } from "@/hooks/useBook";
@@ -455,6 +455,7 @@ function OutputDataContent() {
   const [activeSection, setActiveSection] = useState<(typeof SECTION_ORDER)[number]>("info");
   const sectionRefs = useRef<Partial<Record<(typeof SECTION_ORDER)[number], HTMLElement | null>>>({});
   const pageRootRef = useRef<HTMLDivElement | null>(null);
+  const publishButtonRef = useRef<PublishButtonHandle>(null);
   // Every section CURRENTLY intersecting the trigger band, keyed by section
   // -> its live boundingClientRect.top. A single IntersectionObserver
   // callback only reports entries whose intersection state just changed
@@ -863,6 +864,12 @@ function OutputDataContent() {
     coverSectionDone && !coverRejected &&
     priceSectionDone && !priceCardRejected;
 
+  // "Публікація" nav pill is a real submit trigger only while the book
+  // hasn't been sent yet -- once it's PROCESSING/REVIEW/PUBLISHED,
+  // PublishButton already renders its own static status badge for that, so
+  // the pill just scrolls down to it like every other pill.
+  const isDraftStatus = !book?.status || book.status === "DRAFT";
+
   const sectionDone: Record<(typeof SECTION_ORDER)[number], boolean> = {
     info: infoSectionDone && !infoCardRejected,
     file: fileSectionDone && !manuscriptRejected,
@@ -893,38 +900,61 @@ function OutputDataContent() {
           <h1 className="mb-2.5 text-lg font-semibold text-gray-900">Вихідні дані</h1>
 
           <nav className="flex gap-1 overflow-x-auto">
-            {SECTION_ORDER.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => scrollToSection(key)}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  activeSection === key
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-                )}
-              >
-                {/* Read-only progress checkbox, not a real form control -- it
-                    mirrors sectionDone (same booleans SectionHeading's ✓/○
-                    below reads), it never toggles independently on click. A
-                    solid fill in both states (not just a border) -- a thin
-                    outline for "not done" barely registered against the
-                    active pill's dark background, reading as "not
-                    reacting" rather than as a distinct unchecked state. */}
-                <span
-                  aria-hidden
-                  title={sectionDone[key] ? "Виконано" : "Ще не виконано"}
+            {SECTION_ORDER.map((key) => {
+              // T-2076 -- "Публікація" stops being just an anchor link once
+              // the book hasn't been submitted yet: it becomes the actual
+              // submit trigger (PublishButton's own bottom-of-page button is
+              // gone, see section-publish below), gated by the same
+              // readyToPublish every other pill's checkbox already reflects.
+              const isPublishTrigger = key === "publish" && isDraftStatus;
+              const publishDisabled = isPublishTrigger && !readyToPublish;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={publishDisabled}
+                  title={publishDisabled ? "Заповніть усі розділи вище, щоб надіслати книгу на модерацію" : undefined}
+                  onClick={() => {
+                    if (isPublishTrigger) {
+                      if (!readyToPublish) return;
+                      scrollToSection("publish");
+                      publishButtonRef.current?.submit();
+                      return;
+                    }
+                    scrollToSection(key);
+                  }}
                   className={cn(
-                    "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-black leading-none",
-                    sectionDone[key] ? "bg-green-500 text-white" : "bg-gray-300 text-transparent"
+                    "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                    publishDisabled
+                      ? "cursor-not-allowed text-gray-400 opacity-60"
+                      : isPublishTrigger
+                        ? "bg-green-600 text-white hover:bg-green-700"
+                        : activeSection === key
+                          ? "bg-gray-900 text-white"
+                          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                   )}
                 >
-                  ✓
-                </span>
-                {SECTION_LABELS[key]}
-              </button>
-            ))}
+                  {/* Read-only progress checkbox, not a real form control -- it
+                      mirrors sectionDone (same booleans SectionHeading's ✓/○
+                      below reads), it never toggles independently on click. A
+                      solid fill in both states (not just a border) -- a thin
+                      outline for "not done" barely registered against the
+                      active pill's dark background, reading as "not
+                      reacting" rather than as a distinct unchecked state. */}
+                  <span
+                    aria-hidden
+                    title={sectionDone[key] ? "Виконано" : "Ще не виконано"}
+                    className={cn(
+                      "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-black leading-none",
+                      sectionDone[key] ? "bg-green-500 text-white" : "bg-gray-300 text-transparent"
+                    )}
+                  >
+                    ✓
+                  </span>
+                  {isPublishTrigger && readyToPublish ? "Опублікувати →" : SECTION_LABELS[key]}
+                </button>
+              );
+            })}
 
             {/* T-2074 -- "Замовити тираж" is Ridero's own separate page
                 (`/publish/print`, live-verified), not a section of this one --
@@ -1453,7 +1483,57 @@ function OutputDataContent() {
             >
               Редагувати текст рукопису →
             </Link>
+
+            {/* T-2076 -- printPdfUrl is only ever produced by opening
+                /manuscript/preview (print-preview.ts renders it lazily on
+                GET, see IsbnReadinessChecklist's own comment on this same
+                field) -- surfaced here too, not just inside the ISBN
+                checklist below, because a missing print PDF is fundamentally
+                a "рукопис не доопрацьований" state, not only an ISBN
+                blocker, and authors without a udcCode need (that checklist
+                collapses to a single ✓ once УДК is assigned, hiding this
+                item entirely). Sends the author to the actual page instead
+                of triggering generation blind, so they see the real
+                flipbook result, not just a background job. */}
+            <div className="flex items-start gap-2 border-t pt-4 text-sm">
+              <span className={cn("mt-0.5", book?.printPdfUrl ? "text-green-600" : "text-amber-500")}>
+                {book?.printPdfUrl ? "✓" : "○"}
+              </span>
+              <span className={book?.printPdfUrl ? "text-gray-700" : "text-gray-500"}>
+                {book?.printPdfUrl ? "Друкований PDF згенеровано" : "Друкований PDF ще не згенеровано"}
+                {!book?.printPdfUrl && (
+                  <Link
+                    href={`/dashboard/books/${id}/manuscript/preview`}
+                    className="block text-xs text-black underline hover:no-underline"
+                  >
+                    Згенерувати PDF (відкриє передперегляд рукопису) →
+                  </Link>
+                )}
+              </span>
+            </div>
           </div>
+
+          {/* Moved from "Огляд перед публікацією" (T-2076 п.4) -- setting the
+              free-preview page range is manuscript-content work, same as
+              uploading/editing the .docx above, not a pre-publish review
+              step. */}
+          {book?.epubUrl && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <h2 className="text-base font-semibold mb-1">Уривок для читачів</h2>
+              <p className="text-xs text-gray-500 mb-4">
+                Встановіть діапазон сторінок, які покупці зможуть прочитати безкоштовно.
+              </p>
+              <PreviewRangeEditor
+                bookId={id}
+                pageCount={book?.pageCount}
+                initialStart={book?.previewStart}
+                initialEnd={book?.previewEnd}
+                onSaved={(start, end) =>
+                  setBook((b) => (b ? { ...b, previewStart: start, previewEnd: end } : b))
+                }
+              />
+            </div>
+          )}
         </section>
 
         {/* Without its own section here, authors routinely skipped straight
@@ -1612,26 +1692,6 @@ function OutputDataContent() {
                   })}
               </div>
             )}
-
-            {/* Preview excerpt — only for books with EPUB */}
-            {book?.epubUrl && (
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <h2 className="text-base font-semibold mb-1">Уривок для читачів</h2>
-                <p className="text-xs text-gray-500 mb-4">
-                  Встановіть діапазон сторінок, які покупці зможуть прочитати безкоштовно.
-                </p>
-                <PreviewRangeEditor
-                  bookId={id}
-                  pageCount={book?.pageCount}
-                  initialStart={book?.previewStart}
-                  initialEnd={book?.previewEnd}
-                  onSaved={(start, end) =>
-                    setBook((b) => (b ? { ...b, previewStart: start, previewEnd: end } : b))
-                  }
-                />
-              </div>
-            )}
-
           </div>
         </section>
 
@@ -1646,8 +1706,11 @@ function OutputDataContent() {
           <SectionHeading label={SECTION_LABELS.publish} done={sectionDone.publish} />
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
             <PublishButton
+              ref={publishButtonRef}
               bookId={id}
               bookStatus={book?.status ?? ""}
+              hideTrigger
+              readyToPublish={readyToPublish}
               onSubmitted={() => setBook((b) => (b ? { ...b, status: "REVIEW" } : b))}
             />
             {/* PublishButton's PUBLISHED branch is just a static badge -- for
