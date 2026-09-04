@@ -18,8 +18,10 @@ import {
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
   AGE_RATINGS,
+  ageRatingSchema,
   GENRES,
   genreSchema,
+  toOptionalSelectField,
   LANGUAGES,
   languageSchema,
   bookAuthorSchema,
@@ -52,9 +54,9 @@ const step1Schema = z.object({
     .min(DESCRIPTION_MIN_LENGTH, `Анотація має містити щонайменше ${DESCRIPTION_MIN_LENGTH} символів`)
     .max(DESCRIPTION_MAX_LENGTH, `Анотація має містити не більше ${DESCRIPTION_MAX_LENGTH} символів`),
   // Real enum (shared-types GENRES), same as output-data/page.tsx's
-  // identical field -- .or(z.literal("")) for the <select>'s own "not
-  // chosen yet" placeholder option.
-  genre: genreSchema.optional().or(z.literal("")),
+  // identical field -- toOptionalSelectField wraps it with `.or(z.literal(""))`
+  // for the <select>'s own "not chosen yet" placeholder option.
+  genre: toOptionalSelectField(genreSchema),
   // Independent from genre -- the author picks this directly from
   // PRINT_FORMAT_KEYS (shared-types), which is also PRINT_FORMATS' source
   // of truth for the actual mm values.
@@ -66,14 +68,11 @@ const step1Schema = z.object({
   // entirely) vs output-data's 9, so a book created in the wizard couldn't
   // even be set to Spanish/Italian/Portuguese/Russian at creation time.
   language: languageSchema.default("uk"),
-  // z.string().refine(...) rather than z.enum(AGE_RATINGS) on purpose --
-  // same reasoning as output-data/page.tsx's identical field: the <select>
-  // below has its own "" placeholder option, which a real enum's literal-
-  // union output type would reject at the TypeScript level even though both
-  // reject "" identically at runtime.
-  ageRating: z.string().refine((v) => (AGE_RATINGS as readonly string[]).includes(v), {
-    message: "Вкажіть вікові обмеження",
-  }),
+  // Same toOptionalSelectField helper as genre above -- used to be a
+  // hand-rolled z.string().refine(...) here, a different technique from
+  // genre's for the exact same "<select> needs a blank placeholder option"
+  // problem, for no real reason.
+  ageRating: toOptionalSelectField(ageRatingSchema),
 });
 
 type Step1Form = z.infer<typeof step1Schema>;

@@ -29,8 +29,10 @@ import {
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
   AGE_RATINGS,
+  ageRatingSchema,
   GENRES,
   genreSchema,
+  toOptionalSelectField,
   LANGUAGES,
   languageSchema,
   bookAuthorSchema,
@@ -79,27 +81,23 @@ const infoSchema = z.object({
   // Real enum (shared-types GENRES) instead of free text capped at 100
   // chars -- lets genre actually be used as a lookup key elsewhere
   // (GENRE_TO_PRINT_FORMAT, future genre-based features), which arbitrary
-  // free text never reliably could. .or(z.literal("")) for the <select>'s
-  // own "not chosen yet" placeholder option, same reasoning as ageRating.
-  genre: genreSchema.optional().or(z.literal("")),
+  // free text never reliably could. toOptionalSelectField (shared-types)
+  // wraps it with `.or(z.literal(""))` for the <select>'s own "not chosen
+  // yet" placeholder option, same helper ageRating below uses.
+  genre: toOptionalSelectField(genreSchema),
   // Independent from genre -- the author picks this directly, from
   // PRINT_FORMAT_KEYS (shared-types), same list BookWizard's creation-time
   // selector uses.
   printFormatKey: z.enum(PRINT_FORMAT_KEYS as [PrintFormatKey, ...PrintFormatKey[]], {
     errorMap: () => ({ message: "Оберіть розмір книги" }),
   }),
-  // Validated against the real enum (shared-types AGE_RATINGS) instead of a
-  // bare non-empty string -- the <select> below already only offers these 6
-  // values, but the schema itself used to accept any string, silently
-  // relying on the UI never sending anything else. z.string().refine(...)
-  // rather than z.enum(...) on purpose -- the <select>'s own placeholder
-  // option ("") needs to stay assignable as an initial/reset value (before
-  // the author picks anything), which a real z.enum's literal-union output
-  // type would reject at the TypeScript level even though both reject ""
-  // identically at runtime.
-  ageRating: z.string().refine((v) => (AGE_RATINGS as readonly string[]).includes(v), {
-    message: "Вкажіть вікові обмеження",
-  }),
+  // Validated against the real enum (shared-types AGE_RATINGS/ageRatingSchema)
+  // instead of a bare non-empty string. Used to be a hand-rolled
+  // z.string().refine(...) here -- a different technique from genre's
+  // .or(z.literal("")) above for the exact same "<select> needs a blank
+  // placeholder option" problem, for no real reason. Same toOptionalSelectField
+  // helper as genre now.
+  ageRating: toOptionalSelectField(ageRatingSchema),
   // Real enum (shared-types LANGUAGES/languageSchema) instead of a bare
   // 2-char string -- the <select> only ever offered these 9 languages, but
   // the schema itself accepted any 2-letter code.
@@ -605,7 +603,10 @@ function OutputDataContent() {
       // <option> matching, same as an unset genre, rather than crashing).
       genre: (book.genre ?? "") as InfoForm["genre"],
       printFormatKey: resolveBookPrintFormat(book).key,
-      ageRating: book.ageRating ?? "",
+      // Cast -- same reasoning as genre above: toOptionalSelectField's
+      // literal-union output type (AgeRating | "" | undefined) doesn't
+      // accept a raw `string | null` from the API without it.
+      ageRating: (book.ageRating ?? "") as InfoForm["ageRating"],
       // Cast -- same reasoning as genre above: seeds the <select> from
       // whatever's already on the book, including a language code from
       // before this was an enforced enum.

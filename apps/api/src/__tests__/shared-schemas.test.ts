@@ -14,6 +14,7 @@ import {
   isPublishFieldComplete,
   isReadyToPublish,
   isRejectionReasonResolved,
+  toOptionalSelectField,
 } from "shared-types";
 
 // Unlike schemas.test.ts's hand-copied mirrors, these import the REAL
@@ -31,6 +32,30 @@ describe("ageRatingSchema", () => {
 
   it("rejects an arbitrary string", () => {
     expect(ageRatingSchema.safeParse("13+").success).toBe(false);
+  });
+});
+
+// output-data/page.tsx and BookWizard.tsx both wrap genre AND ageRating with
+// this exact helper now (previously two different hand-rolled techniques for
+// the same "<select> needs a blank placeholder option" problem).
+describe("toOptionalSelectField", () => {
+  it("still accepts every real enum value", () => {
+    const schema = toOptionalSelectField(ageRatingSchema);
+    for (const v of ["0+", "18+"]) {
+      expect(schema.safeParse(v).success).toBe(true);
+    }
+  });
+
+  it("accepts the blank placeholder value", () => {
+    expect(toOptionalSelectField(ageRatingSchema).safeParse("").success).toBe(true);
+  });
+
+  it("accepts undefined (field never touched)", () => {
+    expect(toOptionalSelectField(genreSchema).safeParse(undefined).success).toBe(true);
+  });
+
+  it("still rejects a value outside the enum", () => {
+    expect(toOptionalSelectField(ageRatingSchema).safeParse("13+").success).toBe(false);
   });
 });
 

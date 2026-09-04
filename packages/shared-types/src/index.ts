@@ -430,6 +430,22 @@ export function getRequiredDescriptionMinLength(channels: readonly string[] | nu
 
 export const ageRatingSchema = z.enum(AGE_RATINGS);
 
+// A form-level `<select>` for an enum field (genre, ageRating, ...) needs a
+// blank "Оберіть..." placeholder option before the author has picked
+// anything -- the bare enum schema rejects "" at runtime, and worse, its
+// literal-union TS output type rejects "" at compile time too (relevant for
+// react-hook-form's `reset()`, whose seed value has to satisfy that type).
+// `.optional().or(z.literal(""))` makes both the runtime check and the
+// inferred type accept "" alongside the real enum values. Two independent
+// fields (genre, ageRating) had already hand-rolled this exact wrapper
+// identically in both output-data/page.tsx and BookWizard.tsx (4 copies) --
+// ageRating's copy used a completely different technique (z.string().refine)
+// that happened to solve the same problem, an inconsistency with no reason
+// behind it. One helper, one technique, everywhere.
+export function toOptionalSelectField<T extends z.ZodTypeAny>(schema: T) {
+  return schema.optional().or(z.literal(""));
+}
+
 export const distributionChannelsSchema = z
   .array(z.enum(DISTRIBUTION_CHANNELS))
   .min(1, "Оберіть хоча б одну платформу")
