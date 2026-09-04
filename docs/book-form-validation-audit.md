@@ -9,7 +9,7 @@
 Я оновлюю колонку "Статус" в цьому ж файлі після кожного фактичного виправлення в коді
 — файл лишається живим протоколом, не одноразовим звітом.
 
-Останнє оновлення: після комітів `785da74` (title) та `46d9a43` (genre).
+Останнє оновлення: після комітів `785da74` (title), `46d9a43` (genre), `4060758` (мова + бейдж автора у BookWizard).
 
 ---
 
@@ -32,6 +32,8 @@
 - **Жанр (genre)**: було `z.string().max(100)` — вільний текст без прив'язки до списку. Тепер справжній enum `genreSchema` (`shared-types`), той самий скрізь.
 - **Вік (ageRating)**: було `z.string().min(1)` — приймало будь-який непорожній рядок. Тепер звіряється з реальним enum `AGE_RATINGS` (через `.refine()`, з технічної причини — плейсхолдер `""` у `<select>`).
 - **Розмір книги (printFormatKey)**: було без обмежень на довжину/список. Тепер справжній enum `PRINT_FORMAT_KEYS`.
+- **Мова (language)**: BookWizard і output-data реально розходились не лише кодом, а й ЗМІСТОМ — у BookWizard був список лише з 5 мов (без es/it/pt/ru), у output-data — з 9 і з прапорцями в лейблі. Тепер обидві сторінки рендерять `<select>` з одного `LANGUAGES` (`shared-types`), і Zod-схема скрізь — справжній `languageSchema`, а не `z.string().length(2)`.
+- **Автор на BookWizard**: раніше книга створювалась без жодної інформації про автора — вона підхоплювалась лише пізніше, мовчки, на output-data. Тепер крок 1 показує бейдж (аватар/ініціал + ПІБ) із профілю автора, з підписом "ці дані беруться з Кабінету автора", і при створенні книги (`POST /api/books`) ці дані валідуються тим самим `bookAuthorSchema` і зберігаються в `bookAuthors` одразу.
 
 ---
 
@@ -73,8 +75,8 @@
 | **genre** | `genreSchema.optional().or(z.literal(""))` | те саме | `genreSchema.nullable().optional()` | `genreSchema.optional()` | ✅ Enum спільний (`GENRES`/`genreSchema`); ⚠️ `.or(z.literal(""))`-обгортку продубльовано в обох формах |
 | **printFormatKey** | `z.enum(PRINT_FORMAT_KEYS)`, обов'язкове | те саме, обов'язкове | `z.enum(PRINT_FORMAT_KEYS).nullable().optional()` | те саме, необов'язкове | ✅ Enum спільний; ⚠️ сам `z.enum(...)`-виклик продубльовано 4 рази (не винесений як `printFormatKeySchema`) |
 | **ageRating** | `z.string().refine(...)` з `AGE_RATINGS` | те саме, ідентичний код | `ageRatingSchema` (справжній `z.enum`) напряму | `ageRatingSchema.optional()` напряму | ✅ Значення спільні (`AGE_RATINGS`); ⚠️ на фронті — 2 ідентичні inline-`.refine()` замість однієї спільної `ageRatingFormSchema` |
-| **language** | `z.string().length(2)`, обов'язкове, без default | `z.string().length(2).default("uk")` | `z.string().length(2).optional()` | `z.string().length(2).default("uk")` | ❌ **НЕ enum ніде** — приймає будь-який 2-символьний рядок (напр. `"xx"`). У `<select>` лише 9 реальних мов, але Zod-схема цього не перевіряє. Кандидат на той самий фікс, що вже зробили для genre/ageRating |
-| **bookAuthors** | `bookAuthorSchema` (додавання автора) | — (немає на цьому кроці) | `bookAuthorSchema.array().max(10)` | — (немає) | ✅ Там, де є — спільна схема. У BookWizard відсутнє свідомо (автори додаються після створення книги) |
+| **language** | `languageSchema`, обов'язкове | `languageSchema.default("uk")` | `languageSchema.optional()` | `languageSchema.default("uk")` | ✅ Enum спільний (`LANGUAGES`/`languageSchema`, 9 мов, з прапорцями в лейблі — обидві сторінки рендерять той самий список) |
+| **bookAuthors** | `bookAuthorSchema` (додавання автора вручну) | Read-only бейдж із профілю, `bookAuthorSchema` перевіряє перед відправкою на створення | `bookAuthorSchema.array().max(10)` | `bookAuthorSchema.array().max(10).optional()` (нове) | ✅ Спільна схема скрізь, де є. На BookWizard — лише на створенні (POST), PATCH-повторний сабміт кроку 1 це поле не чіпає, щоб не затерти ручні правки з output-data |
 | **priceEbook / pricePrint / pricePrintHardcover** | Взагалі без Zod (рахується через `computeAnchorPrices`, шлеться сирим) | те саме (той самий `computeAnchorPrices`) | `z.number().positive().nullable().optional()` | `z.number().positive().optional()` (без `.nullable()`) | ❌ Нуль валідації на фронті на обох сторінках; POST і PATCH навіть між собою трохи різняться (`.nullable()`) |
 | **pricePrintBw / pricePrintHardcoverBw** | `priceSchema` (окрема Zod-схема, `.coerce.number()` + `""`-виняток) | — (немає на цьому кроці) | `z.number().positive().nullable().optional()` | — (немає в схемі створення) | Є лише там, де є — не дублюється, бо ніде більше не існує |
 | **distributionChannels** | Немає власного Zod на цій сторінці (просто масив у `useState`) | те саме | `distributionChannelsSchema.optional()` | `distributionChannelsSchema.default([...])` (але не застосовується — див. C.13) | ✅ Схема спільна там, де реально працює (`distribution.ts`) |
@@ -83,10 +85,10 @@
 
 ## Кандидати на подальшу уніфікацію (не зроблено, лише зафіксовано)
 
-Впорядковано приблизно за співвідношенням користь/зусилля:
+Впорядковано приблизно за співвідношенням користь/зусилля. ~~Закреслені~~ — вже зроблено.
 
-1. **language → справжній enum**. Той самий патерн, що вже застосований до genre/ageRating: додати `LANGUAGES`/`languageSchema` в `shared-types` (список 9 мов уже існує як plain-масив в обох формах — ще одна прихована дублікація списку, яку не встигли зафіксувати в таблиці D окремим рядком навмисно, щоб не подвоювати "language").
-2. **Обгортка `.or(z.literal(""))` для `<select>`-плейсхолдерів** (genre, ageRating, і потенційно майбутній language) — зараз пишеться вручну в кожній формі. Можна винести як `toOptionalSelectField(schema)` хелпер у `shared-types`, щоб обидві сторінки викликали одну функцію, а не копіювали 2-3 рядки.
+1. ~~language → справжній enum~~ — зроблено, коміт `4060758`.
+2. **Обгортка `.or(z.literal(""))` для `<select>`-плейсхолдерів** (genre, ageRating) — зараз пишеться вручну в кожній формі. Можна винести як `toOptionalSelectField(schema)` хелпер у `shared-types`, щоб обидві сторінки викликали одну функцію, а не копіювали 2-3 рядки.
 3. **Один об'єкт-схема замість 4 копій `z.object({...})`** — замість того, щоб output-data/BookWizard/PATCH/POST кожен окремо перелічував поля, скласти єдиний `BookFieldsSchema` у `shared-types` і будувати кожен варіант через `.pick()`/`.partial()`/`.extend()` (детальний план уже обговорювався перед кроком 2 — саме цей пункт лишився не реалізованим повністю, зроблено лише per-field примітиви, не сам композиційний шар).
 4. **priceEbook/pricePrint/pricePrintHardcover без жодної фронтенд-валідації** — на відміну від pricePrintBw, ці три поля взагалі не проходять Zod на клієнті (рахуються й шлються напряму). POST і PATCH до того ж трохи розходяться (`.nullable()` є лише в PATCH).
 5. **`books.ts`'s `distributionChannels` — мертвий код** (C.13) — парситься, валідується, але ніколи не потрапляє в `prisma.book.create()`. Не валідаційна дублікація, а окремий, дрібний баг застосунку.
