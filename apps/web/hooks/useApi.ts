@@ -48,19 +48,24 @@ export function useApi() {
   const apiFetch = useCallback(
     async <T,>(path: string, init?: RequestInit): Promise<T> => {
       // Bug found live (T-2079): a bodyless PATCH/POST/DELETE (e.g.
-      // { method: "PATCH" }, no body -- used by every "just flip a flag"
-      // call: notifications mark-read, book delete, admin payout/user-delete,
+      // { method: "PATCH" }, no body -- every "just flip a flag" call:
+      // notifications mark-read, book delete, admin payout/user-delete,
       // manuscript reimport, accept-agreement) got a 415
       // FST_ERR_CTP_INVALID_MEDIA_TYPE from Fastify. The browser's fetch()
       // still sets Content-Length: 0 for these methods even with no body,
       // and Fastify treats a present Content-Length with no matching
-      // Content-Type as "there's a body I can't parse" -- it does NOT special-
-      // case "empty body, no header" the way curl's bodyless request (no
-      // Content-Length at all) does, which is why this went unnoticed in
-      // manual/curl testing. Every affected route already expects this
-      // (`request.body ?? {}`), Fastify's own default JSON parser resolves
-      // an empty string body to `undefined` -- the routes just never got a
-      // chance to hit that path because the parser lookup failed first.
+      // Content-Type as "there's a body I can't parse" -- it does NOT
+      // special-case "empty body, no header" the way curl's bodyless
+      // request (no Content-Length at all) does, which is why this went
+      // unnoticed in manual/curl testing.
+      //
+      // Adding just the header wasn't enough either (caught live, second
+      // round): Content-Type: application/json with a truly empty body
+      // trades the 415 for a 400 FST_ERR_CTP_EMPTY_JSON_BODY -- Fastify's
+      // default JSON parser explicitly rejects an empty string as invalid
+      // JSON, it does NOT resolve it to `undefined`. A literal "{}" body
+      // is real, valid JSON, so this satisfies the parser; every affected
+      // route already expects a possibly-empty object (`request.body ?? {}`).
       const method = (init?.method ?? "GET").toUpperCase();
       const hasBody = init?.body != null;
       const needsContentType = hasBody || (method !== "GET" && method !== "HEAD");
@@ -69,6 +74,7 @@ export function useApi() {
           fetch(path, {
             cache: "no-store",
             ...init,
+            body: hasBody ? init!.body : needsContentType ? "{}" : undefined,
             headers: {
               ...(needsContentType ? { "Content-Type": "application/json" } : {}),
               ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
