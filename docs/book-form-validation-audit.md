@@ -9,7 +9,7 @@
 Я оновлюю колонку "Статус" в цьому ж файлі після кожного фактичного виправлення в коді
 — файл лишається живим протоколом, не одноразовим звітом.
 
-Останнє оновлення: після комітів `785da74` (title), `46d9a43` (genre), `4060758` (мова + бейдж автора у BookWizard), `6168aa1` (ціни ч/б об'єднано з друкованою книгою + реальна перевірка рукопису), `c63affc` (nav-кнопка "Публікація" → реальний тригер відправки + "Уривок для читачів" переїхав у "Рукопис" + новий printPdfUrl-чек там само), `8bbf8de` (перейменування "Передперегляд" → "Друкований PDF" скрізь), `5cda796` (порожній список авторів тепер реально блокує публікацію), `78cdb2e` (УДК-чек анотації уніфіковано з 120-500 + бейдж "УДК"), `e8ca2b3` (бейдж автора на BookWizard тепер реально рендериться — 401-гонка при завантаженні профілю), `13be0c3` (видалено мертвий код — `distributionChannels` у `books.ts`'s `createSchema`).
+Останнє оновлення: після комітів `785da74` (title), `46d9a43` (genre), `4060758` (мова + бейдж автора у BookWizard), `6168aa1` (ціни ч/б об'єднано з друкованою книгою + реальна перевірка рукопису), `c63affc` (nav-кнопка "Публікація" → реальний тригер відправки + "Уривок для читачів" переїхав у "Рукопис" + новий printPdfUrl-чек там само), `8bbf8de` (перейменування "Передперегляд" → "Друкований PDF" скрізь), `5cda796` (порожній список авторів тепер реально блокує публікацію), `78cdb2e` (УДК-чек анотації уніфіковано з 120-500 + бейдж "УДК"), `e8ca2b3` (бейдж автора на BookWizard тепер реально рендериться — 401-гонка при завантаженні профілю), `13be0c3` (видалено мертвий код — `distributionChannels` у `books.ts`'s `createSchema`), `e27dbda` (genre/ageRating — спільний `toOptionalSelectField` хелпер).
 
 ---
 
@@ -45,6 +45,7 @@
 - **Бейдж автора на BookWizard узагалі не рендерився** — знайдено живим network-трейсом на проді (`GET /api/users/me` → 401). Ефект, що підвантажує профіль для бейджа, мав `[]`-залежності й спрацьовував ДО того, як `useSession()` (усередині `useApi()`) встигав завантажити реальний токен — запит ішов без Authorization, бекенд відповідав 401, а `.catch(() => {})` тихо це проковтував; оскільки ефект більше ніколи не перезапускався, бейдж (гейтиться на `userProfile !== null`) лишався порожнім НАЗАВЖДИ, навіть після завантаження сесії. Той самий баг був і в output-data (менш помітний — там це лише автозаповнення, а не єдине джерело видимого блоку). Тепер обидва ефекти залежать від `token` і чекають на нього — той самий патерн, що вже в `manuscript/preview/page.tsx`.
 - **УДК-чек анотації — одна цифра замість двох**: не існує окремої анотації, яку автор пише саме для УДК — це той самий текст, що й для магазину (120–500, `DESCRIPTION_MIN/MAX_LENGTH`). `IsbnReadinessChecklist` раніше апроксимував вимогу Книжкової палати "не більше пів сторінки" як ОКРЕМИЙ поріг `≤1000` символів — цифра, що на практиці ніколи не могла розійтись із реальним правилом (500 < ~900-1000), але лишалась другим числом для одного поля. Тепер напряму читає `isPublishFieldComplete("description", book)`. Додано бейдж "УДК" (поріг = `DESCRIPTION_MIN_LENGTH`) у той самий ряд бейджів D2D/Google/KDP на output-data ТА BookWizard — автор бачить прямо під час набору тексту, що ця анотація йде і в заявку на УДК.
 - **Мертвий код видалено — `books.ts`'s `distributionChannels`**: поле парсилось і мало дефолт у `createSchema`, але ніколи не потрапляло в `prisma.book.create()`. Перевірено весь фронтенд — жоден клієнт не шле це поле в `POST /api/books` узагалі (реальний вибір каналів BookWizard відправляє окремим `PATCH /api/books/:id/distribution` вже після створення чернетки). Прибрано і поле, і невикористаний імпорт `distributionChannelsSchema` з `books.ts`.
+- **genre/ageRating — один спільний хелпер замість двох різних технік**: обидва поля потребують, щоб `<select>` приймав `""` (плейсхолдер "Оберіть...") поряд із реальними значеннями enum — в обох формах (output-data, BookWizard). `genre` вирішував це через `.optional().or(z.literal(""))`, `ageRating` — окремим ручним `z.string().refine(...)` — дві різні техніки для однієї проблеми, без причини. Додано `toOptionalSelectField(schema)` у `shared-types`, `ageRating` переведено на той самий прийом, що й `genre`.
 
 ---
 
@@ -83,9 +84,9 @@
 | **title** | `min(1).max(255)` | `min(1).max(255)` | `min(1).max(255)` | `min(1).max(255)` | ✅ Значення однакові, але це 4 окремі виклики `z.string()` — не спільна схема-об'єкт |
 | **subtitle** | `max(255).optional()` | — (немає поля) | `max(255).nullable().optional()` | — (немає поля) | Не в BookWizard/POST — додається пізніше, свідомо |
 | **description** | `min(120).max(500)` (`DESCRIPTION_MIN/MAX_LENGTH` з shared-types) | те саме, ті самі константи | те саме + динамічний поріг за каналами | `min(120).max(500)`, обов'язкове | ✅ Числа спільні; ⚠️ сам виклик `.min().max()` продубльовано 4 рази; динамічний поріг є лише на бекенді |
-| **genre** | `genreSchema.optional().or(z.literal(""))` | те саме | `genreSchema.nullable().optional()` | `genreSchema.optional()` | ✅ Enum спільний (`GENRES`/`genreSchema`); ⚠️ `.or(z.literal(""))`-обгортку продубльовано в обох формах |
+| **genre** | `toOptionalSelectField(genreSchema)` | те саме | `genreSchema.nullable().optional()` | `genreSchema.optional()` | ✅ Enum спільний (`GENRES`/`genreSchema`) І спільний хелпер (`toOptionalSelectField`, `shared-types`) — жодної inline-обгортки не лишилось |
 | **printFormatKey** | `z.enum(PRINT_FORMAT_KEYS)`, обов'язкове | те саме, обов'язкове | `z.enum(PRINT_FORMAT_KEYS).nullable().optional()` | те саме, необов'язкове | ✅ Enum спільний; ⚠️ сам `z.enum(...)`-виклик продубльовано 4 рази (не винесений як `printFormatKeySchema`) |
-| **ageRating** | `z.string().refine(...)` з `AGE_RATINGS` | те саме, ідентичний код | `ageRatingSchema` (справжній `z.enum`) напряму | `ageRatingSchema.optional()` напряму | ✅ Значення спільні (`AGE_RATINGS`); ⚠️ на фронті — 2 ідентичні inline-`.refine()` замість однієї спільної `ageRatingFormSchema` |
+| **ageRating** | `toOptionalSelectField(ageRatingSchema)` | те саме | `ageRatingSchema` (справжній `z.enum`) напряму | `ageRatingSchema.optional()` напряму | ✅ Значення спільні (`AGE_RATINGS`) І спільний хелпер на фронті — раніше тут були 2 ІДЕНТИЧНІ inline-`.refine()`, тепер один `toOptionalSelectField` |
 | **language** | `languageSchema`, обов'язкове | `languageSchema.default("uk")` | `languageSchema.optional()` | `languageSchema.default("uk")` | ✅ Enum спільний (`LANGUAGES`/`languageSchema`, 9 мов, з прапорцями в лейблі — обидві сторінки рендерять той самий список) |
 | **bookAuthors** | `bookAuthorSchema` (додавання автора вручну) | Read-only бейдж із профілю, `bookAuthorSchema` перевіряє перед відправкою на створення | `bookAuthorSchema.array().max(10)` | `bookAuthorSchema.array().max(10).optional()` (нове) | ✅ Спільна схема скрізь, де є. На BookWizard — лише на створенні (POST), PATCH-повторний сабміт кроку 1 це поле не чіпає, щоб не затерти ручні правки з output-data |
 | **priceEbook / pricePrint / pricePrintHardcover** | Без прямого Zod (похідні від гонорару через `computeAnchorPrices`) | те саме | `priceFieldSchema` | `priceFieldSchema` | ✅ Одна схема на бекенді; похідні поля на фронті свідомо без прямого інпуту (рахуються з гонорару) |
@@ -99,7 +100,31 @@
 Впорядковано приблизно за співвідношенням користь/зусилля. ~~Закреслені~~ — вже зроблено.
 
 1. ~~language → справжній enum~~ — зроблено, коміт `4060758`.
-2. **Обгортка `.or(z.literal(""))` для `<select>`-плейсхолдерів** (genre, ageRating) — зараз пишеться вручну в кожній формі. Можна винести як `toOptionalSelectField(schema)` хелпер у `shared-types`, щоб обидві сторінки викликали одну функцію, а не копіювали 2-3 рядки.
-3. **Один об'єкт-схема замість 4 копій `z.object({...})`** — замість того, щоб output-data/BookWizard/PATCH/POST кожен окремо перелічував поля, скласти єдиний `BookFieldsSchema` у `shared-types` і будувати кожен варіант через `.pick()`/`.partial()`/`.extend()` (детальний план уже обговорювався перед кроком 2 — саме цей пункт лишився не реалізованим повністю, зроблено лише per-field примітиви, не сам композиційний шар).
+2. ~~Обгортка `.or(z.literal(""))` для `<select>`-плейсхолдерів (genre, ageRating)~~ — зроблено, коміт `e27dbda`. `toOptionalSelectField(schema)` у `shared-types`; `ageRating` заразом переведено з окремого `z.string().refine(...)` на той самий прийом, що й `genre` (то були дві різні техніки для однієї проблеми, без причини).
+3. **Один об'єкт-схема замість 4 копій `z.object({...})`** — НЕ РЕАЛІЗОВАНО, свідомо відкладено (не баг, чиста DRY-вигода — див. нижче "Чому не зараз"). Замість того, щоб output-data/BookWizard/PATCH/POST кожен окремо перелічував поля, скласти єдиний `BookFieldsSchema` у `shared-types`:
+   ```ts
+   // shared-types
+   export const BookFieldsSchema = z.object({
+     title: z.string().min(1).max(255),
+     description: z.string().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH),
+     genre: toOptionalSelectField(genreSchema),
+     printFormatKey: z.enum(PRINT_FORMAT_KEYS as [string, ...string[]]),
+     ageRating: toOptionalSelectField(ageRatingSchema),
+     language: languageSchema,
+     bookAuthors: z.array(bookAuthorSchema).max(10),
+     distributionChannels: distributionChannelsSchema,
+     priceEbook: priceFieldSchema,
+     pricePrint: priceFieldSchema,
+     pricePrintHardcover: priceFieldSchema,
+     pricePrintBw: priceFieldSchema,
+     pricePrintHardcoverBw: priceFieldSchema,
+   });
+   // кожен виклик-сайт будує свій варіант із НЬОГО, не з нуля:
+   // output-data (info-картка):  BookFieldsSchema.pick({ title:true, description:true, genre:true, printFormatKey:true, ageRating:true, language:true })
+   // BookWizard step1:            те саме .pick(), + .extend({ printWidthMm, printHeightMm })
+   // book.ts patchSchema:         BookFieldsSchema.partial() (усі поля опціональні на PATCH) + власні поля (isbn, moderationReasons, ...)
+   // books.ts createSchema:       BookFieldsSchema.partial() з іншим набором обов'язкових (title/description required, решта optional) — або два окремі .pick()/.required() набори
+   ```
+   **Чому не зараз**: на відміну від УСІХ інших пунктів цього документа, тут немає жодної реальної розбіжності чи прихованого бага, який це виправляє (кожне поле вже має ОДНЕ спільне значення/enum — таблиця D вище вже це підтверджує). Це суто структурний рефакторинг: 4 окремі `z.object({...})` → 1 композиційна схема. Ризик/зусилля (зачіпає ВСІ 4 місця одночасно, включно з розбіжностями в required/optional між PATCH і POST, які зараз ліниво продубльовані по одному полю за раз) явно вищі за користь порівняно з будь-яким іншим пунктом цього списку. Братися лише за окремим запитом, не проактивно.
 4. ~~priceEbook/pricePrint/pricePrintHardcover/pricePrintBw/pricePrintHardcoverBw без спільної валідації~~ — зроблено, коміт `6168aa1` (`priceFieldSchema`/`priceInputSchema`).
 5. ~~`books.ts`'s `distributionChannels` — мертвий код~~ — видалено, коміт `13be0c3`. Перевірено: жоден клієнт (BookWizard і жоден інший) ніколи не шле це поле в `POST /api/books` — реальний вибір каналів іде окремим `PATCH /api/books/:id/distribution` вже після створення чернетки. Прибрано й поле зі схеми, і невикористаний імпорт `distributionChannelsSchema`.
