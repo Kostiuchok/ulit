@@ -869,7 +869,6 @@ function OutputDataContent() {
   const coverRejected = unresolvedCategory("cover");
   const infoCardRejected = titleRejected || descriptionRejected || genreRejected || authorRejected || languageRejected;
   const showRejection = infoCardRejected || priceCardRejected || manuscriptRejected;
-  const titleInvalid = titleValue.length > 0 && titleValue.length < 3;
 
   const readyToPublish =
     infoSectionDone && !infoCardRejected &&
@@ -1005,7 +1004,7 @@ function OutputDataContent() {
           className={cn("scroll-mt-28 space-y-3 rounded-xl transition-shadow", highlightSection === "info" && "ring-2 ring-yellow-400 ring-offset-2")}
         >
           <SectionHeading label={SECTION_LABELS.info} done={sectionDone.info} />
-          <div className={cn("rounded-xl bg-white p-6 shadow-sm", infoCardRejected || titleInvalid ? "border-2 border-red-400" : "border")}>
+          <div className={cn("rounded-xl bg-white p-6 shadow-sm", infoCardRejected ? "border-2 border-red-400" : "border")}>
             <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
               {/* Назва/Підзаголовок/Анотація зліва (усі поля самого тексту
                   книги, стовпчиком) — жанр/розмір/мова/вік справа: коротші
@@ -1015,14 +1014,14 @@ function OutputDataContent() {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="title">Назва <span className="text-red-500">*</span></Label>
-                      <span className={cn("text-xs", titleInvalid ? "text-red-500 font-medium" : "text-gray-400")}>
-                        {titleValue.length}/255 {titleInvalid && "(мін. 3)"}
+                      <span className={cn("text-xs", infoForm.formState.errors.title ? "text-red-500 font-medium" : "text-gray-400")}>
+                        {titleValue.length}/255
                       </span>
                     </div>
                     <Input
                       id="title"
                       {...infoForm.register("title")}
-                      className={cn(titleInvalid || titleRejected ? "border-red-400 focus-visible:ring-red-300" : "")}
+                      className={cn(infoForm.formState.errors.title || titleRejected ? "border-red-400 focus-visible:ring-red-300" : "")}
                     />
                     {infoForm.formState.errors.title && (
                       <p className="text-sm text-red-500">{infoForm.formState.errors.title.message}</p>
