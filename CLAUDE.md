@@ -738,3 +738,19 @@ SyntaxError: Unexpected token 'export'
 **Рішення**: підняти `timeout-minutes` з 10 до 20 в `.github/workflows/deploy.yml`, щоб холодна збірка (без кешу) мала запас. Відновлення продакшну: якщо жоден CI-ран не виконується паралельно (перевірити через Actions API, [[reference_github_actions_status_check]]), просто повторно прогнати `bash infra/scripts/deploy.sh` вручну на VPS — образи вже частково/повністю зібрані з попередньої спроби, тож повторний прогін використовує Docker layer cache і завершується за 1-2 хв.
 
 **Правило**: якщо `Deploy to Production` падає з `conclusion: failure` (не `Skipped` — це означає CI сам не пройшов, див. журнал #15) — перше, що перевіряти, це тривалість кроку "Deploy via SSH" в Annotations/логах run'у: тривалість, що впритул підходить до `timeout-minutes`, означає таймаут, а не помилку коду. Не витрачати час на пошук бага в останньому коммiті, поки не виключений таймаут — спроба відтворити збірку вручну (`docker compose build <service>`) швидко підтверджує/спростовує це. Якщо образи важчатимуть далі (`worker` вже 6.6GB) — може знадобитись піднімати ліміт ще раз або перейти на прогрітий build cache (BuildKit registry cache / `--cache-from`).
+
+---
+
+### 17. Новий бекенд-роут не проксіюється з `web` — Next.js сам віддає 404 ще до Fastify
+
+**Симптом**: дзвіночок сповіщень (`NotificationsBell.tsx`) завжди показує "Немає сповіщень" і 0, бейджі "Нове"/помаранчева крапка на книжках (сайдбар, `/dashboard/books`) ніколи не з'являються — хоча адмін точно схвалював/відхиляв книги. Жодної помилки в `docker logs knyha-api`. Живий network-трейс у браузері показує `GET /api/notifications` → **404**.
+
+**Причина**: `apps/web/next.config.mjs`'s `rewrites()` — явний allowlist префіксів (`/api/users/*`, `/api/books/*`, `/api/admin/*` тощо), кожен з яких проксіює на `knyha-api:3001`. Бекенд-роут `/api/notifications*` (модель `Notification`, `GET/PATCH` у `apps/api/src/modules/notifications/notifications.ts`, зареєстрований в `index.ts`, і `admin.ts` реально створює записи при approve/reject) — повністю робочий і задеплоєний, але СТВОРЕНИЙ ПІЗНІШЕ за базовий список rewrites і ніколи не доданий туди. Запит на `/api/notifications` ловить сам Next.js (де немає такого App Router шляху) і повертає власний 404 — запит НІКОЛИ не долітає до Fastify, тож у логах `knyha-api` анічого немає.
+
+**Рішення**: додати пару правил (bare + `:path*`, той самий парний патерн, що вже є для `/api/cover-templates`) у `rewrites()`:
+```js
+{ source: "/api/notifications",        destination: `${apiBase}/api/notifications` },
+{ source: "/api/notifications/:path*", destination: `${apiBase}/api/notifications/:path*` },
+```
+
+**Правило**: будь-який НОВИЙ бекенд-модуль з власним префіксом (`apps/api/src/modules/<name>/*.ts`, зареєстрований в `index.ts`) — доти НЕВИДИМИЙ для браузера, доки цей самий префікс не додано в `next.config.mjs`'s `rewrites()`. Симптом завжди той самий: чистий 404 без жодного сліду в `docker logs knyha-api` (запит туди взагалі не доходить) — це і є сигнал перевіряти саме `rewrites()`, а не бекенд-логи чи Caddyfile (той самий клас багу, що й журнал #4, тільки для проксі Next.js↔Fastify, не Caddy↔Next.js). Перед тим як вважати новий ендпоінт "готовим", перевіряти РЕАЛЬНИЙ запит із браузера (Network tab / `read_network_requests`), а не лише що `curl` напряму до `localhost:3001` (чи навіть до `knyha-api` в мережі контейнерів) повертає 200 — це обходить саме той шар, що тут ламається.

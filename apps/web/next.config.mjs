@@ -28,6 +28,15 @@ const nextConfig = {
       { source: "/api/orders/:path*",   destination: `${apiBase}/api/orders/:path*` },
       { source: "/api/payments/:path*", destination: `${apiBase}/api/payments/:path*` },
       { source: "/api/payouts/:path*",  destination: `${apiBase}/api/payouts/:path*` },
+      // T-2077 -- was missing entirely: useNotifications.ts/NotificationsBell
+      // and the per-book badges it feeds (AuthorBooksSidebar, BookCard) are
+      // fully built end-to-end (Notification model, admin.ts creating rows
+      // on approve/reject, GET/PATCH routes) but invisible in prod, because
+      // requests to /api/notifications never reached Fastify at all --
+      // Next.js itself 404'd them first (no page at that path), same class
+      // of gap as journal #4, just for a route added after that fix.
+      { source: "/api/notifications",   destination: `${apiBase}/api/notifications` },
+      { source: "/api/notifications/:path*", destination: `${apiBase}/api/notifications/:path*` },
       { source: "/api/health",          destination: `${apiBase}/api/health` },
       // Proxy MinIO public assets so browser never hits the internal minio:9000 URL
       { source: "/storage/:path*",      destination: `${minioBase}/:path*` },
