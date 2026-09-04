@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { X } from "lucide-react";
@@ -12,6 +12,7 @@ import { RelistButton } from "@/components/books/RelistButton";
 import { BookCoverCarousel } from "@/components/books/BookCoverCarousel";
 import { BookPromoSidebar } from "@/components/books/BookPromoSidebar";
 import { useBook } from "@/hooks/useBook";
+import { useApi } from "@/hooks/useApi";
 import { getAllRejectionLines } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
 
@@ -75,6 +76,21 @@ export function BookDashboard() {
   const { book, setBook, loading } = useBook<DashboardBook>(id);
   const [coverNoticeDismissed, setCoverNoticeDismissed] = useState(false);
   const [otherNoticeDismissed, setOtherNoticeDismissed] = useState(false);
+  const { apiFetch, token } = useApi();
+
+  // T-2079 -- opening a book (from the sidebar, the book list, or a direct
+  // link) is itself the author looking at whatever the moderator said about
+  // it. Marks every unread notification FOR THIS BOOK read, then tells the
+  // bell (mounted elsewhere, its own separate useNotifications() instance)
+  // to refresh via the same `ulit:books-changed` event every other
+  // cross-component "something changed" signal in this app already uses --
+  // no shared context needed for two components to agree the count changed.
+  useEffect(() => {
+    if (!token || !id) return;
+    apiFetch(`/api/notifications/book/${id}/read`, { method: "PATCH" })
+      .then(() => window.dispatchEvent(new Event("ulit:books-changed")))
+      .catch(() => {});
+  }, [token, id, apiFetch]);
 
   if (loading) {
     return (

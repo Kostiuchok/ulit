@@ -37,4 +37,20 @@ export async function notificationsRoutes(app: FastifyInstance) {
     });
     return reply.send({ ok: true });
   });
+
+  // T-2079 -- opening a book (from the sidebar, the book list, or a direct
+  // link) is itself the author "looking at" whatever the moderator said
+  // about it -- no reason to make them separately open the bell dropdown
+  // and click each notification one by one. BookDashboard.tsx calls this on
+  // mount; the bell's own count/list picks it up via the existing
+  // `ulit:books-changed` refresh (same event apps/web already dispatches
+  // for every other cross-component "something changed" signal).
+  app.patch("/api/notifications/book/:bookId/read", { preHandler: authenticate }, async (request, reply) => {
+    const { bookId } = request.params as { bookId: string };
+    await prisma.notification.updateMany({
+      where: { userId: request.user.id, bookId, read: false },
+      data: { read: true },
+    });
+    return reply.send({ ok: true });
+  });
 }
