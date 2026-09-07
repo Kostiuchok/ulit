@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 interface Book {
   id: string;
@@ -29,12 +30,19 @@ export default function WithdrawalQueuePage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!token) return;
-    apiFetch<{ books: Book[] }>("/api/admin/withdrawal-queue")
-      .then((d) => setBooks(d.books))
-      .finally(() => setLoading(false));
-  }, [token]);
+  const load = useCallback(
+    (opts?: { silent?: boolean }) => {
+      if (!token) return;
+      if (!opts?.silent) setLoading(true);
+      return apiFetch<{ books: Book[] }>("/api/admin/withdrawal-queue")
+        .then((d) => setBooks(d.books))
+        .finally(() => { if (!opts?.silent) setLoading(false); });
+    },
+    [token, apiFetch]
+  );
+
+  useEffect(() => { load(); }, [load]);
+  useRefetchOnFocus(useCallback(() => load({ silent: true }), [load]));
 
   return (
     <div className="space-y-6">

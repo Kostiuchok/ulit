@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 interface QueueBook {
   id: string;
@@ -80,12 +81,19 @@ export default function IsbnQueuePage() {
     }
   }
 
-  useEffect(() => {
-    if (!token) return;
-    apiFetch<{ books: QueueBook[] }>("/api/admin/isbn-queue")
-      .then((d) => setBooks(d.books))
-      .finally(() => setLoading(false));
-  }, [token]);
+  const loadQueue = useCallback(
+    (opts?: { silent?: boolean }) => {
+      if (!token) return;
+      if (!opts?.silent) setLoading(true);
+      return apiFetch<{ books: QueueBook[] }>("/api/admin/isbn-queue")
+        .then((d) => setBooks(d.books))
+        .finally(() => { if (!opts?.silent) setLoading(false); });
+    },
+    [token, apiFetch]
+  );
+
+  useEffect(() => { loadQueue(); }, [loadQueue]);
+  useRefetchOnFocus(useCallback(() => loadQueue({ silent: true }), [loadQueue]));
 
   // Show every book's package by default (admin used to have to click
   // "Показати файли" per book) -- fetched once each as soon as the queue

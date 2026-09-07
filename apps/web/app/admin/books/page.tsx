@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, type MouseEvent as ReactMouse
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 
 interface Book {
@@ -360,6 +361,14 @@ function BookRow({
           )}
           {book.status === "PUBLISHED" ? (
             <ActionChip icon="✓" label="Опубліковано" className="border-green-200 bg-green-50 text-green-700" />
+          ) : book.status === "UNPUBLISHED" ? (
+            // Автор сам зняв книгу з продажу (moderationStatus лишається
+            // APPROVED від попереднього схвалення) -- без цієї гілки книга
+            // тут виглядала б так само "Схвалено", як і щойно опублікована,
+            // хоча насправді автор прибрав її з магазину.
+            <ActionChip icon="⏸" label="Знято з публікації" className="border-orange-200 bg-orange-50 text-orange-700" />
+          ) : book.status === "ARCHIVED" ? (
+            <ActionChip icon="🗑" label="Видалено автором" className="border-gray-200 bg-gray-100 text-gray-500" />
           ) : book.moderationStatus === "APPROVED" ? (
             <ActionChip icon="✓" label="Схвалено" className="border-green-200 bg-green-50 text-green-700" />
           ) : (
@@ -473,9 +482,9 @@ export default function AdminBooksPage() {
   const activeBooks = books.filter((b) => b.moderationStatus !== "REJECTED");
   const rejectedBooks = books.filter((b) => b.moderationStatus === "REJECTED");
 
-  const fetchBooks = useCallback(async () => {
+  const fetchBooks = useCallback(async (opts?: { silent?: boolean }) => {
     if (!token) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
     if (modFilter) params.set("moderationStatus", modFilter);
@@ -484,11 +493,16 @@ export default function AdminBooksPage() {
       const data = await apiFetch<{ books: Book[] }>(`/api/admin/books?${params}`);
       setBooks(data.books);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [token, statusFilter, modFilter, search]);
 
   useEffect(() => { fetchBooks(); }, [fetchBooks]);
+
+  // Тут дуже часто відкрито довго -- сторонні дії автора (видалення, зміна
+  // статусу) не мають жодного способу дотягнутись сюди самі, тож тихо
+  // перезавантажуємо список щоразу, коли адмін повертається у цю вкладку.
+  useRefetchOnFocus(useCallback(() => fetchBooks({ silent: true }), [fetchBooks]));
 
   async function handleApprove(id: string) {
     setActionLoading(id + "_approve");

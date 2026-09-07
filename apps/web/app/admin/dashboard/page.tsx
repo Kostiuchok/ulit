@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 import { PublisherDocumentsCard } from "../../../components/admin/PublisherDocumentsCard";
 
 interface Stats {
@@ -108,12 +109,23 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!token) return;
-    apiFetch<Stats>("/api/admin/stats")
-      .then(setStats)
-      .finally(() => setLoading(false));
-  }, [token]);
+  const load = useCallback(
+    (opts?: { silent?: boolean }) => {
+      if (!token) return;
+      if (!opts?.silent) setLoading(true);
+      return apiFetch<Stats>("/api/admin/stats")
+        .then(setStats)
+        .finally(() => { if (!opts?.silent) setLoading(false); });
+    },
+    [token, apiFetch]
+  );
+
+  useEffect(() => { load(); }, [load]);
+
+  // Дашборд і чергові лічильники не мають способу дізнатись про дію автора
+  // (видалення, зміна статусу) без цього -- тихо оновлюємось, коли адмін
+  // повертається у вкладку.
+  useRefetchOnFocus(useCallback(() => load({ silent: true }), [load]));
 
   if (loading) {
     return (

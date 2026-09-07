@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../../hooks/useApi";
+import { useRefetchOnFocus } from "../../../../hooks/useRefetchOnFocus";
 
 interface Book {
   id: string;
@@ -23,12 +24,19 @@ export default function DistributionQueuePage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!token) return;
-    apiFetch<{ books: Book[] }>("/api/admin/distribution/queue")
-      .then((d) => setBooks(d.books))
-      .finally(() => setLoading(false));
-  }, [token]);
+  const load = useCallback(
+    (opts?: { silent?: boolean }) => {
+      if (!token) return;
+      if (!opts?.silent) setLoading(true);
+      return apiFetch<{ books: Book[] }>("/api/admin/distribution/queue")
+        .then((d) => setBooks(d.books))
+        .finally(() => { if (!opts?.silent) setLoading(false); });
+    },
+    [token, apiFetch]
+  );
+
+  useEffect(() => { load(); }, [load]);
+  useRefetchOnFocus(useCallback(() => load({ silent: true }), [load]));
 
   function toggle(id: string) {
     setSelected((prev) => {
