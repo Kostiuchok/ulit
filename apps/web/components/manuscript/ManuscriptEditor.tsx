@@ -27,6 +27,7 @@ import {
   AlignHorizontalJustifyEnd,
   ImagePlus,
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
   FileText,
@@ -250,6 +251,25 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   const [cleanupMenuOpen, setCleanupMenuOpen] = useState(false);
   const cleanupMenuRef = useRef<HTMLDivElement>(null);
 
+  // Formatting-tools section scrolls horizontally (instead of wrapping to a
+  // second row) once it no longer fits between the fixed "Друкований PDF"
+  // button on the left and the save-status button on the right -- these two
+  // arrow buttons only render when there's actually overflow to scroll to.
+  const toolbarScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollToolbarLeft, setCanScrollToolbarLeft] = useState(false);
+  const [canScrollToolbarRight, setCanScrollToolbarRight] = useState(false);
+
+  function updateToolbarScrollState() {
+    const el = toolbarScrollRef.current;
+    if (!el) return;
+    setCanScrollToolbarLeft(el.scrollLeft > 4);
+    setCanScrollToolbarRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }
+
+  function scrollToolbarBy(delta: number) {
+    toolbarScrollRef.current?.scrollBy({ left: delta, behavior: "smooth" });
+  }
+
   useEffect(() => {
     apiFetch<{ styleSets: AuthorStyleSet[] }>("/api/style-sets")
       .then(({ styleSets }) => setAuthorStyleSets(styleSets))
@@ -450,6 +470,21 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
   const styleOfCurrentBlock: StyledBlockStyleName = editor?.getAttributes("paragraph").style ?? "normal";
 
+  useEffect(() => {
+    updateToolbarScrollState();
+    const el = toolbarScrollRef.current;
+    if (!el) return;
+    const onResize = () => updateToolbarScrollState();
+    window.addEventListener("resize", onResize);
+    const observer = new ResizeObserver(onResize);
+    observer.observe(el);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      observer.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
+
   if (!editor) return null;
 
   return (
@@ -487,23 +522,46 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
       {/* Center — toolbar + editor */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-1 border-b border-gray-200 px-3 py-2">
-          <ToolbarButton title="Зберегти" onClick={saveNow}>
-            <Save size={15} />
-          </ToolbarButton>
+        <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-2">
           {/* T-2076 -- renamed from "Передперегляд": this route lazily
               generates the print PDF on open (print-preview.ts), which that
               name didn't convey -- unified with the sidebar nav item, the
-              ISBN checklist link, and PublicationTimeline's hint. */}
+              ISBN checklist link, and PublicationTimeline's hint. Filled
+              primary button, not a plain text link -- this is the button
+              that assembles the actual print document, same visual weight
+              as "Друкований PDF" on the cover page. The standalone "Зберегти"
+              icon that used to sit to its left is gone -- it only duplicated
+              the save-status button at the far right of this same row,
+              wasting the space this button needed to keep its label on one
+              line. */}
           <Link
             href={`/dashboard/books/${bookId}/manuscript/preview`}
-            className="flex h-7 items-center gap-1.5 rounded px-2 text-[0.8125rem] text-gray-600 hover:bg-gray-100"
+            className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 text-[0.8125rem] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             title="Друкований PDF"
           >
             <FileText size={15} />
             Друкований PDF
           </Link>
-          <div className="mx-1 h-5 w-px bg-gray-200" />
+          <div className="h-5 w-px shrink-0 bg-gray-200" />
+
+          {/* Everything below scrolls horizontally as one unit once it no
+              longer fits between the two fixed buttons on either side,
+              instead of wrapping onto a second row -- see toolbarScrollRef. */}
+          {canScrollToolbarLeft && (
+            <button
+              type="button"
+              onClick={() => scrollToolbarBy(-160)}
+              title="Прокрутити панель інструментів ліворуч"
+              className="flex h-7 w-5 shrink-0 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            >
+              <ChevronLeft size={15} />
+            </button>
+          )}
+          <div
+            ref={toolbarScrollRef}
+            onScroll={updateToolbarScrollState}
+            className="scrollbar-hide flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+          >
           <ToolbarButton title="Скасувати" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
             <Undo2 size={15} />
           </ToolbarButton>
@@ -654,8 +712,19 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               </ToolbarButton>
             </>
           )}
+          </div>
+          {canScrollToolbarRight && (
+            <button
+              type="button"
+              onClick={() => scrollToolbarBy(160)}
+              title="Прокрутити панель інструментів праворуч"
+              className="flex h-7 w-5 shrink-0 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            >
+              <ChevronRight size={15} />
+            </button>
+          )}
 
-          <div className="ml-auto flex items-center gap-2 text-[0.75rem]">
+          <div className="flex shrink-0 items-center gap-2 text-[0.75rem]">
             {imageError && <span className="text-red-600">{imageError}</span>}
             {/* Save status now lives IN the button's own label (not a
                 separate status span next to it) -- a second element next to

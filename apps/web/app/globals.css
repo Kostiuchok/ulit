@@ -64,3 +64,14 @@
 .progress-indeterminate-bar {
   animation: progress-indeterminate 1.6s ease-in-out infinite;
 }
+
+/* Manuscript editor toolbar -- the formatting-tools section scrolls
+   horizontally under fixed left/right buttons instead of wrapping, so the
+   scrollbar track itself (not just its thumb) needs to stay invisible. */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

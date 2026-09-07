@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, X } from "lucide-react";
+import { ChevronLeft, FileText, X } from "lucide-react";
 import { CoverDesigner } from "@/components/books/CoverDesigner";
 import type { CoverFormat } from "@/components/books/CoverDesignerCanvas";
 import { useApi } from "@/hooks/useApi";
@@ -156,11 +156,16 @@ export default function CoverPage() {
           ))}
         </div>
 
+        {/* This is the button that assembles the actual print document
+            (lazily generates it on open, print-preview.ts) -- same visual
+            weight as "Зберегти обкладинку" (CoverDesignerCanvas), not a
+            plain text link, so it doesn't read as a minor secondary action. */}
         <Link
           href={`/dashboard/books/${id}/manuscript/preview`}
-          className="ml-auto text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          className="ml-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          Друкований PDF →
+          <FileText size={15} />
+          Друкований PDF
         </Link>
       </div>
 
