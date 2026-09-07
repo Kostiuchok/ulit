@@ -396,7 +396,14 @@ function BookRow({
               className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
             />
           )}
-          {book.status !== "DRAFT" && (
+          {/* "Відхилити" belongs to the moderation pipeline (повертає
+              status на DRAFT + шле авторові лист "книгу відхилено") --
+              для UNPUBLISHED/ARCHIVED книги це безглуздо: автор сам зняв
+              її з продажу/видалив, а не подав на модерацію. Без цього
+              винятку кнопка малась поруч із бейджем "Видалено автором",
+              і клік по ній тихо перезаписав би ARCHIVED на DRAFT+REJECTED
+              та надіслав авторові хибний лист про "відхилення". */}
+          {book.status !== "DRAFT" && book.status !== "ARCHIVED" && book.status !== "UNPUBLISHED" && (
             <ActionChip
               icon="✕"
               label="Відхилити"

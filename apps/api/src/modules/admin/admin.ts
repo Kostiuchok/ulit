@@ -407,6 +407,7 @@ export async function adminRoutes(app: FastifyInstance) {
       const book = await prisma.book.findUnique({
         where: { id },
         select: {
+          status: true,
           title: true,
           description: true,
           genre: true,
@@ -425,6 +426,15 @@ export async function adminRoutes(app: FastifyInstance) {
         },
       });
       if (!book) throw AppError.notFound("Book");
+      // Belongs to the moderation pipeline only -- rejecting an
+      // author-archived/unpublished book would silently force it back to
+      // DRAFT (overwriting the author's own action) and email them a
+      // "rejected" notice for a book they themselves took down. Frontend
+      // already hides this button for these two statuses (admin/books/
+      // page.tsx); this is defense-in-depth against any other caller.
+      if (book.status === "ARCHIVED" || book.status === "UNPUBLISHED") {
+        throw new AppError(`Cannot reject a book with status ${book.status}`, 400, "INVALID_STATUS_FOR_REJECT");
+      }
 
       const reasons = (Array.isArray(body.reasons) ? body.reasons : []).filter(
         (r): r is RejectionReasonKey => REJECTION_REASONS.some((d) => d.key === r)
