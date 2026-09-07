@@ -314,6 +314,11 @@ export function AuthorBooksSidebar() {
             const wasViewingDeleted = routeId === deleteBookId;
             setDeleteBookId(null);
             load();
+            // MyBooksList ("Мої книги" в основному контенті) рендериться
+            // поруч із цим сайдбаром і має власний незалежний fetch --
+            // без цього повідомлення воно й далі показувало щойно видалену
+            // книгу, поки хтось не перезавантажить сторінку вручну.
+            window.dispatchEvent(new Event("ulit:books-changed"));
             if (wasViewingDeleted) router.push("/dashboard/books");
           }}
         />

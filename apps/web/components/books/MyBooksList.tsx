@@ -60,25 +60,39 @@ export function MyBooksList() {
   const [purging, setPurging] = useState(false);
   const [purgeNotice, setPurgeNotice] = useState<string | null>(null);
 
-  function load() {
+  function load(opts?: { silent?: boolean }) {
     if (!token) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     apiFetch<{ books: Book[] }>("/api/books?includeArchived=1")
       .then(({ books }) => {
         setBooks(books);
         setError(null);
       })
-      .catch((e: any) => setError(e.message || "Не вдалося завантажити книги"))
-      .finally(() => setLoading(false));
+      .catch((e: any) => { if (!opts?.silent) setError(e.message || "Не вдалося завантажити книги"); })
+      .finally(() => { if (!opts?.silent) setLoading(false); });
   }
 
   useEffect(load, [token]);
+
+  // AuthorBooksSidebar (рендериться поруч на /dashboard/books) та інші дії
+  // деінде (PublishButton, BookDashboard) сповіщають про зміну книги саме
+  // цією подією -- без неї цей список не дізнається про видалення/зміни,
+  // зроблені через сайдбар чи сторінку книги, і показуватиме застарілі дані
+  // аж до ручного перезавантаження сторінки. Silent: не скидати список у
+  // skeleton-стан заради події, що прийшла з геть іншої дії.
+  useEffect(() => {
+    function onBooksChanged() { load({ silent: true }); }
+    window.addEventListener("ulit:books-changed", onBooksChanged);
+    return () => window.removeEventListener("ulit:books-changed", onBooksChanged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   async function handleRestore(id: string) {
     setRestoring(id);
     try {
       const { book } = await apiFetch<{ book: Book }>(`/api/books/${id}/restore`, { method: "POST" });
       setBooks((prev) => prev.map((b) => (b.id === id ? book : b)));
+      window.dispatchEvent(new Event("ulit:books-changed"));
     } catch (e: any) {
       alert(e.message || "Помилка відновлення");
     } finally {
@@ -129,7 +143,7 @@ export function MyBooksList() {
           <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-16 text-center">
             <p className="text-red-700">Не вдалося завантажити книги</p>
             <p className="mt-1 text-[0.75rem] text-red-500">{error}</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={load}>
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => load()}>
               Спробувати ще раз
             </Button>
           </div>
@@ -203,6 +217,7 @@ export function MyBooksList() {
           onDeleted={() => {
             setDeleteBookId(null);
             load();
+            window.dispatchEvent(new Event("ulit:books-changed"));
           }}
         />
       )}
@@ -221,6 +236,7 @@ export function MyBooksList() {
                     .join(", ")}.`
             );
             load();
+            window.dispatchEvent(new Event("ulit:books-changed"));
           }}
         />
       )}
