@@ -486,16 +486,27 @@ export default function AdminBooksPage() {
     document.addEventListener("mouseup", handleResizeEnd);
   }
 
-  // ARCHIVED книги виокремлені в свою власну групу наприкінці списку -- та
-  // сама логіка, що вже є для автора в MyBooksList.tsx ("Видалені книги"
-  // внизу списку), тільки тут рядок лишається у звичайних (не grayscale)
-  // кольорах: колонка "Розповсюдження" (D2D/KDP/Google) -- єдина причина
-  // адміну взагалі відкривати цю книгу, її статуси мають лишатись
-  // розбірливими. mutually exclusive з rejectedBooks -- архівована книга,
-  // що колись мала REJECTED, показується тут, не дублюється в обох групах.
-  const archivedBooks = books.filter((b) => b.status === "ARCHIVED");
-  const activeBooks = books.filter((b) => b.status !== "ARCHIVED" && b.moderationStatus !== "REJECTED");
-  const rejectedBooks = books.filter((b) => b.status !== "ARCHIVED" && b.moderationStatus === "REJECTED");
+  // "Видалено автором" -- це РОБОЧИЙ список адміна (скільки ще книг треба
+  // вручну зняти з D2D/KDP/Google), той самий where, що й /admin/withdrawal-
+  // queue -- а не архів "усіх видалених книг колись". Щойно адмін позначає
+  // ОСТАННІЙ живий канал як WITHDRAWN (на сторінці /distribute) і повертається
+  // сюди, книга сама випадає з цієї групи -- fetchBooks() на mount цієї
+  // сторінки й так підвантажить уже оновлені d2d/kdp/googleStatus.
+  // Архівована книга, у якої всі канали вже WITHDRAWN/NOT_SENT/ERROR (або
+  // ніколи нікуди не відправлялась), просто лишається у звичайній таблиці
+  // разом з рештою -- її бейдж "Видалено автором" у колонці "Публікація"
+  // й так її позначає, спеціальне угруповання їй уже не потрібне.
+  const needsWithdrawal = (b: Book) =>
+    b.d2dStatus === "SENT" || b.d2dStatus === "PUBLISHED" ||
+    b.kdpStatus === "SENT" || b.kdpStatus === "PUBLISHED" ||
+    b.googleStatus === "SENT" || b.googleStatus === "PUBLISHED";
+  const archivedBooks = books.filter((b) => b.status === "ARCHIVED" && needsWithdrawal(b));
+  const activeBooks = books.filter(
+    (b) => !(b.status === "ARCHIVED" && needsWithdrawal(b)) && b.moderationStatus !== "REJECTED"
+  );
+  const rejectedBooks = books.filter(
+    (b) => !(b.status === "ARCHIVED" && needsWithdrawal(b)) && b.moderationStatus === "REJECTED"
+  );
 
   const fetchBooks = useCallback(async (opts?: { silent?: boolean }) => {
     if (!token) return;
@@ -729,7 +740,9 @@ export default function AdminBooksPage() {
                   <tr>
                     <td colSpan={8} className="px-4 py-2">
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Видалено автором</span>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                          Видалено автором — ще потребують відкликання ззовні
+                        </span>
                         <div className="h-px flex-1 bg-gray-200" />
                       </div>
                     </td>
@@ -739,7 +752,7 @@ export default function AdminBooksPage() {
                   <BookRow
                     key={book.id}
                     book={book}
-                    rejected={false}
+                    rejected
                     actionLoading={actionLoading}
                     onApprove={handleApprove}
                     onRejectClick={setRejectId}
