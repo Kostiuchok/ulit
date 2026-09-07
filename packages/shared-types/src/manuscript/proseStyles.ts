@@ -55,14 +55,27 @@ export const MANUSCRIPT_PROSE_CSS = `
 
       .manuscript-prose img { max-width: 100%; height: auto; display: block; }
       .manuscript-prose [data-resize-container] { max-width: 100%; }
-      /* Bare <img> direct children only -- this is what generateHTML() (the
-         pagination probe + read-only preview) renders, since it has no
-         NodeView wrapper. Scoped with ">" so it never doubles up with the
-         [data-resize-container] rules below, which target the live editor's
-         wrapped image instead (nested, not a direct child). */
-      .manuscript-prose > img[data-align="left"] { float: left; margin: 0.25em 1.5em 1em 0; max-width: 60%; }
-      .manuscript-prose > img[data-align="right"] { float: right; margin: 0.25em 0 1em 1.5em; max-width: 60%; }
-      .manuscript-prose > img[data-align="center"] { display: block; margin: 1em auto; }
+      /* Bare <img>, not wrapped in a [data-resize-container] -- this is what
+         generateHTML() (print PDF + pagination probe) renders, since it has
+         no NodeView wrapper. Used to be scoped with the ">" direct-child
+         combinator instead of :not(...) below, on the assumption a bare img
+         is always a direct child of .manuscript-prose -- true for the live
+         editor, but WRONG for the print PDF: buildManuscriptPrintHtml()
+         (printHtml.ts) wraps the body in its own <div class="manuscript-body">
+         (and front matter in <div class="front-matter">) for page-break
+         scoping, so there a bare img is a GRANDCHILD, never a direct child.
+         ">" silently matched nothing there -- every print-PDF image rendered
+         with NO alignment margin/float at all (verified against a real
+         render, author-reported: gap above an image but none below, since
+         the only spacing left was the *previous* paragraph's own
+         margin-bottom collapsing with the image's now-absent margin-top;
+         the image's own intended top+bottom margin never applied on either
+         side). :not() reaches through wrapper divs regardless of depth
+         while still excluding the live editor's actually-wrapped image, so
+         it fixes print without double-margining the live editor. */
+      .manuscript-prose img[data-align="left"]:not([data-resize-container] img) { float: left; margin: 0.25em 1.5em 1em 0; max-width: 60%; }
+      .manuscript-prose img[data-align="right"]:not([data-resize-container] img) { float: right; margin: 0.25em 0 1em 1.5em; max-width: 60%; }
+      .manuscript-prose img[data-align="center"]:not([data-resize-container] img) { display: block; margin: 1em auto; }
       .manuscript-prose [data-resize-container]:has(img[data-align="left"]) {
         float: left; display: inline-flex; margin: 0.25em 1.5em 1em 0; max-width: 60%;
       }
