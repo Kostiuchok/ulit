@@ -486,8 +486,16 @@ export default function AdminBooksPage() {
     document.addEventListener("mouseup", handleResizeEnd);
   }
 
-  const activeBooks = books.filter((b) => b.moderationStatus !== "REJECTED");
-  const rejectedBooks = books.filter((b) => b.moderationStatus === "REJECTED");
+  // ARCHIVED книги виокремлені в свою власну групу наприкінці списку -- та
+  // сама логіка, що вже є для автора в MyBooksList.tsx ("Видалені книги"
+  // внизу списку), тільки тут рядок лишається у звичайних (не grayscale)
+  // кольорах: колонка "Розповсюдження" (D2D/KDP/Google) -- єдина причина
+  // адміну взагалі відкривати цю книгу, її статуси мають лишатись
+  // розбірливими. mutually exclusive з rejectedBooks -- архівована книга,
+  // що колись мала REJECTED, показується тут, не дублюється в обох групах.
+  const archivedBooks = books.filter((b) => b.status === "ARCHIVED");
+  const activeBooks = books.filter((b) => b.status !== "ARCHIVED" && b.moderationStatus !== "REJECTED");
+  const rejectedBooks = books.filter((b) => b.status !== "ARCHIVED" && b.moderationStatus === "REJECTED");
 
   const fetchBooks = useCallback(async (opts?: { silent?: boolean }) => {
     if (!token) return;
@@ -709,6 +717,29 @@ export default function AdminBooksPage() {
                     key={book.id}
                     book={book}
                     rejected
+                    actionLoading={actionLoading}
+                    onApprove={handleApprove}
+                    onRejectClick={setRejectId}
+                    onFilesClick={setFilesBook}
+                    onApproveRepublish={handleApproveRepublish}
+                    onRejectRepublish={handleRejectRepublish}
+                  />
+                ))}
+                {archivedBooks.length > 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Видалено автором</span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {archivedBooks.map((book) => (
+                  <BookRow
+                    key={book.id}
+                    book={book}
+                    rejected={false}
                     actionLoading={actionLoading}
                     onApprove={handleApprove}
                     onRejectClick={setRejectId}
