@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
-import { FormatsAndDistribution, computeAnchorPrices, parsePrice, type PrintCost } from "@/components/books/FormatsAndDistribution";
+import { FormatsAndDistribution, computeAnchorPrices, computeBwPrices, type PrintCost } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import { PublishButton, type PublishButtonHandle } from "@/components/books/PublishButton";
 import { RepublishButton } from "@/components/books/RepublishButton";
@@ -461,8 +461,7 @@ function OutputDataContent() {
   const [channels, setChannels] = useState<string[]>(["ULIT"]);
   const [royaltyEbook, setRoyaltyEbook] = useState("");
   const [royaltyPrint, setRoyaltyPrint] = useState("");
-  const [pricePrintBw, setPricePrintBw] = useState("");
-  const [pricePrintHardcoverBw, setPricePrintHardcoverBw] = useState("");
+  const [pricePrintBw, setPricePrintBw] = useState(""); // softcover B&W only -- hardcover B&W is derived (computeBwPrices)
 
   useEffect(() => {
     if (!id) return;
@@ -621,7 +620,6 @@ function OutputDataContent() {
     setRoyaltyEbook(book.desiredRoyaltyAmount ? String(Number(book.desiredRoyaltyAmount)) : "");
     setRoyaltyPrint(book.desiredRoyaltyAmountPrint ? String(Number(book.desiredRoyaltyAmountPrint)) : "");
     setPricePrintBw(book.pricePrintBw ? String(Number(book.pricePrintBw)) : "");
-    setPricePrintHardcoverBw(book.pricePrintHardcoverBw ? String(Number(book.pricePrintHardcoverBw)) : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book]);
 
@@ -825,8 +823,7 @@ function OutputDataContent() {
     setFormatsSaving(true);
     try {
       const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
-      const bw = parsePrice(pricePrintBw);
-      const hardcoverBw = parsePrice(pricePrintHardcoverBw);
+      const bw = computeBwPrices(printCost, pricePrintBw);
       const { book: updated } = await apiFetch<{ book: MetadataBook }>(`/api/books/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -835,8 +832,8 @@ function OutputDataContent() {
           priceEbook: anchor.priceEbook ?? null,
           pricePrint: anchor.pricePrint ?? null,
           pricePrintHardcover: anchor.pricePrintHardcover ?? null,
-          pricePrintBw: bw ?? null,
-          pricePrintHardcoverBw: hardcoverBw ?? null,
+          pricePrintBw: bw.pricePrintBw ?? null,
+          pricePrintHardcoverBw: bw.pricePrintHardcoverBw ?? null,
         }),
       });
       setBook(updated);
@@ -1647,8 +1644,6 @@ function OutputDataContent() {
               onRoyaltyPrintChange={setRoyaltyPrint}
               pricePrintBw={pricePrintBw}
               onPricePrintBwChange={setPricePrintBw}
-              pricePrintHardcoverBw={pricePrintHardcoverBw}
-              onPricePrintHardcoverBwChange={setPricePrintHardcoverBw}
               hasManuscript={fileSectionDone}
               bookId={id}
               onUploadManuscript={() => scrollToSection("file")}

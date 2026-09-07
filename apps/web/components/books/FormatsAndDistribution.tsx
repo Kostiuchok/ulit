@@ -44,13 +44,13 @@ function parseRoyalty(v: string): number | undefined {
   return v.trim() !== "" && Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
-// pricePrintBw/pricePrintHardcoverBw are the only two price fields still
-// typed directly (everything else is derived from a royalty input via
-// computeAnchorPrices below) -- shared priceInputSchema (shared-types) is
+// pricePrintBw is the only price field still typed directly (everything
+// else is derived -- from a royalty input via computeAnchorPrices, or from
+// it via computeBwPrices) -- shared priceInputSchema (shared-types) is
 // the same shape apps/api's book.ts/books.ts validate the saved value
 // against, minus the DB-facing `.nullable()` a raw controlled <input>
 // doesn't need (its own empty-string state covers "not set").
-export function parsePrice(v: string): number | undefined {
+function parsePrice(v: string): number | undefined {
   const result = priceInputSchema.safeParse(v);
   return result.success && result.data !== "" ? result.data : undefined;
 }
@@ -80,6 +80,28 @@ export function computeAnchorPrices(
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+// Black-and-white prices. The author types ONE number -- the buyer price of
+// the softcover B&W copy -- and the hardcover B&W price is derived from it,
+// instead of two unrelated numbers nothing kept consistent with each other.
+// The delta is the REAL binding-cost difference from print-cost (a hardcover
+// costs more to bind than a softcover), grossed up by Ulit's rate so the
+// author's own per-copy earnings come out the same on both bindings --
+// exactly the relationship computeAnchorPrices() produces for colour print.
+// There is no B&W-specific production cost in print-cost.ts, which is why
+// this one stays a direct price and not a royalty calculator.
+export function computeBwPrices(
+  printCost: PrintCost,
+  pricePrintBwInput: string
+): { pricePrintBw?: number; pricePrintHardcoverBw?: number } {
+  const soft = parsePrice(pricePrintBwInput);
+  const cost = printCost?.status === "DONE" ? printCost : null;
+  if (soft === undefined) return {};
+  return {
+    pricePrintBw: soft,
+    pricePrintHardcoverBw: cost ? round2(soft + (cost.hardcoverCost - cost.softcoverCost) / ULIT_RATE) : undefined,
+  };
 }
 
 function formatUah(n: number): string {
@@ -124,6 +146,33 @@ function RoyaltyInput({
           className="h-9 w-32 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <span className="text-sm text-gray-500">грн / примірник</span>
+      </div>
+    </div>
+  );
+}
+
+// The two numbers the author actually cares about -- deliberately loud
+// (big, coloured, boxed), since everything else in these blocks is just the
+// arithmetic that leads to them.
+function PriceTiles({
+  caption,
+  items,
+}: {
+  caption: string;
+  items: { label: string; value?: number }[];
+}) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-medium text-gray-600">{caption}</p>
+      <div className={cn("grid gap-2", items.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+        {items.map((it) => (
+          <div key={it.label} className="rounded-lg border-2 border-primary/40 bg-primary/5 px-3 py-2 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">{it.label}</p>
+            <p className="text-xl font-extrabold leading-tight text-primary">
+              {it.value !== undefined ? `${it.value.toFixed(2)} грн` : "—"}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -199,8 +248,6 @@ export function FormatsAndDistribution({
   onRoyaltyPrintChange,
   pricePrintBw,
   onPricePrintBwChange,
-  pricePrintHardcoverBw,
-  onPricePrintHardcoverBwChange,
   hasManuscript,
   bookId,
   onUploadManuscript,
@@ -215,15 +262,15 @@ export function FormatsAndDistribution({
   onRoyaltyEbookChange: (v: string) => void;
   royaltyPrint: string;
   onRoyaltyPrintChange: (v: string) => void;
-  // Optional B&W alternative prices -- direct numbers, no royalty
-  // calculator (no per-B&W production cost in print-cost.ts to build one
-  // against). Merged into this same "Продаж друкованої книги" card now
-  // (T-2075 follow-up) instead of living in its own separate card+save
-  // action -- black-and-white is a print OPTION, not an unrelated concern.
+  // Optional B&W alternative price -- ONE direct number (the softcover
+  // buyer price); the hardcover B&W price is derived from it by
+  // computeBwPrices, not typed. No royalty calculator here: there is no
+  // per-B&W production cost in print-cost.ts to build one against. Merged
+  // into this same "Продаж друкованої книги" card (T-2075 follow-up)
+  // instead of its own separate card+save action -- black-and-white is a
+  // print OPTION, not an unrelated concern.
   pricePrintBw: string;
   onPricePrintBwChange: (v: string) => void;
-  pricePrintHardcoverBw: string;
-  onPricePrintHardcoverBwChange: (v: string) => void;
   // Whether a manuscript (.docx) has been uploaded at all -- distinguishes
   // "nothing uploaded yet" from "uploaded, but the print PDF (and so the
   // page count print-cost needs) hasn't been generated yet", which used to
@@ -243,6 +290,7 @@ export function FormatsAndDistribution({
   const royaltyPrintNum = parseRoyalty(royaltyPrint);
   const royaltyEbookNum = parseRoyalty(royaltyEbook);
   const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
+  const bw = computeBwPrices(printCost, pricePrintBw);
 
   return (
     <div className="space-y-6">
@@ -283,48 +331,52 @@ export function FormatsAndDistribution({
           </div>
         ) : (
           <>
-            <RoyaltyInput
-              id="royaltyPrint"
-              label="Ваш бажаний гонорар за примірник"
-              hint="Скільки хочете отримувати з продажу однієї друкованої книги — понад собівартість виготовлення."
-              value={royaltyPrint}
-              onChange={onRoyaltyPrintChange}
-            />
-            {royaltyPrintNum !== undefined && (
-              <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600 space-y-1">
-                <p>
-                  Собівартість виготовлення (1 шт, м&apos;яка): <strong>{cost.softcoverCost.toFixed(2)} грн</strong>
-                  {" "}+ Ваш гонорар <strong>{royaltyPrintNum.toFixed(2)} грн</strong> + відсоток платформи = ціна для покупця.
-                </p>
-                {anchor.pricePrint !== undefined && (
-                  <p>
-                    У нашому магазині Ulit (комісія 30%) ціна для покупця вийде{" "}
-                    <strong className="text-gray-900">{anchor.pricePrint.toFixed(2)} грн</strong> (м&apos;яка),{" "}
-                    <strong className="text-gray-900">{anchor.pricePrintHardcover?.toFixed(2)} грн</strong> (тверда) —
-                    саме ця ціна й буде збережена.
+            {/* Own outlined block, symmetric with "Чорно-білий друк" below:
+                one input each, two loud prices each. The author never types a
+                per-binding price for colour -- softcover/hardcover differ only
+                by their production cost, so both follow from this one number. */}
+            <div className="rounded-lg border p-3 space-y-3">
+              <RoyaltyInput
+                id="royaltyPrint"
+                label="Ваш бажаний гонорар за примірник"
+                hint="Скільки хочете отримувати з продажу однієї друкованої книги — понад собівартість виготовлення. Ціну для м'якої і твердої обкладинки порахуємо самі."
+                value={royaltyPrint}
+                onChange={onRoyaltyPrintChange}
+              />
+              {royaltyPrintNum !== undefined && (
+                <>
+                  <PriceTiles
+                    caption="Ціна для покупця в магазині Ulit (комісія 30%) — саме ці ціни й буде збережено:"
+                    items={[
+                      { label: "М'яка обкладинка", value: anchor.pricePrint },
+                      { label: "Тверда обкладинка", value: anchor.pricePrintHardcover },
+                    ]}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Собівартість виготовлення (1 шт): <strong>{cost.softcoverCost.toFixed(2)} грн</strong> (м&apos;яка) /{" "}
+                    <strong>{cost.hardcoverCost.toFixed(2)} грн</strong> (тверда) + Ваш гонорар{" "}
+                    <strong>{royaltyPrintNum.toFixed(2)} грн</strong> + відсоток платформи = ціна для покупця. Ваш
+                    гонорар однаковий для обох обкладинок.
                   </p>
-                )}
-              </div>
-            )}
+                </>
+              )}
+            </div>
 
             {/* T-2075 follow-up -- used to be its own separate card lower on
                 the page, with its own "Зберегти ч/б ціни" save button.
                 Black-and-white is a print OPTION, not an unrelated concern,
                 so it lives inside "Продаж друкованої книги" now, saved
                 together with everything else in this section. */}
-            <div className="rounded-lg border border-dashed p-3 space-y-2.5">
-              <div>
-                <p className="text-sm font-medium text-gray-800">Чорно-білий друк (опційно)</p>
+            <div className="rounded-lg border border-dashed p-3 space-y-3">
+              <div className="space-y-1">
+                <label htmlFor="pricePrintBw" className="block text-sm font-medium text-gray-800">
+                  Чорно-білий друк (опційно)
+                </label>
                 <p className="text-xs text-gray-500">
-                  Дешевше в типографії — запропонуйте покупцю дешевший варіант поруч із кольоровим. Пряма ціна для
-                  покупця, без калькулятора гонорару.
+                  Дешевше в типографії — запропонуйте покупцю дешевший варіант поруч із кольоровим. Тут вказується пряма
+                  ціна для покупця за м&apos;яку обкладинку; ціну твердої порахуємо самі.
                 </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label htmlFor="pricePrintBw" className="block text-xs font-medium text-gray-700">
-                    М&apos;яка (грн)
-                  </label>
+                <div className="flex items-center gap-1.5">
                   <input
                     id="pricePrintBw"
                     type="number"
@@ -333,25 +385,27 @@ export function FormatsAndDistribution({
                     value={pricePrintBw}
                     onChange={(e) => onPricePrintBwChange(e.target.value)}
                     placeholder="149.99"
-                    className="h-9 w-full rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="h-9 w-32 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="pricePrintHardcoverBw" className="block text-xs font-medium text-gray-700">
-                    Тверда (грн)
-                  </label>
-                  <input
-                    id="pricePrintHardcoverBw"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={pricePrintHardcoverBw}
-                    onChange={(e) => onPricePrintHardcoverBwChange(e.target.value)}
-                    placeholder="229.99"
-                    className="h-9 w-full rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
+                  <span className="text-sm text-gray-500">грн / примірник (м&apos;яка)</span>
                 </div>
               </div>
+              {bw.pricePrintBw !== undefined && (
+                <>
+                  <PriceTiles
+                    caption="Ціна для покупця, чорно-білий друк:"
+                    items={[
+                      { label: "М'яка обкладинка", value: bw.pricePrintBw },
+                      { label: "Тверда обкладинка", value: bw.pricePrintHardcoverBw },
+                    ]}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Тверда обкладинка дорожча рівно на різницю в собівартості палітурки (
+                    {(cost.hardcoverCost - cost.softcoverCost).toFixed(2)} грн + відсоток платформи), тож Ваш гонорар з
+                    обох варіантів однаковий.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -391,11 +445,15 @@ export function FormatsAndDistribution({
           onChange={onRoyaltyEbookChange}
         />
         {royaltyEbookNum !== undefined && anchor.priceEbook !== undefined && (
-          <p className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
-            У нашому магазині Ulit (комісія 30%) ціна для покупця вийде{" "}
-            <strong className="text-gray-900">{anchor.priceEbook.toFixed(2)} грн</strong> — саме ця ціна й буде
-            збережена. На інших каналах кінцева ціна відрізняється через їхню власну комісію (орієнтовно нижче).
-          </p>
+          <div className="space-y-1.5">
+            <PriceTiles
+              caption="Ціна для покупця в магазині Ulit (комісія 30%) — саме ця ціна й буде збережена:"
+              items={[{ label: "Електронна книга", value: anchor.priceEbook }]}
+            />
+            <p className="text-xs text-gray-500">
+              На інших каналах кінцева ціна відрізняється через їхню власну комісію (орієнтовно нижче).
+            </p>
+          </div>
         )}
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

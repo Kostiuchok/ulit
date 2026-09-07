@@ -27,7 +27,7 @@ import {
   bookAuthorSchema,
   type PrintFormatKey,
 } from "shared-types";
-import { FormatsAndDistribution, computeAnchorPrices, parsePrice, type PrintCost } from "../books/FormatsAndDistribution";
+import { FormatsAndDistribution, computeAnchorPrices, computeBwPrices, type PrintCost } from "../books/FormatsAndDistribution";
 
 // ─── Step schemas ────────────────────────────────────────────────────────────
 
@@ -120,8 +120,7 @@ export function BookWizard() {
   const [error, setError] = useState("");
   const [royaltyEbook, setRoyaltyEbook] = useState("");
   const [royaltyPrint, setRoyaltyPrint] = useState("");
-  const [pricePrintBw, setPricePrintBw] = useState("");
-  const [pricePrintHardcoverBw, setPricePrintHardcoverBw] = useState("");
+  const [pricePrintBw, setPricePrintBw] = useState(""); // softcover B&W only -- hardcover B&W is derived (computeBwPrices)
 
   const [manuscriptStage, setManuscriptStage] = useState<ManuscriptStage>("idle");
   const [printCost, setPrintCost] = useState<PrintCost | null>(null);
@@ -314,6 +313,7 @@ export function BookWizard() {
     setSaving(true);
     try {
       const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
+      const bw = computeBwPrices(printCost, pricePrintBw);
       await apiFetch(`/api/books/${draft.id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -322,8 +322,8 @@ export function BookWizard() {
           priceEbook: anchor.priceEbook,
           pricePrint: anchor.pricePrint,
           pricePrintHardcover: anchor.pricePrintHardcover,
-          pricePrintBw: parsePrice(pricePrintBw),
-          pricePrintHardcoverBw: parsePrice(pricePrintHardcoverBw),
+          pricePrintBw: bw.pricePrintBw,
+          pricePrintHardcoverBw: bw.pricePrintHardcoverBw,
         }),
       });
       await apiFetch(`/api/books/${draft.id}/distribution`, {
@@ -696,8 +696,6 @@ export function BookWizard() {
           onRoyaltyPrintChange={setRoyaltyPrint}
           pricePrintBw={pricePrintBw}
           onPricePrintBwChange={setPricePrintBw}
-          pricePrintHardcoverBw={pricePrintHardcoverBw}
-          onPricePrintHardcoverBwChange={setPricePrintHardcoverBw}
           hasManuscript={manuscriptStage !== "idle" && manuscriptStage !== "skipped"}
           bookId={draft!.id}
           onUploadManuscript={() => setStep(1)}
