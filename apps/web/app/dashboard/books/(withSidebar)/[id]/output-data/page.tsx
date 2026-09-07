@@ -284,11 +284,11 @@ function IsbnReadinessChecklist({
     // so a book missing it silently never appears in /admin/isbn-queue no
     // matter how "ready" the rest of this checklist looks.
     {
-      label: "Друкований PDF рукопису (файл 2 для заявки на УДК)",
+      label: "PDF для друку рукопису (файл 2 для заявки на УДК)",
       done: !!book?.printPdfUrl,
       hint: !book?.printPdfUrl ? "Ще не згенеровано — натисніть посилання нижче, щоб створити" : undefined,
       linkHref: !book?.printPdfUrl ? `/dashboard/books/${bookId}/manuscript/preview` : undefined,
-      linkLabel: "Відкрити «Друкований PDF» (згенерує його) →",
+      linkLabel: "Відкрити «PDF для друку» (згенерує його) →",
     },
   ];
 
@@ -322,7 +322,7 @@ function IsbnReadinessChecklist({
       </ul>
       <p className="text-xs text-gray-400 border-t pt-2">
         Структуру друкованого файлу (титул → порожня сторінка → текст, файл 2 для заявки на УДК) платформа формує
-        автоматично в межах друкованого PDF вище — окремо готувати цю структуру не потрібно.
+        автоматично в межах PDF для друку вище — окремо готувати цю структуру не потрібно.
       </p>
     </div>
   );
@@ -1553,13 +1553,13 @@ function OutputDataContent() {
                 {book?.printPdfUrl ? "✓" : "○"}
               </span>
               <span className={book?.printPdfUrl ? "text-gray-700" : "text-gray-500"}>
-                {book?.printPdfUrl ? "Друкований PDF згенеровано" : "Друкований PDF ще не згенеровано"}
+                {book?.printPdfUrl ? "PDF для друку згенеровано" : "PDF для друку ще не згенеровано"}
                 {!book?.printPdfUrl && (
                   <Link
                     href={`/dashboard/books/${id}/manuscript/preview`}
                     className="block text-xs text-black underline hover:no-underline"
                   >
-                    Відкрити «Друкований PDF» (згенерує його) →
+                    Відкрити «PDF для друку» (згенерує його) →
                   </Link>
                 )}
               </span>

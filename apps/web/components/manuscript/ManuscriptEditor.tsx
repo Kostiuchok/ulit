@@ -84,6 +84,10 @@ interface Props {
   // (formerly hardcoded to A5 regardless of the book's actual format).
   // Undefined falls back to the platform default trim (DEFAULT_PAGE_GEOMETRY).
   printFormat?: { widthMm: number; heightMm: number; label: string };
+  // Drives the "PDF для друку" toolbar button's done/required badge below --
+  // undefined (not yet loaded) renders neither state rather than flashing
+  // "required" for a moment on every page load.
+  printPdfUrl?: string | null;
 }
 
 interface AuthorStyleSet {
@@ -205,7 +209,7 @@ function extractOutline(editor: Editor): OutlineItem[] {
   return items;
 }
 
-export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, printFormat }: Props) {
+export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, printFormat, printPdfUrl }: Props) {
   const { apiFetch, apiUpload } = useApi();
   const searchParams = useSearchParams();
 
@@ -252,7 +256,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   const cleanupMenuRef = useRef<HTMLDivElement>(null);
 
   // Formatting-tools section scrolls horizontally (instead of wrapping to a
-  // second row) once it no longer fits between the fixed "Друкований PDF"
+  // second row) once it no longer fits between the fixed "PDF для друку"
   // button on the left and the save-status button on the right -- these two
   // arrow buttons only render when there's actually overflow to scroll to.
   const toolbarScrollRef = useRef<HTMLDivElement>(null);
@@ -529,18 +533,37 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               ISBN checklist link, and PublicationTimeline's hint. Filled
               primary button, not a plain text link -- this is the button
               that assembles the actual print document, same visual weight
-              as "Друкований PDF" on the cover page. The standalone "Зберегти"
+              as "PDF для друку" on the cover page. The standalone "Зберегти"
               icon that used to sit to its left is gone -- it only duplicated
               the save-status button at the far right of this same row,
               wasting the space this button needed to keep its label on one
-              line. */}
+              line.
+              "PDF для друку" (not "Друкований PDF" -- "друкований" reads as
+              "already printed", backwards for a file that only exists to be
+              sent to print). The pill makes clear this isn't optional:
+              unset, it's required for print sales + the УДК deposit copy
+              (missingIsbnReadyFields, book-chamber.ts requires printPdfUrl
+              unconditionally -- every published book here gets its ISBN
+              through Книжкова палата, which requires it); once generated,
+              it just confirms that's done. */}
           <Link
             href={`/dashboard/books/${bookId}/manuscript/preview`}
             className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 text-[0.8125rem] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            title="Друкований PDF"
+            title={
+              printPdfUrl
+                ? "PDF для друку згенеровано"
+                : "Ще не згенеровано. Потрібен для продажу друкованої книги та заявки на УДК — натисніть, щоб створити"
+            }
           >
             <FileText size={15} />
-            Друкований PDF
+            PDF для друку
+            {printPdfUrl ? (
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] leading-none">✓</span>
+            ) : (
+              <span className="shrink-0 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-950">
+                обов&apos;язково
+              </span>
+            )}
           </Link>
           <div className="h-5 w-px shrink-0 bg-gray-200" />
 

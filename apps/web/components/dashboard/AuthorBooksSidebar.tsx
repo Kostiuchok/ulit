@@ -61,7 +61,7 @@ const EDIT_GROUP: SubNavItem[] = [
   // links here (this sidebar item, the editor toolbar button, the cover
   // editor link, the ISBN checklist link, FormatsAndDistribution's hint,
   // output-data's own manuscript-section hint, and PublicationTimeline's).
-  { label: "Друкований PDF", icon: <FileText size={14} />, href: (id) => `/dashboard/books/${id}/manuscript/preview` },
+  { label: "PDF для друку", icon: <FileText size={14} />, href: (id) => `/dashboard/books/${id}/manuscript/preview` },
   { label: "Видалити", icon: <Trash2 size={14} />, action: "delete" },
 ];
 

@@ -315,7 +315,7 @@ export function FormatsAndDistribution({
                   href={`/dashboard/books/${bookId}/manuscript/preview`}
                   className="block text-primary underline hover:no-underline"
                 >
-                  Відкрити «Друкований PDF» (згенерує його) →
+                  Відкрити «PDF для друку» (згенерує його) →
                 </Link>
               </>
             ) : (

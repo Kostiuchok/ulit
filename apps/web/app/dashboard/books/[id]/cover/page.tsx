@@ -42,6 +42,7 @@ interface BookInfo {
   printWidthMm?: number | null;
   printHeightMm?: number | null;
   printFormatKey?: string | null;
+  printPdfUrl?: string | null;
 }
 
 // T-2060 п.4/п.6 -- "Вихідні дані" (bookAuthors/authorBio) is the canonical
@@ -159,13 +160,31 @@ export default function CoverPage() {
         {/* This is the button that assembles the actual print document
             (lazily generates it on open, print-preview.ts) -- same visual
             weight as "Зберегти обкладинку" (CoverDesignerCanvas), not a
-            plain text link, so it doesn't read as a minor secondary action. */}
+            plain text link, so it doesn't read as a minor secondary action.
+            "PDF для друку" (not "Друкований PDF" -- "друкований" reads as
+            "already printed", which is backwards for a file that only
+            EXISTS to be sent to print). The pill makes clear this isn't
+            optional: unset, it's required for print sales + the УДК deposit
+            copy (see "Готовність до реєстрації УДК" on "Вихідні дані");
+            once generated, it just confirms that's done. */}
         <Link
           href={`/dashboard/books/${id}/manuscript/preview`}
           className="ml-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          title={
+            book?.printPdfUrl
+              ? "PDF для друку згенеровано"
+              : "Ще не згенеровано. Потрібен для продажу друкованої книги та заявки на УДК — натисніть, щоб створити"
+          }
         >
           <FileText size={15} />
-          Друкований PDF
+          PDF для друку
+          {book?.printPdfUrl ? (
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] leading-none">✓</span>
+          ) : (
+            <span className="shrink-0 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-950">
+              обов&apos;язково
+            </span>
+          )}
         </Link>
       </div>
 

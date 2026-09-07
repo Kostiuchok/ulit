@@ -26,6 +26,7 @@ interface ManuscriptBook {
   originalDocxUrl?: string | null;
   docxUpdatedAt?: string | null;
   manuscriptImportedAt?: string | null;
+  printPdfUrl?: string | null;
   author?: { name: string } | null;
 }
 
@@ -229,6 +230,7 @@ export default function ManuscriptEditorPage() {
           initialContent={manuscript.content}
           initialStyleOverrides={manuscript.styleOverrides}
           printFormat={printFormat ?? undefined}
+          printPdfUrl={book?.printPdfUrl}
         />
       </div>
     </div>
