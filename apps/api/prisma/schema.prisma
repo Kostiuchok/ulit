@@ -38,6 +38,7 @@ enum ExternalStatus {
   SENT
   PUBLISHED
   ERROR
+  WITHDRAWN
 }
 
 enum OrderStatus {

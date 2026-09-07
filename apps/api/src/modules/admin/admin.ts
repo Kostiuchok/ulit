@@ -61,9 +61,9 @@ const publicationTimelineUpdateSchema = z.object({
 });
 
 const distributionUpdateSchema = z.object({
-  d2dStatus: z.enum(["NOT_SENT", "SENT", "PUBLISHED", "ERROR"]).optional(),
-  kdpStatus: z.enum(["NOT_SENT", "SENT", "PUBLISHED", "ERROR"]).optional(),
-  googleStatus: z.enum(["NOT_SENT", "SENT", "PUBLISHED", "ERROR"]).optional(),
+  d2dStatus: z.enum(["NOT_SENT", "SENT", "PUBLISHED", "ERROR", "WITHDRAWN"]).optional(),
+  kdpStatus: z.enum(["NOT_SENT", "SENT", "PUBLISHED", "ERROR", "WITHDRAWN"]).optional(),
+  googleStatus: z.enum(["NOT_SENT", "SENT", "PUBLISHED", "ERROR", "WITHDRAWN"]).optional(),
   d2dSentAt: z.string().datetime().nullable().optional(),
   kdpSentAt: z.string().datetime().nullable().optional(),
   googleSentAt: z.string().datetime().nullable().optional(),
@@ -143,6 +143,7 @@ export async function adminRoutes(app: FastifyInstance) {
       pendingRepublish,
       distributionQueueCount,
       isbnCandidates,
+      withdrawalQueueCount,
     ] = await Promise.all([
       prisma.book.groupBy({ by: ["status"], _count: { id: true } }),
       prisma.order.groupBy({ by: ["status"], _count: { id: true } }),
@@ -198,6 +199,18 @@ export async function adminRoutes(app: FastifyInstance) {
         where: { moderationStatus: "APPROVED", bookChamberSubmittedAt: null, udcCode: null },
         select: { description: true, bookAuthors: true, coverUrl: true, printPdfUrl: true },
       }),
+      // Same where-clause as /api/admin/withdrawal-queue -- kept in sync
+      // manually, same reasoning as distributionQueueCount above.
+      prisma.book.count({
+        where: {
+          status: { in: ["ARCHIVED", "UNPUBLISHED"] },
+          OR: [
+            { d2dStatus: { in: ["SENT", "PUBLISHED"] } },
+            { kdpStatus: { in: ["SENT", "PUBLISHED"] } },
+            { googleStatus: { in: ["SENT", "PUBLISHED"] } },
+          ],
+        },
+      }),
     ]);
 
     const books = Object.fromEntries(
@@ -220,7 +233,7 @@ export async function adminRoutes(app: FastifyInstance) {
       pendingRoyalties: Number(royaltiesAgg._sum.amount ?? 0),
       recentReview,
       pendingRepublish,
-      // Counts for the dashboard's 4 quick-link cards -- each mirrors the
+      // Counts for the dashboard's 5 quick-link cards -- each mirrors the
       // exact query the linked page itself uses (see comments above), so
       // the badge number can never disagree with what clicking through
       // actually shows.
@@ -229,6 +242,7 @@ export async function adminRoutes(app: FastifyInstance) {
         distribution: distributionQueueCount,
         udk: isbnCandidates.filter(isIsbnReady).length,
         royalties: pendingRoyaltiesCount,
+        withdrawal: withdrawalQueueCount,
       },
     });
   });
@@ -743,6 +757,36 @@ export async function adminRoutes(app: FastifyInstance) {
         },
         select: BOOK_ADMIN_SELECT,
         orderBy: { publishedAt: "desc" },
+      });
+
+      return reply.send({ books });
+    }
+  );
+
+  // ─── Withdrawal queue ─────────────────────────────────────────────────────
+  // Books the author took off Ulit (deleted/archived, or unpublished) that
+  // are still live on at least one external channel -- D2D/KDP/Google
+  // distribution is entirely manual (admin fills forms + uploads a ZIP per
+  // service, no API), so archiving/unpublishing a Book row never pulls it
+  // from those services on its own. This is the admin's own list of "go
+  // manually withdraw this" work, same where-clause reused for the dashboard
+  // badge count below. Resolved by setting the channel to WITHDRAWN via the
+  // existing PATCH /api/admin/books/:id/distribution (same form as sending).
+  app.get(
+    "/api/admin/withdrawal-queue",
+    { preHandler: requireAdmin },
+    async (_request, reply) => {
+      const books = await prisma.book.findMany({
+        where: {
+          status: { in: ["ARCHIVED", "UNPUBLISHED"] },
+          OR: [
+            { d2dStatus: { in: ["SENT", "PUBLISHED"] } },
+            { kdpStatus: { in: ["SENT", "PUBLISHED"] } },
+            { googleStatus: { in: ["SENT", "PUBLISHED"] } },
+          ],
+        },
+        select: BOOK_ADMIN_SELECT,
+        orderBy: { updatedAt: "desc" },
       });
 
       return reply.send({ books });

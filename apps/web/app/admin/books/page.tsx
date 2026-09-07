@@ -53,6 +53,7 @@ const EXT_COLORS: Record<string, string> = {
   SENT: "text-blue-600",
   PUBLISHED: "text-green-600",
   ERROR: "text-red-600",
+  WITHDRAWN: "text-gray-400",
 };
 
 const EXT_ICONS: Record<string, string> = {
@@ -60,6 +61,7 @@ const EXT_ICONS: Record<string, string> = {
   SENT: "↑",
   PUBLISHED: "✓",
   ERROR: "✕",
+  WITHDRAWN: "⤓",
 };
 
 function formatDateTime(date: string): string {

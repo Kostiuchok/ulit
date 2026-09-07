@@ -213,6 +213,14 @@ async function assertOwnership(bookId: string, userId: string) {
       description: true,
       genre: true,
       distributionChannels: true,
+      // Only actually read by GET /delete-impact below -- kept here rather
+      // than a second query so that route can reuse this same ownership
+      // check instead of duplicating the findUnique+404/403 dance.
+      kdpSelectEnrolled: true,
+      kdpSelectExpiry: true,
+      d2dStatus: true,
+      kdpStatus: true,
+      googleStatus: true,
     },
   });
   if (!book) throw AppError.notFound("Book");
@@ -403,6 +411,35 @@ export async function bookRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ book: withCoverVersion(book) });
+  });
+
+  // What the author is actually about to give up by deleting this book --
+  // DeleteBookModal.tsx calls this before showing its confirm button, so the
+  // generic "reversible" copy isn't the only thing an author sees for a book
+  // that already sold copies or is still live on external services (those
+  // consequences DON'T reverse just because /restore brings the Book row
+  // back to PUBLISHED -- see distribution.ts:101 for the same
+  // kdpSelectActive expression, and CLAUDE.md's D2D/KDP/Google distribution
+  // being entirely manual/admin-driven, no API to auto-withdraw).
+  app.get("/api/books/:id/delete-impact", { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await assertOwnership(id, request.user.id);
+
+    const salesCount = await prisma.orderItem.count({ where: { bookId: id } });
+    const now = new Date();
+    const kdpSelectActive = !!(existing.kdpSelectEnrolled && existing.kdpSelectExpiry && existing.kdpSelectExpiry > now);
+    const liveStatuses = new Set(["SENT", "PUBLISHED"]);
+
+    return reply.send({
+      salesCount,
+      kdpSelectActive,
+      kdpSelectExpiry: existing.kdpSelectExpiry,
+      externalLive: {
+        d2d: liveStatuses.has(existing.d2dStatus),
+        kdp: liveStatuses.has(existing.kdpStatus),
+        google: liveStatuses.has(existing.googleStatus),
+      },
+    });
   });
 
   // Delete book (soft — recoverable via /restore)

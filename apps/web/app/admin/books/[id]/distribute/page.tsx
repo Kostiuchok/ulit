@@ -73,7 +73,7 @@ const MAIN_STEPS = TIMELINE_STEPS.filter((s) => s.key === "submitted" || s.key =
 // rare re-verification case.
 const ADVANCED_STEPS = TIMELINE_STEPS.filter((s) => s.key !== "submitted" && s.key !== "review_done");
 
-const STATUS_OPTS = ["NOT_SENT", "SENT", "PUBLISHED", "ERROR"] as const;
+const STATUS_OPTS = ["NOT_SENT", "SENT", "PUBLISHED", "ERROR", "WITHDRAWN"] as const;
 
 const ACCENT = "#50a406";
 

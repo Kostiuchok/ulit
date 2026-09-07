@@ -17,6 +17,7 @@ interface Stats {
     distribution: number;
     udk: number;
     royalties: number;
+    withdrawal: number;
   };
 }
 
@@ -290,6 +291,7 @@ export default function AdminDashboard() {
           { href: "/admin/distribution/queue", label: "Черга дистрибуції", icon: "📦", color: "border-blue-200 bg-blue-50", count: stats?.queueCounts?.distribution },
           { href: "/admin/udk-queue", label: "Реєстрація УДК", icon: "🔖", color: "border-purple-200 bg-purple-50", count: stats?.queueCounts?.udk },
           { href: "/admin/royalties?status=PENDING", label: "Виплати роялті", icon: "💰", color: "border-green-200 bg-green-50", count: stats?.queueCounts?.royalties },
+          { href: "/admin/withdrawal-queue", label: "Потребують відкликання", icon: "📤", color: "border-red-200 bg-red-50", count: stats?.queueCounts?.withdrawal },
         ].map((link) => (
           <Link
             key={link.href}

@@ -308,6 +308,7 @@ export function AuthorBooksSidebar() {
       {deleteBookId && (
         <DeleteBookModal
           bookId={deleteBookId}
+          bookStatus={books.find((b) => b.id === deleteBookId)?.status}
           onClose={() => setDeleteBookId(null)}
           onDeleted={() => {
             const wasViewingDeleted = routeId === deleteBookId;
