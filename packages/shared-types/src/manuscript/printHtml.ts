@@ -10,6 +10,7 @@ import {
   PAGE_MARGIN_INNER_MM,
   PAGE_MARGIN_OUTER_MM,
   BODY_FONT_PT,
+  BODY_LINE_HEIGHT_MM,
 } from "./printGeometry";
 
 // T-2057 -- print-only CSS on top of the shared MANUSCRIPT_PROSE_CSS (which
@@ -85,7 +86,7 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
       height: 100%;
       object-fit: cover;
     }
-    body { font-size: ${BODY_FONT_PT}pt; }
+    body { font-size: ${BODY_FONT_PT}pt; line-height: ${BODY_LINE_HEIGHT_MM}mm; }
 
     /* T-2057 розділ 2 -- front matter always opens on recto (WeasyPrint
        inserts the blank verso "форзац" automatically to satisfy this), and
