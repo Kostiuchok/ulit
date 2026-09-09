@@ -45,8 +45,16 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
       size: ${widthMm}mm ${heightMm}mm;
       margin-top: ${PAGE_MARGIN_TOP_MM}mm;
       margin-bottom: ${PAGE_MARGIN_BOTTOM_MM}mm;
-      ${pageNumberBox} { content: counter(page); font-size: 9pt; color: #333; }
-      @top-center { content: string(chapter-title); font-size: 8pt; color: #666; }
+      /* Page margin boxes (running header/footer) aren't in the document
+         tree -- they don't inherit font-family from .manuscript-prose or
+         even body, just WeasyPrint's own default (DejaVu Serif), so the
+         Times New Roman override needs repeating here explicitly. Verified
+         against a real render: without this, pdffonts still showed
+         DejaVu-Serif embedded alongside Liberation Serif -- only these two
+         margin boxes, everything in the actual page content was already
+         Liberation Serif from .manuscript-prose's own rule (proseStyles.ts). */
+      ${pageNumberBox} { content: counter(page); font-size: 9pt; color: #333; font-family: "Times New Roman", "Liberation Serif", "Times", serif; }
+      @top-center { content: string(chapter-title); font-size: 8pt; color: #666; font-family: "Times New Roman", "Liberation Serif", "Times", serif; }
     }
     @page :right {
       margin-left: ${PAGE_MARGIN_INNER_MM}mm;

@@ -6,7 +6,24 @@
 // three consumers -- keeps the print PDF from visually drifting away from
 // what the author sees while editing.
 export const MANUSCRIPT_PROSE_CSS = `
-      .manuscript-prose { outline: none; font-size: var(--ms-font-size, 1rem); }
+      .manuscript-prose {
+        outline: none; font-size: var(--ms-font-size, 1rem);
+        /* WeasyPrint's own default (DejaVu Serif) was what actually printed
+           -- despite the colophon's own static text unconditionally
+           claiming "Гарнітура Times New Roman" (frontMatter.ts), nothing
+           ever set font-family to make that true. True Times New Roman
+           itself isn't freely redistributable/embeddable (Microsoft-
+           licensed); "Liberation Serif" is the metric-compatible open
+           equivalent already installed in the worker image and covers
+           Cyrillic -- confirmed via fc-match 'Times New Roman:lang=uk' on
+           the actual worker container, which already resolves to it through
+           fontconfig's own substitution rules, so listing the real name
+           first costs nothing and documents intent. Applies everywhere this
+           stylesheet does (live editor, preview, print) -- one font across
+           all of them is the same reasoning this file's header comment
+           already gives for sharing the rest of the CSS. */
+        font-family: "Times New Roman", "Liberation Serif", "Times", serif;
+      }
       .manuscript-prose p { margin: 0 0 0.9em; }
       .manuscript-prose p[data-style="chapter"] {
         font-size: 1.5rem; font-weight: 700; text-align: center; text-transform: uppercase;
