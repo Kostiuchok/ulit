@@ -486,27 +486,26 @@ export default function AdminBooksPage() {
     document.addEventListener("mouseup", handleResizeEnd);
   }
 
-  // "Видалено автором" -- це РОБОЧИЙ список адміна (скільки ще книг треба
-  // вручну зняти з D2D/KDP/Google), той самий where, що й /admin/withdrawal-
-  // queue -- а не архів "усіх видалених книг колись". Щойно адмін позначає
-  // ОСТАННІЙ живий канал як WITHDRAWN (на сторінці /distribute) і повертається
-  // сюди, книга сама випадає з цієї групи -- fetchBooks() на mount цієї
-  // сторінки й так підвантажить уже оновлені d2d/kdp/googleStatus.
-  // Архівована книга, у якої всі канали вже WITHDRAWN/NOT_SENT/ERROR (або
-  // ніколи нікуди не відправлялась), просто лишається у звичайній таблиці
-  // разом з рештою -- її бейдж "Видалено автором" у колонці "Публікація"
-  // й так її позначає, спеціальне угруповання їй уже не потрібне.
+  // "Видалено автором" -- усі ARCHIVED книги йдуть у власну групу знизу
+  // (раніше тут лишались тільки ті, що ще потребують ручного відкликання з
+  // D2D/KDP/Google -- решта архівних тихо провалювались у звичайну таблицю
+  // разом зі свіжими книгами й засмічували верх сторінки). needsWithdrawal
+  // більше не фільтр належності до групи, а лише сортування всередині неї --
+  // книги, які ще реально потребують дії, зверху; вже закриті (WITHDRAWN/
+  // NOT_SENT/ERROR або ніколи нікуди не відправлялись) -- нижче. Той самий
+  // where, що й /admin/withdrawal-queue: щойно адмін позначає ОСТАННІЙ живий
+  // канал як WITHDRAWN (на сторінці /distribute) і повертається сюди, книга
+  // сама спливає в кінець групи -- fetchBooks() на mount цієї сторінки й так
+  // підвантажить уже оновлені d2d/kdp/googleStatus.
   const needsWithdrawal = (b: Book) =>
     b.d2dStatus === "SENT" || b.d2dStatus === "PUBLISHED" ||
     b.kdpStatus === "SENT" || b.kdpStatus === "PUBLISHED" ||
     b.googleStatus === "SENT" || b.googleStatus === "PUBLISHED";
-  const archivedBooks = books.filter((b) => b.status === "ARCHIVED" && needsWithdrawal(b));
-  const activeBooks = books.filter(
-    (b) => !(b.status === "ARCHIVED" && needsWithdrawal(b)) && b.moderationStatus !== "REJECTED"
-  );
-  const rejectedBooks = books.filter(
-    (b) => !(b.status === "ARCHIVED" && needsWithdrawal(b)) && b.moderationStatus === "REJECTED"
-  );
+  const archivedBooks = books
+    .filter((b) => b.status === "ARCHIVED")
+    .sort((a, b) => Number(needsWithdrawal(b)) - Number(needsWithdrawal(a)));
+  const activeBooks = books.filter((b) => b.status !== "ARCHIVED" && b.moderationStatus !== "REJECTED");
+  const rejectedBooks = books.filter((b) => b.status !== "ARCHIVED" && b.moderationStatus === "REJECTED");
 
   const fetchBooks = useCallback(async (opts?: { silent?: boolean }) => {
     if (!token) return;
@@ -741,7 +740,7 @@ export default function AdminBooksPage() {
                     <td colSpan={8} className="px-4 py-2">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                          Видалено автором — ще потребують відкликання ззовні
+                          Видалено автором
                         </span>
                         <div className="h-px flex-1 bg-gray-200" />
                       </div>
