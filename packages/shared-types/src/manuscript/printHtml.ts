@@ -196,10 +196,13 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
        drops it ("Invalid math function"), which nobody noticed before since
        the print pipeline never rendered a Зміст at all until now. Override
        with a literal print-safe size here rather than touching the shared
-       rule, which renders fine in real browsers (live editor + preview). */
+       rule, which renders fine in real browsers (live editor + preview).
+       Same size as body text (BODY_FONT_PT, no "+2" bump) -- author
+       feedback was that the auto-generated Зміст read too large next to
+       the rest of the printed book. */
     .manuscript-prose p[data-variant="toc-title"],
     .manuscript-prose div[data-type="toc-entry"] {
-      font-size: ${BODY_FONT_PT + 2}pt;
+      font-size: ${BODY_FONT_PT}pt;
     }
   `;
 }

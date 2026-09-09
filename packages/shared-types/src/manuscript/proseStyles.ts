@@ -49,17 +49,18 @@ export const MANUSCRIPT_PROSE_CSS = `
       .manuscript-prose div[data-type="toc-entry"][data-tier="2"] { margin-left: 2em; }
       .manuscript-prose div[data-type="toc-entry"][data-tier="3"] { margin-left: 3em; color: #444; }
       .manuscript-prose .toc-entry-text {
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto;
-        /* Flex items default to min-width:auto, which floors their shrink at the
-           text's own intrinsic (unwrapped) width -- text-overflow:ellipsis never
-           gets a chance to kick in, and the sibling .toc-entry-page (flex:none)
-           gets pushed out past the page's printable area instead of just after
-           the truncated text. Verified against a real long-heading render (the
-           entry overflowed the page edge with no page number at all, not even
-           truncated). */
+        /* No truncation -- a heading that doesn't fit on one line wraps onto
+           as many as it needs (author feedback: ellipsis was hiding real
+           title text). flex:1 1 auto still makes this item's BOX span the
+           full row width minus the page-number sibling -- text just wraps
+           inside that wide box instead of overflowing single-line, which is
+           what keeps toc-entry-page flush against the right edge below
+           regardless of how many lines the title takes. */
+        flex: 1 1 auto;
         min-width: 0;
+        text-align: left;
       }
-      .manuscript-prose .toc-entry-page { flex: none; margin-left: 0.75em; }
+      .manuscript-prose .toc-entry-page { flex: none; margin-left: 0.75em; text-align: right; }
 
       .manuscript-prose img { max-width: 100%; height: auto; display: block; }
       .manuscript-prose [data-resize-container] { max-width: 100%; }
