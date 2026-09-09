@@ -213,6 +213,18 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
     .manuscript-prose div[data-type="toc-entry"] {
       font-size: ${BODY_FONT_PT}pt;
     }
+    /* Same reasoning, plain var() this time (no calc()) -- proseStyles.ts's
+       p[data-style="normal"] now reads --ms-font-size so the live editor's
+       page-format-check toggle (ManuscriptEditor.tsx) actually resizes body
+       text. The print pipeline never sets that custom property at all, so
+       without this override every ordinary paragraph would silently fall
+       back to the var()'s own 1rem (16px) default instead of inheriting
+       body's ${BODY_FONT_PT}pt -- body text alone is most of a book, so this
+       one would have been impossible to miss on a real render, unlike the
+       Зміст-only case above. */
+    .manuscript-prose p[data-style="normal"] {
+      font-size: ${BODY_FONT_PT}pt;
+    }
   `;
 }
 

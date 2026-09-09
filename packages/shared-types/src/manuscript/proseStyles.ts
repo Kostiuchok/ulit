@@ -34,7 +34,9 @@ export const MANUSCRIPT_PROSE_CSS = `
       }
       .manuscript-prose p[data-style="heading"] { font-size: 1.05rem; font-weight: 700; margin-top: 1.2em; }
       .manuscript-prose p[data-style="subheading"] { font-size: 0.95rem; font-weight: 600; color: #444; }
-      .manuscript-prose p[data-style="normal"] { text-indent: 1.5em; text-align: justify; }
+      .manuscript-prose p[data-style="normal"] {
+        font-size: var(--ms-font-size, 1rem); text-indent: 1.5em; text-align: justify;
+      }
       .manuscript-prose p[data-style="epigraph"] {
         font-style: italic; text-align: right; margin-left: auto; max-width: 60%; color: #555;
       }
