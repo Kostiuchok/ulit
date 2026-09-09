@@ -90,6 +90,11 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
     const frontMatterMeta: FrontMatterMeta = {
       title: book.title,
       subtitle: book.subtitle,
+      // Title page shows the account's own pen name, not the legal name
+      // authorNames.display/catalog below carry for the colophon -- see
+      // FrontMatterMeta's own comment (frontMatter.ts) for why they're kept
+      // separate.
+      authorPenName: book.author.name,
       authorNameDisplay: authorNames.display,
       authorNameCatalog: authorNames.catalog,
       description: book.description,

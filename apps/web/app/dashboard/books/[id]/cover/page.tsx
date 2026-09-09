@@ -12,12 +12,6 @@ import { cn } from "@/lib/utils";
 import { getAllRejectionLines } from "@/lib/rejectedBlocks";
 import { resolveBookPrintFormat } from "shared-types";
 
-interface BookAuthor {
-  lastName: string;
-  firstName: string;
-  middleName?: string;
-}
-
 interface BookInfo {
   id: string;
   title: string;
@@ -35,7 +29,6 @@ interface BookInfo {
   moderationReasons?: string[] | null;
   moderationCustomNote?: string | null;
   moderationFieldSnapshot?: unknown;
-  bookAuthors?: BookAuthor[] | null;
   authorBio?: string | null;
   coverIndependentFromBookData?: boolean;
   genre?: string | null;
@@ -43,17 +36,6 @@ interface BookInfo {
   printHeightMm?: number | null;
   printFormatKey?: string | null;
   printPdfUrl?: string | null;
-}
-
-// T-2060 п.4/п.6 -- "Вихідні дані" (bookAuthors/authorBio) is the canonical
-// per-book source, independent of the account profile; falls back to the
-// account name only if the author hasn't filled in structured book authors
-// yet (e.g. a brand-new book).
-function formatBookAuthorName(authors: BookAuthor[] | null | undefined, fallback: string): string {
-  if (!authors || authors.length === 0) return fallback;
-  return authors
-    .map((a) => [a.lastName, a.firstName, a.middleName].filter(Boolean).join(" "))
-    .join(", ");
 }
 
 const FORMATS: { key: CoverFormat; label: string }[] = [
@@ -161,12 +143,14 @@ export default function CoverPage() {
             (lazily generates it on open, print-preview.ts) -- same visual
             weight as "Зберегти обкладинку" (CoverDesignerCanvas), not a
             plain text link, so it doesn't read as a minor secondary action.
-            "PDF для друку" (not "Друкований PDF" -- "друкований" reads as
-            "already printed", which is backwards for a file that only
-            EXISTS to be sent to print). The pill makes clear this isn't
-            optional: unset, it's required for print sales + the УДК deposit
-            copy (see "Готовність до реєстрації УДК" on "Вихідні дані");
-            once generated, it just confirms that's done. */}
+            "Передперегляд книги" (renamed from "PDF для друку" on author
+            feedback -- that read as a technical/production artifact rather
+            than something meant for the author to look at, so it went
+            unclicked). The pill makes clear this isn't optional: unset, it's
+            required for print sales + the УДК deposit copy (see "Готовність
+            до реєстрації УДК" on "Вихідні дані"); once generated, it just
+            confirms that's done. Tooltip still names the actual PDF file,
+            not the button's own action label. */}
         <Link
           href={`/dashboard/books/${id}/manuscript/preview`}
           className="ml-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
@@ -177,7 +161,7 @@ export default function CoverPage() {
           }
         >
           <FileText size={15} />
-          PDF для друку
+          Передперегляд книги
           {book?.printPdfUrl ? (
             <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] leading-none">✓</span>
           ) : (
@@ -251,7 +235,7 @@ export default function CoverPage() {
           />
           Редагувати текст на обкладинці незалежно від даних книги
           <span className="text-xs text-gray-400">
-            (якщо вимкнено — назва/автор/анотація/біографія на обкладинці автоматично оновлюються слідом за «Вихідні дані»)
+            (якщо вимкнено — назва/анотація/біографія на обкладинці автоматично оновлюються слідом за «Вихідні дані», ім&apos;я автора — за профілем)
           </span>
         </label>
 
@@ -264,7 +248,7 @@ export default function CoverPage() {
           <CoverDesigner
             bookId={id}
             bookTitle={book?.title ?? "Назва книги"}
-            bookAuthor={formatBookAuthorName(book?.bookAuthors, session?.user?.name ?? "Автор")}
+            bookAuthor={session?.user?.name ?? "Автор"}
             subtitle={book?.subtitle}
             description={book?.description}
             authorBio={book?.authorBio}

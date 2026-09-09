@@ -3,12 +3,23 @@ import type { StyledBlockStyleName } from "./styledParagraph";
 export interface FrontMatterMeta {
   title: string;
   subtitle?: string | null;
+  // The account's own "Ім'я автора" (Особисті дані, Псевдонім) -- shown on
+  // the title page only. Deliberately separate from authorNameDisplay below:
+  // that one is the LEGAL name (Book.bookAuthors, needed for the colophon's
+  // ISBN/УДК bibliographic entries and Книжкова палата deposit-copy
+  // registration), which readers never need to see and often isn't the name
+  // the author publishes under. The title page is reader-facing, same as the
+  // cover -- both show the pen name (author feedback: showing the legal name
+  // there read as a mistake, not a formality).
+  authorPenName?: string | null;
   // Two orderings, built by the caller from structured Book.bookAuthors
-  // (lastName/firstName) -- title page uses given-name-first (Ridero
-  // reference), the colophon uses surname-first (bibliographic cataloguing
-  // convention). Deliberately not derived here from one flat string: that
-  // can't be reordered reliably (which word is the surname?), only a caller
-  // with the structured fields can build both correctly.
+  // (lastName/firstName) -- colophon-only now (see authorPenName above for
+  // the title page). Catalog uses surname-first (bibliographic cataloguing
+  // convention), display uses given-name-first (the bibliographic citation
+  // line, "Title / Author. -- [s.l.]: Ulit, year."). Deliberately not
+  // derived here from one flat string: that can't be reordered reliably
+  // (which word is the surname?), only a caller with the structured fields
+  // can build both correctly.
   authorNameDisplay?: string | null;
   authorNameCatalog?: string | null;
   description?: string | null;
@@ -53,7 +64,7 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
   // bottom) -- CSS Paged Media can't flex/absolute-position "bottom of this
   // specific page" across a fragmented div, so this is a tuned approximation
   // for the common print formats, not pixel-exact for every trim size.
-  if (meta.authorNameDisplay) nodes.push(styledParagraph("normal", meta.authorNameDisplay, "titlepage-author"));
+  if (meta.authorPenName) nodes.push(styledParagraph("normal", meta.authorPenName, "titlepage-author"));
   nodes.push(styledParagraph("heading", meta.title, "titlepage-title"));
   if (meta.subtitle) nodes.push(styledParagraph("subheading", meta.subtitle, "titlepage-subtitle"));
   nodes.push(styledParagraph("normal", "Видано на платформі Ulit", "titlepage-imprint"));
