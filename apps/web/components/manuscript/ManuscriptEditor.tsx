@@ -36,6 +36,7 @@ import {
   Search,
   X,
   BookOpenCheck,
+  ArrowLeftRight,
 } from "lucide-react";
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, ResizableImage, PageBreak, splitFrontMatter, type StyledBlockStyleName } from "shared-types";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
@@ -865,7 +866,14 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         <p className="mb-3 mt-6 text-[0.875rem] font-medium text-black">Номери сторінок</p>
         <div className="flex gap-1">
           {(Object.keys(PAGE_NUMBER_POSITION_LABELS) as PageNumberPosition[]).map((pos) => {
-            const Icon = pos === "bottom-left" ? AlignLeft : pos === "bottom-right" ? AlignRight : AlignCenter;
+            const Icon =
+              pos === "bottom-left"
+                ? AlignLeft
+                : pos === "bottom-right"
+                  ? AlignRight
+                  : pos === "bottom-outer"
+                    ? ArrowLeftRight
+                    : AlignCenter;
             const isActive = pageNumberPosition === pos;
             return (
               <button

@@ -35,13 +35,34 @@ function pageNumberMarginBox(position: PageNumberPosition): string {
       return "@bottom-left";
     case "bottom-right":
       return "@bottom-right";
+    case "bottom-outer":
+      // Handled entirely via the per-side @page :right/:left blocks in
+      // printCss() -- there's no single margin box that means "outer" on
+      // every page, so this return value is never actually used for it.
+      return "@bottom-center";
     default:
       return "@bottom-center";
   }
 }
 
+// Shared declarations for whichever margin box ends up holding the page
+// number -- factored out so the mirrored ("bottom-outer") case can repeat
+// them in two separate boxes (@bottom-right on recto, @bottom-left on
+// verso) without drifting from the fixed-side case's styling.
+function pageNumberDeclarations(): string {
+  return `
+        content: counter(page); font-size: ${BODY_FONT_PT}pt; color: #333;
+        font-family: "Times New Roman", "Liberation Serif", "Times", serif;
+        vertical-align: bottom; padding-bottom: ${PAGE_NUMBER_BOTTOM_OFFSET_MM}mm;`;
+}
+
 function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNumberPosition): string {
+  // "bottom-outer" mirrors the number to the outer (non-spine) edge of each
+  // page -- @bottom-right on recto, @bottom-left on verso -- instead of the
+  // single shared margin box the other three positions use on every page.
+  const mirrored = pageNumberPosition === "bottom-outer";
   const pageNumberBox = pageNumberMarginBox(pageNumberPosition);
+  const pageNumberDecl = pageNumberDeclarations();
   return `
     @page {
       size: ${widthMm}mm ${heightMm}mm;
@@ -61,20 +82,18 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
          this the margin box centers its content within the whole
          margin-bottom area by default, which drifts every time
          PAGE_MARGIN_BOTTOM_MM changes. */
-      ${pageNumberBox} {
-        content: counter(page); font-size: 9pt; color: #333;
-        font-family: "Times New Roman", "Liberation Serif", "Times", serif;
-        vertical-align: bottom; padding-bottom: ${PAGE_NUMBER_BOTTOM_OFFSET_MM}mm;
-      }
+      ${mirrored ? "" : `${pageNumberBox} { ${pageNumberDecl} }`}
       @top-center { content: string(chapter-title); font-size: 8pt; color: #666; font-family: "Times New Roman", "Liberation Serif", "Times", serif; }
     }
     @page :right {
       margin-left: ${PAGE_MARGIN_INNER_MM}mm;
       margin-right: ${PAGE_MARGIN_OUTER_MM}mm;
+      ${mirrored ? `@bottom-right { ${pageNumberDecl} }` : ""}
     }
     @page :left {
       margin-left: ${PAGE_MARGIN_OUTER_MM}mm;
       margin-right: ${PAGE_MARGIN_INNER_MM}mm;
+      ${mirrored ? `@bottom-left { ${pageNumberDecl} }` : ""}
     }
     @page :first {
       @top-center { content: none; }
@@ -84,7 +103,7 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
     @page back-cover {
       size: ${widthMm}mm ${heightMm}mm;
       margin: 0;
-      ${pageNumberBox} { content: none; }
+      ${mirrored ? "@bottom-right { content: none; } @bottom-left { content: none; }" : `${pageNumberBox} { content: none; }`}
       @top-center { content: none; }
     }
     .back-cover-page {

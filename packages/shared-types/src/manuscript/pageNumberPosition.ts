@@ -11,7 +11,15 @@
 // Moved to shared-types (T-2057) so the print-PDF render (printHtml.ts, run
 // server-side in the worker) reads the exact same saved position the author
 // picked in the editor, instead of a second, potentially-drifting copy.
-export type PageNumberPosition = "bottom-left" | "bottom-center" | "bottom-right";
+// "bottom-outer" -- author request (2026-09-09): the other three positions
+// are fixed to the same physical side on every page, which on a real
+// recto/verso spread means the number sits at the SPINE side on half the
+// pages instead of always at the visible outer edge. "outer" mirrors per
+// page: bottom-right on recto (:right), bottom-left on verso (:left) --
+// classic book "folio at the outer corner" convention. Needs its own
+// printCss() handling (per-side @page rules) since the other three just
+// reuse one margin box on every page.
+export type PageNumberPosition = "bottom-left" | "bottom-center" | "bottom-right" | "bottom-outer";
 
 export const DEFAULT_PAGE_NUMBER_POSITION: PageNumberPosition = "bottom-center";
 
@@ -19,12 +27,15 @@ export const PAGE_NUMBER_POSITION_LABELS: Record<PageNumberPosition, string> = {
   "bottom-left": "Знизу зліва",
   "bottom-center": "Знизу по центру",
   "bottom-right": "Знизу справа",
+  "bottom-outer": "По краях (дзеркально)",
 };
 
 const RESERVED_KEY = "__pageNumberPosition";
 
 function isPageNumberPosition(value: unknown): value is PageNumberPosition {
-  return value === "bottom-left" || value === "bottom-center" || value === "bottom-right";
+  return (
+    value === "bottom-left" || value === "bottom-center" || value === "bottom-right" || value === "bottom-outer"
+  );
 }
 
 /** Reads the saved position out of a raw styleOverrides JSON blob, falling back to the default. */
