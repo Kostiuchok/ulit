@@ -55,13 +55,19 @@ const EDIT_GROUP: SubNavItem[] = [
   // page-thumbnail flipbook (`(withSidebar)/[id]/preview`), a separate,
   // unrelated render pipeline from the one the manuscript editor's own
   // button used. Both now point at the same route.
-  // T-2076 -- renamed from "Передперегляд": this is the same route that
-  // lazily generates the print PDF on open (print-preview.ts), a fact
-  // "Передперегляд" alone didn't convey -- unified across every place that
-  // links here (this sidebar item, the editor toolbar button, the cover
-  // editor link, the ISBN checklist link, FormatsAndDistribution's hint,
-  // output-data's own manuscript-section hint, and PublicationTimeline's).
-  { label: "PDF для друку", icon: <FileText size={14} />, href: (id) => `/dashboard/books/${id}/manuscript/preview` },
+  // T-2076 -- renamed from "Передперегляд" to "PDF для друку": authors
+  // didn't realize opening the route (print-preview.ts) actually generates
+  // the print PDF, "Передперегляд" alone didn't convey that.
+  // Renamed again on author feedback -- "PDF для друку" read the opposite
+  // way: authors assumed it was a technical/production artifact, not
+  // something meant for them to look at, and avoided it. "Передперегляд
+  // книги" -- unified across every place that links here (this sidebar
+  // item, the editor toolbar button, the cover editor link, the ISBN
+  // checklist link, FormatsAndDistribution's hint, output-data's own
+  // manuscript-section hint, and PublicationTimeline's). The generation
+  // side-effect is still called out separately wherever a label needs to
+  // convey it (e.g. "Відкрити «Передперегляд книги» (згенерує його) →").
+  { label: "Передперегляд книги", icon: <FileText size={14} />, href: (id) => `/dashboard/books/${id}/manuscript/preview` },
   { label: "Видалити", icon: <Trash2 size={14} />, action: "delete" },
 ];
 

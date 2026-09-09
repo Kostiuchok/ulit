@@ -288,7 +288,7 @@ function IsbnReadinessChecklist({
       done: !!book?.printPdfUrl,
       hint: !book?.printPdfUrl ? "Ще не згенеровано — натисніть посилання нижче, щоб створити" : undefined,
       linkHref: !book?.printPdfUrl ? `/dashboard/books/${bookId}/manuscript/preview` : undefined,
-      linkLabel: "Відкрити «PDF для друку» (згенерує його) →",
+      linkLabel: "Відкрити «Передперегляд книги» (згенерує його) →",
     },
   ];
 
@@ -1559,7 +1559,7 @@ function OutputDataContent() {
                     href={`/dashboard/books/${id}/manuscript/preview`}
                     className="block text-xs text-black underline hover:no-underline"
                   >
-                    Відкрити «PDF для друку» (згенерує його) →
+                    Відкрити «Передперегляд книги» (згенерує його) →
                   </Link>
                 )}
               </span>

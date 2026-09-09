@@ -84,7 +84,7 @@ interface Props {
   // (formerly hardcoded to A5 regardless of the book's actual format).
   // Undefined falls back to the platform default trim (DEFAULT_PAGE_GEOMETRY).
   printFormat?: { widthMm: number; heightMm: number; label: string };
-  // Drives the "PDF для друку" toolbar button's done/required badge below --
+  // Drives the "Передперегляд книги" toolbar button's done/required badge below --
   // undefined (not yet loaded) renders neither state rather than flashing
   // "required" for a moment on every page load.
   printPdfUrl?: string | null;
@@ -256,7 +256,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   const cleanupMenuRef = useRef<HTMLDivElement>(null);
 
   // Formatting-tools section scrolls horizontally (instead of wrapping to a
-  // second row) once it no longer fits between the fixed "PDF для друку"
+  // second row) once it no longer fits between the fixed "Передперегляд книги"
   // button on the left and the save-status button on the right -- these two
   // arrow buttons only render when there's actually overflow to scroll to.
   const toolbarScrollRef = useRef<HTMLDivElement>(null);
@@ -527,25 +527,27 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       {/* Center — toolbar + editor */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-2">
-          {/* T-2076 -- renamed from "Передперегляд": this route lazily
-              generates the print PDF on open (print-preview.ts), which that
-              name didn't convey -- unified with the sidebar nav item, the
-              ISBN checklist link, and PublicationTimeline's hint. Filled
-              primary button, not a plain text link -- this is the button
-              that assembles the actual print document, same visual weight
-              as "PDF для друку" on the cover page. The standalone "Зберегти"
-              icon that used to sit to its left is gone -- it only duplicated
-              the save-status button at the far right of this same row,
-              wasting the space this button needed to keep its label on one
-              line.
-              "PDF для друку" (not "Друкований PDF" -- "друкований" reads as
-              "already printed", backwards for a file that only exists to be
-              sent to print). The pill makes clear this isn't optional:
+          {/* T-2076 -- renamed from "Передперегляд" to "PDF для друку": this
+              route lazily generates the print PDF on open (print-preview.ts),
+              which "Передперегляд" alone didn't convey -- unified with the
+              sidebar nav item, the ISBN checklist link, and
+              PublicationTimeline's hint. Renamed again on author feedback --
+              "PDF для друку" read as a technical/production artifact rather
+              than something meant for the author to look at, so it went
+              unclicked. Filled primary button, not a plain text link -- this
+              is the button that assembles the actual print document, same
+              visual weight as "Передперегляд книги" on the cover page. The
+              standalone "Зберегти" icon that used to sit to its left is gone
+              -- it only duplicated the save-status button at the far right of
+              this same row, wasting the space this button needed to keep its
+              label on one line. The pill makes clear this isn't optional:
               unset, it's required for print sales + the УДК deposit copy
               (missingIsbnReadyFields, book-chamber.ts requires printPdfUrl
               unconditionally -- every published book here gets its ISBN
               through Книжкова палата, which requires it); once generated,
-              it just confirms that's done. */}
+              it just confirms that's done. Tooltip still names the actual
+              PDF file, not the button's own action label -- it's reporting
+              the underlying artifact's state, not what the click does. */}
           <Link
             href={`/dashboard/books/${bookId}/manuscript/preview`}
             className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 text-[0.8125rem] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
@@ -556,7 +558,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
             }
           >
             <FileText size={15} />
-            PDF для друку
+            Передперегляд книги
             {printPdfUrl ? (
               <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] leading-none">✓</span>
             ) : (
