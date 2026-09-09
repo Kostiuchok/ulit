@@ -249,6 +249,22 @@ function ActionChip({
   );
 }
 
+// Module scope (not inside AdminBooksPage) -- needed by both the page's own
+// archivedBooks grouping/sort AND BookRow's "Відкликати" chip below, and a
+// per-channel result (not just a yes/no) is what the withdraw action itself
+// needs to know which of d2dStatus/kdpStatus/googleStatus to PATCH. One
+// definition instead of two keeps the SENT/PUBLISHED "still live" check from
+// drifting between the two call sites.
+const LIVE_CHANNEL_STATUSES = new Set(["SENT", "PUBLISHED"]);
+function liveChannels(b: Book): Array<"d2d" | "kdp" | "google"> {
+  const out: Array<"d2d" | "kdp" | "google"> = [];
+  if (LIVE_CHANNEL_STATUSES.has(b.d2dStatus)) out.push("d2d");
+  if (LIVE_CHANNEL_STATUSES.has(b.kdpStatus)) out.push("kdp");
+  if (LIVE_CHANNEL_STATUSES.has(b.googleStatus)) out.push("google");
+  return out;
+}
+const needsWithdrawal = (b: Book) => liveChannels(b).length > 0;
+
 function BookRow({
   book,
   rejected,
@@ -258,6 +274,7 @@ function BookRow({
   onFilesClick,
   onApproveRepublish,
   onRejectRepublish,
+  onWithdraw,
 }: {
   book: Book;
   rejected: boolean;
@@ -267,6 +284,7 @@ function BookRow({
   onFilesClick: (book: Book) => void;
   onApproveRepublish: (id: string) => void;
   onRejectRepublish: (id: string) => void;
+  onWithdraw: (id: string) => void;
 }) {
   const pendingRepublish = book.status === "PUBLISHED" && !!book.republishRequestedAt;
   return (
@@ -422,6 +440,24 @@ function BookRow({
             className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
           />
         )}
+        {/* Same "Дистрибуція" column as Розіслати/Публікація above -- one
+            click sets every still-live channel (D2D/KDP/Google) to WITHDRAWN
+            in a single PATCH instead of making the admin open /distribute
+            and click WITHDRAWN per-platform there. Those per-platform
+            buttons on /distribute stay as-is for the rare case a channel
+            needs to go back to something other than WITHDRAWN (e.g. ERROR) --
+            this chip only ever covers the common "author deleted it, close
+            out every live channel" case. */}
+        {book.status === "ARCHIVED" && needsWithdrawal(book) && (
+          <ActionChip
+            icon="⛔"
+            label="Відкликати"
+            onClick={() => onWithdraw(book.id)}
+            disabled={actionLoading === book.id + "_withdraw"}
+            title="Позначає всі ще живі канали (D2D/KDP/Google) статусом WITHDRAWN"
+            className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+          />
+        )}
       </td>
       <td className="px-4 py-3">
         <ActionChip
@@ -490,17 +526,14 @@ export default function AdminBooksPage() {
   // (раніше тут лишались тільки ті, що ще потребують ручного відкликання з
   // D2D/KDP/Google -- решта архівних тихо провалювались у звичайну таблицю
   // разом зі свіжими книгами й засмічували верх сторінки). needsWithdrawal
-  // більше не фільтр належності до групи, а лише сортування всередині неї --
-  // книги, які ще реально потребують дії, зверху; вже закриті (WITHDRAWN/
-  // NOT_SENT/ERROR або ніколи нікуди не відправлялись) -- нижче. Той самий
-  // where, що й /admin/withdrawal-queue: щойно адмін позначає ОСТАННІЙ живий
-  // канал як WITHDRAWN (на сторінці /distribute) і повертається сюди, книга
-  // сама спливає в кінець групи -- fetchBooks() на mount цієї сторінки й так
-  // підвантажить уже оновлені d2d/kdp/googleStatus.
-  const needsWithdrawal = (b: Book) =>
-    b.d2dStatus === "SENT" || b.d2dStatus === "PUBLISHED" ||
-    b.kdpStatus === "SENT" || b.kdpStatus === "PUBLISHED" ||
-    b.googleStatus === "SENT" || b.googleStatus === "PUBLISHED";
+  // (module scope -- also used by BookRow's "Відкликати" chip) більше не
+  // фільтр належності до групи, а лише сортування всередині неї -- книги,
+  // які ще реально потребують дії, зверху; вже закриті (WITHDRAWN/NOT_SENT/
+  // ERROR або ніколи нікуди не відправлялись) -- нижче. Той самий where, що
+  // й /admin/withdrawal-queue: щойно всі живі канали книги стають WITHDRAWN
+  // (тут через "Відкликати", або вручну на /distribute) і адмін повертається
+  // сюди, книга сама спливає в кінець групи -- fetchBooks() і так підвантажить
+  // уже оновлені d2d/kdp/googleStatus.
   const archivedBooks = books
     .filter((b) => b.status === "ARCHIVED")
     .sort((a, b) => Number(needsWithdrawal(b)) - Number(needsWithdrawal(a)));
@@ -553,6 +586,32 @@ export default function AdminBooksPage() {
       await fetchBooks();
     } catch (e: any) {
       alert(`Помилка відхилення: ${e.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  // One PATCH covering every still-live channel at once -- PATCH
+  // /api/admin/books/:id/distribution already accepts any subset of
+  // {d2dStatus, kdpStatus, googleStatus} (same endpoint the per-platform
+  // WITHDRAWN buttons on /distribute call one at a time), so no new API
+  // route needed here.
+  async function handleWithdraw(id: string) {
+    const book = books.find((b) => b.id === id);
+    if (!book) return;
+    const channels = liveChannels(book);
+    if (channels.length === 0) return;
+    setActionLoading(id + "_withdraw");
+    try {
+      const body: Record<string, string> = {};
+      for (const c of channels) body[`${c}Status`] = "WITHDRAWN";
+      await apiFetch(`/api/admin/books/${id}/distribution`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      await fetchBooks();
+    } catch (e: any) {
+      alert(`Помилка відкликання: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -710,6 +769,7 @@ export default function AdminBooksPage() {
                     onFilesClick={setFilesBook}
                     onApproveRepublish={handleApproveRepublish}
                     onRejectRepublish={handleRejectRepublish}
+                    onWithdraw={handleWithdraw}
                   />
                 ))}
                 {rejectedBooks.length > 0 && (
@@ -733,6 +793,7 @@ export default function AdminBooksPage() {
                     onFilesClick={setFilesBook}
                     onApproveRepublish={handleApproveRepublish}
                     onRejectRepublish={handleRejectRepublish}
+                    onWithdraw={handleWithdraw}
                   />
                 ))}
                 {archivedBooks.length > 0 && (
@@ -758,6 +819,7 @@ export default function AdminBooksPage() {
                     onFilesClick={setFilesBook}
                     onApproveRepublish={handleApproveRepublish}
                     onRejectRepublish={handleRejectRepublish}
+                    onWithdraw={handleWithdraw}
                   />
                 ))}
               </tbody>
