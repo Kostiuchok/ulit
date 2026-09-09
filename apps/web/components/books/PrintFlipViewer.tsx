@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/promiseWithResolversPolyfill";
 import { useMemo, useRef, useState } from "react";
 import HTMLFlipBook from "react-pageflip-enhanced";
 import { Document, Page, pdfjs } from "react-pdf";

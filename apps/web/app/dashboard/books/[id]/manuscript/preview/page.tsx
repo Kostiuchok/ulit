@@ -2,11 +2,31 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { ChevronLeft, Download, Palette } from "lucide-react";
 import { resolveBookPrintFormat } from "shared-types";
 import { useApi } from "@/hooks/useApi";
 import { useBook } from "@/hooks/useBook";
-import { PrintFlipViewer } from "@/components/books/PrintFlipViewer";
+
+// Dynamic import with ssr:false, not the plain static import this used to
+// be -- PrintFlipViewer pulls in react-pdf (pdf.js), which references
+// DOMMatrix (a Canvas API that only exists in a real browser) at module
+// init time. "use client" on PrintFlipViewer itself does NOT stop Next.js
+// from still server-rendering it for the initial HTML -- that SSR pass hit
+// `ReferenceError: DOMMatrix is not defined` on every load (confirmed in
+// knyha-web's own logs), which is exactly what surfaced to authors as
+// "Application error: a client-side exception has occurred". ssr:false is
+// what actually skips that server render; a loading fallback covers the gap
+// before the client-only bundle takes over.
+const PrintFlipViewer = dynamic(
+  () => import("@/components/books/PrintFlipViewer").then((m) => m.PrintFlipViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-sm text-gray-400">Завантаження…</div>
+    ),
+  }
+);
 
 interface PreviewBook {
   title: string;
