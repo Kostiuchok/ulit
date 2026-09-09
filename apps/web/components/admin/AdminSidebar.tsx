@@ -14,6 +14,7 @@ const NAV: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/admin/books", label: "Книги", icon: "📚" },
   { href: "/admin/udk-queue", label: "Реєстрація УДК", icon: "🔖" },
+  { href: "/admin/print-orders", label: "Друковані замовлення", icon: "🖨️" },
   {
     label: "Дистрибуція",
     icon: "📦",

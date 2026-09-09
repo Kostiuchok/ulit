@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "printCurvesUrl" TEXT;
+ALTER TABLE "Book" ADD COLUMN IF NOT EXISTS "printCurvesGeneratedAt" TIMESTAMP(3);

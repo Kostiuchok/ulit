@@ -224,6 +224,8 @@ model Book {
   manuscriptEditedAt   DateTime? // last author edit inside the manuscript editor (distinct from the initial docx import)
   manuscriptStyleOverrides Json?
   printPdfGeneratedAt  DateTime? // T-2057 -- when printPdfUrl was last (re)rendered from manuscriptContent; regen is skipped if this is newer than manuscriptEditedAt
+  printCurvesUrl       String? // admin-only "convert text to vector outlines" export of printPdfUrl (Ghostscript -dNoOutputFonts), for print houses that require curves rather than embedded fonts -- never author-facing, only generated on demand when a real printed-copy order exists (admin/print-orders)
+  printCurvesGeneratedAt DateTime? // when printCurvesUrl was last (re)rendered from printPdfUrl; regen is skipped if this is newer than printPdfGeneratedAt
 
   orderItems      OrderItem[]
   royalties       Royalty[]

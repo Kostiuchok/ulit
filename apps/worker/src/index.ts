@@ -1,6 +1,7 @@
 import { Worker, Job } from "bullmq";
 import { convertDocxToPdf } from "./jobs/convert-docx-to-pdf";
 import { generatePdfPrint } from "./jobs/generate-pdf-print";
+import { exportPrintCurves } from "./jobs/export-print-curves";
 import { generateEpub } from "./jobs/generate-epub";
 import { generateFb2 } from "./jobs/generate-fb2";
 import { generateMobi } from "./jobs/generate-mobi";
@@ -27,6 +28,7 @@ const handlers: Record<string, (job: Job) => Promise<void>> = {
   FB2: generateFb2 as any,
   MOBI: generateMobi as any,
   PRINT_PDF: generatePdfPrint as any,
+  EXPORT_PRINT_CURVES: exportPrintCurves as any,
   PAGE_THUMBNAILS: generatePageThumbnails as any,
   MANUSCRIPT_IMPORT: importManuscript as any,
 };

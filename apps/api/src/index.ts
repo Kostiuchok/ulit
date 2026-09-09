@@ -43,6 +43,7 @@ import { adminRoutes } from "./modules/admin/admin";
 import { bookChamberRoutes } from "./modules/admin/book-chamber";
 import { publisherDocumentsRoutes } from "./modules/admin/publisher-documents";
 import { printCostSettingsRoutes } from "./modules/admin/print-cost-settings";
+import { printOrdersRoutes } from "./modules/admin/print-orders";
 import { startEmailWorker } from "./lib/email-queue";
 import { metricsRegistry } from "./lib/metrics";
 
@@ -141,6 +142,7 @@ async function bootstrap() {
   await app.register(bookChamberRoutes);
   await app.register(publisherDocumentsRoutes);
   await app.register(printCostSettingsRoutes);
+  await app.register(printOrdersRoutes);
 
   // Auto-promote ADMIN_EMAIL to ADMIN role (safe: only upgrades AUTHOR, never downgrades)
   const adminEmail = process.env.ADMIN_EMAIL;
