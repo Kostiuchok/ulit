@@ -7,9 +7,16 @@
 // ever specified inner/outer (20mm/15mm for books), no top/bottom split, and
 // its own outer figure is now superseded by this direct measurement.
 export const PAGE_MARGIN_TOP_MM = 15;
-export const PAGE_MARGIN_BOTTOM_MM = 25;
+export const PAGE_MARGIN_BOTTOM_MM = 20; // was 25mm -- author call, 2026-09-09
 export const PAGE_MARGIN_INNER_MM = 20; // binding/spine side (recto: left, verso: right) -- unchanged, not part of the 2026-09-09 measurement
 export const PAGE_MARGIN_OUTER_MM = 20;
+// Distance from the physical bottom edge of the page to the page-number
+// baseline (author call, 2026-09-09) -- independent of PAGE_MARGIN_BOTTOM_MM
+// itself, since the number sits inside that margin area rather than
+// defining it. printHtml.ts positions the number's margin box with
+// vertical-align:bottom + padding-bottom of this value so it lands exactly
+// here regardless of how tall the bottom margin area is.
+export const PAGE_NUMBER_BOTTOM_OFFSET_MM = 10;
 // Body text size -- author-specified 2026-09-09, superseding the earlier
 // cap-height-ruler-derived value (8.66pt, itself derived from a 2mm
 // cap-height reading against a real printed book) that read too small at
@@ -20,4 +27,4 @@ export const BODY_FONT_PT = 10;
 // baseline-to-baseline mm measurement (4mm, tied to the old 8.66pt) so the
 // two move together automatically whenever BODY_FONT_PT changes, instead of
 // needing a second physical re-measurement every time.
-export const BODY_LINE_HEIGHT_EM = 1.3;
+export const BODY_LINE_HEIGHT_EM = 1.4;

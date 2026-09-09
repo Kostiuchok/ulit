@@ -11,6 +11,7 @@ import {
   PAGE_MARGIN_OUTER_MM,
   BODY_FONT_PT,
   BODY_LINE_HEIGHT_EM,
+  PAGE_NUMBER_BOTTOM_OFFSET_MM,
 } from "./printGeometry";
 
 // T-2057 -- print-only CSS on top of the shared MANUSCRIPT_PROSE_CSS (which
@@ -54,7 +55,17 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
          DejaVu-Serif embedded alongside Liberation Serif -- only these two
          margin boxes, everything in the actual page content was already
          Liberation Serif from .manuscript-prose's own rule (proseStyles.ts). */
-      ${pageNumberBox} { content: counter(page); font-size: 9pt; color: #333; font-family: "Times New Roman", "Liberation Serif", "Times", serif; }
+      /* vertical-align:bottom + padding-bottom pins the number to an exact
+         distance off the physical page edge (PAGE_NUMBER_BOTTOM_OFFSET_MM),
+         independent of how tall the bottom margin area itself is -- without
+         this the margin box centers its content within the whole
+         margin-bottom area by default, which drifts every time
+         PAGE_MARGIN_BOTTOM_MM changes. */
+      ${pageNumberBox} {
+        content: counter(page); font-size: 9pt; color: #333;
+        font-family: "Times New Roman", "Liberation Serif", "Times", serif;
+        vertical-align: bottom; padding-bottom: ${PAGE_NUMBER_BOTTOM_OFFSET_MM}mm;
+      }
       @top-center { content: string(chapter-title); font-size: 8pt; color: #666; font-family: "Times New Roman", "Liberation Serif", "Times", serif; }
     }
     @page :right {
