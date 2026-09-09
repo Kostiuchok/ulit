@@ -107,6 +107,45 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
       break-after: page;
     }
 
+    /* An inserted image that doesn't fit in the remaining space on the
+       current page was getting sliced by the page boundary instead of
+       flowing whole onto the next one (verified against a real render --
+       a photo landed with its bottom half cut off, nothing carried over to
+       the following page, the content just gone from the printed file --
+       text from the next paragraph even printed straight through the
+       missing part). break-inside:avoid reliably fixes this for a normal
+       (align="center") block image -- WeasyPrint fragments block boxes
+       correctly. It does NOT reliably fix it for a FLOATED one
+       (align="left"/"right"): verified against several real renders that
+       break-inside:avoid on a float is honored in some vertical positions
+       and silently ignored (same clipping as with no rule at all) in
+       others, depending on exactly how much room is left above the float
+       -- a WeasyPrint fragmentation bug specific to floats, not something
+       fixable from CSS alone. Rather than ship a fix that only sometimes
+       works for a defect this severe (lost photo content in a book headed
+       to a physical printer), left/right images stop floating for print
+       specifically: rendered as centered blocks instead, same as
+       align="center". The live editor keeps the real float+text-wrap
+       (MANUSCRIPT_PROSE_CSS, proseStyles.ts) -- browsers don't paginate a
+       scrolling page, so they never hit this. Print-only override, hence
+       here rather than in the shared stylesheet. */
+    .manuscript-prose img {
+      break-inside: avoid;
+    }
+    /* Same :not([data-resize-container] img) qualifier as the proseStyles.ts
+       rules being overridden here -- needed to match their specificity
+       (a bare [data-align] selector loses the tie-break otherwise, since
+       :not()'s argument counts toward specificity same as if it weren't
+       negated; verified empirically, the override was silently no-op
+       without it despite being the later of the two <style> tags). */
+    .manuscript-prose img[data-align="left"]:not([data-resize-container] img),
+    .manuscript-prose img[data-align="right"]:not([data-resize-container] img) {
+      float: none;
+      display: block;
+      margin: 1em auto;
+      max-width: 100%;
+    }
+
     /* Strip the editor-only visual marker (dashed line + "Розрив сторінки"
        label from MANUSCRIPT_PROSE_CSS) everywhere in print -- both the
        front-matter's structural title/colophon separator and any

@@ -50,6 +50,14 @@ export const MANUSCRIPT_PROSE_CSS = `
       .manuscript-prose div[data-type="toc-entry"][data-tier="3"] { margin-left: 3em; color: #444; }
       .manuscript-prose .toc-entry-text {
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto;
+        /* Flex items default to min-width:auto, which floors their shrink at the
+           text's own intrinsic (unwrapped) width -- text-overflow:ellipsis never
+           gets a chance to kick in, and the sibling .toc-entry-page (flex:none)
+           gets pushed out past the page's printable area instead of just after
+           the truncated text. Verified against a real long-heading render (the
+           entry overflowed the page edge with no page number at all, not even
+           truncated). */
+        min-width: 0;
       }
       .manuscript-prose .toc-entry-page { flex: none; margin-left: 0.75em; }
 
