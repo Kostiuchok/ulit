@@ -10,16 +10,14 @@ export const PAGE_MARGIN_TOP_MM = 15;
 export const PAGE_MARGIN_BOTTOM_MM = 25;
 export const PAGE_MARGIN_INNER_MM = 20; // binding/spine side (recto: left, verso: right) -- unchanged, not part of the 2026-09-09 measurement
 export const PAGE_MARGIN_OUTER_MM = 20;
-// Also measured off that same printed book: cap-height (top of "H"/"A" to
-// baseline, the only letter-height a ruler can actually measure -- CSS
-// font-size is the full em box, always taller) came out to 2mm. Liberation
-// Serif's own metrics (fonttools: OS/2.sCapHeight / head.unitsPerEm, checked
-// directly against the font file in the worker image) put cap-height at
-// 0.6548 of the em -- 2mm / 0.6548 = 3.0544mm em = 8.66pt. Was 11pt
-// (cap-height 2.54mm), a real reduction, not measurement noise.
-export const BODY_FONT_PT = 8.66;
-// Baseline-to-baseline spacing, also measured directly (4mm) -- set as an
-// absolute length rather than derived as a unitless ratio off BODY_FONT_PT,
-// so it keeps matching a re-measurement of the printed page even if the
-// font size above ever changes for an unrelated reason.
-export const BODY_LINE_HEIGHT_MM = 4;
+// Body text size -- author-specified 2026-09-09, superseding the earlier
+// cap-height-ruler-derived value (8.66pt, itself derived from a 2mm
+// cap-height reading against a real printed book) that read too small at
+// this trim size (130x200mm) despite matching that one physical measurement.
+export const BODY_FONT_PT = 10;
+// Line-height as a ratio of font-size, not an absolute mm length -- also
+// author-specified 2026-09-09, replacing the earlier independent
+// baseline-to-baseline mm measurement (4mm, tied to the old 8.66pt) so the
+// two move together automatically whenever BODY_FONT_PT changes, instead of
+// needing a second physical re-measurement every time.
+export const BODY_LINE_HEIGHT_EM = 1.3;
