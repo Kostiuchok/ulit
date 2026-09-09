@@ -818,7 +818,32 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         )}
 
         <div className="flex-1 overflow-y-auto bg-white px-16 py-10">
-          <div className="relative mx-auto" style={pageCheckMode ? { width: pageGeometry.contentW } : { maxWidth: 680 }}>
+          {/* Author feedback: the page-check box used to be sized to
+              contentW only (the text column) -- book-shaped proportions
+              broke down because side margins eat a much bigger share of a
+              narrow trim's WIDTH than top/bottom margins eat of its HEIGHT
+              (e.g. 130x200mm: 40mm off 130mm width vs 35mm off 200mm height),
+              so the content box alone reads noticeably taller/narrower than
+              the real page. Sizing the box to the full pageW (with the text
+              inset by marginX via padding, so the text itself still wraps at
+              exactly contentW like before) and framing it with a visible
+              border makes the box's own width:height silhouette between two
+              page-break lines actually match the chosen trim's real
+              proportions. Left deliberately without vertical (top/bottom)
+              margin insets -- unlike horizontal padding, reserving real
+              per-page top/bottom margin space in a single continuously
+              -scrolling ProseMirror document would mean inserting actual
+              flow-affecting gaps at every live-recomputed break point, which
+              is real pagination (Word/Google-Docs-style separate page
+              sheets), not a proportions fix -- out of scope here. */}
+          <div
+            className={cn("relative mx-auto", pageCheckMode && "border border-gray-300 bg-white shadow-sm")}
+            style={
+              pageCheckMode
+                ? { width: pageGeometry.pageW, paddingLeft: pageGeometry.marginX, paddingRight: pageGeometry.marginX }
+                : { maxWidth: 680 }
+            }
+          >
             <EditorContent
               editor={editor}
               className="manuscript-prose"
