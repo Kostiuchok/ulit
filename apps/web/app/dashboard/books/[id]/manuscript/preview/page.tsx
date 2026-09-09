@@ -182,7 +182,7 @@ export default function ManuscriptPreviewPage() {
         {!error && state?.status === "PROCESSING" && (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-gray-500">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
-            Формуємо друкований PDF… {state.progress > 0 ? `${state.progress}%` : ""}
+            Формуємо передперегляд книжки…
           </div>
         )}
 
