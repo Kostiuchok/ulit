@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { ChevronLeft, Download, Palette } from "lucide-react";
+import { ChevronLeft, Download, Palette, RefreshCw } from "lucide-react";
 import { resolveBookPrintFormat } from "shared-types";
 import { useApi } from "@/hooks/useApi";
 import { useBook } from "@/hooks/useBook";
@@ -66,23 +66,35 @@ export default function ManuscriptPreviewPage() {
     [book]
   );
 
-  const poll = useCallback(async () => {
-    try {
-      const res = await apiFetch<PrintPreviewStatus>(`/api/books/${id}/print-preview`);
-      setState(res);
-      setError("");
-      if (res.status !== "PROCESSING" && pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
+  const poll = useCallback(
+    async (force = false) => {
+      try {
+        const res = await apiFetch<PrintPreviewStatus>(
+          `/api/books/${id}/print-preview${force ? "?force=1" : ""}`
+        );
+        setState(res);
+        setError("");
+        if (res.status === "PROCESSING") {
+          // force=1 can restart rendering even when the previous poll loop
+          // had already stopped (status was DONE, its own interval cleared
+          // below) -- resume it so the button's own re-render actually gets
+          // picked up instead of leaving the author stuck on "Формуємо
+          // передперегляд…" forever.
+          if (!pollRef.current) pollRef.current = setInterval(poll, 3000);
+        } else if (pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+      } catch (e: any) {
+        setError(e.message || "Не вдалося сформувати друкований PDF");
+        if (pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
       }
-    } catch (e: any) {
-      setError(e.message || "Не вдалося сформувати друкований PDF");
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-    }
-  }, [id, apiFetch]);
+    },
+    [id, apiFetch]
+  );
 
   useEffect(() => {
     if (!token) return;
@@ -138,6 +150,23 @@ export default function ManuscriptPreviewPage() {
         </div>
         {state?.status === "DONE" && (
           <div className="flex items-center gap-1">
+            {/* Force a fresh render even though nothing on the book itself
+                changed since the last one -- staleness (print-preview.ts) is
+                only ever keyed off book/manuscript data timestamps, so it has
+                no way to know when we've shipped a print-layout/CSS fix on
+                our end. Without this the only way to see such a fix was
+                making a throwaway edit on Вихідні дані just to bump
+                updatedAt (real confusion, live-reported 2026-09-10: "чому
+                нічого не змінилося?"). */}
+            <button
+              type="button"
+              onClick={() => poll(true)}
+              title="Сформувати передперегляд заново"
+              className="flex items-center gap-1.5 px-3 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
+            >
+              <RefreshCw size={13} className="shrink-0" />
+              Оновити
+            </button>
             {/* T-2068 -- one shared color/b&w toggle over the same render,
                 not a second generated file (Ridero renders two separate
                 PDFs for this; a CSS filter gets the same visual result for

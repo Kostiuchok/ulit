@@ -15,6 +15,14 @@ export async function printPreviewRoutes(app: FastifyInstance) {
     { preHandler: authenticate },
     async (request, reply) => {
       const { id } = request.params as { id: string };
+      // Manual escape hatch for "the PDF looks wrong but nothing on the book
+      // itself changed since it was last rendered" -- e.g. we shipped a
+      // print-CSS/layout fix (worker code), which the staleness check below
+      // has no way to know about on its own (it only compares book data
+      // timestamps against printPdfGeneratedAt). ManuscriptPreviewPage's own
+      // "Оновити" button sends this instead of asking the author to make a
+      // throwaway edit on Вихідні дані just to bump updatedAt.
+      const force = (request.query as { force?: string })?.force === "1";
 
       const book = await prisma.book.findUnique({
         where: { id },
@@ -47,6 +55,7 @@ export async function printPreviewRoutes(app: FastifyInstance) {
       // unrelated fields like price), but the render only happens on demand.
       const lastEdit = book.manuscriptEditedAt ?? book.manuscriptImportedAt;
       const stale =
+        force ||
         !book.printPdfGeneratedAt ||
         (lastEdit !== null && lastEdit > book.printPdfGeneratedAt) ||
         book.updatedAt > book.printPdfGeneratedAt;
@@ -57,10 +66,15 @@ export async function printPreviewRoutes(app: FastifyInstance) {
         // BullMQ's add() treats an existing jobId as a no-op, so a prior
         // completed/failed render under this exact ID would otherwise
         // silently swallow every subsequent regeneration attempt forever.
+        // force=1 needs the same treatment even for an ACTIVE job (not just
+        // completed/failed) -- otherwise a force-refresh click while a
+        // regular (non-forced) render from a moment ago is still running
+        // just returns PROCESSING for that stale-triggering run instead of
+        // actually queuing the fresh one the author asked for.
         const existing = await bookQueue.getJob(jobId);
         if (existing) {
           const state = await existing.getState();
-          if (state === "completed" || state === "failed") {
+          if (state === "completed" || state === "failed" || (force && (state === "waiting" || state === "delayed"))) {
             await existing.remove();
           } else {
             const progress = typeof existing.progress === "number" ? existing.progress : 0;
