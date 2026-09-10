@@ -48,32 +48,29 @@ const PT_TO_MM = 25.4 / 72;
 // (measured against the 200mm-tall reference) hold at any trim size instead
 // of just the one they were measured on.
 //
-// titleTop (pen name/title/subtitle) and titleBottom (imprint+year) are two
-// SEPARATE flex items inside a fixed-height ".titlepage" container
-// (buildManuscriptPrintHtml wraps them this way), laid out with
-// justify-content:space-between -- not one shared margin-top chain from page
-// top to page bottom like this used to be. A margin-top chain assumes every
-// line is exactly one line tall; a long title/subtitle wrapping onto a 2nd
-// line made every sibling "pushed" via margin-top land further down than
-// intended, occasionally overflowing titleBottom onto a second page even
-// though titleBottom's own target position never changed (verified against a
-// real render, author-reported 2026-09-10). Flex instead pins titleTop flush
-// to the container's top and titleBottom flush to its bottom regardless of
-// how tall titleTop's real rendered content turns out to be -- the two can
-// only ever collide if the combined content is taller than the whole page,
-// an unavoidable edge case no layout technique fixes.
+// Four fully INDEPENDENT blocks (author instruction, 2026-09-10): 1) pen
+// name, 2) title, 3) subtitle, 4) imprint+year -- each its own
+// position:absolute box against a position:relative ".titlepage" ancestor,
+// pinned directly to its own book-trim-aware target distance from the page
+// edge. No block's position is derived from another block's real rendered
+// height anymore (the previous margin-top-chain and even the two-group flex
+// attempt both still had SOME coupling left -- e.g. title's gap depended on
+// whether a pen name was actually present -- either used to occasionally
+// push a later block down when an earlier one wrapped onto a 2nd line).
+// Blocks can now only ever visually collide if the page itself is too short
+// for the combined text (an unavoidable edge case no layout technique
+// fixes), never cascade-shift one another.
 //
-// Within each group, a line's target is still expressed as "distance from
-// the physical page edge to this line's baseline", and margin-top still
-// derived as (this baseline - previous baseline - this line's own
-// font-size) -- the same "baseline sits ~one font-size below the box's own
-// top" approximation as before, not pixel-exact per font metrics, but the
-// author-tuned proportions are what matter here, not a sub-millimetre
-// baseline grid. This is still exact for titleBottom (imprint/year are
-// fixed short strings that never wrap) and only approximate for titleTop's
-// OWN internal title-to-subtitle gap -- but an error there can no longer
-// cascade into titleBottom the way it used to.
-function titlePageGeometryCss(heightMm: number, meta: Pick<FrontMatterMeta, "authorPenName">): string {
+// Each target is still "distance from the physical page edge to this line's
+// baseline", converted to a CSS `top`/`bottom` via the same "baseline sits
+// ~one font-size below the box's own top" approximation as before -- not
+// pixel-exact per font metrics, but the author-tuned proportions are what
+// matter here, not a sub-millimetre baseline grid. Blocks 1-3 are single
+// lines so this is exact for them; block 4's internal ULIT/Українська
+// літера/рік spacing keeps its own small margin-top chain (those three
+// lines are fixed short strings that never wrap, so chaining within just
+// this one block carries none of the risk that chaining ACROSS blocks did).
+function titlePageGeometryCss(heightMm: number): string {
   const scale = heightMm / TITLE_PAGE_REFERENCE_HEIGHT_MM;
   const pt2mm = (pt: number) => pt * PT_TO_MM;
 
@@ -101,58 +98,58 @@ function titlePageGeometryCss(heightMm: number, meta: Pick<FrontMatterMeta, "aut
   const imprintLine1Baseline = imprintLine2Baseline - imprintLineHeightMm;
   const yearBaseline = heightMm - yearBottomMm;
 
-  // authorPenName is optional -- "the line before the title" isn't always
-  // the pen name; falling back to the top-of-page reference keeps the gap
-  // correct instead of leaving a phantom blank space sized for a line that
-  // was never rendered.
-  const beforeTitleBaseline = meta.authorPenName ? penNameBaseline : PAGE_MARGIN_TOP_MM;
-
+  // Absolute "top" (distance from ".titlepage"'s own top edge, which starts
+  // flush at the content box's top, PAGE_MARGIN_TOP_MM down from the
+  // physical edge) for a top-anchored block -- same arithmetic the old
+  // margin-top chain used, just no longer relative to a PREVIOUS block.
+  const topFor = (baselineMm: number, fontMm: number) => Math.max(0, baselineMm - PAGE_MARGIN_TOP_MM - fontMm).toFixed(2);
   const marginTop = (baseline: number, prevBaseline: number, fontMm: number) =>
     Math.max(0, baseline - prevBaseline - fontMm).toFixed(2);
 
   // ".titlepage"'s own height: translates yearBaseline (an absolute target
   // measured from the physical page top) into a height relative to the
-  // container's own top edge (which starts flush at the content box's top,
-  // PAGE_MARGIN_TOP_MM down from the physical edge) -- what pins titleBottom
-  // (bottom:0, absolutely positioned against this box) flush against it.
+  // container's own top edge -- what pins block 4 (bottom:0, absolutely
+  // positioned against this box) flush against it.
   const titlepageHeightMm = Math.max(0, yearBaseline - PAGE_MARGIN_TOP_MM);
 
   return `
-    /* position:relative + explicit height (not flex/justify-content:
-       space-between, tried first) -- WeasyPrint's flexbox support turned out
-       not to be reliable enough for this (verified against a real render,
-       author-reported 2026-09-10: no spacing between the title-page lines
-       at all, and the page still overflowed). position:absolute against a
-       sized ancestor is a much older, more consistently-supported CSS
-       feature and is the textbook tool for exactly this "pin to a fixed
-       point, independent of a sibling's real height" need -- titleBottom
-       below is pulled completely out of normal flow, so titleTop's actual
-       rendered height (1 line or 3, wrapped or not) can never affect its
-       position at all, not even indirectly through a margin/flex
-       calculation. */
+    /* position:relative + explicit height (not flex/justify-content, tried
+       first) -- WeasyPrint's flexbox support turned out not to be reliable
+       enough for this (verified against a real render, author-reported
+       2026-09-10: no spacing between the title-page lines at all, and the
+       page still overflowed). position:absolute against a sized ancestor is
+       a much older, more consistently-supported CSS feature and is the
+       textbook tool for exactly this "pin to a fixed point, independent of
+       a sibling's real height" need. */
     .titlepage {
       position: relative;
       height: ${titlepageHeightMm.toFixed(2)}mm;
     }
+    /* Blocks 1-3 -- each its own absolutely-positioned box, pinned straight
+       to the container's top edge. Taking each fully out of normal flow
+       (not just decoupling their margins) means none of them can ever be
+       pushed by, or push, one another regardless of how many lines any one
+       of them wraps onto. */
+    .manuscript-prose p[data-variant="titlepage-author"] {
+      position: absolute; left: 0; right: 0; margin: 0;
+      top: ${topFor(penNameBaseline, penNameFontMm)}mm;
+    }
+    .manuscript-prose p[data-variant="titlepage-title"] {
+      position: absolute; left: 0; right: 0; margin: 0;
+      top: ${topFor(titleBaseline, titleFontMm)}mm;
+    }
+    .manuscript-prose p[data-variant="titlepage-subtitle"] {
+      position: absolute; left: 0; right: 0; margin: 0;
+      top: ${topFor(subtitleBaseline, subtitleFontMm)}mm;
+    }
+    /* Block 4 -- imprint (ULIT/Українська літера) + рік, still one unit
+       (they move together), pinned to the container's bottom edge. */
     .titlepage-bottom {
       position: absolute;
       left: 0;
       right: 0;
       bottom: 0;
     }
-    .manuscript-prose p[data-variant="titlepage-author"] {
-      margin-top: ${marginTop(penNameBaseline, PAGE_MARGIN_TOP_MM, penNameFontMm)}mm;
-    }
-    .manuscript-prose p[data-variant="titlepage-title"] {
-      margin-top: ${marginTop(titleBaseline, beforeTitleBaseline, titleFontMm)}mm;
-    }
-    .manuscript-prose p[data-variant="titlepage-subtitle"] {
-      margin-top: ${marginTop(subtitleBaseline, titleBaseline, subtitleFontMm)}mm;
-    }
-    /* First child of ".titlepage-bottom" -- its position comes entirely from
-       the absolutely-positioned parent's own bottom:0 (flush to titlepage's
-       bottom edge), not from a margin-top chain reaching back through
-       titleTop. */
     .manuscript-prose p[data-variant="titlepage-imprint-line1"] {
       margin-top: 0;
     }
@@ -234,6 +231,31 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
     @page :first {
       @top-center { content: none; }
     }
+    /* Title page + colophon + Зміст ("technical" pages, author instruction
+       2026-09-10) -- own named page, same geometry as the normal interior
+       page (still needs the recto/verso inner/outer margin split below) but
+       with every page-number margin box blanked out, unconditionally
+       (unlike the default @page above, this doesn't need the "mirrored"
+       branching -- there's nothing to mirror when nothing is shown). Actual
+       numbering starts at .manuscript-body (counter-reset below) -- these
+       pages exist but are never counted. */
+    @page frontmatter {
+      size: ${widthMm}mm ${heightMm}mm;
+      margin-top: ${PAGE_MARGIN_TOP_MM}mm;
+      margin-bottom: ${PAGE_MARGIN_BOTTOM_MM}mm;
+      @bottom-left { content: none; }
+      @bottom-center { content: none; }
+      @bottom-right { content: none; }
+      @top-center { content: none; }
+    }
+    @page frontmatter:right {
+      margin-left: ${PAGE_MARGIN_INNER_MM}mm;
+      margin-right: ${PAGE_MARGIN_OUTER_MM}mm;
+    }
+    @page frontmatter:left {
+      margin-left: ${PAGE_MARGIN_OUTER_MM}mm;
+      margin-right: ${PAGE_MARGIN_INNER_MM}mm;
+    }
     /* Back cover -- its own named page, zero margin, so the image fills the
        full physical page (not inset by the interior pages' text margins). */
     @page back-cover {
@@ -258,8 +280,22 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
        inserts the blank verso "форзац" automatically to satisfy this), and
        the colophon (right after the manual page-break the front-matter
        generator already inserts, frontMatter.ts) always lands on verso. */
-    .front-matter { break-before: recto; }
+    .front-matter { break-before: recto; page: frontmatter; }
     .front-matter div[data-type="page-break"] { break-after: verso; }
+    /* Зміст is also a "technical" page -- unnumbered, same as the title
+       page/colophon above. */
+    .toc { page: frontmatter; }
+    /* Real pagination starts here: .manuscript-body reverts to the default
+       (unnamed) page type -- numbers visible again -- and resets the "page"
+       counter to 1 so the first page of actual book text reads "1", not
+       whatever the physical page count up to here happened to be. WeasyPrint
+       honors counter-reset on the special UA-maintained "page" counter the
+       same as any author-defined one. Auto-generated Зміст page-number
+       links (.toc-entry-page below, target-counter) resolve against this
+       SAME reset counter, so they show the reader-facing numbering the
+       reset produces here, not a raw physical-page count that would run
+       ahead of it by however many front-matter pages exist. */
+    .manuscript-body { page: auto; counter-reset: page 1; }
 
     /* NOTE: no blanket ".manuscript-body { break-before: recto }" here
        (removed) -- when Зміст (.toc, also break-before:recto below) happens
@@ -467,8 +503,8 @@ export function buildManuscriptPrintHtml({
   const colophonHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.colophon });
   // Same literal markup PageBreak's own renderHTML emits (pageBreak.ts) --
   // built by hand here (not through the TipTap doc/generateHTML above) since
-  // it's purely a structural seam between the two flex-wrapped title-page
-  // groups and the colophon, not part of either's own node list anymore.
+  // it's purely a structural seam between the title page and the colophon,
+  // not part of either's own node list anymore.
   const titleColophonBreakHtml = `<div data-type="page-break" contenteditable="false"></div>`;
   const bodyHtml = manuscriptContentToHtml({ type: "doc", content: body });
   const tocHtml = buildTocHtml(body);
@@ -482,13 +518,13 @@ export function buildManuscriptPrintHtml({
 <meta charset="utf-8">
 <style>${MANUSCRIPT_PROSE_CSS}</style>
 <style>${printCss(widthMm, heightMm, pageNumberPosition)}</style>
-<style>${titlePageGeometryCss(heightMm, frontMatterMeta)}</style>
+<style>${titlePageGeometryCss(heightMm)}</style>
 </head>
 <body>
 <div class="manuscript-prose">
 <div class="front-matter">
 <div class="titlepage">
-<div class="titlepage-top">${titleTopHtml}</div>
+${titleTopHtml}
 <div class="titlepage-bottom">${titleBottomHtml}</div>
 </div>
 ${titleColophonBreakHtml}
