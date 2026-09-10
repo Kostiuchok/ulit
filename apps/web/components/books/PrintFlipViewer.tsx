@@ -130,7 +130,32 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
       </div>
 
       <div style={{ filter: grayscale ? "grayscale(1)" : "none" }}>
-        <Document file={printPdfUrl} loading={null} error={null}>
+        <Document
+          file={printPdfUrl}
+          // Was loading={null}/error={null} (no feedback at all) -- fine for
+          // a short local file, but this book's own manuscript grew to 368
+          // pages / 14MB during today's testing, and fetching+parsing a file
+          // that size over the network is genuinely slow. With zero loading
+          // UI, that whole window just showed blank white pages with nothing
+          // telling the author anything was happening -- indistinguishable
+          // from "broken" (author-reported 2026-09-10: cover appeared fast,
+          // since it's a separate small <img> below, not part of this
+          // <Document>, but the PDF-backed interior stayed blank with no
+          // explanation). RENDER_WINDOW's own per-leaf blank placeholders
+          // (below) are intentional and unrelated -- this is specifically
+          // about the initial fetch/parse of the whole file having no
+          // indicator at all.
+          loading={
+            <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
+              Завантаження книжки…
+            </div>
+          }
+          error={
+            <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm text-red-500">
+              Не вдалося завантажити PDF. Спробуйте оновити сторінку.
+            </div>
+          }
+        >
           <HTMLFlipBook
             ref={bookRef}
             width={pageW}
