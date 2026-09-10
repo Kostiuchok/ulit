@@ -48,28 +48,35 @@ const PT_TO_MM = 25.4 / 72;
 // (measured against the 200mm-tall reference) hold at any trim size instead
 // of just the one they were measured on.
 //
-// Four fully INDEPENDENT blocks (author instruction, 2026-09-10): 1) pen
-// name, 2) title, 3) subtitle, 4) imprint+year -- each its own
+// Pen name and the imprint+year block are independent -- each its own
 // position:absolute box against a position:relative ".titlepage" ancestor,
-// pinned directly to its own book-trim-aware target distance from the page
-// edge. No block's position is derived from another block's real rendered
-// height anymore (the previous margin-top-chain and even the two-group flex
-// attempt both still had SOME coupling left -- e.g. title's gap depended on
-// whether a pen name was actually present -- either used to occasionally
-// push a later block down when an earlier one wrapped onto a 2nd line).
-// Blocks can now only ever visually collide if the page itself is too short
-// for the combined text (an unavoidable edge case no layout technique
-// fixes), never cascade-shift one another.
+// pinned to its own book-trim-aware target with nothing else able to push it
+// around (this is what fixed the earlier overflow-onto-next-page bug: the
+// bottom block's position no longer depends AT ALL on how tall the content
+// above it turns out to be).
 //
-// Each target is still "distance from the physical page edge to this line's
-// baseline", converted to a CSS `top`/`bottom` via the same "baseline sits
-// ~one font-size below the box's own top" approximation as before -- not
-// pixel-exact per font metrics, but the author-tuned proportions are what
-// matter here, not a sub-millimetre baseline grid. Blocks 1-3 are single
-// lines so this is exact for them; block 4's internal ULIT/Українська
-// літера/рік spacing keeps its own small margin-top chain (those three
-// lines are fixed short strings that never wrap, so chaining within just
-// this one block carries none of the risk that chaining ACROSS blocks did).
+// Title and subtitle are NOT independent of each other, though -- a real
+// title (unlike pen name/imprint/year, all short fixed-ish strings) can wrap
+// onto 2-3 lines (Figma reference, node 154:9), and subtitle needs to sit
+// immediately below wherever title's REAL rendered content actually ends,
+// not at some predetermined fixed spot -- giving each its own absolute
+// position (tried right after the flex/space-between attempt) put them at
+// fixed targets independent of one another, and a wrapped title collided
+// straight into subtitle's fixed spot (author-reported 2026-09-10). So only
+// title's OWN top is pinned (independent of pen name, which is now also
+// out of normal flow); subtitle stays in NORMAL FLOW directly after it, its
+// margin-top a fixed gap ADDED ON TOP of title's real rendered bottom edge
+// (ordinary CSS margin behavior) -- self-adjusting to any wrap, same as
+// body prose already does for every other paragraph on every other page.
+//
+// Each anchor is "distance from the physical page edge to this line's
+// baseline", converted to a CSS `top`/`margin-top` via the same "baseline
+// sits ~one font-size below the box's own top" approximation as before --
+// not pixel-exact per font metrics, but the author-tuned proportions are
+// what matter here, not a sub-millimetre baseline grid. This is exact for
+// pen name, title, and the imprint+year block (all effectively fixed-height);
+// only approximate for the title-to-subtitle gap specifically, by design --
+// see above.
 function titlePageGeometryCss(heightMm: number): string {
   const scale = heightMm / TITLE_PAGE_REFERENCE_HEIGHT_MM;
   const pt2mm = (pt: number) => pt * PT_TO_MM;
@@ -125,25 +132,45 @@ function titlePageGeometryCss(heightMm: number): string {
       position: relative;
       height: ${titlepageHeightMm.toFixed(2)}mm;
     }
-    /* Blocks 1-3 -- each its own absolutely-positioned box, pinned straight
-       to the container's top edge. Taking each fully out of normal flow
-       (not just decoupling their margins) means none of them can ever be
-       pushed by, or push, one another regardless of how many lines any one
-       of them wraps onto. */
+    /* Pen name -- independent, absolutely positioned, pinned to the
+       container's top edge; nothing else in normal flow to collide with. */
     .manuscript-prose p[data-variant="titlepage-author"] {
       position: absolute; left: 0; right: 0; margin: 0;
       top: ${topFor(penNameBaseline, penNameFontMm)}mm;
     }
-    .manuscript-prose p[data-variant="titlepage-title"] {
-      position: absolute; left: 0; right: 0; margin: 0;
+    /* Title+subtitle group -- independent, absolutely positioned (own top
+       anchor, pen name being out of normal flow above means this is always
+       measured from the container's own top regardless of whether pen name
+       exists), pinned to its own top target. position:absolute on THIS
+       wrapper (not on title/subtitle individually) is what matters here: it
+       establishes a fresh block formatting context for its own children,
+       the same reason a plain position:relative ".titlepage" alone would
+       NOT have been enough -- without it, title's margin-top (tens of mm)
+       would collapse straight through and escape this wrapper, silently
+       shifting the whole group (and therefore misaligning pen name and the
+       imprint+year block, both positioned against ".titlepage" assuming its
+       top edge is exactly the page's own content-box top). */
+    .titlepage-titlegroup {
+      position: absolute; left: 0; right: 0;
       top: ${topFor(titleBaseline, titleFontMm)}mm;
     }
-    .manuscript-prose p[data-variant="titlepage-subtitle"] {
-      position: absolute; left: 0; right: 0; margin: 0;
-      top: ${topFor(subtitleBaseline, subtitleFontMm)}mm;
+    /* Title -- first (and only guaranteed) child of titlegroup, flush at
+       its top -- no margin of its own. */
+    .manuscript-prose p[data-variant="titlepage-title"] {
+      margin: 0;
     }
-    /* Block 4 -- imprint (ULIT/Українська літера) + рік, still one unit
-       (they move together), pinned to the container's bottom edge. */
+    /* Subtitle -- NORMAL FLOW within titlegroup (not independently
+       positioned): margin-top here is ordinary CSS margin, added after
+       title's ACTUAL rendered bottom edge, whatever that turns out to be
+       for a title that wrapped onto 2 or 3 lines (Figma reference, node
+       154:9) -- self-adjusts instead of colliding with title the way an
+       independent fixed position did (author-reported 2026-09-10). */
+    .manuscript-prose p[data-variant="titlepage-subtitle"] {
+      margin-top: ${marginTop(subtitleBaseline, titleBaseline, subtitleFontMm)}mm;
+    }
+    /* Imprint (ULIT/Українська літера) + рік -- still one unit (they move
+       together), independent of title/subtitle's real height, pinned to
+       the container's bottom edge. */
     .titlepage-bottom {
       position: absolute;
       left: 0;
@@ -297,13 +324,21 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
        ahead of it by however many front-matter pages exist. */
     .manuscript-body { page: auto; counter-reset: page 1; }
 
-    /* NOTE: no blanket ".manuscript-body { break-before: recto }" here
-       (removed) -- when Зміст (.toc, also break-before:recto below) happens
-       to fill exactly to a recto page, forcing the body onto ANOTHER recto
-       right after inserted an unwanted blank verso page in between (verified
-       against a real render, author-reported). The per-chapter rule below
-       already forces a fresh recto for an actual "Розділ" heading; a body
-       that doesn't open with one is now free to flow directly after Зміст. */
+    /* Зміст holds ONLY the contents list -- body text must never share its
+       page, no exception (author instruction, 2026-09-10). An earlier
+       attempt at this used "break-before: recto" here, which is what the
+       per-chapter rule below still correctly does for an actual "Розділ"
+       opening the book -- but forcing recto UNCONDITIONALLY at the
+       .manuscript-body level too inserted an unwanted extra blank verso
+       page whenever Зміст happened to already end exactly on a recto page
+       (verified against a real render, author-reported). Plain
+       "break-before: page" (next page, whichever side) fixes the actual
+       requirement -- body never starts on Зміст's own page -- without
+       that side effect: it only ever needs a SINGLE page turn, recto or
+       verso, never an extra blank one to reach a specific side. */
+    .manuscript-body {
+      break-before: page;
+    }
 
     /* Розділ (chapter) always starts a fresh recto page; section/heading/
        subheading intentionally force no break (natural flow). */
@@ -498,7 +533,8 @@ export function buildManuscriptPrintHtml({
   const { body } = splitFrontMatter(allContent);
 
   const frontMatterParts = buildFrontMatterParts(frontMatterMeta);
-  const titleTopHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.titleTop });
+  const penNameHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.penName });
+  const titleGroupHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.titleGroup });
   const titleBottomHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.titleBottom });
   const colophonHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.colophon });
   // Same literal markup PageBreak's own renderHTML emits (pageBreak.ts) --
@@ -524,7 +560,8 @@ export function buildManuscriptPrintHtml({
 <div class="manuscript-prose">
 <div class="front-matter">
 <div class="titlepage">
-${titleTopHtml}
+${penNameHtml}
+<div class="titlepage-titlegroup">${titleGroupHtml}</div>
 <div class="titlepage-bottom">${titleBottomHtml}</div>
 </div>
 ${titleColophonBreakHtml}

@@ -42,12 +42,18 @@ function styledParagraph(style: StyledBlockStyleName, text: string, variant?: st
 }
 
 export interface FrontMatterParts {
-  // Pen name / title / subtitle -- variable-length, author-controlled text
-  // that can wrap onto 2+ lines for a long title. Kept in its own group so
-  // printHtml.ts can size it independently of titleBottom below.
-  titleTop: any[];
+  // Pen name -- own independent group (possibly empty: authorPenName is
+  // optional), positioned by printHtml.ts with nothing else able to push it.
+  penName: any[];
+  // Title + subtitle -- kept as one group (unlike penName/titleBottom)
+  // because subtitle must sit immediately below title's REAL rendered
+  // bottom edge, whatever a wrapped multi-line title's real height turns
+  // out to be -- printHtml.ts renders this pair in normal flow inside their
+  // own positioned wrapper, not each independently placed.
+  titleGroup: any[];
   // Imprint ("ULIT" / "Українська літера") + year -- fixed, short strings
-  // that never wrap in practice, bottom-pinned on the title page.
+  // that never wrap in practice, bottom-pinned on the title page,
+  // independent of titleGroup's real height.
   titleBottom: any[];
   colophon: any[];
 }
@@ -80,10 +86,11 @@ export function buildFrontMatterParts(meta: FrontMatterMeta): FrontMatterParts {
   // styling, wrong for a handful of standalone title-page lines; each gets
   // its own "titlepage-*" variant in proseStyles.ts so it never inherits
   // data-style="normal"'s text-indent/justify by accident).
-  const titleTop: any[] = [];
-  if (meta.authorPenName) titleTop.push(styledParagraph("normal", meta.authorPenName, "titlepage-author"));
-  titleTop.push(styledParagraph("heading", meta.title, "titlepage-title"));
-  if (meta.subtitle) titleTop.push(styledParagraph("subheading", meta.subtitle, "titlepage-subtitle"));
+  const penName: any[] = [];
+  if (meta.authorPenName) penName.push(styledParagraph("normal", meta.authorPenName, "titlepage-author"));
+
+  const titleGroup: any[] = [styledParagraph("heading", meta.title, "titlepage-title")];
+  if (meta.subtitle) titleGroup.push(styledParagraph("subheading", meta.subtitle, "titlepage-subtitle"));
 
   // Two-line publisher imprint + year, own variant per line (printHtml.ts's
   // title-page geometry gives each its own computed margin-top WITHIN this
@@ -127,5 +134,5 @@ export function buildFrontMatterParts(meta: FrontMatterMeta): FrontMatterParts {
 
   colophon.push({ type: "horizontalRule" });
 
-  return { titleTop, titleBottom, colophon };
+  return { penName, titleGroup, titleBottom, colophon };
 }
