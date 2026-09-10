@@ -263,9 +263,7 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
        page (still needs the recto/verso inner/outer margin split below) but
        with every page-number margin box blanked out, unconditionally
        (unlike the default @page above, this doesn't need the "mirrored"
-       branching -- there's nothing to mirror when nothing is shown). Actual
-       numbering starts at .manuscript-body (counter-reset below) -- these
-       pages exist but are never counted. */
+       branching -- there's nothing to mirror when nothing is shown). */
     @page frontmatter {
       size: ${widthMm}mm ${heightMm}mm;
       margin-top: ${PAGE_MARGIN_TOP_MM}mm;
@@ -313,16 +311,18 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
        page/colophon above. */
     .toc { page: frontmatter; }
     /* Real pagination starts here: .manuscript-body reverts to the default
-       (unnamed) page type -- numbers visible again -- and resets the "page"
-       counter to 1 so the first page of actual book text reads "1", not
-       whatever the physical page count up to here happened to be. WeasyPrint
-       honors counter-reset on the special UA-maintained "page" counter the
-       same as any author-defined one. Auto-generated Зміст page-number
-       links (.toc-entry-page below, target-counter) resolve against this
-       SAME reset counter, so they show the reader-facing numbering the
-       reset produces here, not a raw physical-page count that would run
-       ahead of it by however many front-matter pages exist. */
-    .manuscript-body { page: auto; counter-reset: page 1; }
+       (unnamed) page type -- numbers visible again.
+       NOTE: this used to also carry "counter-reset: page 1" so the first
+       body page would read "1" instead of the raw physical page count --
+       reverted (author-reported 2026-09-10: Зміст's own page-number links,
+       .toc-entry-page below via target-counter, came out wrong). Resetting
+       the special "page" counter mid-document is a long-standing
+       known-broken combination with target-counter specifically in
+       WeasyPrint (Kozea/WeasyPrint issues #93, #267, #2114 -- numbers come
+       out as 0 or otherwise wrong), not something fixable from CSS alone.
+       Body pages -- and Зміст's own links -- show the real physical page
+       count (front matter included) again instead. */
+    .manuscript-body { page: auto; }
 
     /* Зміст holds ONLY the contents list -- body text must never share its
        page, no exception (author instruction, 2026-09-10). An earlier
