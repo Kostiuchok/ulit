@@ -139,22 +139,29 @@ export const MANUSCRIPT_PROSE_CSS = `
       .manuscript-prose p[data-variant="titlepage-title"] {
         text-align: center; text-indent: 0; font-size: 24pt; font-weight: 700; margin: 0.3em 0 0; line-height: 1.3em;
       }
+      /* Regular weight, plain black -- NOT the "medium"/gray originally
+         specified in text; corrected against the Figma reference (node
+         154:10, node-id=14-657) 2026-09-10, which shows this as plain
+         Times New Roman Regular, same color as everything else on the
+         page. Title (below) is the only bold line on the title page. */
       .manuscript-prose p[data-variant="titlepage-subtitle"] {
-        text-align: center; text-indent: 0; font-size: 20pt; font-weight: 500; color: #444; margin: 0.2em 0 0; line-height: 1.3em;
+        text-align: center; text-indent: 0; font-size: 20pt; font-weight: 400; margin: 0.2em 0 0; line-height: 1.3em;
       }
-      /* Two-line imprint block ("ULIT" / "Українська літера"), both bold,
-         same size -- own variant per line so printHtml.ts's title-page
-         geometry can give each line its own book-trim-aware margin-top; here
-         (live editor/preview, not print-geometry-aware) they just sit close
-         together with a bigger gap pushing the pair down from the subtitle. */
+      /* Two-line imprint block ("ULIT" / "Українська літера"), same size --
+         own variant per line so printHtml.ts's title-page geometry can give
+         each line its own book-trim-aware margin-top; here (live
+         editor/preview, not print-geometry-aware) they just sit close
+         together with a bigger gap pushing the pair down from the subtitle.
+         Regular weight, not bold -- corrected against the Figma reference
+         (node 154:11) 2026-09-10, same reasoning as titlepage-subtitle above. */
       .manuscript-prose p[data-variant="titlepage-imprint-line1"] {
-        text-align: center; text-indent: 0; font-size: 16pt; font-weight: 700; margin: 10em 0 0; line-height: 1.2;
+        text-align: center; text-indent: 0; font-size: 16pt; font-weight: 400; margin: 10em 0 0; line-height: 1.2;
       }
       .manuscript-prose p[data-variant="titlepage-imprint-line2"] {
-        text-align: center; text-indent: 0; font-size: 16pt; font-weight: 700; margin: 0; line-height: 1.2;
+        text-align: center; text-indent: 0; font-size: 16pt; font-weight: 400; margin: 0; line-height: 1.2;
       }
       .manuscript-prose p[data-variant="titlepage-year"] {
-        text-align: center; text-indent: 0; font-size: 14pt; font-weight: 400; color: #333; margin: 2em 0 0;
+        text-align: center; text-indent: 0; font-size: 14pt; font-weight: 400; margin: 2em 0 0;
       }
       .manuscript-prose p[data-variant="colophon-code"] {
         font-weight: 400; font-size: 0.8rem; text-align: left; text-indent: 0; margin: 0 0 0.15em;
