@@ -593,14 +593,23 @@ function OutputDataContent() {
     setContributors(Array.isArray(book.contributors) ? book.contributors : []);
     setAuthorBio(book.authorBio ?? "");
     infoForm.reset({
-      title: book.title,
+      // Prefer the staged pending* value over the live one when this book is
+      // PUBLISHED and has an unsent edit sitting in moderation limbo
+      // (book.ts PATCH stages title/description/genre into pending* instead
+      // of writing them live) -- otherwise returning to this page after
+      // saving such an edit showed the OLD live value back in the field,
+      // reading as "my change was lost" even though it was saved correctly
+      // as a draft (RepublishButton's "Очікує: назву" note was the only
+      // place the fact of a pending edit was visible; the actual staged
+      // TEXT was nowhere on screen until now).
+      title: book.pendingTitle ?? book.title,
       subtitle: book.subtitle ?? "",
-      description: book.description ?? "",
+      description: book.pendingDescription ?? book.description ?? "",
       // Cast, not a narrowed type -- seeds the <select> from whatever's
       // already on the book, including a legacy free-text genre saved
       // before this field was enforced as an enum (falls back to no
       // <option> matching, same as an unset genre, rather than crashing).
-      genre: (book.genre ?? "") as InfoForm["genre"],
+      genre: (book.pendingGenre ?? book.genre ?? "") as InfoForm["genre"],
       printFormatKey: resolveBookPrintFormat(book).key,
       // Cast -- same reasoning as genre above: toOptionalSelectField's
       // literal-union output type (AgeRating | "" | undefined) doesn't

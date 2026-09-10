@@ -68,6 +68,14 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
         title: true,
         subtitle: true,
         description: true,
+        // Staged edits to an already-PUBLISHED book (book.ts PATCH) --
+        // author-facing "Передперегляд" must always render what the author
+        // actually just saved, not the still-live public value sitting
+        // behind it awaiting admin approval (apps/web output-data page
+        // explicitly does the same title/description substitution for its
+        // own form; this is the print-render side of that same request).
+        pendingTitle: true,
+        pendingDescription: true,
         bookAuthors: true,
         ageRating: true,
         isbn: true,
@@ -88,7 +96,9 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
     );
     const authorNames = formatAuthorNames(book.bookAuthors, book.author.name);
     const frontMatterMeta: FrontMatterMeta = {
-      title: book.title,
+      // pendingTitle/pendingDescription over the live column -- see the
+      // select above; falls back to live whenever there's no staged edit.
+      title: book.pendingTitle ?? book.title,
       subtitle: book.subtitle,
       // Title page shows the account's own pen name, not the legal name
       // authorNames.display/catalog below carry for the colophon -- see
@@ -97,7 +107,7 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
       authorPenName: book.author.name,
       authorNameDisplay: authorNames.display,
       authorNameCatalog: authorNames.catalog,
-      description: book.description,
+      description: book.pendingDescription ?? book.description,
       ageRating: book.ageRating,
       isbn: book.isbn,
       udcCode: book.udcCode,
