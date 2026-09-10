@@ -81,7 +81,28 @@ export const MANUSCRIPT_PROSE_CSS = `
       }
       .manuscript-prose .toc-entry-page { flex: none; margin-left: 0.75em; text-align: right; }
 
-      .manuscript-prose img { max-width: 100%; height: auto; display: block; }
+      /* height:auto !important -- not just height:auto -- because
+         @tiptap/extension-image's built-in resize node view
+         (resizableImage.ts) applies its committed width/height as INLINE
+         styles on the <img> itself (ResizableNodeView, @tiptap/core),
+         which beats a plain (non-!important) author rule regardless of
+         selector specificity. The inline height was committed relative to
+         whatever the editor's canvas width was AT THE TIME of that resize;
+         toggling "Змінити розмір канвасу" (pageCheckMode, ManuscriptEditor.tsx)
+         narrows the canvas afterwards, so max-width:100% then shrinks the
+         image's DISPLAYED width below that stale inline height's original
+         proportions -- normally CSS would auto-recompute height to match,
+         but the inline height style blocks exactly that unless this rule
+         wins over it too. Verified against a real report (author,
+         2026-09-10): an image resized under a wide canvas came out
+         squashed sideways once the canvas was later narrowed. Forcing
+         auto here doesn't remove any real capability -- resize.enabled's
+         own alwaysPreserveAspectRatio (resizableImage.ts) already
+         constrains every drag to stay proportional, so the browser's own
+         aspect-ratio-preserving auto-height computation from the image's
+         natural dimensions always lands on the same rectangle intentional
+         resizing would have produced anyway. */
+      .manuscript-prose img { max-width: 100%; height: auto !important; display: block; }
       .manuscript-prose [data-resize-container] { max-width: 100%; }
       /* Bare <img>, not wrapped in a [data-resize-container] -- this is what
          generateHTML() (print PDF + pagination probe) renders, since it has

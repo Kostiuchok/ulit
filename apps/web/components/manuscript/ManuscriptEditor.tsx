@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -213,6 +213,7 @@ function extractOutline(editor: Editor): OutlineItem[] {
 export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides, printFormat, printPdfUrl }: Props) {
   const { apiFetch, apiUpload } = useApi();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const pageGeometry = useMemo(
     () => (printFormat ? computePageGeometry(printFormat.widthMm, printFormat.heightMm) : DEFAULT_PAGE_GEOMETRY),
@@ -452,6 +453,27 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     performSave(editor.getJSON(), withPageNumberPosition(styleOverrides, pageNumberPosition));
   }
 
+  // "Передперегляд книги" used to be a plain <Link> -- navigating straight
+  // there right after an edit (e.g. dragging an image's resize handle,
+  // committed via onUpdate -> scheduleSave, 2s debounce below) could beat
+  // that pending autosave PATCH to the server. print-preview.ts's own
+  // staleness check only looks at manuscriptEditedAt vs printPdfGeneratedAt
+  // -- if the GET fired before the autosave landed, it saw the OLD
+  // timestamp, decided nothing had changed, and served the existing
+  // (pre-resize) rendered PDF -- author-reported 2026-09-10: "я змінюю
+  // розмір картинки... результат: картинка залишилася без змін". Flushing
+  // any pending save FIRST (awaited) before navigating closes that race.
+  async function goToPreview() {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+      if (editor) {
+        await performSave(editor.getJSON(), withPageNumberPosition(styleOverrides, pageNumberPosition));
+      }
+    }
+    router.push(`/dashboard/books/${bookId}/manuscript/preview`);
+  }
+
   useEffect(() => {
     if (editor) setOutline(extractOutline(editor));
   }, [editor]);
@@ -549,8 +571,9 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               it just confirms that's done. Tooltip still names the actual
               PDF file, not the button's own action label -- it's reporting
               the underlying artifact's state, not what the click does. */}
-          <Link
-            href={`/dashboard/books/${bookId}/manuscript/preview`}
+          <button
+            type="button"
+            onClick={goToPreview}
             className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 text-[0.8125rem] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             title={
               printPdfUrl
@@ -567,7 +590,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
                 обов&apos;язково
               </span>
             )}
-          </Link>
+          </button>
           <div className="h-5 w-px shrink-0 bg-gray-200" />
 
           {/* Everything below scrolls horizontally as one unit once it no
