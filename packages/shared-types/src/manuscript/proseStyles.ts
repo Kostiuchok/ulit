@@ -137,10 +137,10 @@ export const MANUSCRIPT_PROSE_CSS = `
         text-align: center; text-indent: 0; font-size: 16pt; font-weight: 400; margin: 5em 0 0;
       }
       .manuscript-prose p[data-variant="titlepage-title"] {
-        text-align: center; text-indent: 0; font-size: 24pt; font-weight: 700; margin: 0.3em 0 0;
+        text-align: center; text-indent: 0; font-size: 24pt; font-weight: 700; margin: 0.3em 0 0; line-height: 1.3em;
       }
       .manuscript-prose p[data-variant="titlepage-subtitle"] {
-        text-align: center; text-indent: 0; font-size: 20pt; font-weight: 500; color: #444; margin: 0.2em 0 0;
+        text-align: center; text-indent: 0; font-size: 20pt; font-weight: 500; color: #444; margin: 0.2em 0 0; line-height: 1.3em;
       }
       /* Two-line imprint block ("ULIT" / "Українська літера"), both bold,
          same size -- own variant per line so printHtml.ts's title-page
