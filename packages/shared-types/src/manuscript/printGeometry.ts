@@ -55,8 +55,8 @@ export const TITLE_PAGE_YEAR_BOTTOM_MM = 20; // bottom edge -> year line baselin
 // Font sizes are absolute typographic sizes (pt), not scaled by trim size --
 // only the vertical rhythm above is made proportional per author instruction.
 export const TITLE_PAGE_PEN_NAME_FONT_PT = 16;
-export const TITLE_PAGE_TITLE_FONT_PT = 24;
-export const TITLE_PAGE_SUBTITLE_FONT_PT = 20;
+export const TITLE_PAGE_TITLE_FONT_PT = 20; // kept in sync with proseStyles.ts's titlepage-title, though currently unused here -- printHtml.ts's title-centering (transform:translateY) doesn't need to know the font size, unlike every other line
+export const TITLE_PAGE_SUBTITLE_FONT_PT = 18;
 export const TITLE_PAGE_IMPRINT_FONT_PT = 16;
 export const TITLE_PAGE_YEAR_FONT_PT = 14;
 // Explicit (not browser/WeasyPrint "normal") line-height for the two-line

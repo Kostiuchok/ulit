@@ -158,7 +158,7 @@ export const MANUSCRIPT_PROSE_CSS = `
         text-align: center; text-indent: 0; font-size: 16pt; font-weight: 400; margin: 5em 0 0;
       }
       .manuscript-prose p[data-variant="titlepage-title"] {
-        text-align: center; text-indent: 0; font-size: 24pt; font-weight: 700; margin: 0.3em 0 0; line-height: 1.3em;
+        text-align: center; text-indent: 0; font-size: 20pt; font-weight: 700; margin: 0.3em 0 0; line-height: 1.3em;
       }
       /* Regular weight, plain black -- NOT the "medium"/gray originally
          specified in text; corrected against the Figma reference (node
@@ -166,7 +166,7 @@ export const MANUSCRIPT_PROSE_CSS = `
          Times New Roman Regular, same color as everything else on the
          page. Title (below) is the only bold line on the title page. */
       .manuscript-prose p[data-variant="titlepage-subtitle"] {
-        text-align: center; text-indent: 0; font-size: 20pt; font-weight: 400; margin: 0.2em 0 0; line-height: 1.3em;
+        text-align: center; text-indent: 0; font-size: 18pt; font-weight: 400; margin: 0.2em 0 0; line-height: 1.3em;
       }
       /* Two-line imprint block ("ULIT" / "Українська літера"), same size --
          own variant per line so printHtml.ts's title-page geometry can give
