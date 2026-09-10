@@ -113,16 +113,32 @@ function titlePageGeometryCss(heightMm: number, meta: Pick<FrontMatterMeta, "aut
   // ".titlepage"'s own height: translates yearBaseline (an absolute target
   // measured from the physical page top) into a height relative to the
   // container's own top edge (which starts flush at the content box's top,
-  // PAGE_MARGIN_TOP_MM down from the physical edge) -- what space-between
-  // actually needs to know to push titleBottom flush against it.
+  // PAGE_MARGIN_TOP_MM down from the physical edge) -- what pins titleBottom
+  // (bottom:0, absolutely positioned against this box) flush against it.
   const titlepageHeightMm = Math.max(0, yearBaseline - PAGE_MARGIN_TOP_MM);
 
   return `
+    /* position:relative + explicit height (not flex/justify-content:
+       space-between, tried first) -- WeasyPrint's flexbox support turned out
+       not to be reliable enough for this (verified against a real render,
+       author-reported 2026-09-10: no spacing between the title-page lines
+       at all, and the page still overflowed). position:absolute against a
+       sized ancestor is a much older, more consistently-supported CSS
+       feature and is the textbook tool for exactly this "pin to a fixed
+       point, independent of a sibling's real height" need -- titleBottom
+       below is pulled completely out of normal flow, so titleTop's actual
+       rendered height (1 line or 3, wrapped or not) can never affect its
+       position at all, not even indirectly through a margin/flex
+       calculation. */
     .titlepage {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      position: relative;
       height: ${titlepageHeightMm.toFixed(2)}mm;
+    }
+    .titlepage-bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
     }
     .manuscript-prose p[data-variant="titlepage-author"] {
       margin-top: ${marginTop(penNameBaseline, PAGE_MARGIN_TOP_MM, penNameFontMm)}mm;
@@ -134,8 +150,9 @@ function titlePageGeometryCss(heightMm: number, meta: Pick<FrontMatterMeta, "aut
       margin-top: ${marginTop(subtitleBaseline, titleBaseline, subtitleFontMm)}mm;
     }
     /* First child of ".titlepage-bottom" -- its position comes entirely from
-       the flex container's own space-between (flush to titlepage's bottom
-       edge), not from a margin-top chain reaching back through titleTop. */
+       the absolutely-positioned parent's own bottom:0 (flush to titlepage's
+       bottom edge), not from a margin-top chain reaching back through
+       titleTop. */
     .manuscript-prose p[data-variant="titlepage-imprint-line1"] {
       margin-top: 0;
     }
