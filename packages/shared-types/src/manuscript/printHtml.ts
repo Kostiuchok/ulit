@@ -12,6 +12,18 @@ import {
   BODY_FONT_PT,
   BODY_LINE_HEIGHT_EM,
   PAGE_NUMBER_BOTTOM_OFFSET_MM,
+  TITLE_PAGE_REFERENCE_HEIGHT_MM,
+  TITLE_PAGE_PEN_NAME_TOP_MM,
+  TITLE_PAGE_TITLE_TOP_MM,
+  TITLE_PAGE_SUBTITLE_GAP_MM,
+  TITLE_PAGE_IMPRINT_BOTTOM_MM,
+  TITLE_PAGE_YEAR_BOTTOM_MM,
+  TITLE_PAGE_PEN_NAME_FONT_PT,
+  TITLE_PAGE_TITLE_FONT_PT,
+  TITLE_PAGE_SUBTITLE_FONT_PT,
+  TITLE_PAGE_IMPRINT_FONT_PT,
+  TITLE_PAGE_YEAR_FONT_PT,
+  TITLE_PAGE_IMPRINT_LINE_HEIGHT_EM,
 } from "./printGeometry";
 
 // T-2057 -- print-only CSS on top of the shared MANUSCRIPT_PROSE_CSS (which
@@ -28,6 +40,84 @@ import {
 // manuscriptLayout.ts) now reads the exact same constants, so the two can
 // no longer drift on margins the way they used to when the editor hardcoded
 // its own approximate numbers.
+
+const PT_TO_MM = 25.4 / 72;
+
+// Title-page vertical rhythm, computed fresh per render from the book's own
+// physical trim height so the proportions in printGeometry.ts's comment
+// (measured against the 200mm-tall reference) hold at any trim size instead
+// of just the one they were measured on. Each line's target is expressed as
+// "distance from the physical page edge to this line's baseline"; margin-top
+// is then derived as (this baseline - previous baseline - this line's own
+// font-size), the same "baseline sits ~one font-size below the box's own
+// top" approximation printHtml.ts already leans on elsewhere for front-matter
+// layout (frontMatter.ts's own header comment) -- not pixel-exact per font
+// metrics, but the author-tuned proportions are what matter here, not a
+// sub-millimetre baseline grid.
+function titlePageGeometryCss(
+  heightMm: number,
+  meta: Pick<FrontMatterMeta, "authorPenName" | "subtitle">
+): string {
+  const scale = heightMm / TITLE_PAGE_REFERENCE_HEIGHT_MM;
+  const pt2mm = (pt: number) => pt * PT_TO_MM;
+
+  const penNameFontMm = pt2mm(TITLE_PAGE_PEN_NAME_FONT_PT);
+  const titleFontMm = pt2mm(TITLE_PAGE_TITLE_FONT_PT);
+  const subtitleFontMm = pt2mm(TITLE_PAGE_SUBTITLE_FONT_PT);
+  const imprintFontMm = pt2mm(TITLE_PAGE_IMPRINT_FONT_PT);
+  const yearFontMm = pt2mm(TITLE_PAGE_YEAR_FONT_PT);
+  const imprintLineHeightMm = imprintFontMm * TITLE_PAGE_IMPRINT_LINE_HEIGHT_EM;
+
+  // Clamped against the fixed (unscaled) print margins -- on the smallest
+  // supported trim (pocket, 107x177mm) the scaled bottom distances land
+  // INSIDE PAGE_MARGIN_BOTTOM_MM's fixed 20mm (17.7mm at that size for the
+  // year line), i.e. past the printable content box's own bottom edge,
+  // which WeasyPrint can't render as plain flowed text without pushing it
+  // onto a next page. Floors keep every target inside the printable area at
+  // every supported trim size instead of only the ones at or above the
+  // 200mm reference.
+  const penNameBaseline = Math.max(TITLE_PAGE_PEN_NAME_TOP_MM * scale, PAGE_MARGIN_TOP_MM);
+  const titleBaseline = TITLE_PAGE_TITLE_TOP_MM * scale;
+  const subtitleBaseline = titleBaseline + TITLE_PAGE_SUBTITLE_GAP_MM * scale;
+  const imprintBottomMm = Math.max(TITLE_PAGE_IMPRINT_BOTTOM_MM * scale, PAGE_MARGIN_BOTTOM_MM);
+  const yearBottomMm = Math.max(TITLE_PAGE_YEAR_BOTTOM_MM * scale, PAGE_MARGIN_BOTTOM_MM);
+  const imprintLine2Baseline = heightMm - imprintBottomMm;
+  const imprintLine1Baseline = imprintLine2Baseline - imprintLineHeightMm;
+  const yearBaseline = heightMm - yearBottomMm;
+
+  // margin-top is relative to whatever line actually precedes it in the DOM
+  // -- authorPenName/subtitle are both optional, so "the line before the
+  // imprint block" isn't always the subtitle; falling through to whichever
+  // of subtitle/title/top-of-page is the real previous sibling keeps the gap
+  // correct instead of leaving a phantom blank space sized for a line that
+  // was never rendered.
+  const beforeTitleBaseline = meta.authorPenName ? penNameBaseline : PAGE_MARGIN_TOP_MM;
+  const beforeImprintBaseline = meta.subtitle ? subtitleBaseline : titleBaseline;
+
+  const marginTop = (baseline: number, prevBaseline: number, fontMm: number) =>
+    Math.max(0, baseline - prevBaseline - fontMm).toFixed(2);
+
+  return `
+    .manuscript-prose p[data-variant="titlepage-author"] {
+      margin-top: ${marginTop(penNameBaseline, PAGE_MARGIN_TOP_MM, penNameFontMm)}mm;
+    }
+    .manuscript-prose p[data-variant="titlepage-title"] {
+      margin-top: ${marginTop(titleBaseline, beforeTitleBaseline, titleFontMm)}mm;
+    }
+    .manuscript-prose p[data-variant="titlepage-subtitle"] {
+      margin-top: ${marginTop(subtitleBaseline, titleBaseline, subtitleFontMm)}mm;
+    }
+    .manuscript-prose p[data-variant="titlepage-imprint-line1"] {
+      margin-top: ${marginTop(imprintLine1Baseline, beforeImprintBaseline, imprintFontMm)}mm;
+    }
+    .manuscript-prose p[data-variant="titlepage-imprint-line2"] {
+      margin-top: ${marginTop(imprintLine2Baseline, imprintLine1Baseline, imprintFontMm)}mm;
+    }
+    .manuscript-prose p[data-variant="titlepage-year"] {
+      margin-top: ${marginTop(yearBaseline, imprintLine2Baseline, yearFontMm)}mm;
+    }
+  `;
+}
 
 function pageNumberMarginBox(position: PageNumberPosition): string {
   switch (position) {
@@ -338,6 +428,7 @@ export function buildManuscriptPrintHtml({
 <meta charset="utf-8">
 <style>${MANUSCRIPT_PROSE_CSS}</style>
 <style>${printCss(widthMm, heightMm, pageNumberPosition)}</style>
+<style>${titlePageGeometryCss(heightMm, frontMatterMeta)}</style>
 </head>
 <body>
 <div class="manuscript-prose">

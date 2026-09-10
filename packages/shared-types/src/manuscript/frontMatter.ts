@@ -67,8 +67,11 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
   if (meta.authorPenName) nodes.push(styledParagraph("normal", meta.authorPenName, "titlepage-author"));
   nodes.push(styledParagraph("heading", meta.title, "titlepage-title"));
   if (meta.subtitle) nodes.push(styledParagraph("subheading", meta.subtitle, "titlepage-subtitle"));
-  nodes.push(styledParagraph("normal", "Видано на платформі Ulit", "titlepage-imprint"));
-  nodes.push(styledParagraph("normal", String(year), "titlepage-year"));
+  // Two-line publisher imprint, own variant per line (printHtml.ts's title-
+  // page geometry needs to give each line its own computed margin-top).
+  nodes.push(styledParagraph("normal", "ULIT", "titlepage-imprint-line1"));
+  nodes.push(styledParagraph("normal", "Українська літера", "titlepage-imprint-line2"));
+  nodes.push(styledParagraph("normal", `Київ - ${year}`, "titlepage-year"));
 
   nodes.push({ type: "pageBreak" });
 

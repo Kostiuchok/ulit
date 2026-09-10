@@ -134,19 +134,27 @@ export const MANUSCRIPT_PROSE_CSS = `
          standalone lines -- the original bug: author-name/year had no
          variant at all and inherited it, rendering visibly crooked). */
       .manuscript-prose p[data-variant="titlepage-author"] {
-        text-align: left; text-indent: 0; font-size: 0.95rem; margin: 5em 0 0;
+        text-align: center; text-indent: 0; font-size: 16pt; font-weight: 400; margin: 5em 0 0;
       }
       .manuscript-prose p[data-variant="titlepage-title"] {
-        text-align: left; text-indent: 0; font-size: 1.7rem; font-weight: 700; margin: 0.3em 0 0;
+        text-align: center; text-indent: 0; font-size: 24pt; font-weight: 700; margin: 0.3em 0 0;
       }
       .manuscript-prose p[data-variant="titlepage-subtitle"] {
-        text-align: left; text-indent: 0; font-size: 1.05rem; font-weight: 400; color: #444; margin: 0.2em 0 0;
+        text-align: center; text-indent: 0; font-size: 20pt; font-weight: 500; color: #444; margin: 0.2em 0 0;
       }
-      .manuscript-prose p[data-variant="titlepage-imprint"] {
-        text-align: left; font-size: 0.8rem; color: #888; margin: 1.5em 0 0; text-indent: 0;
+      /* Two-line imprint block ("ULIT" / "Українська літера"), both bold,
+         same size -- own variant per line so printHtml.ts's title-page
+         geometry can give each line its own book-trim-aware margin-top; here
+         (live editor/preview, not print-geometry-aware) they just sit close
+         together with a bigger gap pushing the pair down from the subtitle. */
+      .manuscript-prose p[data-variant="titlepage-imprint-line1"] {
+        text-align: center; text-indent: 0; font-size: 16pt; font-weight: 700; margin: 10em 0 0; line-height: 1.2;
+      }
+      .manuscript-prose p[data-variant="titlepage-imprint-line2"] {
+        text-align: center; text-indent: 0; font-size: 16pt; font-weight: 700; margin: 0; line-height: 1.2;
       }
       .manuscript-prose p[data-variant="titlepage-year"] {
-        text-align: left; text-indent: 0; font-size: 0.85rem; color: #333; margin: 22em 0 0;
+        text-align: center; text-indent: 0; font-size: 14pt; font-weight: 400; color: #333; margin: 2em 0 0;
       }
       .manuscript-prose p[data-variant="colophon-code"] {
         font-weight: 400; font-size: 0.8rem; text-align: left; text-indent: 0; margin: 0 0 0.15em;
