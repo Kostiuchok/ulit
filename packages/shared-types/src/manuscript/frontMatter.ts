@@ -41,6 +41,17 @@ function styledParagraph(style: StyledBlockStyleName, text: string, variant?: st
   };
 }
 
+export interface FrontMatterParts {
+  // Pen name / title / subtitle -- variable-length, author-controlled text
+  // that can wrap onto 2+ lines for a long title. Kept in its own group so
+  // printHtml.ts can size it independently of titleBottom below.
+  titleTop: any[];
+  // Imprint ("ULIT" / "Українська літера") + year -- fixed, short strings
+  // that never wrap in practice, bottom-pinned on the title page.
+  titleBottom: any[];
+  colophon: any[];
+}
+
 /**
  * Ridero-style title + colophon pages, generated fresh at print-render time
  * from live Book fields (Вихідні дані) -- NOT persisted into
@@ -49,45 +60,54 @@ function styledParagraph(style: StyledBlockStyleName, text: string, variant?: st
  * which meant ISBN/УДК/anotation baked in at that moment never updated
  * again; this generator is now called fresh on every print-PDF render
  * instead (see printHtml.ts), so it always reflects the current book data.
+ *
+ * Returns titleTop/titleBottom/colophon as three separate node arrays
+ * instead of one flat list -- printHtml.ts renders each separately and
+ * wraps titleTop/titleBottom in their own flex-positioned divs, so the
+ * bottom group (imprint+year) stays pinned to its own book-trim-aware
+ * target distance from the page's physical bottom edge NO MATTER how tall
+ * titleTop's real rendered height turns out to be (a long title/subtitle
+ * wrapping onto a 2nd line used to push margin-top-chained siblings below it
+ * further down than intended, occasionally overflowing onto a second page --
+ * a single shared margin-top chain can't tell "this line wrapped" from "this
+ * line didn't", flex's own layout can).
  */
-export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
-  const nodes: any[] = [];
+export function buildFrontMatterParts(meta: FrontMatterMeta): FrontMatterParts {
   const year = meta.createdAt ? new Date(meta.createdAt).getFullYear() : new Date().getFullYear();
 
   // --- Page 1: title page -- author, title, subtitle, publisher imprint,
-  // year -- left-aligned, no paragraph indent/justify (that's body-prose
+  // year -- centered, no paragraph indent/justify (that's body-prose
   // styling, wrong for a handful of standalone title-page lines; each gets
   // its own "titlepage-*" variant in proseStyles.ts so it never inherits
-  // data-style="normal"'s text-indent/justify by accident). Author/year get
-  // a large margin-top push each, matching the Ridero reference's rhythm
-  // (name near the top third, title bold below it, big gap, year near the
-  // bottom) -- CSS Paged Media can't flex/absolute-position "bottom of this
-  // specific page" across a fragmented div, so this is a tuned approximation
-  // for the common print formats, not pixel-exact for every trim size.
-  if (meta.authorPenName) nodes.push(styledParagraph("normal", meta.authorPenName, "titlepage-author"));
-  nodes.push(styledParagraph("heading", meta.title, "titlepage-title"));
-  if (meta.subtitle) nodes.push(styledParagraph("subheading", meta.subtitle, "titlepage-subtitle"));
-  // Two-line publisher imprint, own variant per line (printHtml.ts's title-
-  // page geometry needs to give each line its own computed margin-top).
-  nodes.push(styledParagraph("normal", "ULIT", "titlepage-imprint-line1"));
-  nodes.push(styledParagraph("normal", "Українська літера", "titlepage-imprint-line2"));
-  nodes.push(styledParagraph("normal", `Київ - ${year}`, "titlepage-year"));
+  // data-style="normal"'s text-indent/justify by accident).
+  const titleTop: any[] = [];
+  if (meta.authorPenName) titleTop.push(styledParagraph("normal", meta.authorPenName, "titlepage-author"));
+  titleTop.push(styledParagraph("heading", meta.title, "titlepage-title"));
+  if (meta.subtitle) titleTop.push(styledParagraph("subheading", meta.subtitle, "titlepage-subtitle"));
 
-  nodes.push({ type: "pageBreak" });
+  // Two-line publisher imprint + year, own variant per line (printHtml.ts's
+  // title-page geometry gives each its own computed margin-top WITHIN this
+  // group -- the group as a whole is what's pinned to the page bottom).
+  const titleBottom: any[] = [
+    styledParagraph("normal", "ULIT", "titlepage-imprint-line1"),
+    styledParagraph("normal", "Українська літера", "titlepage-imprint-line2"),
+    styledParagraph("normal", `Київ - ${year}`, "titlepage-year"),
+  ];
 
   // --- Page 2: colophon (Ridero-style випускні дані) -- catalog codes
   // stacked top-left, typesetting note, bold author byline (surname-first),
   // hanging-indent bibliographic line (author-sign as the hanging label),
   // annotation, bold catalog-code repeat, age-rating badge, copyright
   // pinned toward the bottom. ---
+  const colophon: any[] = [];
   const authorCatalog = meta.authorNameCatalog ?? meta.authorNameDisplay;
 
-  if (meta.udcCode) nodes.push(styledParagraph("normal", `УДК ${meta.udcCode}`, "colophon-code"));
-  if (meta.authorSign) nodes.push(styledParagraph("normal", meta.authorSign, "colophon-code"));
+  if (meta.udcCode) colophon.push(styledParagraph("normal", `УДК ${meta.udcCode}`, "colophon-code"));
+  if (meta.authorSign) colophon.push(styledParagraph("normal", meta.authorSign, "colophon-code"));
 
-  nodes.push(styledParagraph("normal", "Комп'ютерна верстка. Гарнітура Times New Roman.", "colophon-meta"));
+  colophon.push(styledParagraph("normal", "Комп'ютерна верстка. Гарнітура Times New Roman.", "colophon-meta"));
 
-  if (authorCatalog) nodes.push(styledParagraph("normal", authorCatalog, "colophon-author"));
+  if (authorCatalog) colophon.push(styledParagraph("normal", authorCatalog, "colophon-author"));
 
   const bibLabel = meta.authorSign ? `${meta.authorSign} ` : "";
   const bibParts = [
@@ -95,16 +115,17 @@ export function buildFrontMatterNodes(meta: FrontMatterMeta): any[] {
   ];
   if (meta.pageCount) bibParts.push(`— ${meta.pageCount} с.`);
   if (meta.isbn) bibParts.push(`— ISBN ${meta.isbn}`);
-  nodes.push(styledParagraph("normal", `${bibLabel}${bibParts.join(" ")}`, "colophon-biblio"));
+  colophon.push(styledParagraph("normal", `${bibLabel}${bibParts.join(" ")}`, "colophon-biblio"));
 
-  if (meta.description) nodes.push(styledParagraph("normal", meta.description, "colophon-description"));
+  if (meta.description) colophon.push(styledParagraph("normal", meta.description, "colophon-description"));
 
-  if (meta.udcCode) nodes.push(styledParagraph("normal", `УДК ${meta.udcCode}`, "colophon-code-bold"));
+  if (meta.udcCode) colophon.push(styledParagraph("normal", `УДК ${meta.udcCode}`, "colophon-code-bold"));
 
-  if (meta.ageRating) nodes.push(styledParagraph("normal", meta.ageRating, "colophon-age"));
+  if (meta.ageRating) colophon.push(styledParagraph("normal", meta.ageRating, "colophon-age"));
 
-  nodes.push(styledParagraph("normal", `© ${authorCatalog ?? "Автор"}, ${year}`, "colophon-footer"));
+  colophon.push(styledParagraph("normal", `© ${authorCatalog ?? "Автор"}, ${year}`, "colophon-footer"));
 
-  nodes.push({ type: "horizontalRule" });
-  return nodes;
+  colophon.push({ type: "horizontalRule" });
+
+  return { titleTop, titleBottom, colophon };
 }

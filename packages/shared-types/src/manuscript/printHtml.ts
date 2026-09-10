@@ -1,7 +1,7 @@
 import { MANUSCRIPT_PROSE_CSS } from "./proseStyles";
 import { manuscriptContentToHtml } from "./extensions";
 import { splitFrontMatter } from "./splitFrontMatter";
-import { buildFrontMatterNodes, type FrontMatterMeta } from "./frontMatter";
+import { buildFrontMatterParts, type FrontMatterMeta } from "./frontMatter";
 import { DEFAULT_PAGE_NUMBER_POSITION, type PageNumberPosition } from "./pageNumberPosition";
 import { extractOutline } from "./outline";
 import {
@@ -46,18 +46,34 @@ const PT_TO_MM = 25.4 / 72;
 // Title-page vertical rhythm, computed fresh per render from the book's own
 // physical trim height so the proportions in printGeometry.ts's comment
 // (measured against the 200mm-tall reference) hold at any trim size instead
-// of just the one they were measured on. Each line's target is expressed as
-// "distance from the physical page edge to this line's baseline"; margin-top
-// is then derived as (this baseline - previous baseline - this line's own
-// font-size), the same "baseline sits ~one font-size below the box's own
-// top" approximation printHtml.ts already leans on elsewhere for front-matter
-// layout (frontMatter.ts's own header comment) -- not pixel-exact per font
-// metrics, but the author-tuned proportions are what matter here, not a
-// sub-millimetre baseline grid.
-function titlePageGeometryCss(
-  heightMm: number,
-  meta: Pick<FrontMatterMeta, "authorPenName" | "subtitle">
-): string {
+// of just the one they were measured on.
+//
+// titleTop (pen name/title/subtitle) and titleBottom (imprint+year) are two
+// SEPARATE flex items inside a fixed-height ".titlepage" container
+// (buildManuscriptPrintHtml wraps them this way), laid out with
+// justify-content:space-between -- not one shared margin-top chain from page
+// top to page bottom like this used to be. A margin-top chain assumes every
+// line is exactly one line tall; a long title/subtitle wrapping onto a 2nd
+// line made every sibling "pushed" via margin-top land further down than
+// intended, occasionally overflowing titleBottom onto a second page even
+// though titleBottom's own target position never changed (verified against a
+// real render, author-reported 2026-09-10). Flex instead pins titleTop flush
+// to the container's top and titleBottom flush to its bottom regardless of
+// how tall titleTop's real rendered content turns out to be -- the two can
+// only ever collide if the combined content is taller than the whole page,
+// an unavoidable edge case no layout technique fixes.
+//
+// Within each group, a line's target is still expressed as "distance from
+// the physical page edge to this line's baseline", and margin-top still
+// derived as (this baseline - previous baseline - this line's own
+// font-size) -- the same "baseline sits ~one font-size below the box's own
+// top" approximation as before, not pixel-exact per font metrics, but the
+// author-tuned proportions are what matter here, not a sub-millimetre
+// baseline grid. This is still exact for titleBottom (imprint/year are
+// fixed short strings that never wrap) and only approximate for titleTop's
+// OWN internal title-to-subtitle gap -- but an error there can no longer
+// cascade into titleBottom the way it used to.
+function titlePageGeometryCss(heightMm: number, meta: Pick<FrontMatterMeta, "authorPenName">): string {
   const scale = heightMm / TITLE_PAGE_REFERENCE_HEIGHT_MM;
   const pt2mm = (pt: number) => pt * PT_TO_MM;
 
@@ -85,19 +101,29 @@ function titlePageGeometryCss(
   const imprintLine1Baseline = imprintLine2Baseline - imprintLineHeightMm;
   const yearBaseline = heightMm - yearBottomMm;
 
-  // margin-top is relative to whatever line actually precedes it in the DOM
-  // -- authorPenName/subtitle are both optional, so "the line before the
-  // imprint block" isn't always the subtitle; falling through to whichever
-  // of subtitle/title/top-of-page is the real previous sibling keeps the gap
+  // authorPenName is optional -- "the line before the title" isn't always
+  // the pen name; falling back to the top-of-page reference keeps the gap
   // correct instead of leaving a phantom blank space sized for a line that
   // was never rendered.
   const beforeTitleBaseline = meta.authorPenName ? penNameBaseline : PAGE_MARGIN_TOP_MM;
-  const beforeImprintBaseline = meta.subtitle ? subtitleBaseline : titleBaseline;
 
   const marginTop = (baseline: number, prevBaseline: number, fontMm: number) =>
     Math.max(0, baseline - prevBaseline - fontMm).toFixed(2);
 
+  // ".titlepage"'s own height: translates yearBaseline (an absolute target
+  // measured from the physical page top) into a height relative to the
+  // container's own top edge (which starts flush at the content box's top,
+  // PAGE_MARGIN_TOP_MM down from the physical edge) -- what space-between
+  // actually needs to know to push titleBottom flush against it.
+  const titlepageHeightMm = Math.max(0, yearBaseline - PAGE_MARGIN_TOP_MM);
+
   return `
+    .titlepage {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: ${titlepageHeightMm.toFixed(2)}mm;
+    }
     .manuscript-prose p[data-variant="titlepage-author"] {
       margin-top: ${marginTop(penNameBaseline, PAGE_MARGIN_TOP_MM, penNameFontMm)}mm;
     }
@@ -107,8 +133,11 @@ function titlePageGeometryCss(
     .manuscript-prose p[data-variant="titlepage-subtitle"] {
       margin-top: ${marginTop(subtitleBaseline, titleBaseline, subtitleFontMm)}mm;
     }
+    /* First child of ".titlepage-bottom" -- its position comes entirely from
+       the flex container's own space-between (flush to titlepage's bottom
+       edge), not from a margin-top chain reaching back through titleTop. */
     .manuscript-prose p[data-variant="titlepage-imprint-line1"] {
-      margin-top: ${marginTop(imprintLine1Baseline, beforeImprintBaseline, imprintFontMm)}mm;
+      margin-top: 0;
     }
     .manuscript-prose p[data-variant="titlepage-imprint-line2"] {
       margin-top: ${marginTop(imprintLine2Baseline, imprintLine1Baseline, imprintFontMm)}mm;
@@ -415,7 +444,15 @@ export function buildManuscriptPrintHtml({
   // generated fresh from frontMatterMeta instead.
   const { body } = splitFrontMatter(allContent);
 
-  const frontHtml = manuscriptContentToHtml({ type: "doc", content: buildFrontMatterNodes(frontMatterMeta) });
+  const frontMatterParts = buildFrontMatterParts(frontMatterMeta);
+  const titleTopHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.titleTop });
+  const titleBottomHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.titleBottom });
+  const colophonHtml = manuscriptContentToHtml({ type: "doc", content: frontMatterParts.colophon });
+  // Same literal markup PageBreak's own renderHTML emits (pageBreak.ts) --
+  // built by hand here (not through the TipTap doc/generateHTML above) since
+  // it's purely a structural seam between the two flex-wrapped title-page
+  // groups and the colophon, not part of either's own node list anymore.
+  const titleColophonBreakHtml = `<div data-type="page-break" contenteditable="false"></div>`;
   const bodyHtml = manuscriptContentToHtml({ type: "doc", content: body });
   const tocHtml = buildTocHtml(body);
   const backCoverHtml = backCoverUrl
@@ -432,7 +469,14 @@ export function buildManuscriptPrintHtml({
 </head>
 <body>
 <div class="manuscript-prose">
-${frontHtml ? `<div class="front-matter">${frontHtml}</div>` : ""}
+<div class="front-matter">
+<div class="titlepage">
+<div class="titlepage-top">${titleTopHtml}</div>
+<div class="titlepage-bottom">${titleBottomHtml}</div>
+</div>
+${titleColophonBreakHtml}
+${colophonHtml}
+</div>
 ${tocHtml}
 <div class="manuscript-body">${bodyHtml}</div>
 </div>
