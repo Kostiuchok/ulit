@@ -37,8 +37,26 @@ export function useLivePageBreaks(editor: Editor | null, enabled: boolean, conte
       timer.current = setTimeout(recompute, DEBOUNCE_MS);
     };
     editor.on("transaction", handler);
+
+    // Dragging an image's resize handle (@tiptap/extension-image's built-in
+    // ResizableNodeView) only fires a real ProseMirror transaction once, on
+    // drag END (onCommit) -- while actively dragging it mutates the <img>'s
+    // inline width/height style directly (onResize), which never dispatches
+    // "transaction" at all. Without also watching for plain DOM size
+    // changes, shrinking an image to make trailing text fit on the page left
+    // this marker frozen at its PRE-resize position for the whole drag
+    // (author-reported 2026-09-10: the line doesn't track the shrinking
+    // content, only catching up once the drag ends and a real transaction
+    // finally fires). ResizeObserver reacts to ANY box-size change of the
+    // editor's content root regardless of cause, so it catches this
+    // CSS-only resize the same way "transaction" catches a real edit --
+    // routed through the same debounced handler, not a separate one.
+    const resizeObserver = new ResizeObserver(handler);
+    resizeObserver.observe(editor.view.dom as HTMLElement);
+
     return () => {
       editor.off("transaction", handler);
+      resizeObserver.disconnect();
       if (timer.current) clearTimeout(timer.current);
     };
   }, [editor, enabled, contentHeight]);
