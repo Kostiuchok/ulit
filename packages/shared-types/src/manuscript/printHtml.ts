@@ -14,12 +14,11 @@ import {
   PAGE_NUMBER_BOTTOM_OFFSET_MM,
   TITLE_PAGE_REFERENCE_HEIGHT_MM,
   TITLE_PAGE_PEN_NAME_TOP_MM,
-  TITLE_PAGE_TITLE_TOP_MM,
+  TITLE_PAGE_TITLE_CENTER_MM,
   TITLE_PAGE_SUBTITLE_GAP_MM,
   TITLE_PAGE_IMPRINT_BOTTOM_MM,
   TITLE_PAGE_YEAR_BOTTOM_MM,
   TITLE_PAGE_PEN_NAME_FONT_PT,
-  TITLE_PAGE_TITLE_FONT_PT,
   TITLE_PAGE_SUBTITLE_FONT_PT,
   TITLE_PAGE_IMPRINT_FONT_PT,
   TITLE_PAGE_YEAR_FONT_PT,
@@ -55,34 +54,43 @@ const PT_TO_MM = 25.4 / 72;
 // bottom block's position no longer depends AT ALL on how tall the content
 // above it turns out to be).
 //
-// Title and subtitle are NOT independent of each other, though -- a real
-// title (unlike pen name/imprint/year, all short fixed-ish strings) can wrap
-// onto 2-3 lines (Figma reference, node 154:9), and subtitle needs to sit
-// immediately below wherever title's REAL rendered content actually ends,
-// not at some predetermined fixed spot -- giving each its own absolute
-// position (tried right after the flex/space-between attempt) put them at
-// fixed targets independent of one another, and a wrapped title collided
-// straight into subtitle's fixed spot (author-reported 2026-09-10). So only
-// title's OWN top is pinned (independent of pen name, which is now also
-// out of normal flow); subtitle stays in NORMAL FLOW directly after it, its
-// margin-top a fixed gap ADDED ON TOP of title's real rendered bottom edge
-// (ordinary CSS margin behavior) -- self-adjusting to any wrap, same as
-// body prose already does for every other paragraph on every other page.
+// Title is centered, not top-anchored (author instruction, 2026-09-10): a
+// real title (unlike pen name/imprint/year, all short fixed-ish strings) can
+// wrap onto 2-3 lines (Figma reference, node 154:9), and pinning its TOP to
+// a fixed mark meant a long title just hung further down from that mark
+// instead of growing symmetrically around it -- pinning its CENTER instead
+// keeps its visual weight balanced regardless of length. Achieved exactly
+// via transform:translateY(-50%) on a ".titlepage-title-anchor" sized to
+// title alone (buildManuscriptPrintHtml wraps it this way) -- NOT by
+// estimating line count, which real text wrapping can't be predicted
+// server-side without an actual layout pass anyway.
 //
-// Each anchor is "distance from the physical page edge to this line's
-// baseline", converted to a CSS `top`/`margin-top` via the same "baseline
-// sits ~one font-size below the box's own top" approximation as before --
-// not pixel-exact per font metrics, but the author-tuned proportions are
-// what matter here, not a sub-millimetre baseline grid. This is exact for
-// pen name, title, and the imprint+year block (all effectively fixed-height);
-// only approximate for the title-to-subtitle gap specifically, by design --
-// see above.
+// Subtitle still needs to sit immediately below wherever title's REAL
+// rendered content actually ends, not at some predetermined fixed spot --
+// two earlier attempts (giving subtitle its own independent fixed position;
+// a two-group flex layout) both broke this the same way, a wrapped title
+// colliding straight into subtitle's spot (author-reported 2026-09-10).
+// Subtitle is position:absolute against the title anchor itself (its
+// nearest positioned ancestor) with top:100% -- exactly title's own real
+// bottom edge, whatever that turns out to be -- plus a small margin-top on
+// top of that for the actual gap. Pen name being out of normal flow (its
+// own rule below) means the title anchor's own top is always measured from
+// the container's top edge, regardless of whether pen name exists.
+//
+// Every OTHER anchor here is still "distance from the physical page edge to
+// a line's baseline", converted to a CSS `top`/`margin-top` via the same
+// "baseline sits ~one font-size below the box's own top" approximation as
+// before -- not pixel-exact per font metrics, but the author-tuned
+// proportions are what matter, not a sub-millimetre baseline grid. This is
+// exact for pen name and the imprint+year block (both effectively
+// fixed-height); title's own center is exact by construction (see above);
+// only the title-to-subtitle gap itself is still this kind of
+// approximation.
 function titlePageGeometryCss(heightMm: number): string {
   const scale = heightMm / TITLE_PAGE_REFERENCE_HEIGHT_MM;
   const pt2mm = (pt: number) => pt * PT_TO_MM;
 
   const penNameFontMm = pt2mm(TITLE_PAGE_PEN_NAME_FONT_PT);
-  const titleFontMm = pt2mm(TITLE_PAGE_TITLE_FONT_PT);
   const subtitleFontMm = pt2mm(TITLE_PAGE_SUBTITLE_FONT_PT);
   const imprintFontMm = pt2mm(TITLE_PAGE_IMPRINT_FONT_PT);
   const yearFontMm = pt2mm(TITLE_PAGE_YEAR_FONT_PT);
@@ -97,8 +105,7 @@ function titlePageGeometryCss(heightMm: number): string {
   // every supported trim size instead of only the ones at or above the
   // 200mm reference.
   const penNameBaseline = Math.max(TITLE_PAGE_PEN_NAME_TOP_MM * scale, PAGE_MARGIN_TOP_MM);
-  const titleBaseline = TITLE_PAGE_TITLE_TOP_MM * scale;
-  const subtitleBaseline = titleBaseline + TITLE_PAGE_SUBTITLE_GAP_MM * scale;
+  const titleCenterMm = TITLE_PAGE_TITLE_CENTER_MM * scale;
   const imprintBottomMm = Math.max(TITLE_PAGE_IMPRINT_BOTTOM_MM * scale, PAGE_MARGIN_BOTTOM_MM);
   const yearBottomMm = Math.max(TITLE_PAGE_YEAR_BOTTOM_MM * scale, PAGE_MARGIN_BOTTOM_MM);
   const imprintLine2Baseline = heightMm - imprintBottomMm;
@@ -112,6 +119,20 @@ function titlePageGeometryCss(heightMm: number): string {
   const topFor = (baselineMm: number, fontMm: number) => Math.max(0, baselineMm - PAGE_MARGIN_TOP_MM - fontMm).toFixed(2);
   const marginTop = (baseline: number, prevBaseline: number, fontMm: number) =>
     Math.max(0, baseline - prevBaseline - fontMm).toFixed(2);
+
+  // Title's own CENTER, relative to ".titlepage"'s top edge -- no fontMm
+  // approximation needed here (unlike topFor above): transform:
+  // translateY(-50%) on the title anchor (below) does the centering
+  // EXACTLY, against title's real rendered height, whatever that turns out
+  // to be for 1 line or 3.
+  const titleAnchorTopMm = Math.max(0, titleCenterMm - PAGE_MARGIN_TOP_MM).toFixed(2);
+  // Gap from title's real bottom edge (approximated the same "box bottom ~
+  // baseline" way as everywhere else in this function) to subtitle's own
+  // baseline -- same TITLE_PAGE_SUBTITLE_GAP_MM this was always meant to
+  // express, just consumed via subtitle's own top:100% (relative to the
+  // title anchor, sized to title alone) instead of a margin-top chained
+  // from a now-nonexistent single "title baseline" value.
+  const subtitleGapMm = Math.max(0, TITLE_PAGE_SUBTITLE_GAP_MM * scale - subtitleFontMm).toFixed(2);
 
   // ".titlepage"'s own height: translates yearBaseline (an absolute target
   // measured from the physical page top) into a height relative to the
@@ -138,35 +159,38 @@ function titlePageGeometryCss(heightMm: number): string {
       position: absolute; left: 0; right: 0; margin: 0;
       top: ${topFor(penNameBaseline, penNameFontMm)}mm;
     }
-    /* Title+subtitle group -- independent, absolutely positioned (own top
-       anchor, pen name being out of normal flow above means this is always
-       measured from the container's own top regardless of whether pen name
-       exists), pinned to its own top target. position:absolute on THIS
-       wrapper (not on title/subtitle individually) is what matters here: it
-       establishes a fresh block formatting context for its own children,
-       the same reason a plain position:relative ".titlepage" alone would
-       NOT have been enough -- without it, title's margin-top (tens of mm)
-       would collapse straight through and escape this wrapper, silently
-       shifting the whole group (and therefore misaligning pen name and the
-       imprint+year block, both positioned against ".titlepage" assuming its
-       top edge is exactly the page's own content-box top). */
-    .titlepage-titlegroup {
+    /* Title anchor -- position:absolute, sized to title ALONE (subtitle
+       below is taken out of flow too, see its own rule), so
+       transform:translateY(-50%) shifts it up by exactly half of TITLE's
+       own real rendered height -- landing title's own vertical center
+       exactly on the target mark regardless of whether it's 1 line or 3
+       (author instruction, 2026-09-10: a wrapped title should grow
+       symmetrically around this mark, not just hang further down from a
+       fixed top). Pen name being out of normal flow above (its own rule)
+       means this top is always measured from the container's own top,
+       regardless of whether pen name exists. */
+    .titlepage-title-anchor {
       position: absolute; left: 0; right: 0;
-      top: ${topFor(titleBaseline, titleFontMm)}mm;
+      top: ${titleAnchorTopMm}mm;
+      transform: translateY(-50%);
     }
-    /* Title -- first (and only guaranteed) child of titlegroup, flush at
-       its top -- no margin of its own. */
+    /* Title -- the anchor's only NORMAL FLOW content, so the anchor's own
+       height (what the 50% above is relative to) equals title's real
+       height exactly -- no margin of its own. */
     .manuscript-prose p[data-variant="titlepage-title"] {
       margin: 0;
     }
-    /* Subtitle -- NORMAL FLOW within titlegroup (not independently
-       positioned): margin-top here is ordinary CSS margin, added after
-       title's ACTUAL rendered bottom edge, whatever that turns out to be
-       for a title that wrapped onto 2 or 3 lines (Figma reference, node
-       154:9) -- self-adjusts instead of colliding with title the way an
-       independent fixed position did (author-reported 2026-09-10). */
+    /* Subtitle -- position:absolute AGAINST THE TITLE ANCHOR (its nearest
+       positioned ancestor), top:100% = exactly at title's own real bottom
+       edge, whatever that turns out to be for a wrapped title -- then
+       margin-top adds the small additional gap on top of that. This is
+       what lets ONLY title (not title+subtitle together) center on the
+       target mark while subtitle still sits flush after title's real
+       content, with no line-counting/estimation on either side. */
     .manuscript-prose p[data-variant="titlepage-subtitle"] {
-      margin-top: ${marginTop(subtitleBaseline, titleBaseline, subtitleFontMm)}mm;
+      position: absolute; left: 0; right: 0;
+      top: 100%;
+      margin-top: ${subtitleGapMm}mm;
     }
     /* Imprint (ULIT/Українська літера) + рік -- still one unit (they move
        together), independent of title/subtitle's real height, pinned to
@@ -561,7 +585,7 @@ export function buildManuscriptPrintHtml({
 <div class="front-matter">
 <div class="titlepage">
 ${penNameHtml}
-<div class="titlepage-titlegroup">${titleGroupHtml}</div>
+<div class="titlepage-title-anchor">${titleGroupHtml}</div>
 <div class="titlepage-bottom">${titleBottomHtml}</div>
 </div>
 ${titleColophonBreakHtml}

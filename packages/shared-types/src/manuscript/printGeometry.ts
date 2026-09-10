@@ -41,7 +41,13 @@ export const BODY_LINE_HEIGHT_EM = 1.4;
 // absolute mm figure below.
 export const TITLE_PAGE_REFERENCE_HEIGHT_MM = 200;
 export const TITLE_PAGE_PEN_NAME_TOP_MM = 30; // top edge -> pen name baseline
-export const TITLE_PAGE_TITLE_TOP_MM = 55; // top edge -> title baseline (was 75 -- author call 2026-09-10, sat too low)
+// Title -- top edge -> title's own VERTICAL CENTER (not baseline/top like
+// the others): a long title wrapping onto 2-3 lines grows symmetrically
+// around this mark instead of just hanging further down from a fixed top,
+// so its visual weight stays balanced regardless of length (author
+// instruction, 2026-09-10). printHtml.ts achieves this exactly via
+// transform:translateY(-50%), not by estimating line count.
+export const TITLE_PAGE_TITLE_CENTER_MM = 55; // was 75 (top-anchored) -- author call 2026-09-10, sat too low
 export const TITLE_PAGE_SUBTITLE_GAP_MM = 15; // title baseline -> subtitle baseline
 export const TITLE_PAGE_IMPRINT_BOTTOM_MM = 30; // bottom edge -> imprint block's LAST line ("Українська літера") baseline
 export const TITLE_PAGE_YEAR_BOTTOM_MM = 20; // bottom edge -> year line baseline
