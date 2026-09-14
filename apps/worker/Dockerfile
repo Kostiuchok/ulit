@@ -28,11 +28,26 @@ ENV LC_ALL=C.UTF-8
 # beyond WeasyPrint's own minimal list (embedded-image rendering and actual
 # glyphs to draw -- ubuntu:22.04 ships no fonts at all otherwise), kept since
 # they're low-cost and plausibly load-bearing for real manuscript content.
+#
+# Pinned >=70.0 (2026-09-14) -- was a bare `weasyprint` (whatever's latest at
+# build time) until this version specifically fixed "Honor page breaks on
+# floated elements" (Kozea/WeasyPrint#36, closed at milestone 54.0 but the
+# actual float-fragmentation behavior this codebase hit landed in 70.0's
+# changelog, released 2026-09-08). Before this, a floated align="left"/
+# "right" image that didn't fit in the remaining space on a page got its
+# bottom half silently clipped instead of deferred to the next page (real
+# content loss, verified against several renders) -- printHtml.ts forced
+# left/right images to render as non-floated centered blocks for print only
+# to avoid that, at the cost of losing float+text-wrap in the printed file
+# (journal CLAUDE.md #19). That override is now removed (see printHtml.ts) --
+# pinning here, not just relying on "latest happens to be >=70 right now", so
+# a future unrelated Docker rebuild can never silently downgrade past the
+# exact version this was verified against.
 RUN apt-get update && apt-get install -y \
     curl libreoffice pandoc ghostscript calibre redis-tools unzip \
     python3-pip libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 \
     libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info fonts-dejavu \
-    && pip3 install --no-cache-dir weasyprint \
+    && pip3 install --no-cache-dir "weasyprint>=70.0" \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g pnpm@9 \
