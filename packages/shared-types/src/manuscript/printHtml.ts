@@ -408,11 +408,26 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
        :not()'s argument counts toward specificity same as if it weren't
        negated; verified empirically, the override was silently no-op
        without it despite being the later of the two <style> tags). */
-    .manuscript-prose img[data-align="left"]:not([data-resize-container] img),
+    /* NOT the same margin as align="center" -- that was the actual bug
+       report (2026-09-14: "формат зліва/справа не працює, в Передперегляді
+       все по центру"). float:none+display:block above (necessary for the
+       break-inside:avoid fragmentation fix, see the comment above) still
+       lets left/right differ from center: margin:auto on ONE side only
+       (not both) pushes the block flush to the opposite side instead of
+       centering it. Text no longer wraps around it (that part of the
+       original float behavior is still deliberately gone, same reasoning
+       as above), but the image itself visibly sits left/right instead of
+       collapsing to the same centered look as align="center". */
+    .manuscript-prose img[data-align="left"]:not([data-resize-container] img) {
+      float: none;
+      display: block;
+      margin: 1em auto 1em 0;
+      max-width: 100%;
+    }
     .manuscript-prose img[data-align="right"]:not([data-resize-container] img) {
       float: none;
       display: block;
-      margin: 1em auto;
+      margin: 1em 0 1em auto;
       max-width: 100%;
     }
 
