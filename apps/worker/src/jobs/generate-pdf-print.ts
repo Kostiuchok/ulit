@@ -174,15 +174,16 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
       where: { id: bookId },
       data: {
         printPdfUrl: objectName,
-        // +5s, not just new Date() -- this same update also bumps the row's
-        // own @updatedAt (print-preview.ts's staleness check now compares
-        // printPdfGeneratedAt against updatedAt too, so front matter picks
-        // up later Вихідні дані edits). Both timestamps are independently
-        // computed "now" within this one query; without the margin,
-        // updatedAt could land a few ms after printPdfGeneratedAt purely by
-        // evaluation-order luck, making the PDF register as stale again
-        // immediately after every single render.
-        printPdfGeneratedAt: new Date(Date.now() + 5000),
+        // No +5s margin here (there used to be one, back when print-preview.ts
+        // compared this against the row's own @updatedAt bumped by this same
+        // query) -- printMetaUpdatedAt is now a column ONLY this job's
+        // callers write, never this job itself, so there's no same-query
+        // evaluation-order race to guard against. A margin here would in
+        // fact be actively wrong now: an edit landing within that window
+        // after this render completes would get a printMetaUpdatedAt still
+        // before the artificially-future printPdfGeneratedAt, and the PDF
+        // would wrongly register as fresh.
+        printPdfGeneratedAt: new Date(),
         ...(printPageCount ? { printPageCount } : {}),
       },
       select: { id: true },

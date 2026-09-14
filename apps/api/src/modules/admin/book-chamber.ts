@@ -99,6 +99,12 @@ export async function bookChamberRoutes(app: FastifyInstance) {
         if (collision) throw new AppError("Цей ISBN вже присвоєно іншій книзі", 400, "ISBN_TAKEN");
       }
 
+      // isbn/udcCode/authorSign all print into the colophon (frontMatter.ts)
+      // -- bookChamberSubmittedAt alone doesn't, so it's excluded from this
+      // bump, same as print-preview.ts's staleness check only caring about
+      // fields the render actually reads.
+      const isPrintRelevant = isbn !== undefined || udcCode !== undefined || authorSign !== undefined;
+
       const book = await prisma.book.update({
         where: { id },
         data: {
@@ -106,6 +112,7 @@ export async function bookChamberRoutes(app: FastifyInstance) {
           isbn: isbn === undefined ? undefined : isbn,
           udcCode: udcCode === undefined ? undefined : udcCode,
           authorSign: authorSign === undefined ? undefined : authorSign,
+          printMetaUpdatedAt: isPrintRelevant ? new Date() : undefined,
         },
         select: { id: true, isbn: true, udcCode: true, authorSign: true, bookChamberSubmittedAt: true },
       });

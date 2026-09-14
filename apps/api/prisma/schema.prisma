@@ -223,6 +223,7 @@ model Book {
   manuscriptImportedAt DateTime?
   manuscriptEditedAt   DateTime? // last author edit inside the manuscript editor (distinct from the initial docx import)
   manuscriptStyleOverrides Json?
+  printMetaUpdatedAt   DateTime? // last change to a field that actually feeds the print PDF's title/colophon/back cover/page-number-position/trim size (frontMatter.ts + generate-pdf-print.ts) -- bumped explicitly only by those specific writes, unlike the blanket `updatedAt` (which fires on every PATCH, incl. price/distribution/moderation, none of which affect the rendered file). print-preview.ts's staleness check compares against THIS, not updatedAt, so an unrelated edit no longer forces a full WeasyPrint+Ghostscript re-render on next Передперегляд open.
   printPdfGeneratedAt  DateTime? // T-2057 -- when printPdfUrl was last (re)rendered from manuscriptContent; regen is skipped if this is newer than manuscriptEditedAt
   printCurvesUrl       String? // admin-only "convert text to vector outlines" export of printPdfUrl (Ghostscript -dNoOutputFonts), for print houses that require curves rather than embedded fonts -- never author-facing, only generated on demand when a real printed-copy order exists (admin/print-orders)
   printCurvesGeneratedAt DateTime? // when printCurvesUrl was last (re)rendered from printPdfUrl; regen is skipped if this is newer than printPdfGeneratedAt

@@ -34,7 +34,7 @@ export async function printPreviewRoutes(app: FastifyInstance) {
           printPdfUrl: true,
           printPdfGeneratedAt: true,
           printPageCount: true,
-          updatedAt: true,
+          printMetaUpdatedAt: true,
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -45,20 +45,28 @@ export async function printPreviewRoutes(app: FastifyInstance) {
       }
 
       // Stale if never rendered, if the author has edited/re-imported the
-      // manuscript since the last render, OR if any book field has changed
-      // since (title/anotation/ISBN/УДК/etc. on Вихідні дані) -- the title
-      // page/colophon are generated fresh from those live fields on every
-      // render now (frontMatter.ts), not baked into manuscriptContent, so
-      // updatedAt (bumped by any PATCH, incl. admin's ISBN/УДК assignment)
-      // has to invalidate the cache too or those changes would never show
-      // up in an already-rendered PDF. A little over-eager (also triggers on
-      // unrelated fields like price), but the render only happens on demand.
+      // manuscript since the last render, OR if a print-affecting field has
+      // changed since (title/anotation/ISBN/УДК/authors/trim size/back
+      // cover/page-number position -- see printMetaUpdatedAt's schema
+      // comment for the exact list and every write site that bumps it) --
+      // the title page/colophon are generated fresh from those live fields
+      // on every render now (frontMatter.ts), not baked into
+      // manuscriptContent, so this has to invalidate the cache too or those
+      // changes would never show up in an already-rendered PDF.
+      //
+      // Deliberately NOT the blanket `updatedAt` column anymore (was until
+      // 2026-09-14) -- that fires on every PATCH regardless of which field
+      // changed, so an author editing price/distribution/anything unrelated
+      // forced a full WeasyPrint+Ghostscript re-render (real wall-clock
+      // cost, not just a network fetch) on the very next Передперегляд open.
+      // printMetaUpdatedAt is only bumped by writes that actually touch a
+      // field the render reads.
       const lastEdit = book.manuscriptEditedAt ?? book.manuscriptImportedAt;
       const stale =
         force ||
         !book.printPdfGeneratedAt ||
         (lastEdit !== null && lastEdit > book.printPdfGeneratedAt) ||
-        book.updatedAt > book.printPdfGeneratedAt;
+        (book.printMetaUpdatedAt !== null && book.printMetaUpdatedAt > book.printPdfGeneratedAt);
 
       if (stale) {
         const jobId = `print-pdf-${id}`;

@@ -309,11 +309,31 @@ export async function bookRoutes(app: FastifyInstance) {
       isPublished && data.description !== undefined && (data.description ?? null) !== (existing.description ?? null);
     const stageGenre = isPublished && data.genre !== undefined && (data.genre ?? null) !== (existing.genre ?? null);
 
+    // print-preview.ts's staleness check keys off this instead of the
+    // blanket `updatedAt` (see that file's comment) -- only these fields
+    // actually feed frontMatter.ts/generate-pdf-print.ts's render (title
+    // page, colophon, trim size). Whether staged into pending* or written
+    // live doesn't matter here: the render always reads pendingTitle ??
+    // title / pendingDescription ?? description, so either path needs the
+    // bump. genre alone is never print-relevant -- only when it actually
+    // derives a printFormatOverride (below) does trim size change.
+    const isPrintRelevant =
+      data.title !== undefined ||
+      data.description !== undefined ||
+      data.subtitle !== undefined ||
+      data.ageRating !== undefined ||
+      data.bookAuthors !== undefined ||
+      data.printFormatKey !== undefined ||
+      data.printWidthMm !== undefined ||
+      data.printHeightMm !== undefined ||
+      printFormatOverride !== undefined;
+
     const book = await prisma.book.update({
       where: { id },
       data: {
         ...data,
         ...printFormatOverride,
+        printMetaUpdatedAt: isPrintRelevant ? new Date() : undefined,
         title: stageTitle ? undefined : data.title,
         description: stageDescription ? undefined : data.description,
         genre: stageGenre ? undefined : data.genre,
@@ -406,7 +426,9 @@ export async function bookRoutes(app: FastifyInstance) {
 
     const book = await prisma.book.update({
       where: { id },
-      data: { isbn },
+      // isbn prints into the colophon (frontMatter.ts) -- same bump as the
+      // admin book-chamber ISBN/УДК route.
+      data: { isbn, printMetaUpdatedAt: new Date() },
       select: BOOK_SELECT,
     });
 

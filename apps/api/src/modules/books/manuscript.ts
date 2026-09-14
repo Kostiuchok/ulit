@@ -128,7 +128,16 @@ export async function bookManuscriptRoutes(app: FastifyInstance) {
         data.manuscriptContent = result.data.content;
         data.manuscriptEditedAt = new Date();
       }
-      if (result.data.styleOverrides !== undefined) data.manuscriptStyleOverrides = result.data.styleOverrides;
+      if (result.data.styleOverrides !== undefined) {
+        data.manuscriptStyleOverrides = result.data.styleOverrides;
+        // page-number position (extractPageNumberPosition, generate-pdf-print.ts)
+        // is the only part of styleOverrides the print PDF actually reads --
+        // content changes above already bump manuscriptEditedAt, which
+        // print-preview.ts's staleness check picks up on its own; a
+        // styleOverrides-only save (no content change) needs its own bump of
+        // printMetaUpdatedAt or it would never invalidate the cached PDF.
+        data.printMetaUpdatedAt = new Date();
+      }
 
       await prisma.book.update({ where: { id }, data, select: { id: true } });
 
