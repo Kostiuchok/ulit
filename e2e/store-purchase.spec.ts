@@ -120,11 +120,21 @@ test.describe("Store — catalog, book page, search, purchase flow", () => {
     // A "Увійти через Google" button also matches a loose /увійти/i name.
     await page.getByRole("button", { name: "Увійти", exact: true }).click();
 
-    // After failed login, try accessing order page
+    // After failed login, try accessing order page. The redirect (or an
+    // error) happens client-side after useSession() resolves -- checking
+    // page.url()/isVisible() immediately after goto() races that, since
+    // neither one waits. Race the two outcomes properly instead.
     await page.goto("/orders/fake-order-id");
-    // Should show error or redirect to login
-    const onLogin = page.url().includes("/login");
-    const showsError = await page.getByText(/не знайдено|помилка|unauthorized/i).isVisible({ timeout: 5_000 }).catch(() => false);
-    expect(onLogin || showsError).toBe(true);
+    const redirectedToLogin = await page
+      .waitForURL(/\/login/, { timeout: 8_000 })
+      .then(() => true)
+      .catch(() => false);
+    const showsError = redirectedToLogin
+      ? false
+      : await page
+          .getByText(/не знайдено|помилка|unauthorized/i)
+          .isVisible()
+          .catch(() => false);
+    expect(redirectedToLogin || showsError).toBe(true);
   });
 });
