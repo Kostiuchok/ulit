@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
 
@@ -54,11 +55,22 @@ const STATUS_INFO: Record<string, { label: string; icon: string; className: stri
 
 export default function OrderPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { status } = useSession();
   const { apiFetch, token } = useApi();
   const [order, setOrder] = useState<Order | null>(null);
   const [downloads, setDownloads] = useState<Record<string, DownloadLink[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Without this, a logged-out visit here (e.g. a stale email link, or a
+  // session that hasn't hydrated yet) got stuck on the loading skeleton
+  // forever -- fetchOrder no-ops with no token and never clears `loading`.
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push(`/login?callbackUrl=/orders/${id}`);
+    }
+  }, [status, router, id]);
 
   const fetchOrder = useCallback(async () => {
     if (!token) return;

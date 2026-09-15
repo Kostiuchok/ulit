@@ -67,3 +67,8 @@ jobs:
         run: pnpm test:e2e
         env:
           BASE_URL: ${{ secrets.E2E_BASE_URL || 'https://ulit.render.ua' }}
+          # Authenticated-flow tests skip themselves when these are unset --
+          # see e2e/auth-publish.spec.ts for why a fresh registration can't
+          # be used (email verification is required before login).
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}

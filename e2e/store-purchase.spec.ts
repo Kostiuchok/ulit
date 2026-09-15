@@ -18,7 +18,7 @@ test.describe("Store — catalog, book page, search, purchase flow", () => {
     // Search input
     await expect(page.getByPlaceholder(/пошук/i)).toBeVisible();
     // Genre sidebar or chips
-    await expect(page.getByRole("link", { name: /усі жанри/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /всі жанри/i })).toBeVisible();
   });
 
   test("search returns results or empty state", async ({ page }) => {
@@ -42,14 +42,18 @@ test.describe("Store — catalog, book page, search, purchase flow", () => {
 
   test("/privacy page renders GDPR content", async ({ page }) => {
     await page.goto("/privacy");
-    await expect(page.getByRole("heading", { name: /конфіденційність/i })).toBeVisible();
-    await expect(page.getByText(/GDPR/i)).toBeVisible();
+    // Heading is genitive ("Політика конфіденційності") -- stem-match so
+    // declension doesn't break the assertion.
+    await expect(page.getByRole("heading", { name: /конфіденційн/i })).toBeVisible();
+    await expect(page.getByText(/GDPR/i).first()).toBeVisible();
   });
 
   test("/author-agreement page shows contract with accept bar", async ({ page }) => {
     await page.goto("/author-agreement");
     await expect(page.getByRole("heading", { name: /договір з автором/i })).toBeVisible();
-    await expect(page.getByText(/роялті/i)).toBeVisible();
+    // getByText(/роялті/i) matches 6+ elements on this page -- the section
+    // heading is the one unambiguous anchor.
+    await expect(page.getByRole("heading", { name: /роялті/i })).toBeVisible();
     // Accept bar visible at bottom
     await expect(page.getByRole("button", { name: /прийняти договір|увійти та прийняти/i })).toBeVisible();
   });
@@ -113,7 +117,8 @@ test.describe("Store — catalog, book page, search, purchase flow", () => {
     await page.goto("/login");
     await page.getByLabel(/email/i).fill("nonexistent@example.com");
     await page.getByLabel(/пароль/i).fill("password");
-    await page.getByRole("button", { name: /увійти/i }).click();
+    // A "Увійти через Google" button also matches a loose /увійти/i name.
+    await page.getByRole("button", { name: "Увійти", exact: true }).click();
 
     // After failed login, try accessing order page
     await page.goto("/orders/fake-order-id");
