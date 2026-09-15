@@ -39,7 +39,7 @@ const TOP_ITEMS: SubNavItem[] = [
   {
     label: "Завантажити файли",
     icon: <Download size={14} />,
-    href: (id) => `/dashboard/books/${id}/published`,
+    disabled: true,
   },
 ];
 
