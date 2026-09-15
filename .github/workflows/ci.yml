@@ -30,6 +30,14 @@ jobs:
 
       - run: pnpm typecheck
 
+      # next build runs its own ESLint pass (react/no-unescaped-entities etc.)
+      # that neither `tsc --noEmit` nor `next lint` alone reproduces -- and
+      # it's the exact command deploy.sh runs on the VPS. Without this step,
+      # a build-breaking commit passes CI green and only fails at deploy
+      # time, silently blocking api+worker too (see CLAUDE.md journal #13).
+      - name: Build web (real production build, not just typecheck)
+        run: pnpm --filter web build
+
       - name: Unit tests (API)
         run: pnpm --filter api test
 
