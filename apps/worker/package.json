@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@sentry/node": "^10.74.0",
     "bullmq": "^5.13.2",
     "ioredis": "^5.4.1",
     "jsdom": "^25.0.1",

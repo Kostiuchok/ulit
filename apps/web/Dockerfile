@@ -23,6 +23,8 @@ ENV MINIO_PORT=9000
 ENV MINIO_BUCKET_NAME=knyha-books
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 RUN pnpm --filter web build
 
 # ─── runtime ─────────────────────────────────────────────────────

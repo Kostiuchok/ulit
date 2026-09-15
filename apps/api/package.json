@@ -24,6 +24,7 @@
     "@fastify/multipart": "^10.0.0",
     "@fastify/rate-limit": "^11.0.0",
     "@prisma/client": "5.22.0",
+    "@sentry/node": "^10.74.0",
     "archiver": "^8.0.0",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.13.2",

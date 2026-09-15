@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -50,4 +52,12 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// No SENTRY_AUTH_TOKEN wired up yet -- sourcemaps.disable keeps that safely
+// opt-out instead of the plugin warning/failing the build without one.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  sourcemaps: { disable: true },
+});

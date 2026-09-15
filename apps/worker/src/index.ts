@@ -1,3 +1,5 @@
+import "./instrument";
+import * as Sentry from "@sentry/node";
 import { Worker, Job } from "bullmq";
 import { convertDocxToPdf } from "./jobs/convert-docx-to-pdf";
 import { generatePdfPrint } from "./jobs/generate-pdf-print";
@@ -54,10 +56,15 @@ worker.on("completed", (job) => {
 
 worker.on("failed", (job, err) => {
   console.error(`[worker] ✗ Job ${job?.id} (${job?.name}) failed:`, err.message);
+  Sentry.captureException(err, {
+    tags: { jobName: job?.name ?? "unknown" },
+    extra: { jobId: job?.id, jobData: job?.data, attemptsMade: job?.attemptsMade },
+  });
 });
 
 worker.on("error", (err) => {
   console.error("[worker] error:", err);
+  Sentry.captureException(err);
 });
 
 console.log(`[worker] Listening on queue "${QUEUE_NAME}" — concurrency: 2`);

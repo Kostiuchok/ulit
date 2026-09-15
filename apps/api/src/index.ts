@@ -1,3 +1,5 @@
+import "./instrument";
+import * as Sentry from "@sentry/node";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
@@ -52,6 +54,10 @@ const app = Fastify({
     level: process.env.NODE_ENV === "production" ? "info" : "debug",
   },
 });
+
+// Reports unhandled (5xx) request errors to Sentry; our own setErrorHandler
+// below still builds the response — this hook only observes.
+Sentry.setupFastifyErrorHandler(app);
 
 async function bootstrap() {
   await app.register(cors, {
@@ -164,7 +170,9 @@ async function bootstrap() {
   app.log.info(`API running at http://0.0.0.0:${port}`);
 }
 
-bootstrap().catch((err) => {
+bootstrap().catch(async (err) => {
   console.error(err);
+  Sentry.captureException(err);
+  await Sentry.flush(2000);
   process.exit(1);
 });
