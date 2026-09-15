@@ -31,6 +31,14 @@ if (typeof URL.parse !== "function") {
     try { return new URL(url, base); } catch { return null; }
   };
 }
+if (typeof ArrayBuffer.prototype.transferToFixedLength !== "function") {
+  ArrayBuffer.prototype.transferToFixedLength = function transferToFixedLength(newByteLength) {
+    const newLength = newByteLength === undefined ? this.byteLength : newByteLength;
+    const newBuffer = new ArrayBuffer(newLength);
+    new Uint8Array(newBuffer).set(new Uint8Array(this, 0, Math.min(this.byteLength, newLength)));
+    return newBuffer;
+  };
+}
 `;
 
 const fs = require("fs");

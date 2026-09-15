@@ -16,6 +16,12 @@
 // here if a new one surfaces rather than downgrading pdfjs-dist, unless
 // this keeps recurring (at that point a v4 downgrade -- broadly compatible,
 // was the stable choice for years -- is the more sustainable fix).
+//   - ArrayBuffer.prototype.transferToFixedLength() -- Chrome 114 / Safari
+//     17.4 (2023/2024) -- third one found (author report: every page's
+//     image/graphics silently dropped -- pdf.js's own per-task try/catch
+//     logs "ignoring errors during GetOperatorList" and keeps going, so
+//     this one degrades instead of throwing outright, but the visible
+//     result is the same: the manuscript preview looks broken/empty).
 // Side-effect-only module: import it, don't call anything from it. Must be
 // the FIRST import in any file that (transitively) imports "react-pdf" --
 // sibling imports in one file evaluate in the order they're written, so
@@ -41,5 +47,20 @@ if (typeof URL.parse !== "function") {
     } catch {
       return null;
     }
+  };
+}
+
+if (typeof ArrayBuffer.prototype.transferToFixedLength !== "function") {
+  // Spec detaches the source buffer; callers here only ever use the
+  // returned buffer and drop their reference to the old one, so a
+  // non-detaching copy is behaviorally equivalent for pdf.js's purposes.
+  (ArrayBuffer.prototype as any).transferToFixedLength = function transferToFixedLength(
+    this: ArrayBuffer,
+    newByteLength?: number
+  ): ArrayBuffer {
+    const newLength = newByteLength === undefined ? this.byteLength : newByteLength;
+    const newBuffer = new ArrayBuffer(newLength);
+    new Uint8Array(newBuffer).set(new Uint8Array(this, 0, Math.min(this.byteLength, newLength)));
+    return newBuffer;
   };
 }
