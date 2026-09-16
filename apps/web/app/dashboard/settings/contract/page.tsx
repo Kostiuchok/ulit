@@ -5,8 +5,12 @@ import { useSession } from "next-auth/react";
 import { FileText } from "lucide-react";
 import { useApi } from "../../../../hooks/useApi";
 import { Button } from "../../../../components/ui/button";
+import { Card, CardContent } from "../../../../components/ui/card";
+import { Checkbox } from "../../../../components/ui/checkbox";
 import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
+import { Textarea } from "../../../../components/ui/textarea";
 import { IdentityDocsUploader } from "../../../../components/dashboard/IdentityDocsUploader";
 import { ContractText, contractTextPlain, signatureBlockPlain } from "../../../../components/legal/ContractText";
 import { buildContractDocxBlob } from "../../../../lib/contractDocx";
@@ -221,33 +225,39 @@ export default function ContractPage() {
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-sm text-gray-700">
-                  ІПН / РНОКПП <span className="text-red-500">*</span>
-                  <input
+                <div className="space-y-1.5">
+                  <Label htmlFor="taxId">
+                    ІПН / РНОКПП <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="taxId"
                     value={taxId}
                     onChange={(e) => { setTaxId(e.target.value); setPayoutSaved(false); }}
                     placeholder="1234567890"
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                   />
-                </label>
-                <label className="text-sm text-gray-700">
-                  IBAN для виплат <span className="text-red-500">*</span>
-                  <input
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="bankIban">
+                    IBAN для виплат <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="bankIban"
                     value={bankIban}
                     onChange={(e) => { setBankIban(e.target.value); setPayoutSaved(false); }}
                     placeholder="UA00 0000 0000 0000 0000 0000 0"
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                   />
-                </label>
-                <label className="text-sm text-gray-700 sm:col-span-2">
-                  Паспортні дані або дані ФОП <span className="text-red-500">*</span>
-                  <input
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="payoutDocument">
+                    Паспортні дані або дані ФОП <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="payoutDocument"
                     value={payoutDocument}
                     onChange={(e) => { setPayoutDocument(e.target.value); setPayoutSaved(false); }}
                     placeholder="Серія, номер, ким виданий — або реквізити ФОП"
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                   />
-                </label>
+                </div>
               </div>
 
               {signError && <p className="text-sm text-red-600">{signError}</p>}
@@ -273,7 +283,8 @@ export default function ContractPage() {
             )}
 
             {showChangeForm && (
-              <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
+              <Card className="shadow-sm">
+              <CardContent className="space-y-5 p-6">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Зміна договору</h3>
                   <p className="text-sm text-gray-500">Щоб змінити договір, заповніть усі поля</p>
@@ -312,31 +323,31 @@ export default function ContractPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="citizenship">Громадянство</Label>
-                    <select
-                      id="citizenship"
-                      value={citizenship}
-                      onChange={(e) => setCitizenship(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option>Україна</option>
-                      <option>Інше</option>
-                    </select>
+                    <Select value={citizenship} onValueChange={setCitizenship}>
+                      <SelectTrigger id="citizenship">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Україна">Україна</SelectItem>
+                        <SelectItem value="Інше">Інше</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="changeReason">Причина зміни договору</Label>
-                  <select
-                    id="changeReason"
-                    value={changeReason}
-                    onChange={(e) => setChangeReason(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option>Заміна паспорта</option>
-                    <option>Зміна ПІБ</option>
-                    <option>Зміна адреси реєстрації</option>
-                    <option>Інше</option>
-                  </select>
+                  <Select value={changeReason} onValueChange={setChangeReason}>
+                    <SelectTrigger id="changeReason">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Заміна паспорта">Заміна паспорта</SelectItem>
+                      <SelectItem value="Зміна ПІБ">Зміна ПІБ</SelectItem>
+                      <SelectItem value="Зміна адреси реєстрації">Зміна адреси реєстрації</SelectItem>
+                      <SelectItem value="Інше">Інше</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
@@ -355,12 +366,12 @@ export default function ContractPage() {
                   <Label htmlFor="registrationAddress">
                     Адреса реєстрації <span className="text-red-500">*</span>
                   </Label>
-                  <textarea
+                  <Textarea
                     id="registrationAddress"
                     value={registrationAddress}
                     onChange={(e) => setRegistrationAddress(e.target.value)}
                     rows={3}
-                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
+                    className="resize-none"
                   />
                 </div>
 
@@ -376,22 +387,22 @@ export default function ContractPage() {
                   <IdentityDocsUploader files={docFiles} onChange={setDocFiles} />
                 </div>
 
-                <label className="flex items-start gap-2.5 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
+                <Label className="flex items-start gap-2.5 font-normal text-gray-700">
+                  <Checkbox
                     checked={agreeChange}
-                    onChange={(e) => setAgreeChange(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                    onCheckedChange={(v) => setAgreeChange(v === true)}
+                    className="mt-0.5"
                   />
                   Я згоден з умовами договору та політикою обробки персональних даних
-                </label>
+                </Label>
 
                 {changeError && <p className="text-sm text-red-600">{changeError}</p>}
 
                 <Button onClick={handleChangeSubmit} loading={changing} disabled={!changeFormValid}>
                   Змінити дані
                 </Button>
-              </div>
+              </CardContent>
+              </Card>
             )}
           </>
         ) : (
@@ -403,9 +414,11 @@ export default function ContractPage() {
               <span className="text-xs text-gray-400">Договір діє на всі ваші книги на платформі</span>
             </div>
 
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <ContractText />
-            </div>
+            <Card className="shadow-sm">
+              <CardContent className="p-6">
+                <ContractText />
+              </CardContent>
+            </Card>
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-4">
               <div>
@@ -415,55 +428,59 @@ export default function ContractPage() {
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-sm text-gray-700">
-                  ІПН / РНОКПП <span className="text-red-500">*</span>
-                  <input
+                <div className="space-y-1.5">
+                  <Label htmlFor="taxIdUnsigned">
+                    ІПН / РНОКПП <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="taxIdUnsigned"
                     value={taxId}
                     onChange={(e) => setTaxId(e.target.value)}
                     placeholder="1234567890"
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                   />
-                </label>
-                <label className="text-sm text-gray-700">
-                  IBAN для виплат <span className="text-red-500">*</span>
-                  <input
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="bankIbanUnsigned">
+                    IBAN для виплат <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="bankIbanUnsigned"
                     value={bankIban}
                     onChange={(e) => setBankIban(e.target.value)}
                     placeholder="UA00 0000 0000 0000 0000 0000 0"
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                   />
-                </label>
-                <label className="text-sm text-gray-700 sm:col-span-2">
-                  Паспортні дані або дані ФОП <span className="text-red-500">*</span>
-                  <input
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="payoutDocumentUnsigned">
+                    Паспортні дані або дані ФОП <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="payoutDocumentUnsigned"
                     value={payoutDocument}
                     onChange={(e) => setPayoutDocument(e.target.value)}
                     placeholder="Серія, номер, ким виданий — або реквізити ФОП"
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                   />
-                </label>
+                </div>
               </div>
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-3">
-              <label className="flex items-start gap-2.5 text-sm text-gray-700">
-                <input
-                  type="checkbox"
+              <Label className="flex items-start gap-2.5 font-normal text-gray-700">
+                <Checkbox
                   checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                  onCheckedChange={(v) => setAgreeTerms(v === true)}
+                  className="mt-0.5"
                 />
                 Я ознайомився(-лась) з умовами договору та погоджуюсь з ними
-              </label>
-              <label className="flex items-start gap-2.5 text-sm text-gray-700">
-                <input
-                  type="checkbox"
+              </Label>
+              <Label className="flex items-start gap-2.5 font-normal text-gray-700">
+                <Checkbox
                   checked={agreeRights}
-                  onChange={(e) => setAgreeRights(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                  onCheckedChange={(v) => setAgreeRights(v === true)}
+                  className="mt-0.5"
                 />
                 Я підтверджую, що володію авторськими правами на твори, які публікуватиму на платформі
-              </label>
+              </Label>
 
               {signError && <p className="text-sm text-red-600">{signError}</p>}
 

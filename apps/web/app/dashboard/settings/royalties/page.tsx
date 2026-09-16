@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../../hooks/useApi";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface Royalty {
   id: string;
@@ -62,75 +67,77 @@ export default function RoyaltiesPage() {
         <h1 className="text-2xl font-bold text-gray-900">Авторські відрахування</h1>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Сума до виплати</p>
-            <p className="text-2xl font-bold" style={{ color: "#ff5900" }}>{fmt(data.summary.pending)}</p>
-            <p className="text-sm text-gray-500">
-              Виведення авторських відрахувань займає <span className="font-semibold text-gray-700">до 30 робочих днів</span>.
-            </p>
-            {!identityConfirmed && (
-              <Link
-                href="/dashboard/settings/contract"
-                className="inline-block rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
-                style={{ backgroundColor: "#ff5900" }}
-              >
-                Підтвердити особу
-              </Link>
-            )}
-          </div>
+          <Card className="shadow-sm">
+            <CardContent className="space-y-3 p-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Сума до виплати</p>
+              <p className="text-2xl font-bold" style={{ color: "#ff5900" }}>{fmt(data.summary.pending)}</p>
+              <p className="text-sm text-gray-500">
+                Виведення авторських відрахувань займає <span className="font-semibold text-gray-700">до 30 робочих днів</span>.
+              </p>
+              {!identityConfirmed && (
+                <Button asChild style={{ backgroundColor: "#ff5900" }}>
+                  <Link href="/dashboard/settings/contract">Підтвердити особу</Link>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-4">Статистика виплат</p>
-            <dl className="space-y-3">
-              <div className="flex items-center justify-between border-b pb-3 text-sm">
-                <dt className="text-gray-500">Зароблено за весь час</dt>
-                <dd className="font-semibold" style={{ color: "#ff5900" }}>{fmt(data.summary.earned)}</dd>
-              </div>
-              <div className="flex items-center justify-between border-b pb-3 text-sm">
-                <dt className="text-gray-500">Виведено</dt>
-                <dd className="font-semibold text-gray-900">{fmt(data.summary.paid)}</dd>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <dt className="text-gray-500">Залишок</dt>
-                <dd className="font-semibold" style={{ color: "#ff5900" }}>{fmt(data.summary.pending)}</dd>
-              </div>
-            </dl>
-          </div>
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-4">Статистика виплат</p>
+              <dl className="space-y-3">
+                <div className="flex items-center justify-between border-b pb-3 text-sm">
+                  <dt className="text-gray-500">Зароблено за весь час</dt>
+                  <dd className="font-semibold" style={{ color: "#ff5900" }}>{fmt(data.summary.earned)}</dd>
+                </div>
+                <div className="flex items-center justify-between border-b pb-3 text-sm">
+                  <dt className="text-gray-500">Виведено</dt>
+                  <dd className="font-semibold text-gray-900">{fmt(data.summary.paid)}</dd>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <dt className="text-gray-500">Залишок</dt>
+                  <dd className="font-semibold" style={{ color: "#ff5900" }}>{fmt(data.summary.pending)}</dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
         </div>
 
         {data.royalties.length > 0 && (
-          <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-                <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Книга</th>
-                  <th className="text-left px-4 py-3 font-semibold">Джерело</th>
-                  <th className="text-left px-4 py-3 font-semibold">Дата</th>
-                  <th className="text-left px-4 py-3 font-semibold">Статус</th>
-                  <th className="text-right px-4 py-3 font-semibold">Сума</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
+          <Card className="overflow-hidden shadow-sm">
+            <Table>
+              <TableHeader className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                <TableRow>
+                  <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Книга</TableHead>
+                  <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Джерело</TableHead>
+                  <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Дата</TableHead>
+                  <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Статус</TableHead>
+                  <TableHead className="h-auto px-4 py-3 text-right font-semibold text-gray-500">Сума</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {data.royalties.map((r) => (
-                  <tr key={r.id}>
-                    <td className="px-4 py-3 text-gray-900">{r.book.title}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.source}</td>
-                    <td className="px-4 py-3 text-gray-500">{fmtDate(r.paidAt ?? r.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  <TableRow key={r.id}>
+                    <TableCell className="px-4 py-3 text-gray-900">{r.book.title}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500">{r.source}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500">{fmtDate(r.paidAt ?? r.createdAt)}</TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "rounded-full border-transparent font-medium",
                           r.status === "PAID" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
-                        }`}
+                        )}
                       >
                         {r.status === "PAID" ? "Виплачено" : "Очікує"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-900">{fmt(r.amount)}</td>
-                  </tr>
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right font-medium text-gray-900">{fmt(r.amount)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </div>
     </div>

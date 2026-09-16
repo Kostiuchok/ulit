@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { FontSizeControl } from "../../components/dashboard/FontSizeControl";
 import { NotificationsBell } from "../../components/dashboard/NotificationsBell";
+import { Toaster } from "../../components/ui/sonner";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -32,6 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
       <main className="flex-1 overflow-y-auto">{children}</main>
+      <Toaster position="top-right" richColors />
     </div>
   );
 }

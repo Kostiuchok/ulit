@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useApi } from "../../hooks/useApi";
 import { ProfileTabs } from "../../components/dashboard/ProfileTabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface DashboardBook {
   id: string;
@@ -103,12 +105,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-8 flex gap-4">
-            <Link
-              href="/dashboard/books/new"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              + Нова книга
-            </Link>
+            <Button asChild>
+              <Link href="/dashboard/books/new">+ Нова книга</Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -128,12 +127,14 @@ function StatTile({
   href?: string;
 }) {
   const content = (
-    <div className="rounded-xl border bg-white p-6 shadow-sm h-full transition hover:shadow-md hover:border-gray-300">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-gray-900">
-        {loading ? <span className="inline-block h-8 w-12 animate-pulse rounded bg-gray-100" /> : value}
-      </p>
-    </div>
+    <Card className="h-full shadow-sm transition hover:shadow-md hover:border-gray-300">
+      <CardContent className="p-6">
+        <p className="text-sm text-gray-500">{label}</p>
+        <p className="mt-1 text-3xl font-semibold text-gray-900">
+          {loading ? <span className="inline-block h-8 w-12 animate-pulse rounded bg-gray-100" /> : value}
+        </p>
+      </CardContent>
+    </Card>
   );
 
   if (!href) return content;

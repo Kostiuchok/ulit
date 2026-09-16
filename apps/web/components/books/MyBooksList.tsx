@@ -7,7 +7,9 @@ import { BookCard } from "@/components/books/BookCard";
 import { DeleteBookModal } from "@/components/books/DeleteBookModal";
 import { PurgeArchivedModal } from "@/components/books/PurgeArchivedModal";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useApi } from "@/hooks/useApi";
+import { toast } from "sonner";
 
 interface Book {
   id: string;
@@ -94,7 +96,7 @@ export function MyBooksList({ contentClassName = "" }: { contentClassName?: stri
       setBooks((prev) => prev.map((b) => (b.id === id ? book : b)));
       window.dispatchEvent(new Event("ulit:books-changed"));
     } catch (e: any) {
-      alert(e.message || "Помилка відновлення");
+      toast.error(e.message || "Помилка відновлення");
     } finally {
       setRestoring(null);
     }
@@ -117,9 +119,9 @@ export function MyBooksList({ contentClassName = "" }: { contentClassName?: stri
               </p>
             )}
           </div>
-          <Link href="/dashboard/books/new">
-            <Button>+ Нова книга</Button>
-          </Link>
+          <Button asChild>
+            <Link href="/dashboard/books/new">+ Нова книга</Link>
+          </Button>
         </div>
 
         {filterDef && (
@@ -140,22 +142,26 @@ export function MyBooksList({ contentClassName = "" }: { contentClassName?: stri
             ))}
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-red-200 bg-red-50 py-16 text-center">
-            <p className="text-red-700">Не вдалося завантажити книги</p>
-            <p className="mt-1 text-[0.75rem] text-red-500">{error}</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => load()}>
-              Спробувати ще раз
-            </Button>
-          </div>
+          <Card className="border-red-200 bg-red-50 shadow-none">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-red-700">Не вдалося завантажити книги</p>
+              <p className="mt-1 text-[0.75rem] text-red-500">{error}</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => load()}>
+                Спробувати ще раз
+              </Button>
+            </CardContent>
+          </Card>
         ) : activeBooks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-white py-20 text-center">
-            <div className="text-5xl mb-4">📚</div>
-            <h2 className="text-lg font-semibold text-gray-700">Поки немає книг</h2>
-            <p className="mt-1 text-sm text-gray-500">Опублікуйте свою першу книгу на платформі ULIT</p>
-            <Link href="/dashboard/books/new" className="mt-6">
-              <Button>Опублікувати книгу</Button>
-            </Link>
-          </div>
+          <Card className="border-dashed shadow-none">
+            <CardContent className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="text-5xl mb-4">📚</div>
+              <h2 className="text-lg font-semibold text-gray-700">Поки немає книг</h2>
+              <p className="mt-1 text-sm text-gray-500">Опублікуйте свою першу книгу на платформі ULIT</p>
+              <Button asChild className="mt-6">
+                <Link href="/dashboard/books/new">Опублікувати книгу</Link>
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-4">
             {activeBooks.map((book) => (
@@ -179,13 +185,15 @@ export function MyBooksList({ contentClassName = "" }: { contentClassName?: stri
           <div className="mt-10">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-500">Видалені книги</h2>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setPurging(true)}
-                className="text-xs font-medium text-red-600 hover:text-red-700"
+                className="h-auto p-0 text-xs font-medium text-red-600 hover:bg-transparent hover:text-red-700"
               >
                 Очистити список
-              </button>
+              </Button>
             </div>
             <div className="space-y-2">
               {archivedBooks.map((book) => (

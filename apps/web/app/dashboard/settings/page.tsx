@@ -9,8 +9,10 @@ import Link from "next/link";
 import { AvatarUploader } from "../../../components/dashboard/AvatarUploader";
 import { SignOutButton } from "../../../components/dashboard/SignOutButton";
 import { Button } from "../../../components/ui/button";
+import { Card, CardContent } from "../../../components/ui/card";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
+import { Textarea } from "../../../components/ui/textarea";
 import { useApi } from "../../../hooks/useApi";
 
 const UK_TRANSLIT: Record<string, string> = {
@@ -171,17 +173,20 @@ export default function SettingsPage() {
         </div>
 
         {/* Avatar */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm space-y-4">
-          <h2 className="text-base font-semibold">Фото профілю</h2>
-          <AvatarUploader
-            currentAvatarUrl={profile?.avatarUrl}
-            onSuccess={(url) => setProfile((p) => p ? { ...p, avatarUrl: url } : p)}
-          />
-        </div>
+        <Card className="shadow-sm">
+          <CardContent className="space-y-4 p-6">
+            <h2 className="text-base font-semibold">Фото профілю</h2>
+            <AvatarUploader
+              currentAvatarUrl={profile?.avatarUrl}
+              onSuccess={(url) => setProfile((p) => p ? { ...p, avatarUrl: url } : p)}
+            />
+          </CardContent>
+        </Card>
 
         {/* ПІБ -- same fields as "Змінити договір"; source of truth reused
             by Вихідні дані's "Автори книги" auto-fill on every book. */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
+        <Card className="shadow-sm">
+          <CardContent className="space-y-3 p-6">
           <div>
             <h2 className="text-base font-semibold">ПІБ</h2>
             <p className="mt-0.5 text-xs text-gray-500">
@@ -235,10 +240,12 @@ export default function SettingsPage() {
               </Button>
             </>
           )}
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Profile form */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <Card className="shadow-sm">
+          <CardContent className="p-6">
           <h2 className="text-base font-semibold mb-5">Особисті дані</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
@@ -269,12 +276,12 @@ export default function SettingsPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="bio">Біографія</Label>
-              <textarea
+              <Textarea
                 id="bio"
                 {...register("bio")}
                 placeholder="Кілька слів про себе…"
                 rows={4}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                className="resize-none"
               />
               {errors.bio && <p className="text-sm text-red-500">{errors.bio.message}</p>}
             </div>
@@ -299,7 +306,8 @@ export default function SettingsPage() {
               )}
             </div>
           </form>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

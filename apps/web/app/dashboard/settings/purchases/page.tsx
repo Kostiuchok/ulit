@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApi } from "../../../../hooks/useApi";
 import { cn } from "../../../../lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface OrderItemView {
   bookId: string;
@@ -80,17 +82,16 @@ export default function PurchasesPage() {
 
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
-            <button
+            <Button
               key={f.key}
+              size="sm"
+              variant={filter === f.key ? "default" : "outline"}
               onClick={() => setFilter(f.key)}
-              className={cn(
-                "rounded-lg border px-4 py-1.5 text-sm font-medium transition-colors",
-                filter === f.key ? "text-white border-transparent" : "text-gray-600 border-gray-300 hover:border-gray-400"
-              )}
+              className={cn("rounded-lg", filter === f.key && "border-transparent text-white")}
               style={filter === f.key ? { backgroundColor: "#ff5900" } : undefined}
             >
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -101,34 +102,32 @@ export default function PurchasesPage() {
             {purchasedItems.map((item, i) => {
               const links = data.downloads[item.bookId] ?? [];
               return (
-                <div key={`${item.orderId}-${i}`} className="rounded-xl border bg-white p-5 shadow-sm flex flex-col sm:flex-row gap-5">
-                  {item.book.coverUrl ? (
-                    <img src={item.book.coverUrl} alt="" className="h-32 w-24 shrink-0 rounded object-cover" />
-                  ) : (
-                    <div className="h-32 w-24 shrink-0 rounded bg-gray-100" />
-                  )}
-                  <div className="flex-1 space-y-2">
-                    <p className="font-semibold text-gray-900">{item.book.title}</p>
-                    <p className="text-xs text-gray-400">Дата покупки книги: {fmtDate(item.purchasedAt)}</p>
-                    {links.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {links.map((link) => (
-                          <a
-                            key={link.label}
-                            href={link.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-400"
-                          >
-                            {link.label}
-                          </a>
-                        ))}
-                      </div>
+                <Card key={`${item.orderId}-${i}`} className="shadow-sm">
+                  <CardContent className="flex flex-col gap-5 p-5 sm:flex-row">
+                    {item.book.coverUrl ? (
+                      <img src={item.book.coverUrl} alt="" className="h-32 w-24 shrink-0 rounded object-cover" />
                     ) : (
-                      <p className="text-xs text-gray-400">Файли для завантаження недоступні для цього формату.</p>
+                      <div className="h-32 w-24 shrink-0 rounded bg-gray-100" />
                     )}
-                  </div>
-                </div>
+                    <div className="flex-1 space-y-2">
+                      <p className="font-semibold text-gray-900">{item.book.title}</p>
+                      <p className="text-xs text-gray-400">Дата покупки книги: {fmtDate(item.purchasedAt)}</p>
+                      {links.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {links.map((link) => (
+                            <Button key={link.label} asChild variant="outline" size="sm" className="text-xs font-semibold">
+                              <a href={link.url} target="_blank" rel="noreferrer">
+                                {link.label}
+                              </a>
+                            </Button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-400">Файли для завантаження недоступні для цього формату.</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
