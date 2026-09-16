@@ -77,6 +77,8 @@ model User {
   emailVerified                Boolean   @default(false)
   emailVerificationToken       String?   @unique
   emailVerificationTokenExpiry DateTime?
+  passwordResetToken           String?   @unique
+  passwordResetTokenExpiry     DateTime?
   contractAcceptedAt           DateTime?
   contractAcceptedIp           String?
   taxId                        String?

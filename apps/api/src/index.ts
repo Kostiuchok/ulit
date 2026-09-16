@@ -12,6 +12,7 @@ import { registerRoute } from "./modules/auth/register";
 import { loginRoute } from "./modules/auth/login";
 import { oauthLoginRoute } from "./modules/auth/oauth-login";
 import { verifyEmailRoutes } from "./modules/auth/verify-email";
+import { passwordResetRoutes } from "./modules/auth/password-reset";
 import { meRoute } from "./modules/auth/me";
 import { usersMe } from "./modules/users/me";
 import { usersAvatar } from "./modules/users/avatar";
@@ -115,6 +116,7 @@ async function bootstrap() {
   await app.register(loginRoute);
   await app.register(oauthLoginRoute);
   await app.register(verifyEmailRoutes);
+  await app.register(passwordResetRoutes);
   await app.register(meRoute);
   await app.register(usersMe);
   await app.register(usersAvatar);

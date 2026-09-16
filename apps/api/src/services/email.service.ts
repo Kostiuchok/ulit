@@ -52,6 +52,31 @@ export async function sendEmailVerification(opts: {
   );
 }
 
+export async function sendPasswordReset(opts: {
+  email: string;
+  name: string;
+  resetUrl: string;
+}) {
+  const { email, name, resetUrl } = opts;
+  await sendMail(
+    email,
+    "Скидання пароля — ULIT",
+    `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+      <h2 style="color:#1a1a2e">Скидання пароля</h2>
+      <p>Вітаємо, ${name}!</p>
+      <p>Ми отримали запит на скидання пароля для вашого акаунту. Натисніть кнопку нижче, щоб встановити новий пароль:</p>
+      <a href="${resetUrl}" style="display:inline-block;margin:20px 0;padding:12px 28px;background:#1a1a2e;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:1em">
+        Скинути пароль
+      </a>
+      <p style="color:#666;font-size:0.9em">Посилання дійсне <strong>1 годину</strong>.</p>
+      <p style="color:#999;font-size:0.8em">Якщо ви не запитували скидання пароля — просто ігноруйте цей лист, ваш пароль залишиться незмінним.</p>
+      <p style="margin-top:32px;font-size:0.8em;color:#888">Платформа ULIT — ulit.ua</p>
+    </div>
+    `
+  );
+}
+
 export async function sendKdpExpiryWarning(opts: {
   email: string;
   name: string;
