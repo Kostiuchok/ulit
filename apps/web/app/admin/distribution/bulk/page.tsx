@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApi } from "../../../../hooks/useApi";
+import { Button } from "../../../../components/ui/button";
+import { Card } from "../../../../components/ui/card";
+import { Checkbox } from "../../../../components/ui/checkbox";
+import { toast } from "sonner";
 
 interface Book {
   id: string;
@@ -70,7 +74,7 @@ export default function BulkExportPage() {
       URL.revokeObjectURL(url);
       setExported(true);
     } catch (e: any) {
-      alert(e.message || "Помилка експорту");
+      toast.error(e.message || "Помилка експорту");
     } finally {
       setExporting(false);
     }
@@ -86,7 +90,7 @@ export default function BulkExportPage() {
         </p>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400 animate-pulse">Завантаження…</div>
         ) : (
@@ -95,16 +99,17 @@ export default function BulkExportPage() {
               <p className="text-sm font-medium text-gray-700">
                 Обрано: {selected.size} / {books.length} книг
               </p>
-              <button
+              <Button
+                variant="link"
                 onClick={() =>
                   selected.size === books.length
                     ? setSelected(new Set())
                     : setSelected(new Set(books.map((b) => b.id)))
                 }
-                className="text-xs text-gray-500 hover:text-gray-700"
+                className="h-auto p-0 text-xs text-gray-500 hover:text-gray-700"
               >
                 {selected.size === books.length ? "Скасувати все" : "Вибрати все"}
-              </button>
+              </Button>
             </div>
 
             <div className="divide-y">
@@ -113,12 +118,7 @@ export default function BulkExportPage() {
                   key={book.id}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer"
                 >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(book.id)}
-                    onChange={() => toggle(book.id)}
-                    className="h-4 w-4"
-                  />
+                  <Checkbox checked={selected.has(book.id)} onCheckedChange={() => toggle(book.id)} />
                   {book.coverUrl ? (
                     <img src={book.coverUrl} alt="" className="h-10 w-7 rounded object-cover shrink-0" />
                   ) : (
@@ -140,15 +140,16 @@ export default function BulkExportPage() {
             </div>
           </>
         )}
-      </div>
+      </Card>
 
-      <button
+      <Button
         onClick={handleExport}
-        disabled={!selected.size || exporting}
-        className="w-full rounded-xl bg-gray-900 py-3 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
+        disabled={!selected.size}
+        loading={exporting}
+        className="w-full bg-gray-900 hover:bg-gray-700"
       >
-        {exporting ? "Формування ZIP…" : `⬇ Завантажити ZIP (${selected.size} книг)`}
-      </button>
+        ⬇ Завантажити ZIP ({selected.size} книг)
+      </Button>
 
       {exported && (
         <p className="text-center text-sm text-green-700">

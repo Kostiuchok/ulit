@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../../hooks/useApi";
 import { useRefetchOnFocus } from "../../../../hooks/useRefetchOnFocus";
+import { Badge } from "../../../../components/ui/badge";
+import { Button } from "../../../../components/ui/button";
+import { Card } from "../../../../components/ui/card";
+import { Checkbox } from "../../../../components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../components/ui/table";
+import { cn } from "../../../../lib/utils";
 
 interface Book {
   id: string;
@@ -61,16 +67,15 @@ export default function DistributionQueuePage() {
           <p className="text-sm text-gray-500 mt-1">Книги готові до відправки на зовнішні сервіси</p>
         </div>
         {selected.size > 0 && (
-          <Link
-            href={`/admin/distribution/bulk?ids=${Array.from(selected).join(",")}`}
-            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700"
-          >
-            📦 Масово ({selected.size})
-          </Link>
+          <Button asChild className="bg-gray-900 hover:bg-gray-700">
+            <Link href={`/admin/distribution/bulk?ids=${Array.from(selected).join(",")}`}>
+              📦 Масово ({selected.size})
+            </Link>
+          </Button>
         )}
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400 animate-pulse">Завантаження…</div>
         ) : books.length === 0 ? (
@@ -79,29 +84,25 @@ export default function DistributionQueuePage() {
             <p className="text-gray-500">Черга порожня — всі книги розіслані</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
-              <tr>
-                <th className="px-4 py-3">
-                  <input type="checkbox" checked={selected.size === books.length} onChange={toggleAll} />
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Книга</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Стратегія</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">D2D / KDP / Google</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Дії</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="h-auto px-4 py-3">
+                  <Checkbox checked={selected.size === books.length} onCheckedChange={toggleAll} />
+                </TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Книга</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Стратегія</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">D2D / KDP / Google</TableHead>
+                <TableHead className="h-auto px-4 py-3 text-right font-semibold text-gray-600">Дії</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {books.map((book) => (
-                <tr key={book.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(book.id)}
-                      onChange={() => toggle(book.id)}
-                    />
-                  </td>
-                  <td className="px-4 py-3">
+                <TableRow key={book.id}>
+                  <TableCell className="px-4 py-3">
+                    <Checkbox checked={selected.has(book.id)} onCheckedChange={() => toggle(book.id)} />
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {book.coverUrl ? (
                         <img src={book.coverUrl} alt="" className="h-10 w-7 rounded object-cover" />
@@ -113,15 +114,18 @@ export default function DistributionQueuePage() {
                         <p className="text-xs text-gray-500">{book.author.name}</p>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      isKdpOnly(book) ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
-                    }`}>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <Badge
+                      className={cn(
+                        "rounded-full border-transparent font-medium",
+                        isKdpOnly(book) ? "bg-orange-100 text-orange-700 hover:bg-orange-100" : "bg-blue-100 text-blue-700 hover:bg-blue-100"
+                      )}
+                    >
                       {isKdpOnly(book) ? "KDP Select" : "Широке"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     <div className="flex gap-3 text-xs">
                       {!isKdpOnly(book) && (
                         <span className={book.d2dStatus === "NOT_SENT" ? "text-red-500 font-medium" : "text-gray-400"}>
@@ -137,21 +141,18 @@ export default function DistributionQueuePage() {
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/admin/books/${book.id}/distribute`}
-                      className="rounded-md bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                    >
-                      Розіслати →
-                    </Link>
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right">
+                    <Button asChild size="sm" variant="outline" className="border-blue-200 bg-blue-50 text-xs text-blue-700 hover:bg-blue-100">
+                      <Link href={`/admin/books/${book.id}/distribute`}>Розіслати →</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
