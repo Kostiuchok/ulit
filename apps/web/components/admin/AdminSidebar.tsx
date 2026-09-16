@@ -14,6 +14,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { NavUser } from "./NavUser";
 
 interface NavItem {
   href: string;
@@ -34,7 +35,15 @@ const NAV: NavItem[] = [
   { href: "/admin/services", label: "Сервіси", icon: "⚙️" },
 ];
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
+
+export function AdminSidebar({ user }: AdminSidebarProps) {
   const path = usePathname();
 
   return (
@@ -79,6 +88,7 @@ export function AdminSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <NavUser user={user} />
       </SidebarFooter>
 
       <SidebarRail />
