@@ -5,17 +5,14 @@ import {
   DESCRIPTION_MAX_LENGTH,
   type RejectionReasonKey,
 } from "shared-types";
+import type { OutputDataSectionKey } from "./outputDataSections";
+
+export type { OutputDataSectionKey };
 
 interface ModeratedBook {
   moderationStatus?: string | null;
   moderationNote?: string | null;
 }
-
-// output-data's own section keys (SECTION_LABELS in output-data/page.tsx) --
-// duplicated here rather than imported, since that page isn't a module
-// other pages/lib can import from (it's a route file). Keep in sync if
-// SECTION_LABELS' keys change.
-export type OutputDataSectionKey = "info" | "file" | "price" | "review" | "publish";
 
 // Per-line target for a rejection-reason bullet -- lets the author's
 // rejection banner turn each line into a jump-link to the exact block to
