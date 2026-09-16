@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { FileText } from "lucide-react";
+import { Button } from "../ui/button";
 
 interface Props {
   files: File[];
@@ -60,13 +61,14 @@ export function IdentityDocsUploader({ files, onChange }: Props) {
                 <FileText size={14} className="shrink-0 text-gray-400" />
                 {file.name}
               </span>
-              <button
+              <Button
                 type="button"
+                variant="link"
                 onClick={() => removeFile(i)}
-                className="shrink-0 text-xs font-medium text-red-500 hover:underline"
+                className="h-auto shrink-0 p-0 text-xs font-medium text-red-500"
               >
                 Видалити
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
