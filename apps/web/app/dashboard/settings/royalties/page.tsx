@@ -48,7 +48,11 @@ export default function RoyaltiesPage() {
   }, [token]);
 
   if (loading) {
-    return <div className="p-8 animate-pulse text-gray-400">Завантаження…</div>;
+    return (
+      <div className="p-8">
+        <div className="max-w-5xl mx-auto animate-pulse text-center text-gray-400">Завантаження…</div>
+      </div>
+    );
   }
   if (!data) return null;
 
