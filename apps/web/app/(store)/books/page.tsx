@@ -19,7 +19,8 @@ const FORMATS = [
   { value: "EPUB", label: "EPUB" },
   { value: "FB2", label: "FB2" },
   { value: "MOBI", label: "MOBI" },
-  { value: "PRINT", label: "Друк" },
+  { value: "PRINT_HARDCOVER", label: "Тверда обкладинка" },
+  { value: "PRINT_SOFTCOVER", label: "М'яка обкладинка" },
 ];
 
 interface PageProps {
@@ -63,7 +64,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
   const [{ books, nextCursor }, genres] = await Promise.all([fetchBooks(params), fetchGenres()]);
 
   const isFiltered = !!(q || genre || language || format);
-  const coverFrame = format === "PRINT" ? "print" : "tablet";
+  const coverFrame = format?.startsWith("PRINT") ? "print" : "tablet";
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8">

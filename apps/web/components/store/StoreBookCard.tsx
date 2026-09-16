@@ -73,6 +73,16 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
         })()
       : undefined;
 
+  // Printed-catalog cards show which binding(s) a book is available in
+  // instead of the ebook-format/"Друк" badges -- both this card's own
+  // pricePrint* fields and the store's PRINT_HARDCOVER/PRINT_SOFTCOVER
+  // filter (books/page.tsx) key off the same "does a price exist for this
+  // binding" signal, since printPdfUrl is one shared file for both.
+  const printBadges = [
+    { key: "hardcover", label: "Тверда обкладинка", show: !!(book.pricePrintHardcover || book.pricePrintHardcoverBw) },
+    { key: "softcover", label: "М'яка обкладинка", show: !!(book.pricePrint || book.pricePrintBw) },
+  ].filter((b) => b.show);
+
   return (
     <Link href={`/books/${book.slug}`} className="group flex flex-col">
       {/* Preview sits on its own -- no card/overflow-hidden wrapper around it,
@@ -103,7 +113,7 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
         </h3>
 
         <div className="flex flex-wrap gap-1 mt-1">
-          {FORMAT_BADGES.filter((f) => book[f.key]).map((f) => (
+          {(frame === "print" ? printBadges : FORMAT_BADGES.filter((f) => book[f.key])).map((f) => (
             <Badge
               key={f.key}
               variant="outline"

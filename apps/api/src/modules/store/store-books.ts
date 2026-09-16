@@ -9,7 +9,7 @@ const querySchema = z.object({
   q: z.string().optional(),
   genre: z.string().optional(),
   language: z.string().optional(),
-  format: z.enum(["EPUB", "FB2", "MOBI", "PRINT"]).optional(),
+  format: z.enum(["EPUB", "FB2", "MOBI", "PRINT", "PRINT_HARDCOVER", "PRINT_SOFTCOVER"]).optional(),
   cursor: z.string().optional(), // last seen book id
   take: z.coerce.number().int().min(1).max(50).default(12),
 });
@@ -66,12 +66,24 @@ export async function storeBooksRoutes(app: FastifyInstance) {
     }
     const { q, genre, language, format, cursor, take } = parsed.data;
 
-    // Build format filter (book has the corresponding URL field)
+    // Build format filter (book has the corresponding URL field). The two
+    // PRINT_* variants additionally require a price set for that binding --
+    // printPdfUrl is one shared print-ready file for both bindings, so
+    // hardcover/softcover availability is only knowable from which price
+    // fields the author set (color or b/w counts as "has that binding").
     const formatFilter: Record<string, object> = {
       EPUB: { epubUrl: { not: null } },
       FB2: { fb2Url: { not: null } },
       MOBI: { mobiUrl: { not: null } },
       PRINT: { printPdfUrl: { not: null } },
+      PRINT_HARDCOVER: {
+        printPdfUrl: { not: null },
+        OR: [{ pricePrintHardcover: { not: null } }, { pricePrintHardcoverBw: { not: null } }],
+      },
+      PRINT_SOFTCOVER: {
+        printPdfUrl: { not: null },
+        OR: [{ pricePrint: { not: null } }, { pricePrintBw: { not: null } }],
+      },
     };
 
     // T-808 — full-text search via PostgreSQL tsvector
