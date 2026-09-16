@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/card";
+
 export const metadata = { title: "KDP Selling Partner API" };
 
 export default function KdpApiPage() {
@@ -8,7 +10,7 @@ export default function KdpApiPage() {
         <p className="text-sm text-gray-500 mt-1">Заявка на отримання доступу до API автоматизації KDP</p>
       </div>
 
-      <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
+      <Card className="p-6 shadow-sm space-y-5">
         <section>
           <h2 className="text-base font-semibold text-gray-900 mb-2">Кроки для отримання доступу</h2>
           <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
@@ -43,7 +45,7 @@ export default function KdpApiPage() {
           <p className="font-semibold mb-1">📌 Статус: Не подано</p>
           <p>Після отримання <code>LWA_APP_ID</code> та <code>LWA_CLIENT_SECRET</code> — додайте їх у змінні середовища API.</p>
         </section>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/card";
+
 export const metadata = { title: "D2D Partner Program" };
 
 export default function D2dPartnerPage() {
@@ -8,7 +10,7 @@ export default function D2dPartnerPage() {
         <p className="text-sm text-gray-500 mt-1">Лист до D2D Business Development для агрегаторського доступу</p>
       </div>
 
-      <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
+      <Card className="p-6 shadow-sm space-y-5">
         <section>
           <h2 className="text-base font-semibold text-gray-900 mb-2">Контакти D2D</h2>
           <div className="space-y-2 text-sm">
@@ -57,7 +59,7 @@ Email: admin@ulit.ua`}
           <p className="font-semibold mb-1">📌 Статус: Не відправлено</p>
           <p>D2D зазвичай відповідає протягом 1–2 тижнів. Після схвалення отримаєте API ключ для автоматичної відправки.</p>
         </section>
-      </div>
+      </Card>
     </div>
   );
 }

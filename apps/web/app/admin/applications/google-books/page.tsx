@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/card";
+
 export const metadata = { title: "Google Books Partner API" };
 
 export default function GoogleBooksPage() {
@@ -8,7 +10,7 @@ export default function GoogleBooksPage() {
         <p className="text-sm text-gray-500 mt-1">Заявка на партнерський доступ до Google Play Books</p>
       </div>
 
-      <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
+      <Card className="p-6 shadow-sm space-y-5">
         <section>
           <h2 className="text-base font-semibold text-gray-900 mb-2">Порядок подачі заявки</h2>
           <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
@@ -51,7 +53,7 @@ ULIT Team`}
           <p className="font-semibold mb-1">📌 Статус: Не подано</p>
           <p>Після схвалення отримаєте FTP/SFTP доступ або API credentials для завантаження книг.</p>
         </section>
-      </div>
+      </Card>
     </div>
   );
 }
