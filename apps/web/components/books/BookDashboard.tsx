@@ -315,7 +315,7 @@ export function BookDashboard() {
                   {book?.pricePrintHardcover && <p>Друк, тверда - {Number(book.pricePrintHardcover).toFixed(0)} грн</p>}
                 </div>
                 <Button asChild variant="outline" className="w-full border-black text-black hover:bg-gray-50 hover:text-black">
-                  <Link href={`/dashboard/books/${id}/output-data?step=2`}>Змінити ціну</Link>
+                  <Link href={`/dashboard/books/${id}/output-data/price`}>Змінити ціну</Link>
                 </Button>
               </Card>
             )}

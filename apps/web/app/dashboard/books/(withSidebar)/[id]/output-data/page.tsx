@@ -248,6 +248,20 @@ export default function OutputDataInfoPage() {
       copyrightHolder: book.copyrightHolder ?? "",
       priorPublicationCertificate: book.priorPublicationCertificate ?? "",
     });
+    // react-hook-form's reset() above correctly updates _defaultValues, but
+    // for these 4 Controller-wrapped Select fields specifically it does NOT
+    // reliably sync the live _formValues Controller/Select actually render
+    // from (confirmed live: after reset(), _defaultValues.genre held the
+    // real value while _formValues.genre stayed "" -- the Select kept
+    // showing its empty placeholder even though the book genuinely had a
+    // genre/size/language/age rating saved). setValue() writes _formValues
+    // directly and does not have this gap -- register()'d plain <Input>
+    // fields (title, subtitle, description, ...) aren't affected, only the
+    // Select ones.
+    infoForm.setValue("genre", (book.pendingGenre ?? book.genre ?? "") as InfoForm["genre"]);
+    infoForm.setValue("printFormatKey", resolveBookPrintFormat(book).key);
+    infoForm.setValue("ageRating", (book.ageRating ?? "") as InfoForm["ageRating"]);
+    infoForm.setValue("language", book.language as InfoForm["language"]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book]);
 

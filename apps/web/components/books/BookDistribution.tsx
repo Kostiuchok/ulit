@@ -139,7 +139,7 @@ export function BookDistribution() {
             <p className="mt-1 text-sm text-gray-500">«{book.title}»</p>
           </div>
           <Button asChild variant="outline" className="border-black text-black hover:bg-gray-50 hover:text-black">
-            <Link href={`/dashboard/books/${id}/output-data#section-price`}>Змінити платформи та ціни</Link>
+            <Link href={`/dashboard/books/${id}/output-data/price`}>Змінити платформи та ціни</Link>
           </Button>
         </div>
 
