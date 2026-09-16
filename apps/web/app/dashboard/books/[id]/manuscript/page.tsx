@@ -8,6 +8,9 @@ import { ManuscriptEditor } from "@/components/manuscript/ManuscriptEditor";
 import { AuthorBooksSidebar } from "@/components/dashboard/AuthorBooksSidebar";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface ManuscriptBook {
   title: string;
@@ -126,7 +129,7 @@ export default function ManuscriptEditorPage() {
         <AuthorBooksSidebar />
         <div className="flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-2xl">
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <Card className="p-6 shadow-sm">
               <h1 className="mb-4 text-lg font-semibold text-gray-900">Рукопис (.docx)</h1>
               <DocxUploader
                 bookId={id}
@@ -139,7 +142,7 @@ export default function ManuscriptEditorPage() {
                   );
                 }}
               />
-            </div>
+            </Card>
           </div>
         </div>
       </div>
@@ -153,7 +156,7 @@ export default function ManuscriptEditorPage() {
         <AuthorBooksSidebar />
         <div className="flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-2xl">
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border bg-white p-16 shadow-sm">
+            <Card className="flex flex-col items-center justify-center gap-3 p-16 shadow-sm">
               <p className="text-sm text-gray-700">Імпортуємо рукопис у редактор…</p>
               <div className="relative h-1.5 w-64 overflow-hidden rounded-full bg-gray-200">
                 {progress > 0 ? (
@@ -170,7 +173,7 @@ export default function ManuscriptEditorPage() {
                 {elapsed}с — зазвичай це займає менше хвилини
                 {elapsed >= 45 && " (великий файл може тривати довше — не закривайте сторінку)"}
               </p>
-            </div>
+            </Card>
           </div>
         </div>
       </div>
@@ -184,45 +187,44 @@ export default function ManuscriptEditorPage() {
           <p className="text-sm text-amber-900">
             Ви завантажили новіший файл рукопису (.docx). Текст у редакторі нижче — досі зі старого файлу.
           </p>
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={() => setShowReimportConfirm(true)}
-            className="shrink-0 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+            className="h-auto shrink-0 bg-amber-600 px-3 py-1.5 text-xs hover:bg-amber-700"
           >
             Оновити текст з нового файлу
-          </button>
+          </Button>
         </div>
       )}
 
-      {showReimportConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h2 className="text-base font-semibold text-gray-900">Оновити текст з нового файлу?</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Поточний текст і правки в цьому редакторі буде <strong>замінено</strong> текстом з
-              щойно завантаженого .docx. Скасувати цю дію після підтвердження не можна.
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowReimportConfirm(false)}
-                disabled={reimporting}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Скасувати
-              </button>
-              <button
-                type="button"
-                onClick={confirmReimport}
-                disabled={reimporting}
-                className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
-              >
-                {reimporting ? "Оновлення…" : "Так, замінити текст"}
-              </button>
-            </div>
+      <Dialog open={showReimportConfirm} onOpenChange={(v) => { if (!reimporting) setShowReimportConfirm(v); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="text-base font-semibold text-gray-900">Оновити текст з нового файлу?</DialogTitle>
+          <p className="text-sm text-gray-600">
+            Поточний текст і правки в цьому редакторі буде <strong>замінено</strong> текстом з
+            щойно завантаженого .docx. Скасувати цю дію після підтвердження не можна.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowReimportConfirm(false)}
+              disabled={reimporting}
+            >
+              Скасувати
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmReimport}
+              loading={reimporting}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Так, замінити текст
+            </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       <div className="min-h-0 flex-1">
         <ManuscriptEditor

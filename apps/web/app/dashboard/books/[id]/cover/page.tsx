@@ -11,6 +11,10 @@ import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { getAllRejectionLines } from "@/lib/rejectedBlocks";
 import { resolveBookPrintFormat } from "shared-types";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BookInfo {
   id: string;
@@ -124,20 +128,15 @@ export default function CoverPage() {
           Обкладинка
         </Link>
 
-        <div className="flex gap-1 rounded-lg border p-1 bg-gray-50">
-          {FORMATS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFormat(f.key)}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                format === f.key ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <Tabs value={format} onValueChange={(v) => setFormat(v as CoverFormat)}>
+          <TabsList className="border">
+            {FORMATS.map((f) => (
+              <TabsTrigger key={f.key} value={f.key} className="text-xs">
+                {f.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         {/* This is the button that assembles the actual print document
             (lazily generates it on open, print-preview.ts) -- same visual
@@ -151,25 +150,27 @@ export default function CoverPage() {
             до реєстрації УДК" on "Вихідні дані"); once generated, it just
             confirms that's done. Tooltip still names the actual PDF file,
             not the button's own action label. */}
-        <Link
-          href={`/dashboard/books/${id}/manuscript/preview`}
-          className="ml-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        <Button
+          asChild
+          className="ml-auto shrink-0 whitespace-nowrap"
           title={
             book?.printPdfUrl
               ? "PDF для друку згенеровано"
               : "Ще не згенеровано. Потрібен для продажу друкованої книги та заявки на УДК — натисніть, щоб створити"
           }
         >
-          <FileText size={15} />
-          Передперегляд книги
-          {book?.printPdfUrl ? (
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] leading-none">✓</span>
-          ) : (
-            <span className="shrink-0 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-950">
-              обов&apos;язково
-            </span>
-          )}
-        </Link>
+          <Link href={`/dashboard/books/${id}/manuscript/preview`}>
+            <FileText size={15} />
+            Передперегляд книги
+            {book?.printPdfUrl ? (
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] leading-none">✓</span>
+            ) : (
+              <span className="shrink-0 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-950">
+                обов&apos;язково
+              </span>
+            )}
+          </Link>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
@@ -191,17 +192,19 @@ export default function CoverPage() {
               coverResolved ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"
             )}
           >
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => setCoverNoticeDismissed(true)}
               aria-label="Закрити"
               className={cn(
-                "absolute right-2.5 top-2.5 rounded p-1 transition-colors",
-                coverResolved ? "text-green-500 hover:bg-green-100" : "text-red-500 hover:bg-red-100"
+                "absolute right-2.5 top-2.5 h-auto w-auto rounded p-1",
+                coverResolved ? "text-green-500 hover:bg-green-100 hover:text-green-500" : "text-red-500 hover:bg-red-100 hover:text-red-500"
               )}
             >
               <X size={16} />
-            </button>
+            </Button>
             <p className="font-medium">
               {coverResolved ? "✓ Обкладинка додана" : "Модератор зазначив зауваження щодо обкладинки:"}
             </p>
@@ -226,12 +229,10 @@ export default function CoverPage() {
         </p>
 
         <label className="mb-3 flex items-center gap-2 text-sm text-gray-600">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={!!book?.coverIndependentFromBookData}
-            onChange={(e) => toggleIndependent(e.target.checked)}
+            onCheckedChange={(v) => toggleIndependent(v === true)}
             disabled={independentSaving}
-            className="rounded border-gray-300"
           />
           Редагувати текст на обкладинці незалежно від даних книги
           <span className="text-xs text-gray-400">
@@ -239,9 +240,9 @@ export default function CoverPage() {
           </span>
         </label>
 
-        <div
+        <Card
           className={cn(
-            "rounded-xl border bg-white p-6 shadow-sm transition-shadow",
+            "p-6 shadow-sm transition-shadow",
             coverRejected && !coverResolved && !coverNoticeDismissed && "ring-2 ring-yellow-400 ring-offset-2"
           )}
         >
@@ -264,7 +265,7 @@ export default function CoverPage() {
             onLibraryChange={handleLibraryChange}
             token={token}
           />
-        </div>
+        </Card>
 
         <p className="mt-3 text-xs text-gray-400 text-center">
           Обкладинка буде збережена у форматі PNG {Math.round((trimFormat.widthMm / 25.4) * 300)}×

@@ -7,6 +7,7 @@ import { ChevronLeft, Download, Palette, RefreshCw } from "lucide-react";
 import { resolveBookPrintFormat } from "shared-types";
 import { useApi } from "@/hooks/useApi";
 import { useBook } from "@/hooks/useBook";
+import { Button } from "@/components/ui/button";
 
 // Dynamic import with ssr:false, not the plain static import this used to
 // be -- PrintFlipViewer pulls in react-pdf (pdf.js), which references
@@ -121,14 +122,15 @@ export default function ManuscriptPreviewPage() {
   }
 
   const backLink = (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={goBack}
-      className="flex items-center gap-2 px-4 py-3 text-[0.875rem] font-medium text-black hover:bg-gray-50"
+      className="h-auto gap-2 rounded-none px-4 py-3 text-[0.875rem] font-medium text-black"
     >
       <ChevronLeft size={14} className="shrink-0 text-gray-500" />
       Назад
-    </button>
+    </Button>
   );
 
   return (
@@ -158,39 +160,38 @@ export default function ManuscriptPreviewPage() {
                 making a throwaway edit on Вихідні дані just to bump
                 updatedAt (real confusion, live-reported 2026-09-10: "чому
                 нічого не змінилося?"). */}
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => poll(true)}
               title="Сформувати передперегляд заново"
-              className="flex items-center gap-1.5 px-3 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
+              className="h-auto gap-1.5 rounded-none px-3 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
             >
               <RefreshCw size={13} className="shrink-0" />
               Оновити
-            </button>
+            </Button>
             {/* T-2068 -- one shared color/b&w toggle over the same render,
                 not a second generated file (Ridero renders two separate
                 PDFs for this; a CSS filter gets the same visual result for
                 us without doubling worker/storage cost). */}
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setGrayscale((g) => !g)}
-              className="flex items-center gap-1.5 px-3 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
+              className="h-auto gap-1.5 rounded-none px-3 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
             >
               <Palette size={13} className="shrink-0" />
               {grayscale ? "Кольоровий" : "Чорно-білий"}
-            </button>
+            </Button>
             {/* T-2057 п.4 -- temporary QA link, byte-for-byte the same file the
                 viewer below shows. Remove once the pipeline has a confirmed live
                 test (docs/T-2057-checklist.md checklist). */}
-            <a
-              href={state.printPdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-4 py-3 text-[0.8125rem] text-gray-500 hover:text-black"
-            >
-              <Download size={13} className="shrink-0" />
-              Завантажити PDF (QA)
-            </a>
+            <Button asChild variant="ghost" className="h-auto gap-1.5 rounded-none px-4 py-3 text-[0.8125rem] text-gray-500 hover:text-black">
+              <a href={state.printPdfUrl} target="_blank" rel="noopener noreferrer">
+                <Download size={13} className="shrink-0" />
+                Завантажити PDF (QA)
+              </a>
+            </Button>
           </div>
         )}
       </div>
