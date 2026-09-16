@@ -5,6 +5,9 @@ import { TabletCoverFrame } from "../books/TabletCoverFrame";
 import { PrintedCoverFrame } from "../books/PrintedCoverFrame";
 import { AddToCartButton } from "./AddToCartButton";
 import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
+import { Card } from "../ui/card";
+import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
 interface Props {
   bookId: string;
@@ -102,20 +105,21 @@ export function BookPurchaseWidget({
             <p className="text-xs font-medium text-gray-500">Формати для завантаження</p>
             <div className="flex gap-1.5">
               {availableEbookFormats.map((f) => (
-                <button
+                <Button
                   key={f}
                   type="button"
+                  size="sm"
                   aria-pressed={selectedEbookFormats.includes(f)}
                   onClick={() => toggleEbookFormat(f)}
                   className={cn(
-                    "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                    "h-auto rounded-full px-3 py-1 text-xs font-semibold",
                     selectedEbookFormats.includes(f)
-                      ? "bg-gray-900 text-white"
+                      ? "bg-gray-900 hover:bg-gray-900"
                       : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                   )}
                 >
                   {f}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -163,46 +167,21 @@ export function BookPurchaseWidget({
       <FormatPills coverUrl={coverUrl} hasEbook={hasEbook} hasPrint={hasPrint} format={format} onChange={setFormat} />
 
       {hasSoftcover && hasHardcover && (
-        <div className="flex gap-1 rounded-lg border bg-gray-50 p-1 text-xs font-medium">
-          {(["softcover", "hardcover"] as const).map((b) => (
-            <button
-              key={b}
-              type="button"
-              onClick={() => setBinding(b)}
-              className={cn(
-                "flex-1 rounded-md py-1.5 transition-colors",
-                effectiveBinding === b ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {b === "softcover" ? "М'яка" : "Тверда"}
-            </button>
-          ))}
-        </div>
+        <Tabs value={effectiveBinding} onValueChange={(v) => setBinding(v as "softcover" | "hardcover")}>
+          <TabsList className="w-full border bg-gray-50 text-xs font-medium">
+            <TabsTrigger value="softcover" className="flex-1">М&apos;яка</TabsTrigger>
+            <TabsTrigger value="hardcover" className="flex-1">Тверда</TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
 
       {hasBothColors && (
-        <div className="flex gap-1 rounded-lg border bg-gray-50 p-1 text-xs font-medium">
-          <button
-            type="button"
-            onClick={() => setColorMode("color")}
-            className={cn(
-              "flex-1 rounded-md py-1.5 transition-colors",
-              effectiveColorMode === "color" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            Кольоровий друк
-          </button>
-          <button
-            type="button"
-            onClick={() => setColorMode("bw")}
-            className={cn(
-              "flex-1 rounded-md py-1.5 transition-colors",
-              effectiveColorMode === "bw" ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            Чорно-білий друк
-          </button>
-        </div>
+        <Tabs value={effectiveColorMode} onValueChange={(v) => setColorMode(v as "color" | "bw")}>
+          <TabsList className="w-full border bg-gray-50 text-xs font-medium">
+            <TabsTrigger value="color" className="flex-1">Кольоровий друк</TabsTrigger>
+            <TabsTrigger value="bw" className="flex-1">Чорно-білий друк</TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
 
       {price != null && (
@@ -277,9 +256,9 @@ function PriceAndCta({
   cartProps: Omit<React.ComponentProps<typeof AddToCartButton>, "label" | "variant">;
 }) {
   return (
-    <div className="rounded-xl border bg-white p-4 shadow-sm space-y-3">
+    <Card className="p-4 shadow-sm space-y-3">
       <p className="text-2xl font-bold text-gray-900">{price.toFixed(2)} грн</p>
       <AddToCartButton {...cartProps} label={label} variant="primary" />
-    </div>
+    </Card>
   );
 }

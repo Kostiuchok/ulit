@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/cartStore";
+import { Button } from "@/components/ui/button";
 
 const EpubReaderInner = dynamic(
   () => import("./EpubReaderInner").then((m) => m.EpubReaderInner),
@@ -77,17 +78,9 @@ export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice, bookAuthor,
 
   return (
     <>
-      <button
-        onClick={handleOpen}
-        disabled={loading}
-        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-      >
-        {loading ? (
-          <span className="animate-pulse">Завантаження…</span>
-        ) : (
-          <>📖 Читати уривок</>
-        )}
-      </button>
+      <Button variant="outline" onClick={handleOpen} loading={loading} className="border-gray-300 text-gray-700">
+        📖 Читати уривок
+      </Button>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
 
       {open && config &&

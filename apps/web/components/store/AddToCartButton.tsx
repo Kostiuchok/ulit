@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCartStore, type CartFormat } from "@/lib/cartStore";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface Props {
   bookId: string;
@@ -31,31 +33,32 @@ export function AddToCartButton({
   const addItem = useCartStore((s) => s.addItem);
   const inCart = useCartStore((s) => s.items.some((i) => i.bookId === bookId && i.format === format));
 
-  const baseClass = "w-full rounded-lg py-2.5 text-sm font-semibold transition-colors";
-  const variantClass =
-    variant === "primary"
-      ? "bg-gray-900 text-white hover:bg-gray-700"
-      : "border border-gray-900 text-gray-900 hover:bg-gray-50";
-
   if (inCart) {
     return (
       <div className="space-y-1.5">
-        <div className={`${baseClass} border border-green-600 bg-green-50 text-center text-green-700`}>
+        <Button
+          disabled
+          className="w-full border border-green-600 bg-green-50 text-green-700 hover:bg-green-50 disabled:opacity-100"
+        >
           ✓ У кошику
-        </div>
-        <Link href="/cart" className="block text-center text-xs text-gray-500 hover:text-gray-900 underline">
-          Перейти в кошик
-        </Link>
+        </Button>
+        <Button asChild variant="link" className="w-full text-xs text-gray-500 hover:text-gray-900">
+          <Link href="/cart">Перейти в кошик</Link>
+        </Button>
       </div>
     );
   }
 
   return (
-    <button
+    <Button
+      variant={variant === "primary" ? "default" : "outline"}
       onClick={() => addItem({ bookId, format, title, author, coverUrl, formatLabel, price, formats })}
-      className={`${baseClass} ${variantClass}`}
+      className={cn(
+        "w-full",
+        variant === "primary" ? "bg-gray-900 hover:bg-gray-700" : "border-gray-900 text-gray-900 hover:bg-gray-50"
+      )}
     >
       {label} · {price.toFixed(2)} грн
-    </button>
+    </Button>
   );
 }

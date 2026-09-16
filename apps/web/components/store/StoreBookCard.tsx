@@ -2,6 +2,7 @@ import Link from "next/link";
 import { resolveBookPrintFormat } from "shared-types";
 import { TabletCoverFrame } from "../books/TabletCoverFrame";
 import { PrintedCoverFrame } from "../books/PrintedCoverFrame";
+import { Badge } from "../ui/badge";
 
 export interface StoreBook {
   id: string;
@@ -87,9 +88,9 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
           <TabletCoverFrame coverUrl={book.coverUrl} />
         )}
         {book.genre && (
-          <span className="absolute top-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
+          <Badge className="absolute top-2 left-2 rounded-full border-transparent bg-black/60 text-[10px] font-medium hover:bg-black/60">
             {book.genre}
-          </span>
+          </Badge>
         )}
       </div>
 
@@ -103,12 +104,13 @@ export function StoreBookCard({ book, frame = "tablet" }: Props) {
 
         <div className="flex flex-wrap gap-1 mt-1">
           {FORMAT_BADGES.filter((f) => book[f.key]).map((f) => (
-            <span
+            <Badge
               key={f.key}
-              className="rounded-sm bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600"
+              variant="outline"
+              className="rounded-sm border-transparent bg-blue-50 text-[10px] font-medium text-blue-600 hover:bg-blue-50"
             >
               {f.label}
-            </span>
+            </Badge>
           ))}
         </div>
 
