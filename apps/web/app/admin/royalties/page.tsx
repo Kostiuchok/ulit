@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "../../../hooks/useApi";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
+import { cn } from "../../../lib/utils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const PAYOUT_THRESHOLD = 500;
@@ -62,29 +67,26 @@ export default function RoyaltiesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Роялті</h1>
           <p className="text-sm text-gray-500 mt-1">Виплати авторам за продажі на платформі</p>
         </div>
-        <a
-          href={`${API_URL}/api/admin/royalties/export`}
-          className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
-        >
-          ⬇ CSV
-        </a>
+        <Button asChild variant="outline" className="shadow-sm">
+          <a href={`${API_URL}/api/admin/royalties/export`}>⬇ CSV</a>
+        </Button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card className="p-4 shadow-sm">
           <p className="text-xs text-gray-500">Очікують виплати</p>
           <p className="text-2xl font-bold text-orange-600">{totalPending.toFixed(2)} грн</p>
-        </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        </Card>
+        <Card className="p-4 shadow-sm">
           <p className="text-xs text-gray-500">Авторів понад {PAYOUT_THRESHOLD} грн</p>
           <p className="text-2xl font-bold text-red-600">{authorsAboveThreshold.length}</p>
           <p className="text-xs text-gray-400 mt-0.5">Готові до виплати</p>
-        </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        </Card>
+        <Card className="p-4 shadow-sm">
           <p className="text-xs text-gray-500">Поріг виплати</p>
           <p className="text-2xl font-bold text-gray-900">{PAYOUT_THRESHOLD} грн</p>
-        </div>
+        </Card>
       </div>
 
       {/* Authors above threshold */}
@@ -97,9 +99,9 @@ export default function RoyaltiesPage() {
             {authorsAboveThreshold.map(([authorId, amount]) => {
               const r = royalties.find((r) => r.author.id === authorId);
               return r ? (
-                <span key={authorId} className="rounded-full bg-orange-100 border border-orange-200 px-3 py-1 text-xs font-medium text-orange-800">
+                <Badge key={authorId} variant="outline" className="rounded-full border-orange-200 bg-orange-100 font-medium text-orange-800 hover:bg-orange-100">
                   {r.author.name}: {amount.toFixed(2)} грн
-                </span>
+                </Badge>
               ) : null;
             })}
           </div>
@@ -109,40 +111,40 @@ export default function RoyaltiesPage() {
       {/* Filter */}
       <div className="flex gap-2">
         {["PENDING", "PAID", ""].map((s) => (
-          <button
+          <Button
             key={s}
+            size="sm"
+            variant={filter === s ? "default" : "outline"}
             onClick={() => setFilter(s)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              filter === s ? "bg-gray-900 text-white" : "border bg-white text-gray-700 hover:bg-gray-50"
-            }`}
+            className={cn("h-auto rounded-full px-4 py-1.5", filter === s && "bg-gray-900 hover:bg-gray-900")}
           >
             {s || "Всі"}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400 animate-pulse">Завантаження…</div>
         ) : royalties.length === 0 ? (
           <div className="p-8 text-center text-gray-400">Записів немає</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Автор</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Книга</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Сума</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Джерело</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Статус</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Дія</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Автор</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Книга</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Сума</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Джерело</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Статус</TableHead>
+                <TableHead className="h-auto px-4 py-3 text-right font-semibold text-gray-600">Дія</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {royalties.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
+                <TableRow key={r.id}>
+                  <TableCell className="px-4 py-3">
                     <p className="font-medium text-gray-900">{r.author.name}</p>
                     <p className="text-xs text-gray-500">{r.author.email}</p>
                     {pendingByAuthor[r.author.id] >= PAYOUT_THRESHOLD && r.status === "PENDING" && (
@@ -150,48 +152,50 @@ export default function RoyaltiesPage() {
                         💰 {pendingByAuthor[r.author.id].toFixed(0)} грн pending
                       </span>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     <p className="text-gray-900 truncate max-w-[180px]">{r.book.title}</p>
                     {r.book.isbn && <p className="text-xs font-mono text-gray-400">{r.book.isbn}</p>}
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 font-semibold text-gray-900">
                     {Number(r.amount).toFixed(2)} грн
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <Badge variant="secondary" className="rounded-full font-medium text-gray-600 hover:bg-secondary">
                       {r.source}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      r.status === "PAID"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}>
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <Badge
+                      className={cn(
+                        "rounded-full border-transparent font-medium",
+                        r.status === "PAID" ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
+                      )}
+                    >
                       {r.status === "PAID" ? "✓ Виплачено" : "Очікує"}
-                    </span>
+                    </Badge>
                     {r.paidAt && (
                       <p className="text-xs text-gray-400 mt-0.5">{new Date(r.paidAt).toLocaleDateString("uk-UA")}</p>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right">
                     {r.status === "PENDING" && (
-                      <button
+                      <Button
+                        size="sm"
                         onClick={() => handlePay(r.id)}
-                        disabled={paying === r.id}
-                        className="rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                        loading={paying === r.id}
+                        className="bg-green-600 text-xs hover:bg-green-700"
                       >
-                        {paying === r.id ? "…" : "Виплатити"}
-                      </button>
+                        Виплатити
+                      </Button>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

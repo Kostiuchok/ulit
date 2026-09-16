@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApi } from "../../../hooks/useApi";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 
 interface PrintOrderItem {
   id: string;
@@ -104,7 +107,7 @@ export default function PrintOrdersPage() {
         </p>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400 animate-pulse">Завантаження…</div>
         ) : items.length === 0 ? (
@@ -113,23 +116,23 @@ export default function PrintOrdersPage() {
             <p className="text-gray-500">Ще немає жодного друкованого замовлення</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Книга</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Покупець</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Формат</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Ціна</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Дата</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Друкарня</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Книга</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Покупець</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Формат</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Ціна</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Дата</TableHead>
+                <TableHead className="h-auto px-4 py-3 text-right font-semibold text-gray-600">Друкарня</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.map((item) => {
                 const c = curves[item.book.id] ?? { status: "IDLE" as const };
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                  <TableRow key={item.id}>
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {item.book.coverUrl ? (
                           <img src={item.book.coverUrl} alt="" className="h-10 w-7 rounded object-cover" />
@@ -141,50 +144,48 @@ export default function PrintOrdersPage() {
                           <p className="text-xs text-gray-500">{item.book.author.name}</p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <p className="text-gray-700">{item.order.user.name}</p>
                       <p className="text-xs text-gray-400">{item.order.user.email}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{FORMAT_LABELS[item.format]}</td>
-                    <td className="px-4 py-3 text-gray-600">{item.price} ₴</td>
-                    <td className="px-4 py-3 text-gray-500">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-600">{FORMAT_LABELS[item.format]}</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-600">{item.price} ₴</TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500">
                       {new Date(item.order.createdAt).toLocaleDateString("uk-UA")}
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right">
                       {c.status === "DONE" ? (
-                        <a
-                          href={c.printCurvesUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex rounded-md bg-green-50 border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
-                        >
-                          ⬇ Завантажити (криві)
-                        </a>
+                        <Button asChild size="sm" variant="outline" className="border-green-200 bg-green-50 text-xs text-green-700 hover:bg-green-100">
+                          <a href={c.printCurvesUrl} target="_blank" rel="noopener noreferrer">
+                            ⬇ Завантажити (криві)
+                          </a>
+                        </Button>
                       ) : c.status === "PROCESSING" ? (
                         <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700">
                           <span className="h-3 w-3 animate-spin rounded-full border-2 border-blue-300 border-t-blue-700" />
                           Формуємо… {c.progress > 0 ? `${c.progress}%` : ""}
                         </span>
                       ) : (
-                        <button
+                        <Button
                           type="button"
+                          size="sm"
                           onClick={() => startExport(item.book.id)}
                           title="Конвертує друкований PDF автора в криві (без вбудованого шрифту) для передачі в друкарню -- може зайняти кілька хвилин, файл вийде значно більшим за оригінал"
-                          className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
+                          className="bg-gray-900 text-xs hover:bg-gray-800"
                         >
                           Експортувати книжку для типографії в кривих
-                        </button>
+                        </Button>
                       )}
                       {c.status === "ERROR" && <p className="mt-1 text-xs text-red-600">{c.message}</p>}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
