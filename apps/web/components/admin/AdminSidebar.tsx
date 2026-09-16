@@ -2,6 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
 
 interface NavItem {
   href?: string;
@@ -42,63 +58,69 @@ export function AdminSidebar() {
   const path = usePathname();
 
   return (
-    <aside className="w-56 shrink-0 border-r bg-gray-950 text-gray-300 min-h-screen">
-      <div className="px-4 py-5 border-b border-gray-800">
-        <Link href="/admin/dashboard" className="text-white font-bold text-base">
-          🛡 ULIT Admin
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="border-b border-sidebar-border">
+        <Link href="/admin/dashboard" className="flex h-12 items-center gap-2 px-2 font-bold text-sidebar-foreground">
+          <span className="shrink-0">🛡</span>
+          <span className="truncate group-data-[collapsible=icon]:hidden">ULIT Admin</span>
         </Link>
-      </div>
+      </SidebarHeader>
 
-      <nav className="py-4 space-y-0.5 px-2">
-        {NAV.map((item) => {
-          if ("children" in item) {
-            return (
-              <div key={item.label} className="pt-3">
-                <p className="px-3 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-widest">
-                  {item.icon} {item.label}
-                </p>
-                {(item.children ?? []).map((child) => (
-                  <Link
-                    key={child.href}
-                    href={child.href}
-                    className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-sm transition-colors ${
-                      path === child.href
-                        ? "bg-gray-800 text-white"
-                        : "hover:bg-gray-800 hover:text-white"
-                    }`}
-                  >
-                    {child.label}
-                  </Link>
-                ))}
-              </div>
-            );
-          }
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {NAV.map((item) => {
+                if ("children" in item && item.children) {
+                  return (
+                    <SidebarMenuItem key={item.label}>
+                      <SidebarGroupLabel className="h-auto px-2 py-1.5">
+                        {item.icon} {item.label}
+                      </SidebarGroupLabel>
+                      <SidebarMenuSub>
+                        {item.children.map((child) => (
+                          <SidebarMenuSubItem key={child.href}>
+                            <SidebarMenuSubButton asChild isActive={path === child.href}>
+                              <Link href={child.href}>{child.label}</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </SidebarMenuItem>
+                  );
+                }
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href!}
-              className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                path === item.href || path.startsWith(item.href + "/")
-                  ? "bg-gray-800 text-white"
-                  : "hover:bg-gray-800 hover:text-white"
-              }`}
-            >
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+                const active = path === item.href || path?.startsWith(item.href + "/");
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                      <Link href={item.href!}>
+                        <span>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
 
-      <div className="absolute bottom-4 px-4 w-56">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          ← На сайт
-        </Link>
-      </div>
-    </aside>
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="На сайт">
+              <Link href="/">
+                <span>←</span>
+                <span>На сайт</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
   );
 }
