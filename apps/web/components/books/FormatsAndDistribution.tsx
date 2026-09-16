@@ -4,6 +4,10 @@ import Link from "next/link";
 import { priceInputSchema } from "shared-types";
 import { cn } from "@/lib/utils";
 import { DISTRIBUTION_PLATFORMS, KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "@/lib/distributionPlatforms";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 // T-2075 -- merges the old separate "Ціна" (raw price inputs) and
 // "Розповсюдження" (channel checkboxes) steps into one, matching Ridero's
@@ -132,10 +136,10 @@ function RoyaltyInput({
 }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
+      <Label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</Label>
       <p className="text-xs text-gray-500">{hint}</p>
       <div className="flex items-center gap-1.5">
-        <input
+        <Input
           id={id}
           type="number"
           step="0.01"
@@ -143,7 +147,7 @@ function RoyaltyInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="напр. 50"
-          className="h-9 w-32 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-9 w-32 bg-white"
         />
         <span className="text-sm text-gray-500">грн / примірник</span>
       </div>
@@ -295,7 +299,7 @@ export function FormatsAndDistribution({
   return (
     <div className="space-y-6">
       {/* ── Друкована книга ─────────────────────────────────────────────── */}
-      <div className="rounded-xl border bg-white p-4 space-y-4">
+      <Card className="p-4 space-y-4 shadow-none">
         <div>
           <h3 className="text-base font-bold text-gray-900">Продаж друкованої книги</h3>
           <p className="mt-0.5 text-xs text-gray-500">
@@ -322,9 +326,14 @@ export function FormatsAndDistribution({
               <>
                 <p>Завантажте рукопис (.docx), щоб побачити собівартість виготовлення й порахувати ціну.</p>
                 {onUploadManuscript && (
-                  <button type="button" onClick={onUploadManuscript} className="text-primary underline hover:no-underline">
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={onUploadManuscript}
+                    className="h-auto p-0 text-primary"
+                  >
                     Перейти до розділу «Рукопис» →
-                  </button>
+                  </Button>
                 )}
               </>
             )}
@@ -369,15 +378,15 @@ export function FormatsAndDistribution({
                 together with everything else in this section. */}
             <div className="rounded-lg border border-dashed p-3 space-y-3">
               <div className="space-y-1">
-                <label htmlFor="pricePrintBw" className="block text-sm font-medium text-gray-800">
+                <Label htmlFor="pricePrintBw" className="block text-sm font-medium text-gray-800">
                   Чорно-білий друк (опційно)
-                </label>
+                </Label>
                 <p className="text-xs text-gray-500">
                   Дешевше в типографії — запропонуйте покупцю дешевший варіант поруч із кольоровим. Тут вказується пряма
                   ціна для покупця за м&apos;яку обкладинку; ціну твердої порахуємо самі.
                 </p>
                 <div className="flex items-center gap-1.5">
-                  <input
+                  <Input
                     id="pricePrintBw"
                     type="number"
                     step="0.01"
@@ -385,7 +394,7 @@ export function FormatsAndDistribution({
                     value={pricePrintBw}
                     onChange={(e) => onPricePrintBwChange(e.target.value)}
                     placeholder="149.99"
-                    className="h-9 w-32 rounded-md border border-input bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="h-9 w-32 bg-white"
                   />
                   <span className="text-sm text-gray-500">грн / примірник (м&apos;яка)</span>
                 </div>
@@ -428,10 +437,10 @@ export function FormatsAndDistribution({
             </div>
           </>
         )}
-      </div>
+      </Card>
 
       {/* ── Електронна книга ────────────────────────────────────────────── */}
-      <div className="rounded-xl border bg-white p-4 space-y-4">
+      <Card className="p-4 space-y-4 shadow-none">
         <div>
           <h3 className="text-base font-bold text-gray-900">Продаж електронної книги</h3>
           <p className="mt-0.5 text-xs text-gray-500">EPUB, FB2, MOBI — для читалок і смартфонів</p>
@@ -480,7 +489,7 @@ export function FormatsAndDistribution({
             Протягом цього часу книга не може продаватись на D2D та Google Play Books.
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

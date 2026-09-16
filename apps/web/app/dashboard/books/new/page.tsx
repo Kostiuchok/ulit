@@ -1,4 +1,5 @@
 import { BookWizard } from "../../../../components/books/BookWizard";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function NewBookPage() {
   return (
@@ -8,9 +9,11 @@ export default function NewBookPage() {
           <h1 className="text-2xl font-bold text-gray-900">Нова книга</h1>
           <p className="mt-1 text-sm text-gray-500">Заповніть інформацію крок за кроком</p>
         </div>
-        <div className="rounded-xl border bg-white p-8 shadow-sm">
-          <BookWizard />
-        </div>
+        <Card className="shadow-sm">
+          <CardContent className="p-8">
+            <BookWizard />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

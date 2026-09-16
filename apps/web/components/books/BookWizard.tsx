@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Textarea } from "../ui/textarea";
+import { Card } from "../ui/card";
 import { DocxUploader } from "../dashboard/DocxUploader";
 import { ProBadge } from "../ui/pro-badge";
 import { useApi } from "../../hooks/useApi";
@@ -453,15 +456,13 @@ export function BookWizard() {
                 {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
               </span>
             </div>
-            <textarea
+            <Textarea
               id="description"
               {...step1.register("description")}
               rows={4}
               className={cn(
-                "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
-                step1.formState.errors.description
-                  ? "border-red-400 focus-visible:ring-red-300"
-                  : "border-input focus-visible:ring-ring"
+                "resize-none",
+                step1.formState.errors.description && "border-red-400 focus-visible:ring-red-300"
               )}
               placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
             />
@@ -498,62 +499,86 @@ export function BookWizard() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="genre">Жанр</Label>
-              <select
-                id="genre"
-                {...step1.register("genre")}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="">Оберіть жанр</option>
-                {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
-              </select>
+              <Controller
+                control={step1.control}
+                name="genre"
+                render={({ field }) => (
+                  <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                    <SelectTrigger id="genre">
+                      <SelectValue placeholder="Оберіть жанр" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GENRES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="printFormatKey">Розмір книги *</Label>
-              <select
-                id="printFormatKey"
-                {...step1.register("printFormatKey")}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {PRINT_FORMAT_KEYS.map((key) => {
-                  const f = PRINT_FORMATS[key];
-                  return (
-                    <option key={key} value={key}>
-                      {f.label} ({f.widthMm}×{f.heightMm}мм)
-                    </option>
-                  );
-                })}
-              </select>
+              <Controller
+                control={step1.control}
+                name="printFormatKey"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="printFormatKey">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRINT_FORMAT_KEYS.map((key) => {
+                        const f = PRINT_FORMATS[key];
+                        return (
+                          <SelectItem key={key} value={key}>
+                            {f.label} ({f.widthMm}×{f.heightMm}мм)
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="language">Мова</Label>
-              <select
-                id="language"
-                {...step1.register("language")}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-              </select>
+              <Controller
+                control={step1.control}
+                name="language"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="language">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.map((l) => <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="ageRating">Вікові обмеження *</Label>
-              <select
-                id="ageRating"
-                {...step1.register("ageRating")}
-                className={cn(
-                  "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2",
-                  step1.formState.errors.ageRating
-                    ? "border-red-400 focus-visible:ring-red-300"
-                    : "border-input focus-visible:ring-ring"
+              <Controller
+                control={step1.control}
+                name="ageRating"
+                render={({ field }) => (
+                  <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      id="ageRating"
+                      className={cn(step1.formState.errors.ageRating && "border-red-400 focus:ring-red-300")}
+                    >
+                      <SelectValue placeholder="Оберіть" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AGE_RATINGS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 )}
-              >
-                <option value="">Оберіть</option>
-                {AGE_RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
+              />
               {step1.formState.errors.ageRating && (
                 <p className="text-sm text-red-500">{step1.formState.errors.ageRating.message}</p>
               )}
@@ -722,7 +747,7 @@ export function BookWizard() {
         <h2 className="text-lg font-semibold mb-2">Огляд та публікація</h2>
         <p className="text-sm text-gray-500 mb-6">Перевірте дані перед відправкою на модерацію.</p>
 
-        <div className="rounded-xl border bg-gray-50 p-5 space-y-4 text-sm mb-6">
+        <Card className="bg-gray-50 p-5 space-y-4 text-sm mb-6 shadow-none">
           <Row label="Назва" value={s1.title} />
           <Row label="Жанр" value={s1.genre || "—"} />
           <Row label="Розмір книги" value={`${reviewFormat.label} (${reviewFormat.widthMm}×${reviewFormat.heightMm}мм)`} />
@@ -748,7 +773,7 @@ export function BookWizard() {
             }
           />
           {draft && <Row label="ID чернетки" value={draft.id} mono />}
-        </div>
+        </Card>
 
         <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700 mb-6">
           <strong>Наступний крок після збереження чернетки:</strong>{" "}
