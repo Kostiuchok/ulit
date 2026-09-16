@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useApi } from "../../../../hooks/useApi";
-import { useRefetchOnFocus } from "../../../../hooks/useRefetchOnFocus";
-import { Badge } from "../../../../components/ui/badge";
-import { Button } from "../../../../components/ui/button";
-import { Card } from "../../../../components/ui/card";
-import { Checkbox } from "../../../../components/ui/checkbox";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../components/ui/table";
-import { cn } from "../../../../lib/utils";
+import { toast } from "sonner";
+import { useApi } from "../../../hooks/useApi";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { Checkbox } from "../../../components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
+import { cn } from "../../../lib/utils";
 
 interface Book {
   id: string;
@@ -24,11 +25,13 @@ interface Book {
   author: { name: string };
 }
 
-export default function DistributionQueuePage() {
+export default function DistributionPage() {
   const { apiFetch, token } = useApi();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState(false);
 
   const load = useCallback(
     (opts?: { silent?: boolean }) => {
@@ -45,6 +48,7 @@ export default function DistributionQueuePage() {
   useRefetchOnFocus(useCallback(() => load({ silent: true }), [load]));
 
   function toggle(id: string) {
+    setExported(false);
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -53,26 +57,56 @@ export default function DistributionQueuePage() {
   }
 
   function toggleAll() {
+    setExported(false);
     if (selected.size === books.length) setSelected(new Set());
     else setSelected(new Set(books.map((b) => b.id)));
   }
 
   const isKdpOnly = (b: Book) => b.distributionStrategy === "KDP_SELECT";
 
+  async function handleExport() {
+    if (!selected.size) return;
+    setExporting(true);
+    setExported(false);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const session = (window as any).__nextAuthSession;
+      const authToken = session?.apiToken;
+
+      const res = await fetch(`${apiUrl}/api/admin/distribution/bulk`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ bookIds: Array.from(selected) }),
+      });
+
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "knyha-bulk.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+      setExported(true);
+      load({ silent: true });
+    } catch (e: any) {
+      toast.error(e.message || "Помилка експорту");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Черга дистрибуції</h1>
-          <p className="text-sm text-gray-500 mt-1">Книги готові до відправки на зовнішні сервіси</p>
-        </div>
-        {selected.size > 0 && (
-          <Button asChild className="bg-gray-900 hover:bg-gray-700">
-            <Link href={`/admin/distribution/bulk?ids=${Array.from(selected).join(",")}`}>
-              📦 Масово ({selected.size})
-            </Link>
-          </Button>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Дистрибуція</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Черга книг готових до відправки на зовнішні сервіси та масове завантаження ZIP-пакетів
+        </p>
       </div>
 
       <Card className="shadow-sm overflow-hidden">
@@ -153,6 +187,34 @@ export default function DistributionQueuePage() {
           </Table>
         )}
       </Card>
+
+      {!loading && books.length > 0 && (
+        <Card className="shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-gray-900">Масова відправка</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              ZIP-архів з обраними книгами. Завантаження автоматично позначає увімкнені D2D/KDP/Google як «Надіслано».
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">Обрано: {selected.size}</span>
+            <Button
+              onClick={handleExport}
+              disabled={!selected.size}
+              loading={exporting}
+              className="bg-gray-900 hover:bg-gray-700"
+            >
+              ⬇ Завантажити ZIP
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {exported && (
+        <p className="text-center text-sm text-green-700">
+          ✓ Завантажено — увімкнені зовнішні сервіси позначено «Надіслано».
+        </p>
+      )}
     </div>
   );
 }
