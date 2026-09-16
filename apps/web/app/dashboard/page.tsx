@@ -63,7 +63,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <ProfileTabs />
       <div className="p-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900">
             Вітаємо, {session?.user?.name}!
           </h1>

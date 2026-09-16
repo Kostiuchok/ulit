@@ -3,5 +3,5 @@
 import { MyBooksList } from "@/components/books/MyBooksList";
 
 export default function ProfileBooksPage() {
-  return <MyBooksList />;
+  return <MyBooksList contentClassName="max-w-5xl mx-auto" />;
 }

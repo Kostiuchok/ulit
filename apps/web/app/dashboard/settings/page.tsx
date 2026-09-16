@@ -151,7 +151,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="p-8">
-        <div className="max-w-2xl mx-auto animate-pulse space-y-4">
+        <div className="max-w-5xl mx-auto animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-48" />
           <div className="h-64 bg-gray-200 rounded" />
         </div>
@@ -161,7 +161,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8">
-      <div className="max-w-2xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Налаштування профілю</h1>

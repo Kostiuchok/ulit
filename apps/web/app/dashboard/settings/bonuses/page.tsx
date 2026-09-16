@@ -1,7 +1,7 @@
 export default function BonusesPage() {
   return (
     <div className="p-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Мої бонуси</h1>
         <div className="rounded-xl border bg-white p-10 text-center shadow-sm">
           <p className="text-lg font-semibold text-gray-700">Незабаром</p>

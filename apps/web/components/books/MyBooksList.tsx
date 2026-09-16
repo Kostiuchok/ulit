@@ -48,7 +48,7 @@ const FILTERS: Record<string, { label: string; test: (b: Book) => boolean }> = {
   rejected: { label: "Повернуто на доопрацювання", test: (b) => b.moderationStatus === "REJECTED" },
 };
 
-export function MyBooksList() {
+export function MyBooksList({ contentClassName = "" }: { contentClassName?: string }) {
   const { apiFetch, token } = useApi();
   const searchParams = useSearchParams();
   const activeFilter = searchParams.get("filter");
@@ -107,7 +107,7 @@ export function MyBooksList() {
 
   return (
     <div className="p-8">
-      <div>
+      <div className={contentClassName}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Мої книги</h1>
