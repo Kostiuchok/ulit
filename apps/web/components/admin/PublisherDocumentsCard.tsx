@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useApi } from "../../hooks/useApi";
+import { Button } from "../ui/button";
+import { Card } from "../ui/card";
 
 // Publisher-level (ULIT itself, not per-book) documents needed to register
 // for a block of ISBN numbers and to submit УДК requests to Книжкова палата
@@ -77,7 +79,7 @@ export function PublisherDocumentsCard() {
   const readyCount = PUBLISHER_DOCUMENTS.filter((doc) => !!documents[doc.key]?.url).length;
 
   return (
-    <div className="rounded-xl border bg-white shadow-sm p-5 space-y-4">
+    <Card className="shadow-sm p-5 space-y-4">
       <div>
         <h2 className="text-base font-semibold text-gray-900">Документи видавця (для ISBN + УДК)</h2>
         <p className="text-xs text-gray-500 mt-1">
@@ -123,14 +125,16 @@ export function PublisherDocumentsCard() {
                         if (file) handleFile(doc.key, file);
                       }}
                     />
-                    <button
+                    <Button
                       type="button"
-                      disabled={uploadingKey === doc.key}
+                      variant="outline"
+                      size="sm"
+                      loading={uploadingKey === doc.key}
                       onClick={() => inputRefs.current[doc.key]?.click()}
-                      className="rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                      className="bg-white text-xs font-medium text-gray-700"
                     >
-                      {uploadingKey === doc.key ? "Завантаження…" : ready ? "Замінити" : "Завантажити"}
-                    </button>
+                      {ready ? "Замінити" : "Завантажити"}
+                    </Button>
                   </div>
                 </li>
               );
@@ -152,6 +156,6 @@ export function PublisherDocumentsCard() {
           <p className="text-xs text-gray-400 border-t pt-2">Відправка поштою з цієї сторінки — у розробці.</p>
         </>
       )}
-    </div>
+    </Card>
   );
 }

@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 import { PublisherDocumentsCard } from "../../../components/admin/PublisherDocumentsCard";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
 
 interface Stats {
   books: Record<string, number>;
@@ -75,12 +78,9 @@ function ActionBookRow({ book, dateLabel, trailingBadge }: { book: ActionBook; d
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {trailingBadge}
-        <Link
-          href={`/admin/books/${book.id}/distribute`}
-          className="rounded-md bg-white border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Переглянути
-        </Link>
+        <Button asChild size="sm" variant="outline" className="text-xs">
+          <Link href={`/admin/books/${book.id}/distribute`}>Переглянути</Link>
+        </Button>
       </div>
     </div>
   );
@@ -88,11 +88,11 @@ function ActionBookRow({ book, dateLabel, trailingBadge }: { book: ActionBook; d
 
 function KpiCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
   return (
-    <div className={`rounded-xl border bg-white p-5 shadow-sm`}>
+    <Card className="p-5 shadow-sm">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</p>
       <p className={`text-3xl font-extrabold ${color}`}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-    </div>
+    </Card>
   );
 }
 
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
           (RepublishButton.tsx, вже опубліковані книги з новим docx/метаданими).
           Перший блок, щоб адмін одразу бачив, що робити. */}
       {((stats?.recentReview?.length ?? 0) > 0 || (stats?.pendingRepublish?.length ?? 0) > 0) && (
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 shadow-sm p-5">
+        <Card className="border-yellow-200 bg-yellow-50 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-900">Книги — потребують дій</h2>
             <Link href="/admin/books?status=REVIEW" className="text-sm text-gray-500 hover:text-gray-900">
@@ -185,18 +185,18 @@ export default function AdminDashboard() {
                       }
                       trailingBadge={
                         daysLeft != null && (
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          <Badge
+                            className={`rounded-full border-transparent font-medium ${
                               daysLeft < 0
-                                ? "bg-red-100 text-red-700"
+                                ? "bg-red-100 text-red-700 hover:bg-red-100"
                                 : daysLeft === 0
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-green-100 text-green-700"
+                                ? "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                                : "bg-green-100 text-green-700 hover:bg-green-100"
                             }`}
                             title={`Дедлайн перевірки — ${REVIEW_SLA_DAYS} робочих дні(в) з моменту надсилання (п. 5.1 договору)`}
                           >
                             {daysLeft < 0 ? `Прострочено на ${Math.abs(daysLeft)} дн.` : daysLeft === 0 ? "Дедлайн сьогодні" : `${daysLeft} дн. до дедлайну`}
-                          </span>
+                          </Badge>
                         )
                       }
                     />
@@ -216,19 +216,19 @@ export default function AdminDashboard() {
                     book={book}
                     dateLabel={book.republishRequestedAt ? `Надіслано зміни: ${fmtDate(book.republishRequestedAt)}` : "Дату надсилання не зафіксовано"}
                     trailingBadge={
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700"
+                      <Badge
+                        className="rounded-full border-transparent bg-amber-100 font-medium text-amber-700 hover:bg-amber-100"
                         title="Автор надіслав зміни в опублікованій книзі"
                       >
                         ⏳ Зміни на модерації
-                      </span>
+                      </Badge>
                     }
                   />
                 ))}
               </div>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* KPI cards */}
@@ -275,21 +275,19 @@ export default function AdminDashboard() {
       </div>
 
       {/* Books by status */}
-      <div className="rounded-xl border bg-white shadow-sm p-5">
+      <Card className="shadow-sm p-5">
         <h2 className="text-base font-semibold text-gray-900 mb-4">Статуси книг</h2>
         <div className="flex flex-wrap gap-3">
           {Object.entries(STATUS_LABELS).map(([key, label]) => (
-            <Link
-              key={key}
-              href={`/admin/books?status=${key}`}
-              className="flex items-center gap-2 rounded-lg border px-4 py-2 hover:bg-gray-50 transition-colors"
-            >
-              <span className="text-lg font-bold text-gray-900">{books[key] ?? 0}</span>
-              <span className="text-sm text-gray-500">{label}</span>
-            </Link>
+            <Button key={key} asChild variant="outline" className="h-auto gap-2 px-4 py-2 font-normal">
+              <Link href={`/admin/books?status=${key}`}>
+                <span className="text-lg font-bold text-gray-900">{books[key] ?? 0}</span>
+                <span className="text-sm text-gray-500">{label}</span>
+              </Link>
+            </Button>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Quick links -- each carries a count badge from stats.queueCounts,
           mirroring exactly what the linked page itself would show, so the
@@ -305,18 +303,16 @@ export default function AdminDashboard() {
           { href: "/admin/royalties?status=PENDING", label: "Виплати роялті", icon: "💰", color: "border-green-200 bg-green-50", count: stats?.queueCounts?.royalties },
           { href: "/admin/withdrawal-queue", label: "Потребують відкликання", icon: "📤", color: "border-red-200 bg-red-50", count: stats?.queueCounts?.withdrawal },
         ].map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`relative rounded-xl border p-5 hover:shadow-md transition-shadow ${link.color}`}
-          >
-            {!!link.count && (
-              <span className="absolute right-3 top-3 flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-900 px-1.5 text-xs font-bold text-white">
-                {link.count > 99 ? "99+" : link.count}
-              </span>
-            )}
-            <p className="text-3xl mb-2">{link.icon}</p>
-            <p className="text-sm font-semibold text-gray-900">{link.label}</p>
+          <Link key={link.href} href={link.href} className="block">
+            <Card className={`relative p-5 shadow-none transition-shadow hover:shadow-md ${link.color}`}>
+              {!!link.count && (
+                <Badge className="absolute right-3 top-3 h-6 min-w-6 justify-center rounded-full border-transparent bg-gray-900 px-1.5 font-bold hover:bg-gray-900">
+                  {link.count > 99 ? "99+" : link.count}
+                </Badge>
+              )}
+              <p className="text-3xl mb-2">{link.icon}</p>
+              <p className="text-sm font-semibold text-gray-900">{link.label}</p>
+            </Card>
           </Link>
         ))}
       </div>
