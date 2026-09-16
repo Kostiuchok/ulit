@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useApi } from "../../hooks/useApi";
+import { Button } from "../ui/button";
+import { toast } from "sonner";
 
 export function AcceptBar() {
   const { data: session, status } = useSession();
@@ -35,7 +37,7 @@ export function AcceptBar() {
       await apiFetch("/api/users/me/accept-agreement", { method: "POST" });
       setAccepted(true);
     } catch {
-      alert("Помилка. Спробуйте ще раз.");
+      toast.error("Помилка. Спробуйте ще раз.");
     } finally {
       setLoading(false);
     }
@@ -62,13 +64,9 @@ export function AcceptBar() {
             <span className="ml-1 text-gray-500">(Потрібна авторизація)</span>
           )}
         </p>
-        <button
-          onClick={handleAccept}
-          disabled={loading}
-          className="shrink-0 rounded-xl bg-gray-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50 transition-colors"
-        >
-          {loading ? "Збереження…" : session ? "Прийняти договір" : "Увійти та прийняти"}
-        </button>
+        <Button onClick={handleAccept} loading={loading} className="shrink-0 rounded-xl bg-gray-900 hover:bg-gray-700">
+          {session ? "Прийняти договір" : "Увійти та прийняти"}
+        </Button>
       </div>
     </div>
   );

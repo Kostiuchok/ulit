@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CartIcon } from "../../components/store/CartIcon";
 import { Button } from "../../components/ui/button";
+import { Toaster } from "../../components/ui/sonner";
 
 export const metadata: Metadata = {
   title: {
@@ -57,6 +58,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           <Link href="/author-agreement" className="hover:text-gray-700">Договір автора</Link>
         </div>
       </footer>
+      <Toaster position="top-right" richColors />
     </div>
   );
 }

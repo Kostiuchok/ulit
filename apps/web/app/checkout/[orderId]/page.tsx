@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 interface LiqPayCheckout {
   data: string;
@@ -45,12 +46,9 @@ export default function CheckoutPage() {
           <p className="text-5xl">⚠️</p>
           <h1 className="text-xl font-bold text-gray-900">Сесія оплати не знайдена</h1>
           <p className="text-sm text-gray-500">Поверніться до книги та спробуйте ще раз.</p>
-          <button
-            onClick={() => router.back()}
-            className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-700"
-          >
+          <Button onClick={() => router.back()} className="bg-gray-900 hover:bg-gray-700">
             ← Назад
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -80,12 +78,9 @@ export default function CheckoutPage() {
           <form method="POST" action={checkout.action_url}>
             <input type="hidden" name="data" value={checkout.data} />
             <input type="hidden" name="signature" value={checkout.signature} />
-            <button
-              type="submit"
-              className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 mt-2"
-            >
+            <Button type="submit" className="mt-2 bg-green-600 hover:bg-green-700">
               Перейти до оплати →
-            </button>
+            </Button>
           </form>
         )}
       </div>

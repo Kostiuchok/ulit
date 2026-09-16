@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
 
 interface DownloadLink {
   label: string;
@@ -139,7 +141,7 @@ export default function OrderPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm p-6 space-y-6">
+      <Card className="shadow-sm p-6 space-y-6">
         {/* Order header */}
         <div className="flex items-center justify-between border-b pb-4">
           <div>
@@ -191,14 +193,11 @@ export default function OrderPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {downloads[item.bookId].map((link) => (
-                        <a
-                          key={link.label}
-                          href={link.url}
-                          download
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-700 transition-colors"
-                        >
-                          ⬇ {link.label}
-                        </a>
+                        <Button key={link.label} asChild size="sm" className="bg-gray-900 text-xs hover:bg-gray-700">
+                          <a href={link.url} download>
+                            ⬇ {link.label}
+                          </a>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -213,23 +212,17 @@ export default function OrderPage() {
             Не можете завантажити зараз? Поверніться на цю сторінку або скористайтесь посиланнями з email — вони теж дійсні 48 годин.
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Actions */}
       <div className="mt-6 flex flex-wrap gap-3 justify-center">
-        <Link
-          href="/books"
-          className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Продовжити покупки
-        </Link>
+        <Button asChild variant="outline">
+          <Link href="/books">Продовжити покупки</Link>
+        </Button>
         {isPaid && (
-          <button
-            onClick={fetchOrder}
-            className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+          <Button variant="outline" onClick={fetchOrder}>
             Оновити посилання
-          </button>
+          </Button>
         )}
       </div>
     </div>
