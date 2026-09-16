@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 
 interface Book {
   id: string;
@@ -55,7 +59,7 @@ export default function WithdrawalQueuePage() {
         </p>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400 animate-pulse">Завантаження…</div>
         ) : books.length === 0 ? (
@@ -64,24 +68,24 @@ export default function WithdrawalQueuePage() {
             <p className="text-gray-500">Черга порожня — немає книг, що потребують ручного відкликання</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Книга</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Статус на Ulit</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Ще живі канали</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Дії</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Книга</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Статус на Ulit</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Ще живі канали</TableHead>
+                <TableHead className="h-auto px-4 py-3 text-right font-semibold text-gray-600">Дії</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {books.map((book) => {
                 const live: string[] = [];
                 if (LIVE.has(book.d2dStatus)) live.push("D2D");
                 if (LIVE.has(book.kdpStatus)) live.push("KDP");
                 if (LIVE.has(book.googleStatus)) live.push("Google");
                 return (
-                  <tr key={book.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                  <TableRow key={book.id}>
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {book.coverUrl ? (
                           <img src={book.coverUrl} alt="" className="h-10 w-7 rounded object-cover" />
@@ -93,30 +97,27 @@ export default function WithdrawalQueuePage() {
                           <p className="text-xs text-gray-500">{book.author.name}</p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge variant="secondary" className="rounded-full font-medium text-gray-600 hover:bg-secondary">
                         {STATUS_LABELS[book.status] ?? book.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className="text-xs font-medium text-red-600">{live.join(", ")}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/admin/books/${book.id}/distribute`}
-                        className="rounded-md bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                      >
-                        Відкрити →
-                      </Link>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right">
+                      <Button asChild size="sm" variant="outline" className="border-blue-200 bg-blue-50 text-xs text-blue-700 hover:bg-blue-100">
+                        <Link href={`/admin/books/${book.id}/distribute`}>Відкрити →</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "../../../hooks/useApi";
+import { Card } from "../../../components/ui/card";
+import { Switch } from "../../../components/ui/switch";
 
 interface Services {
   d2d: boolean;
@@ -78,9 +80,9 @@ export default function ServicesPage() {
       ) : (
         <div className="space-y-4">
           {SERVICE_INFO.map((svc) => (
-            <div
+            <Card
               key={svc.key}
-              className={`rounded-xl border bg-white p-5 shadow-sm flex items-center justify-between transition-opacity ${
+              className={`p-5 shadow-sm flex items-center justify-between transition-opacity ${
                 !services[svc.key] ? "opacity-60" : ""
               }`}
             >
@@ -92,22 +94,13 @@ export default function ServicesPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => toggleService(svc.key)}
+              <Switch
+                checked={services[svc.key]}
+                onCheckedChange={() => toggleService(svc.key)}
                 disabled={saving}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-                  services[svc.key] ? "bg-green-500" : "bg-gray-300"
-                }`}
-                role="switch"
-                aria-checked={services[svc.key]}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                    services[svc.key] ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-            </div>
+                className="data-[state=checked]:bg-green-500"
+              />
+            </Card>
           ))}
         </div>
       )}
