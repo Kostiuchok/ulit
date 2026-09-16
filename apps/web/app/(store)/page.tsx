@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { StoreBookCard, type StoreBook } from "../../components/store/StoreBookCard";
 import { SearchBar } from "../../components/store/SearchBar";
+import { Button } from "../../components/ui/button";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -31,13 +32,15 @@ function GenreChips({ genres }: { genres: string[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {genres.map((g) => (
-        <Link
+        <Button
           key={g}
-          href={`/books?genre=${encodeURIComponent(g)}`}
-          className="rounded-full border bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-colors"
+          asChild
+          variant="outline"
+          size="sm"
+          className="rounded-full bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-900 hover:text-white hover:border-gray-900"
         >
-          {g}
-        </Link>
+          <Link href={`/books?genre=${encodeURIComponent(g)}`}>{g}</Link>
+        </Button>
       ))}
     </div>
   );
@@ -82,18 +85,12 @@ export default async function StorePage() {
             купуйте електронні та друковані книги напряму від авторів.
           </p>
           <div className="flex justify-center gap-3 mb-6">
-            <Link
-              href="/login"
-              className="rounded-full border border-white/40 px-6 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
-            >
-              Увійти
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-100 transition-colors"
-            >
-              Реєстрація
-            </Link>
+            <Button asChild variant="outline" className="rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
+              <Link href="/login">Увійти</Link>
+            </Button>
+            <Button asChild className="rounded-full bg-white text-gray-900 hover:bg-gray-100">
+              <Link href="/register">Реєстрація</Link>
+            </Button>
           </div>
           <div className="flex justify-center">
             <Suspense>
@@ -101,15 +98,15 @@ export default async function StorePage() {
             </Suspense>
           </div>
           <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm">
-            <Link href="/books?format=EPUB" className="rounded-full bg-white/10 hover:bg-white/20 px-4 py-1.5 transition-colors">
-              E-книги
-            </Link>
-            <Link href="/books?format=PRINT" className="rounded-full bg-white/10 hover:bg-white/20 px-4 py-1.5 transition-colors">
-              Друковані
-            </Link>
-            <Link href="/books?language=uk" className="rounded-full bg-white/10 hover:bg-white/20 px-4 py-1.5 transition-colors">
-              Українською
-            </Link>
+            <Button asChild variant="ghost" className="rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white">
+              <Link href="/books?format=EPUB">E-книги</Link>
+            </Button>
+            <Button asChild variant="ghost" className="rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white">
+              <Link href="/books?format=PRINT">Друковані</Link>
+            </Button>
+            <Button asChild variant="ghost" className="rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white">
+              <Link href="/books?language=uk">Українською</Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -133,12 +130,9 @@ export default async function StorePage() {
             Завантажте свою книгу, отримайте ISBN та почніть продавати вже сьогодні.
             Повний контроль над цінами та правами.
           </p>
-          <Link
-            href="/dashboard/books/new"
-            className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-semibold text-white hover:bg-gray-700 transition-colors"
-          >
-            Опублікувати книгу →
-          </Link>
+          <Button asChild size="lg" className="rounded-full bg-gray-900 hover:bg-gray-700">
+            <Link href="/dashboard/books/new">Опублікувати книгу →</Link>
+          </Button>
         </section>
       </div>
     </div>

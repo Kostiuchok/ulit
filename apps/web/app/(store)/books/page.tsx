@@ -3,6 +3,9 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { StoreBookCard, type StoreBook } from "../../../components/store/StoreBookCard";
 import { SearchBar } from "../../../components/store/SearchBar";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { cn } from "../../../lib/utils";
 
 export const metadata: Metadata = {
   title: "Каталог книг",
@@ -75,7 +78,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar filters */}
         <aside className="w-full md:w-56 shrink-0">
-          <div className="rounded-xl border bg-white p-4 shadow-sm space-y-6">
+          <Card className="p-4 shadow-sm space-y-6">
             {/* Format */}
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Формат</p>
@@ -87,17 +90,14 @@ export default async function CatalogPage({ searchParams }: PageProps) {
                   else newParams.delete("format");
                   newParams.delete("cursor");
                   return (
-                    <Link
+                    <Button
                       key={f.value}
-                      href={`/books?${newParams.toString()}`}
-                      className={`block rounded-md px-3 py-1.5 text-sm transition-colors ${
-                        active
-                          ? "bg-gray-900 text-white font-medium"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                      asChild
+                      variant={active ? "default" : "ghost"}
+                      className={cn("h-auto w-full justify-start px-3 py-1.5 text-sm font-normal", active && "bg-gray-900 font-medium hover:bg-gray-900")}
                     >
-                      {f.label}
-                    </Link>
+                      <Link href={`/books?${newParams.toString()}`}>{f.label}</Link>
+                    </Button>
                   );
                 })}
               </div>
@@ -108,31 +108,29 @@ export default async function CatalogPage({ searchParams }: PageProps) {
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Жанр</p>
                 <div className="space-y-1">
-                  <Link
-                    href={`/books?${(() => { const p = new URLSearchParams(params.toString()); p.delete("genre"); p.delete("cursor"); return p.toString(); })()}`}
-                    className={`block rounded-md px-3 py-1.5 text-sm transition-colors ${
-                      !genre ? "bg-gray-900 text-white font-medium" : "text-gray-700 hover:bg-gray-100"
-                    }`}
+                  <Button
+                    asChild
+                    variant={!genre ? "default" : "ghost"}
+                    className={cn("h-auto w-full justify-start px-3 py-1.5 text-sm font-normal", !genre && "bg-gray-900 font-medium hover:bg-gray-900")}
                   >
-                    Всі жанри
-                  </Link>
+                    <Link href={`/books?${(() => { const p = new URLSearchParams(params.toString()); p.delete("genre"); p.delete("cursor"); return p.toString(); })()}`}>
+                      Всі жанри
+                    </Link>
+                  </Button>
                   {genres.map((g) => {
                     const active = genre === g;
                     const newParams = new URLSearchParams(params.toString());
                     newParams.set("genre", g);
                     newParams.delete("cursor");
                     return (
-                      <Link
+                      <Button
                         key={g}
-                        href={`/books?${newParams.toString()}`}
-                        className={`block rounded-md px-3 py-1.5 text-sm transition-colors ${
-                          active
-                            ? "bg-gray-900 text-white font-medium"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
+                        asChild
+                        variant={active ? "default" : "ghost"}
+                        className={cn("h-auto w-full justify-start px-3 py-1.5 text-sm font-normal", active && "bg-gray-900 font-medium hover:bg-gray-900")}
                       >
-                        {g}
-                      </Link>
+                        <Link href={`/books?${newParams.toString()}`}>{g}</Link>
+                      </Button>
                     );
                   })}
                 </div>
@@ -154,31 +152,25 @@ export default async function CatalogPage({ searchParams }: PageProps) {
                   else newParams.delete("language");
                   newParams.delete("cursor");
                   return (
-                    <Link
+                    <Button
                       key={l.value}
-                      href={`/books?${newParams.toString()}`}
-                      className={`block rounded-md px-3 py-1.5 text-sm transition-colors ${
-                        active
-                          ? "bg-gray-900 text-white font-medium"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                      asChild
+                      variant={active ? "default" : "ghost"}
+                      className={cn("h-auto w-full justify-start px-3 py-1.5 text-sm font-normal", active && "bg-gray-900 font-medium hover:bg-gray-900")}
                     >
-                      {l.label}
-                    </Link>
+                      <Link href={`/books?${newParams.toString()}`}>{l.label}</Link>
+                    </Button>
                   );
                 })}
               </div>
             </div>
 
             {isFiltered && (
-              <Link
-                href="/books"
-                className="block text-center rounded-md border px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-              >
-                Скинути фільтри
-              </Link>
+              <Button asChild variant="outline" className="w-full text-red-600 hover:bg-red-50 hover:text-red-600">
+                <Link href="/books">Скинути фільтри</Link>
+              </Button>
             )}
-          </div>
+          </Card>
         </aside>
 
         {/* Main content */}
@@ -195,9 +187,9 @@ export default async function CatalogPage({ searchParams }: PageProps) {
               <div className="text-5xl mb-4">📭</div>
               <p className="text-gray-500 text-lg">Книг не знайдено</p>
               {isFiltered && (
-                <Link href="/books" className="mt-4 inline-block text-sm text-gray-500 underline hover:text-gray-700">
-                  Скинути фільтри
-                </Link>
+                <Button asChild variant="link" className="mt-4 text-sm text-gray-500 hover:text-gray-700">
+                  <Link href="/books">Скинути фільтри</Link>
+                </Button>
               )}
             </div>
           ) : (
@@ -211,30 +203,32 @@ export default async function CatalogPage({ searchParams }: PageProps) {
               {/* Pagination */}
               <div className="mt-8 flex items-center justify-between">
                 {cursor ? (
-                  <Link
-                    href={`/books?${(() => {
-                      const p = new URLSearchParams(params.toString());
-                      p.delete("cursor");
-                      return p.toString();
-                    })()}`}
-                    className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
-                  >
-                    ← Назад
-                  </Link>
+                  <Button asChild variant="outline" className="shadow-sm">
+                    <Link
+                      href={`/books?${(() => {
+                        const p = new URLSearchParams(params.toString());
+                        p.delete("cursor");
+                        return p.toString();
+                      })()}`}
+                    >
+                      ← Назад
+                    </Link>
+                  </Button>
                 ) : (
                   <div />
                 )}
                 {nextCursor && (
-                  <Link
-                    href={`/books?${(() => {
-                      const p = new URLSearchParams(params.toString());
-                      p.set("cursor", nextCursor);
-                      return p.toString();
-                    })()}`}
-                    className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
-                  >
-                    Наступна сторінка →
-                  </Link>
+                  <Button asChild variant="outline" className="shadow-sm">
+                    <Link
+                      href={`/books?${(() => {
+                        const p = new URLSearchParams(params.toString());
+                        p.set("cursor", nextCursor);
+                        return p.toString();
+                      })()}`}
+                    >
+                      Наступна сторінка →
+                    </Link>
+                  </Button>
                 )}
               </div>
             </>

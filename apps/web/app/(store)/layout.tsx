@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CartIcon } from "../../components/store/CartIcon";
+import { Button } from "../../components/ui/button";
 
 export const metadata: Metadata = {
   title: {
@@ -31,12 +32,9 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/books"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Кабінет автора
-            </Link>
+            <Button asChild variant="outline" size="sm" className="hidden rounded-full text-xs font-medium text-gray-700 sm:inline-flex">
+              <Link href="/dashboard/books">Кабінет автора</Link>
+            </Button>
             <Link
               href="/books"
               className="md:hidden p-2 text-gray-600 hover:text-gray-900"
