@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "../../hooks/useApi";
+import { Button } from "../ui/button";
 
 interface PendingFieldsProps {
   docxUpdatedAt?: string | null;
@@ -104,18 +105,20 @@ export function RepublishButton({
   }
 
   const button = (
-    <button
+    <Button
+      variant="outline"
       onClick={handleClick}
-      disabled={!hasChanges || loading}
+      disabled={!hasChanges}
+      loading={loading}
       title={hasChanges ? "Надіслати зміни на повторну модерацію" : "Немає нових незбережених змін"}
       className={
         hasChanges
-          ? "rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50 disabled:opacity-50"
-          : "rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-300 cursor-not-allowed"
+          ? "border-black text-black hover:bg-gray-50 hover:text-black"
+          : "cursor-not-allowed border-gray-300 text-gray-300"
       }
     >
-      {loading ? "Надсилаємо…" : "Опублікувати із змінами"}
-    </button>
+      Опублікувати із змінами
+    </Button>
   );
 
   if (!showNote) {

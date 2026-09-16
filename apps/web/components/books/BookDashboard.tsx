@@ -15,6 +15,8 @@ import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { getAllRejectionLines } from "@/lib/rejectedBlocks";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface DashboardBook {
   status: string;
@@ -144,17 +146,19 @@ export function BookDashboard() {
               coverResolved ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
             )}
           >
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => setCoverNoticeDismissed(true)}
               aria-label="Закрити"
               className={cn(
-                "absolute right-3 top-3 rounded p-1 transition-colors",
-                coverResolved ? "text-green-500 hover:bg-green-100" : "text-red-500 hover:bg-red-100"
+                "absolute right-3 top-3 h-auto w-auto rounded p-1",
+                coverResolved ? "text-green-500 hover:bg-green-100 hover:text-green-500" : "text-red-500 hover:bg-red-100 hover:text-red-500"
               )}
             >
               <X size={16} />
-            </button>
+            </Button>
             <div className="flex items-center gap-2">
               <span className={coverResolved ? "text-green-600 text-lg" : "text-red-600 text-lg"}>
                 {coverResolved ? "✓" : "✕"}
@@ -188,14 +192,16 @@ export function BookDashboard() {
 
         {showOtherBlock && (
           <div className="relative rounded-xl border border-red-200 bg-red-50 p-5 pr-11 space-y-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => setOtherNoticeDismissed(true)}
               aria-label="Закрити"
-              className="absolute right-3 top-3 rounded p-1 text-red-500 transition-colors hover:bg-red-100"
+              className="absolute right-3 top-3 h-auto w-auto rounded p-1 text-red-500 hover:bg-red-100 hover:text-red-500"
             >
               <X size={16} />
-            </button>
+            </Button>
             <div className="flex items-center gap-2">
               <span className="text-red-600 text-lg">✕</span>
               <p className="font-semibold text-red-800">Книгу відхилено модератором</p>
@@ -220,12 +226,9 @@ export function BookDashboard() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[1.4375rem] font-bold text-black">{book?.title}</h1>
           <div className="flex flex-wrap items-center gap-2.5">
-            <Link
-              href={`/dashboard/books/${id}/output-data`}
-              className="rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50"
-            >
-              Редагувати
-            </Link>
+            <Button asChild variant="outline" className="border-black text-black hover:bg-gray-50 hover:text-black">
+              <Link href={`/dashboard/books/${id}/output-data`}>Редагувати</Link>
+            </Button>
             {isPublished ? (
               <>
                 <RepublishButton
@@ -261,21 +264,15 @@ export function BookDashboard() {
               />
             )}
             {isPublished ? (
-              <a
-                href={`/books/${book.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50"
-              >
-                Сайт книги
-              </a>
+              <Button asChild variant="outline" className="border-black text-black hover:bg-gray-50 hover:text-black">
+                <a href={`/books/${book.slug}`} target="_blank" rel="noopener noreferrer">
+                  Сайт книги
+                </a>
+              </Button>
             ) : (
-              <span
-                title="Доступно після публікації"
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-300 cursor-not-allowed"
-              >
+              <Button variant="outline" disabled title="Доступно після публікації" className="cursor-not-allowed border-gray-300 text-gray-300">
                 Сайт книги
-              </span>
+              </Button>
             )}
           </div>
         </div>
@@ -311,19 +308,16 @@ export function BookDashboard() {
             />
 
             {(book?.priceEbook || book?.pricePrint || book?.pricePrintHardcover) && (
-              <div className="rounded-md border bg-white p-4 shadow-sm space-y-3">
+              <Card className="p-4 shadow-sm space-y-3">
                 <div className="space-y-1 text-sm text-black">
                   {book?.priceEbook && <p>Електронна - {Number(book.priceEbook).toFixed(0)} грн</p>}
                   {book?.pricePrint && <p>Друк, м&apos;яка - {Number(book.pricePrint).toFixed(0)} грн</p>}
                   {book?.pricePrintHardcover && <p>Друк, тверда - {Number(book.pricePrintHardcover).toFixed(0)} грн</p>}
                 </div>
-                <Link
-                  href={`/dashboard/books/${id}/output-data?step=2`}
-                  className="block w-full rounded-md border border-black py-2 text-center text-sm text-black hover:bg-gray-50"
-                >
-                  Змінити ціну
-                </Link>
-              </div>
+                <Button asChild variant="outline" className="w-full border-black text-black hover:bg-gray-50 hover:text-black">
+                  <Link href={`/dashboard/books/${id}/output-data?step=2`}>Змінити ціну</Link>
+                </Button>
+              </Card>
             )}
           </div>
 

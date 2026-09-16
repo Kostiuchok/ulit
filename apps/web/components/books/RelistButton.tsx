@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "../../hooks/useApi";
+import { Button } from "../ui/button";
 
 interface Props {
   bookId: string;
@@ -28,13 +29,9 @@ export function RelistButton({ bookId, onRelisted }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      <button
-        onClick={handleClick}
-        disabled={loading}
-        className="rounded-md bg-black px-4 py-2 text-sm text-white hover:bg-gray-800 disabled:opacity-50"
-      >
-        {loading ? "Публікуємо…" : "Опублікувати знову"}
-      </button>
+      <Button onClick={handleClick} loading={loading} className="bg-black hover:bg-gray-800">
+        Опублікувати знову
+      </Button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </div>
   );

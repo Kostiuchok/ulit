@@ -3,6 +3,8 @@
 import { forwardRef, useImperativeHandle, useState } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
+import { Label } from "../ui/label";
 import { useApi } from "../../hooks/useApi";
 import { cn } from "../../lib/utils";
 
@@ -160,16 +162,15 @@ export const PublishButton = forwardRef<PublishButtonHandle, Props>(function Pub
               </p>
             </div>
             <div className="space-y-3">
-              <label className="flex items-start gap-2 text-xs text-green-900">
-                <input
-                  type="checkbox"
+              <Label className="flex items-start gap-2 font-normal text-xs text-green-900">
+                <Checkbox
                   checked={appearanceConfirmed}
-                  onChange={(e) => setAppearanceConfirmed(e.target.checked)}
-                  className="mt-0.5 rounded border-gray-300"
+                  onCheckedChange={(v) => setAppearanceConfirmed(v === true)}
+                  className="mt-0.5"
                 />
                 Мене влаштовує вигляд книги (обкладинка, передперегляд рукопису) — я переглянув(ла) і
                 готовий(а) до модерації.
-              </label>
+              </Label>
               <div className="flex gap-2">
                 <Button onClick={handleSubmit} loading={loading} disabled={!appearanceConfirmed} className="flex-1">
                   Підтвердити надсилання
