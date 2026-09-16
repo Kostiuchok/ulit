@@ -20,6 +20,8 @@ import { useApi } from "@/hooks/useApi";
 import { getBookStatusLabel } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
 import { DeleteBookModal } from "@/components/books/DeleteBookModal";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface SidebarBook {
   id: string;
@@ -207,13 +209,12 @@ export function AuthorBooksSidebar() {
   return (
     <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-gray-200 bg-white overflow-hidden">
       <div className="shrink-0 border-b border-gray-200 p-4">
-        <Link
-          href="/dashboard/books/new"
-          className="flex h-[36px] items-center justify-center gap-1.5 rounded-md bg-[#50a406] text-[0.875rem] font-medium text-white hover:bg-[#458c05]"
-        >
-          <Plus size={14} />
-          Створити нову книжку
-        </Link>
+        <Button asChild className="h-[36px] gap-1.5 bg-[#50a406] text-[0.875rem] font-medium hover:bg-[#458c05]">
+          <Link href="/dashboard/books/new">
+            <Plus size={14} />
+            Створити нову книжку
+          </Link>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -226,12 +227,14 @@ export function AuthorBooksSidebar() {
       ) : error ? (
         <div className="p-4 text-center">
           <p className="text-[0.75rem] text-red-500">Не вдалося завантажити книги</p>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => load()}
-            className="mt-2 rounded border border-gray-300 px-2 py-1 text-[0.75rem] text-gray-600 hover:bg-gray-50"
+            className="mt-2 h-auto px-2 py-1 text-[0.75rem] text-gray-600"
           >
             Спробувати ще раз
-          </button>
+          </Button>
         </div>
       ) : books.length === 0 ? (
         <div className="p-4 text-sm text-gray-400">Ще немає книг</div>
@@ -271,14 +274,14 @@ export function AuthorBooksSidebar() {
                     >
                       <h2 className="truncate">{book.title}</h2>
                     </Link>
-                    <span
+                    <Badge
                       className={cn(
-                        "mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[0.6875rem] font-medium leading-none",
+                        "mt-0.5 rounded-full border-transparent px-1.5 py-0.5 text-[0.6875rem] font-medium leading-none",
                         status.className
                       )}
                     >
                       {status.label}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
 

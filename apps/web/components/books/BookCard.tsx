@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { cn } from "../../lib/utils";
 import { getBookStatusLabel } from "../../lib/bookStatus";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface Book {
   id: string;
@@ -38,7 +41,7 @@ export function BookCard({ book, onDelete, needsAttention }: Props) {
   const pages = book.printPageCount ?? book.pageCount;
 
   return (
-    <div className="group relative flex gap-4 rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+    <Card className="group relative flex gap-4 p-4 shadow-sm transition hover:shadow-md">
       {/* Cover */}
       <div className="flex-shrink-0">
         {book.coverUrl ? (
@@ -63,17 +66,17 @@ export function BookCard({ book, onDelete, needsAttention }: Props) {
             </Link>
             <div className="flex flex-shrink-0 items-center gap-1.5">
               {needsAttention && (
-                <span
+                <Badge
                   title="Є зауваження модератора або не всі кроки на «Вихідних даних» заповнені"
-                  className="flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[0.75rem] font-semibold text-white"
+                  className="gap-1 rounded-full border-transparent bg-amber-500 px-2 py-0.5 text-[0.75rem] font-semibold text-white hover:bg-amber-500"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-white" />
                   Потребує уваги
-                </span>
+                </Badge>
               )}
-              <span className={cn("rounded-full px-2.5 py-0.5 text-[0.8125rem] font-medium", status.className)}>
+              <Badge className={cn("rounded-full border-transparent px-2.5 py-0.5 text-[0.8125rem] font-medium", status.className)}>
                 {status.label}
-              </span>
+              </Badge>
             </div>
           </div>
 
@@ -94,23 +97,22 @@ export function BookCard({ book, onDelete, needsAttention }: Props) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href={`/dashboard/books/${book.id}`}
-              className="rounded-md px-3 py-1 text-sm font-medium border hover:bg-gray-50"
-            >
-              Відкрити
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/dashboard/books/${book.id}`}>Відкрити</Link>
+            </Button>
             {onDelete && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => onDelete(book.id)}
-                className="rounded-md px-3 py-1 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50"
+                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-600"
               >
                 Видалити
-              </button>
+              </Button>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
