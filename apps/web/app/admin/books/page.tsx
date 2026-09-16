@@ -5,6 +5,14 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { Dialog, DialogContent, DialogTitle } from "../../../components/ui/dialog";
+import { Input } from "../../../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
+import { Textarea } from "../../../components/ui/textarea";
+import { toast } from "sonner";
 
 
 interface Book {
@@ -288,8 +296,8 @@ function BookRow({
 }) {
   const pendingRepublish = book.status === "PUBLISHED" && !!book.republishRequestedAt;
   return (
-    <tr className={`transition-colors ${rejected ? "bg-gray-50 text-gray-400 grayscale" : "hover:bg-gray-50"}`}>
-      <td className="px-4 py-3">
+    <TableRow className={rejected ? "bg-gray-50 text-gray-400 grayscale hover:bg-gray-50" : ""}>
+      <TableCell className="px-4 py-3">
         <div className="flex items-start gap-3">
           {book.coverUrl ? (
             <img src={book.coverUrl} alt="" className="h-12 w-8 rounded object-cover shrink-0" />
@@ -307,8 +315,8 @@ function BookRow({
             {book.isbn && <p className="text-xs font-mono text-gray-400">{book.isbn}</p>}
           </div>
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         {(() => {
           const entries = buildStatusTimeline(book);
           if (entries.length === 0) {
@@ -343,11 +351,11 @@ function BookRow({
             </div>
           );
         })()}
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Checklist book={book} />
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <div className="flex flex-col gap-0.5 text-xs font-medium">
           <span className={`flex items-center gap-1.5 ${rejected ? "text-gray-400" : EXT_COLORS[book.d2dStatus]}`}>
             <span className="w-3 shrink-0 text-center">{EXT_ICONS[book.d2dStatus]}</span>
@@ -362,11 +370,11 @@ function BookRow({
             <span>Google</span>
           </span>
         </div>
-      </td>
+      </TableCell>
       {/* Дії split into one column per action TYPE (not per row) so the same
           kind of action always lands in the same column across every book --
           scannable at a glance instead of hunting a crowded single cell. */}
-      <td className="px-4 py-3">
+      <TableCell className="px-4 py-3">
         <div className="flex flex-col gap-1">
           {pendingRepublish && (
             <ActionChip
@@ -402,8 +410,8 @@ function BookRow({
             )
           )}
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <div className="flex flex-col gap-1">
           {pendingRepublish && (
             <ActionChip
@@ -430,8 +438,8 @@ function BookRow({
             />
           )}
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         {(book.status === "PUBLISHED" || book.moderationStatus === "APPROVED") && (
           <ActionChip
             icon="📦"
@@ -458,8 +466,8 @@ function BookRow({
             className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
           />
         )}
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <ActionChip
           icon="📁"
           label="Файли"
@@ -467,8 +475,8 @@ function BookRow({
           title="Завантажити файли"
           className="border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
         />
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -568,7 +576,7 @@ export default function AdminBooksPage() {
       await apiFetch(`/api/admin/books/${id}/approve`, { method: "PATCH", body: JSON.stringify({}) });
       await fetchBooks();
     } catch (e: any) {
-      alert(`Помилка схвалення: ${e.message}`);
+      toast.error(`Помилка схвалення: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -585,7 +593,7 @@ export default function AdminBooksPage() {
       setRejectReason("");
       await fetchBooks();
     } catch (e: any) {
-      alert(`Помилка відхилення: ${e.message}`);
+      toast.error(`Помилка відхилення: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -611,7 +619,7 @@ export default function AdminBooksPage() {
       });
       await fetchBooks();
     } catch (e: any) {
-      alert(`Помилка відкликання: ${e.message}`);
+      toast.error(`Помилка відкликання: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -623,7 +631,7 @@ export default function AdminBooksPage() {
       await apiFetch(`/api/admin/books/${id}/republish`, { method: "PATCH", body: JSON.stringify({}) });
       await fetchBooks();
     } catch (e: any) {
-      alert(`Помилка схвалення змін: ${e.message}`);
+      toast.error(`Помилка схвалення змін: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -639,7 +647,7 @@ export default function AdminBooksPage() {
       });
       await fetchBooks();
     } catch (e: any) {
-      alert(`Помилка відхилення змін: ${e.message}`);
+      toast.error(`Помилка відхилення змін: ${e.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -665,7 +673,7 @@ export default function AdminBooksPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      alert(`Помилка завантаження: ${e.message}`);
+      toast.error(`Помилка завантаження: ${e.message}`);
     } finally {
       setFileLoading(null);
     }
@@ -695,54 +703,56 @@ export default function AdminBooksPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4 shadow-sm">
-        <input
+      <Card className="flex flex-wrap gap-3 p-4 shadow-sm">
+        <Input
           type="search"
           placeholder="Пошук за назвою…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-9 rounded-md border px-3 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-gray-300"
+          className="h-9 w-48"
         />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-        >
-          <option value="">Всі статуси</option>
-          {["DRAFT", "PROCESSING", "REVIEW", "PUBLISHED", "UNPUBLISHED", "ARCHIVED"].map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <select
-          value={modFilter}
-          onChange={(e) => setModFilter(e.target.value)}
-          className="h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-        >
-          <option value="">Будь-яка модерація</option>
-          {["PENDING", "APPROVED", "REJECTED"].map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-      </div>
+        <Select value={statusFilter || "ALL"} onValueChange={(v) => setStatusFilter(v === "ALL" ? "" : v)}>
+          <SelectTrigger className="h-9 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Всі статуси</SelectItem>
+            {["DRAFT", "PROCESSING", "REVIEW", "PUBLISHED", "UNPUBLISHED", "ARCHIVED"].map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={modFilter || "ALL"} onValueChange={(v) => setModFilter(v === "ALL" ? "" : v)}>
+          <SelectTrigger className="h-9 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Будь-яка модерація</SelectItem>
+            {["PENDING", "APPROVED", "REJECTED"].map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Card>
 
       {/* Table */}
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400 animate-pulse">Завантаження…</div>
         ) : books.length === 0 ? (
           <div className="p-8 text-center text-gray-400">Книг не знайдено</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="text-sm" style={{ tableLayout: "fixed", width: colWidths.reduce((a, b) => a + b, 0) }}>
+            <Table className="text-sm" style={{ tableLayout: "fixed", width: colWidths.reduce((a, b) => a + b, 0) }}>
               <colgroup>
                 {colWidths.map((w, i) => (
                   <col key={TABLE_COLUMNS[i]} style={{ width: w }} />
                 ))}
               </colgroup>
-              <thead className="border-b bg-gray-50">
-                <tr>
+              <TableHeader className="border-b bg-gray-50">
+                <TableRow>
                   {TABLE_COLUMNS.map((label, i) => (
-                    <th key={label} className="relative px-4 py-3 text-left font-semibold text-gray-600 select-none">
+                    <TableHead key={label} className="relative h-auto px-4 py-3 text-left font-semibold text-gray-600 select-none">
                       <span className="block truncate">{label}</span>
                       {/* Drag handle -- widens/narrows this column only, persisted to
                           localStorage on mouseup so an admin's preferred layout survives
@@ -753,11 +763,11 @@ export default function AdminBooksPage() {
                         onMouseDown={(e) => handleResizeStart(i, e)}
                         className="absolute right-0 top-2 bottom-2 w-1.5 cursor-col-resize rounded-full bg-gray-300 transition-colors hover:bg-gray-400 active:bg-gray-500"
                       />
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y">
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y">
                 {activeBooks.map((book) => (
                   <BookRow
                     key={book.id}
@@ -773,14 +783,14 @@ export default function AdminBooksPage() {
                   />
                 ))}
                 {rejectedBooks.length > 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-2">
+                  <TableRow>
+                    <TableCell colSpan={8} className="px-4 py-2">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Відхилені</span>
                         <div className="h-px flex-1 bg-gray-200" />
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
                 {rejectedBooks.map((book) => (
                   <BookRow
@@ -797,16 +807,16 @@ export default function AdminBooksPage() {
                   />
                 ))}
                 {archivedBooks.length > 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-2">
+                  <TableRow>
+                    <TableCell colSpan={8} className="px-4 py-2">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                           Видалено автором
                         </span>
                         <div className="h-px flex-1 bg-gray-200" />
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
                 {archivedBooks.map((book) => (
                   <BookRow
@@ -822,96 +832,96 @@ export default function AdminBooksPage() {
                     onWithdraw={handleWithdraw}
                   />
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Reject modal */}
-      {rejectId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="rounded-xl bg-white p-6 shadow-xl w-full max-w-sm space-y-4">
-            <h2 className="text-base font-semibold text-gray-900">Відхилити книгу</h2>
-            <p className="text-sm text-gray-500">Вкажіть причину відхилення (буде надіслана автору).</p>
-            <textarea
-              rows={3}
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Причина відхилення…"
-              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 resize-none"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleReject(rejectId)}
-                disabled={actionLoading === rejectId + "_reject"}
-                className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-              >
-                {actionLoading === rejectId + "_reject" ? "…" : "Відхилити"}
-              </button>
-              <button
-                onClick={() => { setRejectId(null); setRejectReason(""); }}
-                className="flex-1 rounded-lg border py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Скасувати
-              </button>
-            </div>
+      <Dialog open={!!rejectId} onOpenChange={(v) => { if (!v) { setRejectId(null); setRejectReason(""); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogTitle className="text-base font-semibold text-gray-900">Відхилити книгу</DialogTitle>
+          <p className="text-sm text-gray-500">Вкажіть причину відхилення (буде надіслана автору).</p>
+          <Textarea
+            rows={3}
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Причина відхилення…"
+            className="resize-none"
+          />
+          <div className="flex gap-2">
+            <Button
+              onClick={() => rejectId && handleReject(rejectId)}
+              loading={actionLoading === rejectId + "_reject"}
+              className="flex-1 bg-red-600 hover:bg-red-700"
+            >
+              Відхилити
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setRejectId(null); setRejectReason(""); }}
+              className="flex-1"
+            >
+              Скасувати
+            </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Files modal */}
-      {filesBook && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setFilesBook(null)}>
-          <div className="rounded-xl bg-white p-6 shadow-xl w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">Файли книги</h2>
-                <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{filesBook.title}</p>
-              </div>
-              <button onClick={() => setFilesBook(null)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
-            </div>
+      <Dialog open={!!filesBook} onOpenChange={(v) => { if (!v) setFilesBook(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogTitle className="text-base font-semibold text-gray-900">Файли книги</DialogTitle>
+          {filesBook && (
+            <>
+              <p className="-mt-3 text-xs text-gray-500 truncate max-w-xs">{filesBook.title}</p>
 
-            <div className="space-y-2">
-              {[
-                { type: "epub",  label: "EPUB",       ext: "epub",  available: !!filesBook.epubUrl },
-                { type: "fb2",   label: "FB2",        ext: "fb2",   available: !!filesBook.fb2Url },
-                { type: "mobi",  label: "MOBI",       ext: "mobi",  available: !!filesBook.mobiUrl },
-                { type: "print", label: "Print PDF",  ext: "pdf",   available: !!filesBook.printPdfUrl },
-                { type: "cover", label: "Обкладинка", ext: "jpg",   available: !!filesBook.coverUrl },
-              ].map(({ type, label, ext, available }) => (
-                <div key={type} className="flex items-center justify-between rounded-lg border px-3 py-2">
-                  <span className={`text-sm font-medium ${available ? "text-gray-800" : "text-gray-300"}`}>
-                    {label}
-                  </span>
-                  {available ? (
-                    <button
-                      onClick={() => downloadFile(filesBook.id, type, `${safeFilename(filesBook.title)}.${ext}`)}
-                      disabled={fileLoading === type}
-                      className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-                    >
-                      {fileLoading === type ? "…" : "⬇ Скачати"}
-                    </button>
-                  ) : (
-                    <span className="text-xs text-gray-300">Немає</span>
-                  )}
+              <div className="space-y-2">
+                {[
+                  { type: "epub",  label: "EPUB",       ext: "epub",  available: !!filesBook.epubUrl },
+                  { type: "fb2",   label: "FB2",        ext: "fb2",   available: !!filesBook.fb2Url },
+                  { type: "mobi",  label: "MOBI",       ext: "mobi",  available: !!filesBook.mobiUrl },
+                  { type: "print", label: "Print PDF",  ext: "pdf",   available: !!filesBook.printPdfUrl },
+                  { type: "cover", label: "Обкладинка", ext: "jpg",   available: !!filesBook.coverUrl },
+                ].map(({ type, label, ext, available }) => (
+                  <div key={type} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                    <span className={`text-sm font-medium ${available ? "text-gray-800" : "text-gray-300"}`}>
+                      {label}
+                    </span>
+                    {available ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => downloadFile(filesBook.id, type, `${safeFilename(filesBook.title)}.${ext}`)}
+                        loading={fileLoading === type}
+                        className="h-auto px-2.5 py-1 text-xs"
+                      >
+                        ⬇ Скачати
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-gray-300">Немає</span>
+                    )}
+                  </div>
+                ))}
+
+                {/* Metadata — always available */}
+                <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                  <span className="text-sm font-medium text-gray-800">Метадані JSON</span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => downloadMeta(filesBook)}
+                    className="h-auto px-2.5 py-1 text-xs"
+                  >
+                    ⬇ Скачати
+                  </Button>
                 </div>
-              ))}
-
-              {/* Metadata — always available */}
-              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
-                <span className="text-sm font-medium text-gray-800">Метадані JSON</span>
-                <button
-                  onClick={() => downloadMeta(filesBook)}
-                  className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
-                >
-                  ⬇ Скачати
-                </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
