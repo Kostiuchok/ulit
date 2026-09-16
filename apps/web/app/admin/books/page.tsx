@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
@@ -9,8 +9,9 @@ import { Button } from "../../../components/ui/button";
 import { Card } from "../../../components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "../../../components/ui/dialog";
 import { Input } from "../../../components/ui/input";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../../../components/ui/resizable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "../../../components/ui/table";
 import { Textarea } from "../../../components/ui/textarea";
 import { toast } from "sonner";
 
@@ -134,9 +135,15 @@ function groupTimelineByInstant(entries: TimelineEntry[]): { time: number; items
   return groups;
 }
 
-// Resizable admin/books table -- one width per column, persisted so an
-// admin's preferred proportions survive a reload. Column order/count here
-// must stay in sync with the <colgroup>/<th> list below.
+// Resizable admin/books table -- built on the official shadcn Resizable
+// primitives (react-resizable-panels): the header row IS a real
+// ResizablePanelGroup, and its live percentage layout drives the actual
+// <table>'s <colgroup> below it. Dragging a handle resizes the two
+// adjacent columns as a pair (the whole column boundary moves), with a
+// persistently visible divider line + grip, exactly like
+// https://ui.shadcn.com/docs/components/base/resizable -- instead of the
+// previous single-column-only px drag. Column order/count here must stay
+// in sync with the <colgroup> list below.
 const TABLE_COLUMNS = [
   "Книга",
   "Статус",
@@ -147,31 +154,28 @@ const TABLE_COLUMNS = [
   "Дистрибуція",
   "Файли",
 ] as const;
-const DEFAULT_COLUMN_WIDTHS = [260, 200, 110, 105, 100, 90, 100, 80];
-const COLUMN_WIDTHS_STORAGE_KEY = "ulit-admin-books-col-widths";
-// Per-column, not a single flat floor -- narrowing e.g. "Дистрибуція" down
-// to the old generic 60px let its "Розіслати"/"Публікація" label wrap onto
-// three lines and visually spill past the button's own border. Each floor
-// here is roughly the narrowest a column can go while its ActionChip
-// buttons (icon + a 1-2 word label, now wrapping instead of overflowing)
-// still read as a button, not a fixed measurement of any specific render.
-const MIN_COLUMN_WIDTHS = [160, 90, 85, 70, 70, 65, 75, 55];
+// Percentages (sum to 100), proportional to the old px defaults.
+const DEFAULT_COLUMN_LAYOUT = [25, 19, 10.5, 10, 9.5, 8.5, 9.5, 8];
+const COLUMN_LAYOUT_STORAGE_KEY = "ulit-admin-books-col-layout-v2";
+// Per-column floor, as a percentage of the same basis as the defaults
+// above -- narrowing e.g. "Дистрибуція" too far lets its "Розіслати"/
+// "Публікація" label wrap onto three lines and spill past the button's
+// own border. Roughly the narrowest each column can go while its
+// ActionChip buttons (icon + a 1-2 word label) still read as a button.
+const MIN_COLUMN_PERCENT = [15.3, 8.6, 8.1, 6.7, 6.7, 6.2, 7.2, 5.3];
 
-function loadColumnWidths(): number[] {
-  if (typeof window === "undefined") return DEFAULT_COLUMN_WIDTHS;
+function loadColumnLayout(): number[] {
+  if (typeof window === "undefined") return DEFAULT_COLUMN_LAYOUT;
   try {
-    const raw = window.localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
+    const raw = window.localStorage.getItem(COLUMN_LAYOUT_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
-    if (Array.isArray(parsed) && parsed.length === DEFAULT_COLUMN_WIDTHS.length && parsed.every((w) => typeof w === "number")) {
-      // A width saved before MIN_COLUMN_WIDTHS existed (or shrunk before
-      // this fix) could be narrower than today's floor -- clamp on load too,
-      // not just during an active drag.
-      return parsed.map((w, i) => Math.max(MIN_COLUMN_WIDTHS[i] ?? 60, w));
+    if (Array.isArray(parsed) && parsed.length === DEFAULT_COLUMN_LAYOUT.length && parsed.every((w) => typeof w === "number")) {
+      return parsed;
     }
   } catch {
     // malformed/blocked localStorage -- fall back to defaults below
   }
-  return DEFAULT_COLUMN_WIDTHS;
+  return DEFAULT_COLUMN_LAYOUT;
 }
 
 function Checklist({ book }: { book: Book }) {
@@ -498,36 +502,27 @@ export default function AdminBooksPage() {
   const [modFilter, setModFilter] = useState(searchParams.get("mod") ?? "");
   const [search, setSearch] = useState("");
 
-  const [colWidths, setColWidths] = useState<number[]>(DEFAULT_COLUMN_WIDTHS);
-  useEffect(() => { setColWidths(loadColumnWidths()); }, []);
-  const resizeRef = useRef<{ index: number; startX: number; startWidth: number } | null>(null);
-
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    const r = resizeRef.current;
-    if (!r) return;
-    const next = Math.max(MIN_COLUMN_WIDTHS[r.index] ?? 60, r.startWidth + (e.clientX - r.startX));
-    setColWidths((prev) => prev.map((w, i) => (i === r.index ? next : w)));
+  // Server-rendered/first-paint layout is always the default (no
+  // `window` yet) so it matches the client's first render 1:1 -- no
+  // hydration mismatch. The effect below then loads the admin's saved
+  // layout and bumps `layoutKey`, remounting ResizablePanelGroup so its
+  // `defaultSize` (only ever read once, at mount) picks up the loaded
+  // values -- changing the prop on an already-mounted group is a no-op
+  // in react-resizable-panels.
+  const [layout, setLayout] = useState<number[]>(DEFAULT_COLUMN_LAYOUT);
+  const [layoutKey, setLayoutKey] = useState(0);
+  useEffect(() => {
+    setLayout(loadColumnLayout());
+    setLayoutKey((k) => k + 1);
   }, []);
 
-  const handleResizeEnd = useCallback(() => {
-    resizeRef.current = null;
-    document.removeEventListener("mousemove", handleResizeMove);
-    document.removeEventListener("mouseup", handleResizeEnd);
-    setColWidths((prev) => {
-      try {
-        window.localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify(prev));
-      } catch {
-        // storage blocked/full -- widths still apply for this session
-      }
-      return prev;
-    });
-  }, [handleResizeMove]);
-
-  function handleResizeStart(index: number, e: ReactMouseEvent) {
-    e.preventDefault();
-    resizeRef.current = { index, startX: e.clientX, startWidth: colWidths[index] };
-    document.addEventListener("mousemove", handleResizeMove);
-    document.addEventListener("mouseup", handleResizeEnd);
+  function handleLayout(sizes: number[]) {
+    setLayout(sizes);
+    try {
+      window.localStorage.setItem(COLUMN_LAYOUT_STORAGE_KEY, JSON.stringify(sizes));
+    } catch {
+      // storage blocked/full -- layout still applies for this session
+    }
   }
 
   // "Видалено автором" -- усі ARCHIVED книги йдуть у власну групу знизу
@@ -742,31 +737,28 @@ export default function AdminBooksPage() {
         ) : books.length === 0 ? (
           <div className="p-8 text-center text-gray-400">Книг не знайдено</div>
         ) : (
+          <>
+          <div className="border-b bg-gray-50">
+            <ResizablePanelGroup key={layoutKey} direction="horizontal" onLayout={handleLayout}>
+              {TABLE_COLUMNS.map((label, i) => {
+                const panel = (
+                  <ResizablePanel key={`panel-${label}`} defaultSize={layout[i] ?? DEFAULT_COLUMN_LAYOUT[i]} minSize={MIN_COLUMN_PERCENT[i] ?? 5}>
+                    <div className="truncate px-4 py-3 text-left text-sm font-semibold text-gray-600 select-none">
+                      {label}
+                    </div>
+                  </ResizablePanel>
+                );
+                return i === 0 ? panel : [<ResizableHandle key={`handle-${label}`} withHandle />, panel];
+              })}
+            </ResizablePanelGroup>
+          </div>
           <div className="overflow-x-auto">
-            <Table className="text-sm" style={{ tableLayout: "fixed", width: colWidths.reduce((a, b) => a + b, 0) }}>
+            <Table className="text-sm" style={{ tableLayout: "fixed", width: "100%" }}>
               <colgroup>
-                {colWidths.map((w, i) => (
-                  <col key={TABLE_COLUMNS[i]} style={{ width: w }} />
+                {layout.map((w, i) => (
+                  <col key={TABLE_COLUMNS[i]} style={{ width: `${w}%` }} />
                 ))}
               </colgroup>
-              <TableHeader className="border-b bg-gray-50">
-                <TableRow>
-                  {TABLE_COLUMNS.map((label, i) => (
-                    <TableHead key={label} className="relative h-auto px-4 py-3 text-left font-semibold text-gray-600 select-none">
-                      <span className="block truncate">{label}</span>
-                      {/* Drag handle -- widens/narrows this column only, persisted to
-                          localStorage on mouseup so an admin's preferred layout survives
-                          a reload instead of resetting to the defaults every visit. A
-                          visible resting-state bar (not just a hover reveal) signals
-                          upfront that the column is resizable, not just on discovery. */}
-                      <span
-                        onMouseDown={(e) => handleResizeStart(i, e)}
-                        className="absolute right-0 top-2 bottom-2 w-1.5 cursor-col-resize rounded-full bg-gray-300 transition-colors hover:bg-gray-400 active:bg-gray-500"
-                      />
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
               <TableBody className="divide-y">
                 {activeBooks.map((book) => (
                   <BookRow
@@ -835,6 +827,7 @@ export default function AdminBooksPage() {
               </TableBody>
             </Table>
           </div>
+          </>
         )}
       </Card>
 

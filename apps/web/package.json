@@ -52,6 +52,7 @@
     "react-pageflip-enhanced": "^2.2.3",
     "react-pdf": "^10.4.1",
     "react-reader": "^2.0.15",
+    "react-resizable-panels": "^2.1.9",
     "shared-types": "workspace:*",
     "sonner": "^2.0.8",
     "tailwind-merge": "^2.5.2",
