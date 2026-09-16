@@ -2,6 +2,15 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CartIcon } from "../../components/store/CartIcon";
 import { Button } from "../../components/ui/button";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "../../components/ui/navigation-menu";
 import { Toaster } from "../../components/ui/sonner";
 
 export const metadata: Metadata = {
@@ -26,11 +35,61 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
             📚 <span>ULIT</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-600">
-            <Link href="/books" className="hover:text-gray-900 transition-colors">Каталог</Link>
-            <Link href="/books?format=EPUB" className="hover:text-gray-900 transition-colors">Е-книги</Link>
-            <Link href="/books?format=PRINT" className="hover:text-gray-900 transition-colors">Друковані</Link>
-          </nav>
+          <NavigationMenu className="hidden md:flex">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                  <Link href="/books">Каталог</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Е-книги</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[180px] gap-1 p-2">
+                    {[
+                      { href: "/books?format=EPUB", label: "EPUB" },
+                      { href: "/books?format=FB2", label: "FB2" },
+                      { href: "/books?format=MOBI", label: "MOBI" },
+                    ].map((item) => (
+                      <li key={item.href}>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href={item.href}
+                            className="block select-none rounded-md p-2 text-sm leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {item.label}
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Друковані</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[220px] gap-1 p-2">
+                    {[
+                      { href: "/books?format=PRINT", label: "Усі друковані" },
+                      { href: "/books?format=PRINT_HARDCOVER", label: "Тверда обкладинка" },
+                      { href: "/books?format=PRINT_SOFTCOVER", label: "М'яка обкладинка" },
+                    ].map((item) => (
+                      <li key={item.href}>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href={item.href}
+                            className="block select-none rounded-md p-2 text-sm leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {item.label}
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
 
           <div className="flex items-center gap-3">
             <Button asChild variant="outline" size="sm" className="hidden rounded-full text-xs font-medium text-gray-700 sm:inline-flex">
