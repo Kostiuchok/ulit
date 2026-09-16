@@ -1,5 +1,8 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
 const PREP_ITEMS = [
   { label: "Про-акаунт", price: "від 2 700 ₴" },
   { label: "Редактура", price: "від 5 200 ₴" },
@@ -13,9 +16,9 @@ const PROMO_ITEMS = ["Офлайн-продаж", "Просування", "Бу�
 
 function ComingSoonTag() {
   return (
-    <span className="shrink-0 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[0.6875rem] font-medium text-green-700">
+    <Badge variant="outline" className="shrink-0 rounded-full border-green-200 bg-green-50 text-[0.6875rem] font-medium text-green-700 hover:bg-green-50">
       Скоро
-    </span>
+    </Badge>
   );
 }
 
@@ -31,16 +34,17 @@ export function BookPromoSidebar() {
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Підготовка книги</p>
         <div className="space-y-1.5">
           {PREP_ITEMS.map((item) => (
-            <button
+            <Button
               key={item.label}
               type="button"
+              variant="outline"
               disabled
               title="Скоро буде доступно"
-              className="flex w-full items-center justify-between gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-left text-sm text-gray-400 cursor-not-allowed"
+              className="h-auto w-full cursor-not-allowed justify-between gap-2 border-gray-200 bg-gray-50 px-3 py-2 font-normal text-gray-400"
             >
               <span className="truncate">{item.label}</span>
               <span className="shrink-0 text-xs">{item.price}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </div>

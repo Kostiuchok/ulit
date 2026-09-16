@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useApi } from "../../hooks/useApi";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 
 interface Props {
   bookId: string;
@@ -75,27 +78,25 @@ export function PreviewRangeEditor({ bookId, pageCount, initialStart, initialEnd
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-gray-700">Початок (сторінка)</label>
-          <input
+          <Label className="text-xs font-medium text-gray-700">Початок (сторінка)</Label>
+          <Input
             type="number"
             min={1}
             max={maxPage}
             value={start}
             onChange={(e) => setStart(e.target.value)}
             placeholder="1"
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-gray-700">Кінець (сторінка)</label>
-          <input
+          <Label className="text-xs font-medium text-gray-700">Кінець (сторінка)</Label>
+          <Input
             type="number"
             min={1}
             max={maxPage}
             value={end}
             onChange={(e) => setEnd(e.target.value)}
             placeholder={maxPage ? String(Math.floor(maxPage * 0.1)) : "20"}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
       </div>
@@ -130,20 +131,13 @@ export function PreviewRangeEditor({ bookId, pageCount, initialStart, initialEnd
       {saved && <p className="text-sm text-green-600">✓ Збережено</p>}
 
       <div className="flex gap-2">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-        >
-          {saving ? "Збереження…" : "Зберегти"}
-        </button>
+        <Button onClick={handleSave} loading={saving} className="bg-gray-900 hover:bg-gray-700">
+          Зберегти
+        </Button>
         {(start || end) && (
-          <button
-            onClick={handleClear}
-            className="inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+          <Button variant="outline" onClick={handleClear}>
             Прибрати уривок
-          </button>
+          </Button>
         )}
       </div>
     </div>
