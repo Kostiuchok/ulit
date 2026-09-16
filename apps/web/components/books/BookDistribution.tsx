@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils";
 import { RepublishButton } from "@/components/books/RepublishButton";
 import { UnpublishButton } from "@/components/books/UnpublishButton";
 import { RelistButton } from "@/components/books/RelistButton";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface DistributionBook {
   title: string;
@@ -134,12 +138,9 @@ export function BookDistribution() {
             <h1 className="text-[1.4375rem] font-bold text-black">Публікація у магазинах</h1>
             <p className="mt-1 text-sm text-gray-500">«{book.title}»</p>
           </div>
-          <Link
-            href={`/dashboard/books/${id}/output-data#section-price`}
-            className="rounded-md border border-black px-4 py-2 text-sm text-black hover:bg-gray-50"
-          >
-            Змінити платформи та ціни
-          </Link>
+          <Button asChild variant="outline" className="border-black text-black hover:bg-gray-50 hover:text-black">
+            <Link href={`/dashboard/books/${id}/output-data#section-price`}>Змінити платформи та ціни</Link>
+          </Button>
         </div>
 
         {!everPublished && (
@@ -156,40 +157,40 @@ export function BookDistribution() {
           </div>
         )}
 
-        <div className="overflow-hidden rounded-xl border shadow-sm">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold">Магазин</th>
-                <th className="px-4 py-3 text-left font-semibold">Формат</th>
-                <th className="px-4 py-3 text-left font-semibold">Роялті</th>
-                <th className="px-4 py-3 text-left font-semibold">Статус</th>
-                <th className="px-4 py-3 text-left font-semibold">Дата</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+        <Card className="overflow-hidden shadow-sm">
+          <Table>
+            <TableHeader className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+              <TableRow>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Магазин</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Формат</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Роялті</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Статус</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-500">Дата</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {STORES.map((store) => {
                 const included = info.distributionChannels.includes(store.key);
                 const channel = channelByKey[store.key];
                 const status = store.key === "ULIT" ? ulitStatus : STATUS_LABEL[channel?.status ?? "NOT_SENT"];
                 const blocked = channel?.blocked ?? false;
                 return (
-                  <tr key={store.key} className={cn(!included && "opacity-50")}>
-                    <td className="px-4 py-3">
+                  <TableRow key={store.key} className={cn(!included && "opacity-50")}>
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="text-lg">{store.icon}</span>
                         <span className="font-medium text-gray-900">{store.name}</span>
                         {!included && <span className="text-xs text-gray-400">(вимкнено)</span>}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{store.formats}</td>
-                    <td className="px-4 py-3 font-medium text-green-700">{store.royalty}</td>
-                    <td className="px-4 py-3">
-                      <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", status.className)}>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500">{store.formats}</TableCell>
+                    <TableCell className="px-4 py-3 font-medium text-green-700">{store.royalty}</TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge className={cn("rounded-full border-transparent font-medium", status.className)}>
                         {blocked && included ? "Заблоковано (KDP Select)" : status.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500">
                       {store.key === "ULIT"
                         ? book.publishedAt
                           ? fmtDate(book.publishedAt)
@@ -197,16 +198,16 @@ export function BookDistribution() {
                         : channel?.sentAt
                         ? fmtDate(channel.sentAt)
                         : "—"}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
 
         {(book.priceEbook || book.pricePrint || book.pricePrintHardcover) && (
-          <div className="rounded-xl border bg-white p-5 shadow-sm">
+          <Card className="p-5 shadow-sm">
             <p className="mb-2 text-sm font-semibold text-gray-900">Ціна на Ulit</p>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-700">
               {book.priceEbook && <span>Електронна — {Number(book.priceEbook).toFixed(0)} грн</span>}
@@ -216,7 +217,7 @@ export function BookDistribution() {
             <p className="mt-2 text-xs text-gray-400">
               Ціни на зовнішніх майданчиках (D2D, KDP, Google Play Books) формуються кожним магазином окремо.
             </p>
-          </div>
+          </Card>
         )}
 
         {isPublished && (

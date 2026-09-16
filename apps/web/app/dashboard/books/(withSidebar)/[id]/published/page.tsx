@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "@/hooks/useApi";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface BookInfo {
   id: string;
@@ -66,7 +69,7 @@ export default function PublishedPage() {
           <p className="mt-2 text-gray-500">Вашу книгу успішно опубліковано на платформі ULIT.</p>
         </div>
 
-        <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
+        <Card className="p-6 shadow-sm space-y-6">
           {/* Cover + title */}
           <div className="flex items-start gap-4">
             {book?.coverUrl ? (
@@ -81,9 +84,9 @@ export default function PublishedPage() {
                   Опубліковано {new Date(book.publishedAt).toLocaleDateString("uk-UA", { day: "numeric", month: "long", year: "numeric" })}
                 </p>
               )}
-              <span className="mt-2 inline-block rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-700">
+              <Badge className="mt-2 rounded-full border-transparent bg-green-100 text-green-700 hover:bg-green-100">
                 ✓ Опубліковано
-              </span>
+              </Badge>
             </div>
           </div>
 
@@ -102,9 +105,9 @@ export default function PublishedPage() {
               <p className="text-sm font-semibold text-gray-700 mb-2">Доступні формати</p>
               <div className="flex flex-wrap gap-2">
                 {availableFormats.map(([key, label]) => (
-                  <span key={key} className="rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700">
+                  <Badge key={key} variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-50">
                     ✓ {label}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -134,19 +137,19 @@ export default function PublishedPage() {
               <>🌐 <strong>Широке розповсюдження</strong> — книга буде надіслана до Draft2Digital та Google Play Books.</>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Actions */}
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
-          <Link href="/dashboard/books" className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            ← Мої книги
-          </Link>
-          <Link href={`/dashboard/books/${id}`} className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Сторінка книги
-          </Link>
-          <Link href="/dashboard/books/new" className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-            + Опублікувати ще одну
-          </Link>
+          <Button asChild variant="outline">
+            <Link href="/dashboard/books">← Мої книги</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/dashboard/books/${id}`}>Сторінка книги</Link>
+          </Button>
+          <Button asChild className="bg-gray-900 hover:bg-gray-800">
+            <Link href="/dashboard/books/new">+ Опублікувати ще одну</Link>
+          </Button>
         </div>
       </div>
     </div>

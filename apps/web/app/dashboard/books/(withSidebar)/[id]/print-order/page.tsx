@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // T-2063/T-2074 -- Ridero's "Заказать тираж" is its own page, separate from
 // "Публикация в магазинах" (docs/ridero-research-preview-cover.md live test,
@@ -57,30 +61,31 @@ export default function PrintOrderPage() {
           </p>
         </div>
 
-        <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
+        <Card className="p-6 shadow-sm space-y-5">
           <div className="space-y-1.5">
-            <label htmlFor="quantity" className="text-sm font-medium">Кількість примірників</label>
-            <input
+            <Label htmlFor="quantity">Кількість примірників</Label>
+            <Input
               id="quantity"
               type="number"
               min={1}
               value={quantity}
               onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-              className="flex h-10 w-32 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-32"
             />
             <div className="flex flex-wrap gap-1.5 pt-1">
               {QUANTITY_PRESETS.map((q) => (
-                <button
+                <Button
                   key={q}
                   type="button"
+                  size="sm"
                   onClick={() => setQuantity(q)}
                   className={cn(
-                    "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                    quantity === q ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    "h-auto rounded-full px-2.5 py-1 text-xs font-medium",
+                    quantity === q ? "bg-gray-900 hover:bg-gray-900" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   )}
                 >
                   {q} екз.
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -122,7 +127,7 @@ export default function PrintOrderPage() {
           <p className="border-t pt-3 text-xs text-gray-400">
             Оформлення й оплата замовлення тиражу — функція в розробці. Поки що це орієнтовний калькулятор.
           </p>
-        </div>
+        </Card>
       </div>
     </div>
   );

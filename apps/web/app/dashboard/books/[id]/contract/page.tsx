@@ -6,6 +6,7 @@ import { FileText } from "lucide-react";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface ContractBook {
   title: string;
@@ -34,7 +35,11 @@ export default function BookContractPage() {
   }, [token]);
 
   if (bookLoading || loading) {
-    return <div className="p-8 animate-pulse text-gray-400">Завантаження…</div>;
+    return (
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 py-10 animate-pulse text-center text-gray-400">
+        Завантаження…
+      </div>
+    );
   }
   if (!book) return null;
 
@@ -72,13 +77,9 @@ export default function BookContractPage() {
               Щоб надіслати книгу на модерацію, спочатку підпишіть договір з платформою — це робиться один раз
               у профілі автора і діє на всі ваші книги.
             </p>
-            <Link
-              href="/dashboard/settings/contract"
-              className="inline-block rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
-              style={{ backgroundColor: "#ff5900" }}
-            >
-              Підписати договір
-            </Link>
+            <Button asChild style={{ backgroundColor: "#ff5900" }}>
+              <Link href="/dashboard/settings/contract">Підписати договір</Link>
+            </Button>
           </div>
         )}
       </div>
