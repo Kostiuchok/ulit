@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
+import { Card } from "@/components/ui/card";
 import { useBook } from "@/hooks/useBook";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
@@ -65,12 +66,12 @@ function IsbnReadinessChecklist({ book, bookId }: { book: ReviewBook | null; boo
   // still very much need УДК.
   if (book?.udcCode) {
     return (
-      <div className="rounded-xl border bg-white p-5 text-sm">
+      <Card className="p-5 text-sm">
         <p className="flex items-center gap-2 text-gray-700">
           <span className="text-green-600">✓</span>
           УДК вже присвоєно — реєстрація в Книжковій палаті не потрібна.
         </p>
-      </div>
+      </Card>
     );
   }
 
@@ -107,7 +108,7 @@ function IsbnReadinessChecklist({ book, bookId }: { book: ReviewBook | null; boo
   ];
 
   return (
-    <div className="rounded-xl border bg-white p-5 space-y-3 text-sm">
+    <Card className="p-5 space-y-3 text-sm">
       <div>
         <h2 className="text-base font-semibold">Готовність до реєстрації УДК</h2>
         <p className="text-xs text-gray-500">
@@ -138,7 +139,7 @@ function IsbnReadinessChecklist({ book, bookId }: { book: ReviewBook | null; boo
         Структуру друкованого файлу (титул → порожня сторінка → текст, файл 2 для заявки на УДК) платформа формує
         автоматично в межах PDF для друку вище — окремо готувати цю структуру не потрібно.
       </p>
-    </div>
+    </Card>
   );
 }
 
@@ -172,7 +173,7 @@ export default function OutputDataReviewPage() {
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.review} done={readyToPublish} />
       <div className="space-y-6">
-        <div className="rounded-xl border bg-gray-50 p-5 space-y-3 text-sm">
+        <Card className="bg-gray-50 p-5 space-y-3 text-sm shadow-none">
           <Row label="Назва" value={book?.title || "—"} />
           {book?.isbn && <Row label="ISBN" value={book.isbn} />}
           <Row label="Жанр" value={book?.genre || "—"} />
@@ -189,14 +190,14 @@ export default function OutputDataReviewPage() {
           <Row label="Друк, м'яка (ч/б)" value={book?.pricePrintBw ? `${Number(book.pricePrintBw).toFixed(2)} грн` : "Не продається"} />
           <Row label="Друк, тверда (ч/б)" value={book?.pricePrintHardcoverBw ? `${Number(book.pricePrintHardcoverBw).toFixed(2)} грн` : "Не продається"} />
           <Row label="Платформи" value={book?.distributionChannels?.length ? `${book.distributionChannels.length} обрано` : "Не обрано"} />
-        </div>
+        </Card>
 
         {book?.pricePrint || book?.pricePrintHardcover || book?.pricePrintBw || book?.pricePrintHardcoverBw ? (
           <IsbnReadinessChecklist book={book} bookId={id} />
         ) : null}
 
         {!!book?.distributionChannels?.length && (
-          <div className="rounded-xl border bg-white p-5 space-y-4 text-sm">
+          <Card className="p-5 space-y-4 text-sm">
             <div>
               <h2 className="text-base font-semibold">Орієнтовний прибуток по каналах</h2>
               <p className="text-xs text-gray-500">
@@ -233,7 +234,7 @@ export default function OutputDataReviewPage() {
                   </div>
                 );
               })}
-          </div>
+          </Card>
         )}
       </div>
     </div>

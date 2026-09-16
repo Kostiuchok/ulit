@@ -5,6 +5,7 @@ import Link from "next/link";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
+import { Card } from "@/components/ui/card";
 import { useBook } from "@/hooks/useBook";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
@@ -42,7 +43,7 @@ export default function OutputDataFilePage() {
   return (
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.file} done={fileSectionDone && !manuscriptRejected} />
-      <div className={cn("rounded-xl bg-white p-6 shadow-sm space-y-4", manuscriptRejected ? "border-2 border-red-400" : "border")}>
+      <Card className={cn("p-6 shadow-sm space-y-4", manuscriptRejected && "border-2 border-red-400")}>
         <div>
           <h3 className="text-base font-semibold mb-1">Рукопис (.docx)</h3>
           <p className="text-xs text-gray-500">Завантажте файл або замініть уже завантажений.</p>
@@ -87,12 +88,12 @@ export default function OutputDataFilePage() {
             )}
           </span>
         </div>
-      </div>
+      </Card>
 
       {/* Setting the free-preview page range is manuscript-content work,
           same as uploading/editing the .docx above. */}
       {book?.epubUrl && (
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <Card className="p-6 shadow-sm">
           <h2 className="text-base font-semibold mb-1">Уривок для читачів</h2>
           <p className="text-xs text-gray-500 mb-4">
             Встановіть діапазон сторінок, які покупці зможуть прочитати безкоштовно.
@@ -106,7 +107,7 @@ export default function OutputDataFilePage() {
               setBook((b) => (b ? { ...b, previewStart: start, previewEnd: end } : b))
             }
           />
-        </div>
+        </Card>
       )}
     </div>
   );

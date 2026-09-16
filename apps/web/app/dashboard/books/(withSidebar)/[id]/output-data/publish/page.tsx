@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
 import { PublishButton, type PublishButtonHandle } from "@/components/books/PublishButton";
 import { RepublishButton } from "@/components/books/RepublishButton";
+import { Card } from "@/components/ui/card";
 import { useBook } from "@/hooks/useBook";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
@@ -76,7 +77,7 @@ export default function OutputDataPublishPage() {
   return (
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.publish} done={readyToPublish} />
-      <div className="rounded-xl border bg-white p-6 shadow-sm space-y-3">
+      <Card className="p-6 shadow-sm space-y-3">
         <PublishButton
           ref={publishButtonRef}
           bookId={id}
@@ -103,7 +104,7 @@ export default function OutputDataPublishPage() {
             }
           />
         )}
-      </div>
+      </Card>
     </div>
   );
 }

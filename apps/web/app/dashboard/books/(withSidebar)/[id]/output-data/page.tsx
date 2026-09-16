@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
@@ -427,7 +431,7 @@ export default function OutputDataInfoPage() {
   return (
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.info} done={infoSectionDone && !infoCardRejected} />
-      <div className={cn("rounded-xl bg-white p-6 shadow-sm", infoCardRejected ? "border-2 border-red-400" : "border")}>
+      <Card className={cn("p-6 shadow-sm", infoCardRejected && "border-2 border-red-400")}>
         <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
           {/* Назва/Підзаголовок/Анотація зліва (усі поля самого тексту
               книги, стовпчиком) — жанр/розмір/мова/вік справа: коротші
@@ -470,15 +474,13 @@ export default function OutputDataInfoPage() {
                     {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
                   </span>
                 </div>
-                <textarea
+                <Textarea
                   id="description"
                   {...infoForm.register("description")}
                   rows={9}
                   className={cn(
-                    "flex w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 resize-none",
-                    infoForm.formState.errors.description || descriptionRejected
-                      ? "border-red-400 focus-visible:ring-red-300"
-                      : "border-input focus-visible:ring-ring"
+                    "resize-none",
+                    (infoForm.formState.errors.description || descriptionRejected) && "border-red-400 focus-visible:ring-red-300"
                   )}
                   placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
                 />
@@ -509,35 +511,45 @@ export default function OutputDataInfoPage() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="genre">Жанр</Label>
-                <select
-                  id="genre"
-                  {...infoForm.register("genre")}
-                  className={cn(
-                    "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    genreRejected ? "border-red-400" : "border-input"
+                <Controller
+                  control={infoForm.control}
+                  name="genre"
+                  render={({ field }) => (
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <SelectTrigger id="genre" className={cn(genreRejected && "border-red-400")}>
+                        <SelectValue placeholder="Оберіть жанр" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GENRES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   )}
-                >
-                  <option value="">Оберіть жанр</option>
-                  {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
-                </select>
+                />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="printFormatKey">Розмір книги <span className="text-red-500">*</span></Label>
-                <select
-                  id="printFormatKey"
-                  {...infoForm.register("printFormatKey")}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {PRINT_FORMAT_KEYS.map((key) => {
-                    const f = PRINT_FORMATS[key];
-                    return (
-                      <option key={key} value={key}>
-                        {f.label} ({f.widthMm}×{f.heightMm}мм)
-                      </option>
-                    );
-                  })}
-                </select>
+                <Controller
+                  control={infoForm.control}
+                  name="printFormatKey"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="printFormatKey">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRINT_FORMAT_KEYS.map((key) => {
+                          const f = PRINT_FORMATS[key];
+                          return (
+                            <SelectItem key={key} value={key}>
+                              {f.label} ({f.widthMm}×{f.heightMm}мм)
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 <p className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600">
                   📐 Друкована версія книги матиме розмір{" "}
                   <span className="font-semibold text-gray-900">{displayFormat.widthMm}×{displayFormat.heightMm}мм</span>
@@ -550,33 +562,41 @@ export default function OutputDataInfoPage() {
                   Мова книги <span className="text-red-500">*</span>
                   <span className="ml-1.5 text-xs font-normal text-gray-400">(потрібна для Amazon, Google Play)</span>
                 </Label>
-                <select
-                  id="language"
-                  {...infoForm.register("language")}
-                  className={cn(
-                    "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    languageRejected ? "border-red-400" : "border-input"
+                <Controller
+                  control={infoForm.control}
+                  name="language"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="language" className={cn(languageRejected && "border-red-400")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGES.map((l) => <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   )}
-                >
-                  {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-                </select>
+                />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="ageRating">Вікові обмеження <span className="text-red-500">*</span></Label>
-                <select
-                  id="ageRating"
-                  {...infoForm.register("ageRating")}
-                  className={cn(
-                    "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2",
-                    infoForm.formState.errors.ageRating
-                      ? "border-red-400 focus-visible:ring-red-300"
-                      : "border-input focus-visible:ring-ring"
+                <Controller
+                  control={infoForm.control}
+                  name="ageRating"
+                  render={({ field }) => (
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id="ageRating"
+                        className={cn(infoForm.formState.errors.ageRating && "border-red-400 focus:ring-red-300")}
+                      >
+                        <SelectValue placeholder="Оберіть вікове обмеження" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGE_RATINGS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   )}
-                >
-                  <option value="">Оберіть вікове обмеження</option>
-                  {AGE_RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
+                />
                 {infoForm.formState.errors.ageRating && (
                   <p className="text-sm text-red-500">{infoForm.formState.errors.ageRating.message}</p>
                 )}
@@ -611,7 +631,15 @@ export default function OutputDataInfoPage() {
                       <span className="flex-1">
                         {a.lastName} {a.firstName} {a.middleName || ""}
                       </span>
-                      <button type="button" onClick={() => removeBookAuthor(i)} className="text-gray-400 hover:text-red-600">×</button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeBookAuthor(i)}
+                        className="h-auto w-auto p-0 text-gray-400 hover:bg-transparent hover:text-red-600"
+                      >
+                        ×
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -667,13 +695,13 @@ export default function OutputDataInfoPage() {
                   редагується вживу на обкладинці */}
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="authorBio">Біографія автора</Label>
-                <textarea
+                <Textarea
                   id="authorBio"
                   value={authorBio}
                   onChange={(e) => setAuthorBio(e.target.value)}
                   rows={3}
                   placeholder="Наприклад: Валентина Островська народилась у…"
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                  className="resize-none"
                 />
               </div>
 
@@ -690,7 +718,15 @@ export default function OutputDataInfoPage() {
                   {contributors.map((c, i) => (
                     <span key={i} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">
                       {c.role}: {c.name}
-                      <button type="button" onClick={() => removeContributor(i)} className="text-gray-400 hover:text-red-600">×</button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeContributor(i)}
+                        className="h-auto w-auto p-0 text-gray-400 hover:bg-transparent hover:text-red-600"
+                      >
+                        ×
+                      </Button>
                     </span>
                   ))}
                 </div>
@@ -785,16 +821,15 @@ export default function OutputDataInfoPage() {
                     Лише якщо книга вже мала власний ISBN до ULIT — стане ISBN цієї книги, реєстрація в
                     Книжковій палаті через ULIT більше не знадобиться.
                   </p>
-                  <label className="flex items-start gap-2 text-xs text-gray-500">
-                    <input
-                      type="checkbox"
+                  <Label className="flex items-start gap-2 font-normal text-xs text-gray-500">
+                    <Checkbox
                       checked={claimIsbnAttested}
-                      onChange={(e) => setClaimIsbnAttested(e.target.checked)}
-                      className="mt-0.5 rounded border-gray-300"
+                      onCheckedChange={(v) => setClaimIsbnAttested(v === true)}
+                      className="mt-0.5"
                     />
                     Підтверджую, що цей ISBN дійсно раніше офіційно присвоєно саме цій книзі, і я несу
                     відповідальність за коректність цих даних.
-                  </label>
+                  </Label>
                   {claimIsbnError && <p className="text-xs text-red-500">{claimIsbnError}</p>}
                 </>
               )}
@@ -802,16 +837,22 @@ export default function OutputDataInfoPage() {
           </div>
 
           <div className="space-y-2 rounded-lg border p-3">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" {...infoForm.register("aiGenerated")} className="rounded border-gray-300" />
+            <Label className="flex items-center gap-2 font-normal text-sm text-gray-700">
+              <Controller
+                control={infoForm.control}
+                name="aiGenerated"
+                render={({ field }) => (
+                  <Checkbox checked={field.value ?? false} onCheckedChange={(v) => field.onChange(v === true)} />
+                )}
+              />
               Текст (або обкладинку) частково/повністю створено за допомогою ШІ
-            </label>
+            </Label>
             {aiGeneratedValue && (
-              <textarea
+              <Textarea
                 {...infoForm.register("aiGeneratedNote")}
                 rows={2}
                 placeholder="Уточніть, що саме створено за допомогою ШІ (необов'язково)"
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                className="text-xs resize-none"
               />
             )}
           </div>
@@ -826,17 +867,19 @@ export default function OutputDataInfoPage() {
                 justStagedFields.length > 0 ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700"
               )}
             >
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setInfoSaved(false)}
                 aria-label="Закрити"
                 className={cn(
-                  "absolute right-2 top-2 leading-none hover:opacity-70",
-                  justStagedFields.length > 0 ? "text-amber-500" : "text-green-500"
+                  "absolute right-2 top-2 h-auto w-auto p-0 leading-none hover:bg-transparent hover:opacity-70",
+                  justStagedFields.length > 0 ? "text-amber-500 hover:text-amber-500" : "text-green-500 hover:text-green-500"
                 )}
               >
                 ×
-              </button>
+              </Button>
               {justStagedFields.length > 0 ? (
                 <>
                   ✓ Збережено як чернетку
@@ -863,7 +906,7 @@ export default function OutputDataInfoPage() {
             Зберегти зміни
           </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

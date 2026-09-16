@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
+import { Card } from "@/components/ui/card";
 import { useBook } from "@/hooks/useBook";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
@@ -39,7 +40,7 @@ export default function OutputDataCoverPage() {
           checklist-styled block (✓/○, same language as
           IsbnReadinessChecklist on the "Огляд" tab) makes the missing step
           visible instead of only surfacing as a rejection after the fact. */}
-      <div className={cn("rounded-xl bg-white p-6 shadow-sm space-y-3", coverRejected ? "border-2 border-red-400" : "border")}>
+      <Card className={cn("p-6 shadow-sm space-y-3", coverRejected && "border-2 border-red-400")}>
         <div className="flex items-start gap-2 text-sm">
           <span className={cn("mt-0.5", book?.coverUrl ? "text-green-600" : "text-amber-500")}>
             {book?.coverUrl ? "✓" : "○"}
@@ -59,7 +60,7 @@ export default function OutputDataCoverPage() {
         >
           {book?.coverUrl ? "Редагувати обкладинку →" : "Створити обкладинку →"}
         </Link>
-      </div>
+      </Card>
     </div>
   );
 }

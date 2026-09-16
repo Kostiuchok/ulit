@@ -6,6 +6,7 @@ import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSecti
 import { FormatsAndDistribution, computeAnchorPrices, computeBwPrices, type PrintCost } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
@@ -132,7 +133,7 @@ export default function OutputDataPricePage() {
   return (
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.price} done={priceSectionDone && !priceCardRejected} />
-      <div className={cn("rounded-xl bg-white p-6 shadow-sm space-y-5", priceCardRejected ? "border-2 border-red-400" : "border")}>
+      <Card className={cn("p-6 shadow-sm space-y-5", priceCardRejected && "border-2 border-red-400")}>
         <FormatsAndDistribution
           language={book?.language}
           formatLabel={`${displayFormat.widthMm}×${displayFormat.heightMm}мм (${PRINT_FORMATS[displayFormat.key as keyof typeof PRINT_FORMATS]?.label ?? "Стандартний"})`}
@@ -160,12 +161,12 @@ export default function OutputDataPricePage() {
         <Button onClick={saveFormatsAndDistribution} loading={formatsSaving}>
           Зберегти зміни
         </Button>
-      </div>
+      </Card>
 
       {book?.status === "PUBLISHED" && (
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <Card className="p-6 shadow-sm">
           <KdpSelectPanel bookId={id} bookStatus={book.status} />
-        </div>
+        </Card>
       )}
     </div>
   );
