@@ -4,7 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../../hooks/useApi";
+import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
+import { Card } from "../../../../components/ui/card";
+import { cn } from "../../../../lib/utils";
 
 interface Book {
   id: string;
@@ -48,11 +51,11 @@ interface AuthorDetail {
 }
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  DRAFT:      { label: "Чернетка",     cls: "bg-gray-100 text-gray-600" },
-  PROCESSING: { label: "Обробка",      cls: "bg-blue-100 text-blue-700" },
-  REVIEW:     { label: "На модерації", cls: "bg-yellow-100 text-yellow-700" },
-  PUBLISHED:  { label: "Опубліковано", cls: "bg-green-100 text-green-700" },
-  ARCHIVED:   { label: "Архів",        cls: "bg-gray-200 text-gray-500" },
+  DRAFT:      { label: "Чернетка",     cls: "bg-gray-100 text-gray-600 hover:bg-gray-100" },
+  PROCESSING: { label: "Обробка",      cls: "bg-blue-100 text-blue-700 hover:bg-blue-100" },
+  REVIEW:     { label: "На модерації", cls: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100" },
+  PUBLISHED:  { label: "Опубліковано", cls: "bg-green-100 text-green-700 hover:bg-green-100" },
+  ARCHIVED:   { label: "Архів",        cls: "bg-gray-200 text-gray-500 hover:bg-gray-200" },
 };
 
 const EXT_LABELS: Record<string, string> = {
@@ -62,12 +65,12 @@ const EXT_LABELS: Record<string, string> = {
   ERROR:     "Помилка",
 };
 
-function Badge({ status }: { status: string }) {
-  const s = STATUS_LABELS[status] ?? { label: status, cls: "bg-gray-100 text-gray-600" };
+function StatusBadge({ status }: { status: string }) {
+  const s = STATUS_LABELS[status] ?? { label: status, cls: "bg-gray-100 text-gray-600 hover:bg-gray-100" };
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${s.cls}`}>
+    <Badge className={cn("rounded-full border-transparent font-medium", s.cls)}>
       {s.label}
-    </span>
+    </Badge>
   );
 }
 
@@ -100,13 +103,15 @@ function DownloadSection({ bookId, hasFiles }: { bookId: string; hasFiles: boole
 
   return (
     <div>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={() => { setOpen((v) => !v); if (!open) fetchUrls(); }}
-        className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
+        className="h-auto gap-1 border-blue-200 px-2 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
       >
         {open ? "▲" : "▼"} Завантажити файли
-      </button>
+      </Button>
       {open && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {loading ? (
@@ -125,15 +130,11 @@ function DownloadSection({ bookId, hasFiles }: { bookId: string; hasFiles: boole
                   { key: "printPdf", label: "Print PDF" },
                 ] as const).map(({ key, label }) =>
                   urls[key] ? (
-                    <a
-                      key={key}
-                      href={urls[key]!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
-                    >
-                      ↓ {label}
-                    </a>
+                    <Button key={key} asChild variant="outline" size="sm" className="h-auto gap-1 border-blue-200 px-2 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50">
+                      <a href={urls[key]!} target="_blank" rel="noopener noreferrer">
+                        ↓ {label}
+                      </a>
+                    </Button>
                   ) : (
                     <span key={key} className="text-gray-300 text-xs">{label}</span>
                   )
@@ -193,7 +194,7 @@ export default function AdminAuthorDetailPage() {
       </div>
 
       {/* Author profile card */}
-      <div className="rounded-xl border bg-white p-6 shadow-sm">
+      <Card className="p-6 shadow-sm">
         <div className="flex items-start gap-6">
           {author.avatarUrl ? (
             <img src={author.avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover shrink-0 ring-2 ring-border" />
@@ -218,27 +219,27 @@ export default function AdminAuthorDetailPage() {
             <p className="text-xs text-gray-400 mb-0.5">Договір</p>
             {author.contractAcceptedAt ? (
               <div>
-                <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                <Badge className="rounded-full border-transparent bg-green-100 font-medium text-green-700 hover:bg-green-100">
                   ✓ Підписано {new Date(author.contractAcceptedAt).toLocaleDateString("uk-UA")}
-                </span>
+                </Badge>
                 {author.contractAcceptedIp && (
                   <p className="text-xs text-gray-400 mt-0.5">IP: {author.contractAcceptedIp}</p>
                 )}
               </div>
             ) : (
-              <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+              <Badge className="rounded-full border-transparent bg-red-100 font-medium text-red-700 hover:bg-red-100">
                 ✕ Не підписано
-              </span>
+              </Badge>
             )}
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Роль</p>
-            <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+            <Badge variant="secondary" className="rounded-full font-medium text-gray-700 hover:bg-secondary">
               {author.role}
-            </span>
+            </Badge>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Books */}
       <div>
@@ -247,13 +248,13 @@ export default function AdminAuthorDetailPage() {
         </h2>
 
         {author.books.length === 0 ? (
-          <div className="rounded-xl border bg-white p-8 text-center text-gray-400">
+          <Card className="p-8 text-center text-gray-400 shadow-none">
             Автор ще не додав жодної книги
-          </div>
+          </Card>
         ) : (
           <div className="space-y-3">
             {author.books.map((book) => (
-              <div key={book.id} className="rounded-xl border bg-white p-5 shadow-sm">
+              <Card key={book.id} className="p-5 shadow-sm">
                 <div className="flex items-start gap-4">
                   {book.coverUrl ? (
                     <img src={book.coverUrl} alt="" className="h-20 w-14 rounded object-cover shrink-0 border" />
@@ -272,10 +273,10 @@ export default function AdminAuthorDetailPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <Badge status={book.status} />
-                        <Link href={`/admin/books/${book.id}/distribute`}>
-                          <Button size="sm" variant="outline" className="text-xs">Дистрибуція</Button>
-                        </Link>
+                        <StatusBadge status={book.status} />
+                        <Button asChild size="sm" variant="outline" className="text-xs">
+                          <Link href={`/admin/books/${book.id}/distribute`}>Дистрибуція</Link>
+                        </Button>
                       </div>
                     </div>
 
@@ -312,7 +313,7 @@ export default function AdminAuthorDetailPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
