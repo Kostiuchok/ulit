@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { toast } from "sonner";
 
 interface QueueBook {
   id: string;
@@ -75,7 +78,7 @@ export default function IsbnQueuePage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(objectUrl);
     } catch (e: any) {
-      alert(`Помилка завантаження: ${e.message}`);
+      toast.error(`Помилка завантаження: ${e.message}`);
     } finally {
       setAnnotationLoadingId(null);
     }
@@ -131,7 +134,7 @@ export default function IsbnQueuePage() {
         </p>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400 animate-pulse">Завантаження…</div>
         ) : books.length === 0 ? (
@@ -159,13 +162,15 @@ export default function IsbnQueuePage() {
                         {book.printPageCount ? ` · ${book.printPageCount} стор.` : ""}
                       </p>
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="outline"
                       onClick={() => toggleCollapsed(book.id)}
-                      className="rounded-md bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                      className="border-blue-200 bg-blue-50 text-xs text-blue-700 hover:bg-blue-100"
                     >
                       {collapsed ? "Показати файли →" : "Сховати файли"}
-                    </button>
+                    </Button>
                   </div>
 
                   {!collapsed && (
@@ -181,52 +186,42 @@ export default function IsbnQueuePage() {
                             видавець призначає його сам, зі свого блоку номерів.
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="sm"
                               disabled={annotationLoadingId === book.id}
                               onClick={() => downloadAnnotation(book.id, pkg.annotationTxtUrl, book.title)}
-                              className="rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                              className="bg-white text-xs font-medium text-gray-700"
                             >
                               📄 Файл 1 — заявка (.txt)
-                            </button>
-                            <a
-                              href={pkg.manuscriptPdfUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                            >
-                              📘 Файл 2 — рукопис (PDF)
-                            </a>
-                            {pkg.coverUrl && (
-                              <a
-                                href={pkg.coverUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                              >
-                                🖼 Файл 3 — обкладинка (перед)
+                            </Button>
+                            <Button asChild variant="outline" size="sm" className="bg-white text-xs font-medium text-gray-700">
+                              <a href={pkg.manuscriptPdfUrl} target="_blank" rel="noreferrer">
+                                📘 Файл 2 — рукопис (PDF)
                               </a>
+                            </Button>
+                            {pkg.coverUrl && (
+                              <Button asChild variant="outline" size="sm" className="bg-white text-xs font-medium text-gray-700">
+                                <a href={pkg.coverUrl} target="_blank" rel="noreferrer">
+                                  🖼 Файл 3 — обкладинка (перед)
+                                </a>
+                              </Button>
                             )}
                             {pkg.backCoverUrl && (
-                              <a
-                                href={pkg.backCoverUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                              >
-                                🖼 Файл 4 — обкладинка (зад)
-                              </a>
+                              <Button asChild variant="outline" size="sm" className="bg-white text-xs font-medium text-gray-700">
+                                <a href={pkg.backCoverUrl} target="_blank" rel="noreferrer">
+                                  🖼 Файл 4 — обкладинка (зад)
+                                </a>
+                              </Button>
                             )}
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <a href={buildUdcMailtoHref(book, pkg)}>
-                              <button
-                                type="button"
-                                className="rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                              >
+                            <Button asChild variant="outline" size="sm" className="border-blue-300 bg-blue-50 text-xs font-medium text-blue-700 hover:bg-blue-100">
+                              <a href={buildUdcMailtoHref(book, pkg)}>
                                 ✉ Написати лист на УДК (тема й текст вже заповнені)
-                              </button>
-                            </a>
+                              </a>
+                            </Button>
                             <p className="text-xs text-gray-400">
                               Відкриє поштовий клієнт з готовим листом на <code className="text-[0.6875rem]">{UDC_EMAIL}</code> —
                               файли вище додайте вкладенням вручну (mailto не вміє додавати вкладення).
@@ -247,7 +242,7 @@ export default function IsbnQueuePage() {
             })}
           </ul>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
