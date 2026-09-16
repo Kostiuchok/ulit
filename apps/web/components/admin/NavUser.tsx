@@ -80,12 +80,12 @@ export function NavUser({ user }: NavUserProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>
               <Bell />
-              Нотіфікейшн
+              Повідомлення
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => signOut({ callbackUrl: "/login" })}>
               <LogOut />
-              Логаут
+              Вийти
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
