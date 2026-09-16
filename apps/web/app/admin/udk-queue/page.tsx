@@ -56,7 +56,7 @@ export default function IsbnQueuePage() {
   const [pkgs, setPkgs] = useState<Record<string, IsbnPackage>>({});
   const [pkgLoading, setPkgLoading] = useState<Record<string, boolean>>({});
   const [pkgErrors, setPkgErrors] = useState<Record<string, string>>({});
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [annotationLoadingId, setAnnotationLoadingId] = useState<string | null>(null);
 
   // annotation.txt is a direct admin-gated API route (not a pre-signed URL
@@ -98,10 +98,9 @@ export default function IsbnQueuePage() {
   useEffect(() => { loadQueue(); }, [loadQueue]);
   useRefetchOnFocus(useCallback(() => loadQueue({ silent: true }), [loadQueue]));
 
-  // Show every book's package by default (admin used to have to click
-  // "Показати файли" per book) -- fetched once each as soon as the queue
-  // loads, no click needed. "Сховати файли" still lets the admin collapse
-  // a row without re-fetching if they reopen it.
+  // Prefetch every book's package as soon as the queue loads (not on
+  // expand-click) so "Показати файли" opens instantly instead of showing
+  // a loading state -- rows still start collapsed by default.
   useEffect(() => {
     if (!token || books.length === 0) return;
     books.forEach((book) => {
@@ -115,8 +114,8 @@ export default function IsbnQueuePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, books]);
 
-  function toggleCollapsed(id: string) {
-    setCollapsedIds((prev) => {
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
@@ -145,7 +144,7 @@ export default function IsbnQueuePage() {
         ) : (
           <ul className="divide-y">
             {books.map((book) => {
-              const collapsed = collapsedIds.has(book.id);
+              const collapsed = !expandedIds.has(book.id);
               const pkg = pkgs[book.id];
               return (
                 <li key={book.id}>
@@ -166,7 +165,7 @@ export default function IsbnQueuePage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => toggleCollapsed(book.id)}
+                      onClick={() => toggleExpanded(book.id)}
                       className="border-blue-200 bg-blue-50 text-xs text-blue-700 hover:bg-blue-100"
                     >
                       {collapsed ? "Показати файли →" : "Сховати файли"}
