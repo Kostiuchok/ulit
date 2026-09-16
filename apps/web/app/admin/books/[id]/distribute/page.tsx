@@ -5,7 +5,13 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "../../../../../hooks/useApi";
 import { Button } from "../../../../../components/ui/button";
+import { Card } from "../../../../../components/ui/card";
+import { Checkbox } from "../../../../../components/ui/checkbox";
+import { Input } from "../../../../../components/ui/input";
+import { Label } from "../../../../../components/ui/label";
+import { Textarea } from "../../../../../components/ui/textarea";
 import { cn } from "../../../../../lib/utils";
+import { toast } from "sonner";
 import { REJECTION_REASONS } from "shared-types";
 
 interface Book {
@@ -334,7 +340,7 @@ function PlatformCard({
   const brand = PLATFORM_BRAND[platform.key] ?? { bg: "#374151", fg: "#ffffff", mark: platform.name.slice(0, 2).toUpperCase() };
 
   return (
-    <div className="flex flex-col rounded-xl border bg-white shadow-sm overflow-hidden">
+    <Card className="flex flex-col shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 p-4 border-b">
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold tracking-tight"
@@ -359,13 +365,14 @@ function PlatformCard({
           </span>
         )}
 
-        <button
+        <Button
           type="button"
+          variant="link"
           onClick={() => setOpen((v) => !v)}
-          className="block text-xs text-gray-400 underline hover:no-underline"
+          className="h-auto p-0 text-xs text-gray-400"
         >
           {open ? "Сховати вимоги ▲" : "Показати вимоги ▼"}
-        </button>
+        </Button>
 
         {open && (
           <div className="-mx-4 border-t divide-y">
@@ -401,24 +408,24 @@ function PlatformCard({
           <>
             <div className="flex flex-wrap gap-1.5">
               {STATUS_OPTS.map((s) => (
-                <button
+                <Button
                   key={s}
                   type="button"
+                  size="sm"
+                  variant={status === s ? "default" : "outline"}
                   onClick={() => onStatusChange(s)}
                   disabled={saving || status === s}
-                  className={`rounded-md px-2 py-1 text-[0.6875rem] font-medium transition-colors disabled:opacity-50 ${
-                    status === s ? "bg-gray-900 text-white" : "border bg-white hover:bg-gray-100"
-                  }`}
+                  className={cn("h-auto px-2 py-1 text-[0.6875rem]", status === s && "bg-gray-900 hover:bg-gray-900")}
                 >
                   {s}
-                </button>
+                </Button>
               ))}
             </div>
             {sentAt && <p className="text-[0.6875rem] text-gray-400">з {fmtDate(sentAt)}</p>}
           </>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -495,7 +502,7 @@ export default function DistributePage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(objectUrl);
     } catch (e: any) {
-      alert(`Помилка завантаження: ${e.message}`);
+      toast.error(`Помилка завантаження: ${e.message}`);
     } finally {
       setAnnotationDownloading(false);
     }
@@ -702,7 +709,7 @@ export default function DistributePage() {
       </div>
 
       {/* Book info */}
-      <div className="rounded-xl border bg-white p-5 shadow-sm flex gap-4">
+      <Card className="p-5 shadow-sm flex gap-4">
         {book.coverUrl ? (
           <img src={book.coverUrl} alt="" className="h-28 w-20 rounded-lg object-cover shrink-0" />
         ) : (
@@ -722,7 +729,7 @@ export default function DistributePage() {
             </span>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* ── Republish review: staged post-publish changes ─────────────────────── */}
       {/* Only Назва/Анотація/Жанр stage into pending* (book.ts's PATCH) --
@@ -732,7 +739,7 @@ export default function DistributePage() {
           approving blind -- previously this queue only existed as an
           unlabeled badge on /admin/books with no detail view at all. */}
       {book.status === "PUBLISHED" && book.republishRequestedAt && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 space-y-3">
+        <Card className="border-amber-200 bg-amber-50 p-5 space-y-3 shadow-none">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-amber-900">Зміни на повторну модерацію</h2>
             <span className="text-xs text-amber-600">надіслано {fmtDate(book.republishRequestedAt)}</span>
@@ -777,11 +784,11 @@ export default function DistributePage() {
             >
               ✓ Схвалити зміни
             </Button>
-            <input
+            <Input
               value={republishRejectReason}
               onChange={(e) => setRepublishRejectReason(e.target.value)}
               placeholder="Причина відхилення (необов'язково)"
-              className="flex-1 min-w-[12rem] rounded-md border border-amber-200 bg-white px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400"
+              className="h-auto flex-1 min-w-[12rem] border-amber-200 bg-white px-2.5 py-1.5 text-xs focus-visible:ring-amber-400"
             />
             <Button
               variant="outline"
@@ -792,7 +799,7 @@ export default function DistributePage() {
               ✕ Відхилити зміни
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ── Distribution platforms: readiness + send status, 3-up ────────────── */}
@@ -843,12 +850,12 @@ export default function DistributePage() {
           rejection isn't either -- the admin judges content, the checklist
           is context, not a blocker. */}
       {book.moderationStatus === "APPROVED" ? (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">
+        <Card className="border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800 shadow-none">
           ✓ Модерація успішна{book.status === "PUBLISHED" && " · книга опублікована на Ulit"}
-        </div>
+        </Card>
       ) : (
         !rejectDone && (
-          <div className="rounded-xl border border-green-100 bg-green-50 p-5 space-y-3">
+          <Card className="border-green-100 bg-green-50 p-5 space-y-3 shadow-none">
             <h2 className="text-sm font-semibold text-green-900">Модерація</h2>
             <p className="text-xs text-green-800">
               Схвалення публікує книгу на Ulit одразу (без ISBN — ISBN потрібен лише окремим зовнішнім магазинам,
@@ -862,34 +869,36 @@ export default function DistributePage() {
             >
               ✓ Модерація успішна
             </Button>
-          </div>
+          </Card>
         )
       )}
 
       {/* ── Reject book ──────────────────────────────────────────────────────── */}
       {!rejectDone && (
-        <div className="rounded-xl border border-red-100 bg-red-50 p-5 space-y-3">
+        <Card className="border-red-100 bg-red-50 p-5 space-y-3 shadow-none">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-red-900">Відхилити книгу</h2>
             <div className="flex items-center gap-3">
               {totalWarns > 0 && (
-                <button
+                <Button
                   type="button"
+                  variant="link"
                   onClick={appendWarnings}
                   title="Рекомендації для платформ (не блокують модерацію) -- додає, не замінює написане"
-                  className="text-xs text-amber-700 underline hover:no-underline"
+                  className="h-auto p-0 text-xs text-amber-700"
                 >
                   + Додати попередження
-                </button>
+                </Button>
               )}
               {totalFails > 0 && (
-                <button
+                <Button
                   type="button"
+                  variant="link"
                   onClick={prefillRejection}
-                  className="text-xs text-red-600 underline hover:no-underline"
+                  className="h-auto p-0 text-xs text-red-600"
                 >
                   Заповнити з вимог платформ
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -901,24 +910,23 @@ export default function DistributePage() {
               can't tell a MISSING value apart from a WRONG-but-present one). */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-4">
             {REJECTION_REASONS.map((r) => (
-              <label key={r.key} className="flex items-center gap-1.5 text-xs text-red-900">
-                <input
-                  type="checkbox"
+              <Label key={r.key} className="flex items-center gap-1.5 font-normal text-xs text-red-900">
+                <Checkbox
                   checked={selectedReasons.includes(r.key)}
-                  onChange={() => toggleReason(r.key)}
-                  className="rounded border-red-300"
+                  onCheckedChange={() => toggleReason(r.key)}
+                  className="border-red-300"
                 />
                 {r.label}
-              </label>
+              </Label>
             ))}
           </div>
 
-          <textarea
+          <Textarea
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="Додатковий коментар (необов'язково) -- не автоматизується, лишається доти, доки ви не переглянете книгу повторно"
             rows={4}
-            className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 font-mono"
+            className="border-red-200 bg-white font-mono focus-visible:ring-red-300"
           />
           <Button
             variant="outline"
@@ -929,17 +937,17 @@ export default function DistributePage() {
           >
             Відхилити книгу
           </Button>
-        </div>
+        </Card>
       )}
 
       {rejectDone && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 font-medium">
+        <Card className="border-red-200 bg-red-50 p-4 text-sm text-red-800 font-medium shadow-none">
           ✕ Книгу відхилено. Автора повідомлено.
-        </div>
+        </Card>
       )}
 
       {/* ── Книжкова палата / Реєстрація УДК ──────────────────────────────────── */}
-      <div className="rounded-xl border bg-white p-5 shadow-sm space-y-5">
+      <Card className="p-5 shadow-sm space-y-5">
         <div>
           <h2 className="text-base font-semibold text-gray-900 mb-1">Реєстрація УДК (+ ISBN)</h2>
           <p className="text-xs text-gray-400">
@@ -963,23 +971,23 @@ export default function DistributePage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={annotationDownloading}
+                  loading={annotationDownloading}
                   onClick={() => downloadAnnotation(isbnPkg.annotationTxtUrl, `${book.title}-zayavka.txt`)}
                 >
                   📄 Файл 1 — заявка (назва, ПІБ, анотація, коди) (.txt)
                 </Button>
-                <a href={isbnPkg.manuscriptPdfUrl} target="_blank" rel="noreferrer">
-                  <Button size="sm" variant="outline">📘 Файл 2 — рукопис (PDF)</Button>
-                </a>
+                <Button asChild size="sm" variant="outline">
+                  <a href={isbnPkg.manuscriptPdfUrl} target="_blank" rel="noreferrer">📘 Файл 2 — рукопис (PDF)</a>
+                </Button>
                 {isbnPkg.coverUrl && (
-                  <a href={isbnPkg.coverUrl} target="_blank" rel="noreferrer">
-                    <Button size="sm" variant="outline">🖼 Файл 3 — обкладинка (перед)</Button>
-                  </a>
+                  <Button asChild size="sm" variant="outline">
+                    <a href={isbnPkg.coverUrl} target="_blank" rel="noreferrer">🖼 Файл 3 — обкладинка (перед)</a>
+                  </Button>
                 )}
                 {isbnPkg.backCoverUrl && (
-                  <a href={isbnPkg.backCoverUrl} target="_blank" rel="noreferrer">
-                    <Button size="sm" variant="outline">🖼 Файл 4 — обкладинка (зад)</Button>
-                  </a>
+                  <Button asChild size="sm" variant="outline">
+                    <a href={isbnPkg.backCoverUrl} target="_blank" rel="noreferrer">🖼 Файл 4 — обкладинка (зад)</a>
+                  </Button>
                 )}
               </div>
               <p className="text-xs text-gray-400">
@@ -1027,14 +1035,16 @@ export default function DistributePage() {
                 <span className="text-gray-600">
                   Подано до Книжкової палати: <span className="font-mono">{fmtDate(book.bookChamberSubmittedAt)}</span>
                 </span>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => saveBookChamber({ submittedAt: null })}
-                  className="text-gray-400 hover:text-red-600"
+                  className="h-auto w-auto p-0 text-gray-400 hover:bg-transparent hover:text-red-600"
                   title="Скасувати позначку"
                 >
                   ✕
-                </button>
+                </Button>
               </div>
             ) : (
               <Button
@@ -1061,28 +1071,28 @@ export default function DistributePage() {
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-gray-500">ISBN</label>
-              <input
+              <Label className="text-xs text-gray-500">ISBN</Label>
+              <Input
                 value={bcIsbn}
                 onChange={(e) => setBcIsbn(e.target.value)}
                 placeholder="978-XXX-XXXX-XX-X"
-                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+                className="h-auto py-1.5 font-mono"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-gray-500">Авторський знак</label>
-              <input
+              <Label className="text-xs text-gray-500">Авторський знак</Label>
+              <Input
                 value={bcAuthorSign}
                 onChange={(e) => setBcAuthorSign(e.target.value)}
-                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+                className="h-auto py-1.5 font-mono"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-gray-500">УДК</label>
-              <input
+              <Label className="text-xs text-gray-500">УДК</Label>
+              <Input
                 value={bcUdc}
                 onChange={(e) => setBcUdc(e.target.value)}
-                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400"
+                className="h-auto py-1.5 font-mono"
               />
             </div>
           </div>
@@ -1104,10 +1114,10 @@ export default function DistributePage() {
             Присвоїти ISBN + УДК
           </Button>
         </div>
-      </div>
+      </Card>
 
       {/* ── Publication / contract / distribution timeline ────────────────────── */}
-      <div className="rounded-xl border bg-white p-5 shadow-sm">
+      <Card className="p-5 shadow-sm">
         <h2 className="text-base font-semibold text-gray-900 mb-1">Публікація та договір</h2>
         <p className="text-xs text-gray-400 mb-4">
           Автор підписує договір з платформою один раз, у своєму профілі — тут лишається лише перевірка й публікація.
@@ -1131,22 +1141,24 @@ export default function DistributePage() {
               label={step.label}
               right={
                 <div className="flex items-center gap-2 shrink-0">
-                  <input
+                  <Input
                     type="date"
                     value={dateValue}
                     disabled={savingStep === step.key}
                     onChange={(e) => saveTimelineStep(step.key, e.target.value)}
-                    className="rounded-md border px-2 py-1 text-xs disabled:opacity-50"
+                    className="h-auto px-2 py-1 text-xs"
                   />
                   {dateValue && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => saveTimelineStep(step.key, "")}
                       disabled={savingStep === step.key}
-                      className="text-xs text-gray-400 hover:text-red-600 disabled:opacity-50"
+                      className="h-auto w-auto p-0 text-xs text-gray-400 hover:bg-transparent hover:text-red-600"
                     >
                       ✕
-                    </button>
+                    </Button>
                   )}
                 </div>
               }
@@ -1200,13 +1212,14 @@ export default function DistributePage() {
             </Button>
           )}
 
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={() => setAdvancedOpen((v) => !v)}
-            className="block text-xs text-gray-400 underline hover:no-underline"
+            className="h-auto p-0 text-xs text-gray-400"
           >
             {advancedOpen ? "Сховати ручне керування датами" : "Ручне керування датами (виправлення, повторна перевірка)"}
-          </button>
+          </Button>
 
           {advancedOpen && (
             <div className="space-y-1 border-t pt-3">
@@ -1219,22 +1232,24 @@ export default function DistributePage() {
                       {step.label}
                     </span>
                     <div className="flex items-center gap-2 shrink-0">
-                      <input
+                      <Input
                         type="date"
                         value={dateValue}
                         disabled={savingStep === step.key}
                         onChange={(e) => saveTimelineStep(step.key, e.target.value)}
-                        className="rounded-md border px-2 py-1 text-xs disabled:opacity-50"
+                        className="h-auto px-2 py-1 text-xs"
                       />
                       {dateValue && (
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => saveTimelineStep(step.key, "")}
                           disabled={savingStep === step.key}
-                          className="text-xs text-gray-400 hover:text-red-600 disabled:opacity-50"
+                          className="h-auto w-auto p-0 text-xs text-gray-400 hover:bg-transparent hover:text-red-600"
                         >
                           ✕
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -1265,7 +1280,7 @@ export default function DistributePage() {
             Розсилка на зовнішні платформи (D2D/KDP/Google) — у блоці «Розповсюдження» вище.
           </p>
         </TimelineRow>
-      </div>
+      </Card>
     </div>
   );
 }
