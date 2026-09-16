@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { StoreBookCard, type StoreBook } from "../../../../components/store/StoreBookCard";
+import { Badge } from "../../../../components/ui/badge";
+import { Card } from "../../../../components/ui/card";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -78,7 +80,7 @@ export default async function AuthorPage({ params }: Props) {
         </Link>
 
         {/* Author profile */}
-        <div className="rounded-2xl border bg-white shadow-sm p-8 mb-10">
+        <Card className="rounded-2xl shadow-sm p-8 mb-10">
           <div className="flex flex-col sm:flex-row items-start gap-6">
             {author.avatarUrl ? (
               <img
@@ -103,12 +105,12 @@ export default async function AuthorPage({ params }: Props) {
               {author.bio && (
                 <p className="mt-4 text-gray-700 leading-relaxed max-w-2xl">{author.bio}</p>
               )}
-              <div className="mt-4 inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
+              <Badge variant="secondary" className="mt-4 rounded-full bg-gray-100 font-medium text-gray-700 hover:bg-gray-100">
                 {author.books.length} {author.books.length === 1 ? "книга" : author.books.length < 5 ? "книги" : "книг"}
-              </div>
+              </Badge>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Books */}
         {author.books.length > 0 ? (

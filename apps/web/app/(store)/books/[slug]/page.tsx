@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BookCoverAndPurchase } from "../../../../components/store/BookCoverAndPurchase";
 import { PRINT_TRIM_SIZE_LABEL } from "shared-types";
+import { Badge } from "../../../../components/ui/badge";
+import { Card } from "../../../../components/ui/card";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -216,25 +218,25 @@ export default async function BookPage({ params }: Props) {
           <div className="md:col-span-2 space-y-6">
             <div className="flex flex-wrap items-center gap-2">
               {book.genre && (
-                <Link
-                  href={`/books?genre=${encodeURIComponent(book.genre)}`}
-                  className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200"
-                >
-                  {book.genre}
+                <Link href={`/books?genre=${encodeURIComponent(book.genre)}`}>
+                  <Badge variant="secondary" className="rounded-full bg-gray-100 font-medium text-gray-600 hover:bg-gray-200">
+                    {book.genre}
+                  </Badge>
                 </Link>
               )}
               {book.ageRating && (
-                <span className="inline-block rounded-full bg-gray-900 px-2.5 py-1 text-xs font-bold text-white">
+                <Badge className="rounded-full border-transparent bg-gray-900 font-bold hover:bg-gray-900">
                   {book.ageRating}
-                </span>
+                </Badge>
               )}
               {book.aiGenerated && (
-                <span
-                  className="inline-block rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700"
+                <Badge
+                  variant="outline"
+                  className="rounded-full border-transparent bg-purple-50 font-medium text-purple-700 hover:bg-purple-50"
                   title={book.aiGeneratedNote ?? undefined}
                 >
                   🤖 Створено за допомогою ШІ
-                </span>
+                </Badge>
               )}
             </div>
 
@@ -277,27 +279,27 @@ export default async function BookPage({ params }: Props) {
             {/* Meta */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {book.isbn && (
-                <div className="rounded-lg border bg-white p-3">
+                <Card className="p-3 shadow-none">
                   <p className="text-xs text-gray-500">ISBN</p>
                   <p className="text-sm font-mono font-semibold text-gray-900">{book.isbn}</p>
-                </div>
+                </Card>
               )}
               {book.pageCount && (
-                <div className="rounded-lg border bg-white p-3">
+                <Card className="p-3 shadow-none">
                   <p className="text-xs text-gray-500">Сторінок</p>
                   <p className="text-sm font-semibold text-gray-900">{book.pageCount}</p>
-                </div>
+                </Card>
               )}
               {book.language && (
-                <div className="rounded-lg border bg-white p-3">
+                <Card className="p-3 shadow-none">
                   <p className="text-xs text-gray-500">Мова</p>
                   <p className="text-sm font-semibold text-gray-900">
                     {LANGUAGE_NAMES[book.language] ?? book.language}
                   </p>
-                </div>
+                </Card>
               )}
               {book.publishedAt && (
-                <div className="rounded-lg border bg-white p-3">
+                <Card className="p-3 shadow-none">
                   <p className="text-xs text-gray-500">Дата публікації</p>
                   <p className="text-sm font-semibold text-gray-900">
                     {new Date(book.publishedAt).toLocaleDateString("uk-UA", {
@@ -306,29 +308,29 @@ export default async function BookPage({ params }: Props) {
                       year: "numeric",
                     })}
                   </p>
-                </div>
+                </Card>
               )}
               {hasAnyPrint && (
-                <div className="rounded-lg border bg-white p-3">
+                <Card className="p-3 shadow-none">
                   <p className="text-xs text-gray-500">Розмір книги</p>
                   <p className="text-sm font-semibold text-gray-900">{PRINT_TRIM_SIZE_LABEL}</p>
-                </div>
+                </Card>
               )}
             </div>
 
             {/* Description */}
             {book.description && (
-              <div className="rounded-xl border bg-white p-5">
+              <Card className="p-5 shadow-none">
                 <h2 className="text-base font-semibold text-gray-900 mb-3">Опис</h2>
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                   {book.description}
                 </p>
-              </div>
+              </Card>
             )}
 
             {/* Formats */}
             {availableFormats.length > 0 && (
-              <div className="rounded-xl border bg-white p-5">
+              <Card className="p-5 shadow-none">
                 <h2 className="text-base font-semibold text-gray-900 mb-3">Доступні формати</h2>
                 <div className="grid grid-cols-2 gap-3">
                   {availableFormats.map((f) => (
@@ -341,7 +343,7 @@ export default async function BookPage({ params }: Props) {
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             )}
           </div>
         </div>

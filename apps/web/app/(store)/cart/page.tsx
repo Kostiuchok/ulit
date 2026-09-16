@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCartStore } from "@/lib/cartStore";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default function CartPage() {
   const { data: session, status } = useSession();
@@ -64,12 +66,9 @@ export default function CartPage() {
         <div className="text-5xl mb-4">🛒</div>
         <h1 className="text-xl font-bold text-gray-900 mb-2">Кошик порожній</h1>
         <p className="text-sm text-gray-500 mb-6">Додайте книги з каталогу, щоб оформити замовлення.</p>
-        <Link
-          href="/books"
-          className="inline-block rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-700"
-        >
-          Перейти в каталог
-        </Link>
+        <Button asChild className="bg-gray-900 hover:bg-gray-700">
+          <Link href="/books">Перейти в каталог</Link>
+        </Button>
       </div>
     );
   }
@@ -85,9 +84,9 @@ export default function CartPage() {
         {/* Items */}
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
-            <div
+            <Card
               key={`${item.bookId}-${item.format}`}
-              className="flex gap-4 rounded-xl border bg-white p-4 shadow-sm"
+              className="flex gap-4 p-4 shadow-sm"
             >
               {item.coverUrl ? (
                 <img
@@ -109,20 +108,21 @@ export default function CartPage() {
 
               <div className="flex flex-col items-end justify-between shrink-0">
                 <p className="font-bold text-gray-900">{item.price.toFixed(2)} грн</p>
-                <button
+                <Button
+                  variant="link"
                   onClick={() => removeItem(item.bookId, item.format)}
-                  className="text-xs font-medium text-red-600 hover:text-red-700"
+                  className="h-auto p-0 text-xs font-medium text-red-600 hover:text-red-700"
                 >
                   Видалити
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
 
         {/* Summary */}
         <div className="lg:col-span-1">
-          <div className="sticky top-20 rounded-xl border bg-white p-5 shadow-sm space-y-4">
+          <Card className="sticky top-20 p-5 shadow-sm space-y-4">
             <h2 className="font-bold text-gray-900">Разом</h2>
 
             <div className="space-y-1.5 text-sm">
@@ -159,22 +159,23 @@ export default function CartPage() {
 
             {error && <p className="text-xs text-red-600">{error}</p>}
 
-            <button
+            <Button
               onClick={handleCheckout}
-              disabled={placing || status === "loading"}
-              className="w-full rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
+              loading={placing}
+              disabled={status === "loading"}
+              className="w-full bg-gray-900 hover:bg-gray-700"
             >
-              {placing ? "Оформлення…" : "Оформити замовлення"}
-            </button>
+              Оформити замовлення
+            </Button>
 
             <p className="text-[11px] text-gray-400">
               Після оплати посилання на завантаження файлів будуть доступні 48 годин.
             </p>
 
-            <Link href="/books" className="block text-center text-xs text-gray-500 hover:text-gray-900">
-              ← Продовжити покупки
-            </Link>
-          </div>
+            <Button asChild variant="link" className="w-full text-xs text-gray-500 hover:text-gray-900">
+              <Link href="/books">← Продовжити покупки</Link>
+            </Button>
+          </Card>
         </div>
       </div>
     </div>
