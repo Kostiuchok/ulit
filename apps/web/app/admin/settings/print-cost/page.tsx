@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "../../../../hooks/useApi";
+import { Button } from "../../../../components/ui/button";
+import { Card } from "../../../../components/ui/card";
+import { Input } from "../../../../components/ui/input";
+import { Label } from "../../../../components/ui/label";
 
 interface BulkTier {
   minQuantity: number | string;
@@ -100,48 +104,41 @@ export default function PrintCostSettingsPage() {
         <p className="text-xs text-blue-700">Повний довідник — <code>docs/print-file-technical-requirements.md</code></p>
       </div>
 
-      <div className="rounded-xl border bg-white p-6 shadow-sm space-y-5">
+      <Card className="p-6 shadow-sm space-y-5">
         {loading ? (
           <div className="text-center text-gray-400 animate-pulse py-4">Завантаження…</div>
         ) : (
           <>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
-                Базова собівартість — м&apos;яка обкладинка (грн)
-              </label>
-              <input
+              <Label>Базова собівартість — м&apos;яка обкладинка (грн)</Label>
+              <Input
                 type="number"
                 step="0.01"
                 min="0"
                 value={baseCostSoftcover}
                 onChange={(e) => setBaseCostSoftcover(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
-                Базова собівартість — тверда обкладинка (грн)
-              </label>
-              <input
+              <Label>Базова собівартість — тверда обкладинка (грн)</Label>
+              <Input
                 type="number"
                 step="0.01"
                 min="0"
                 value={baseCostHardcover}
                 onChange={(e) => setBaseCostHardcover(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Ціна за сторінку (грн)</label>
-              <input
+              <Label>Ціна за сторінку (грн)</Label>
+              <Input
                 type="number"
                 step="0.0001"
                 min="0"
                 value={costPerPage}
                 onChange={(e) => setCostPerPage(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
@@ -157,81 +154,69 @@ export default function PrintCostSettingsPage() {
               {bulkTiers.map((tier, i) => (
                 <div key={i} className="flex items-end gap-2 rounded-lg border border-gray-200 p-3">
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-500">Від, прим.</label>
-                    <input
+                    <Label className="text-xs text-gray-500">Від, прим.</Label>
+                    <Input
                       type="number"
                       min="2"
                       step="1"
                       value={tier.minQuantity}
                       onChange={(e) => updateTier(i, "minQuantity", e.target.value)}
-                      className="h-9 w-20 rounded-md border border-input bg-background px-2 text-sm"
+                      className="h-9 w-20"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-500">М&apos;яка (грн)</label>
-                    <input
+                    <Label className="text-xs text-gray-500">М&apos;яка (грн)</Label>
+                    <Input
                       type="number"
                       min="0"
                       step="0.01"
                       value={tier.baseCostSoftcover}
                       onChange={(e) => updateTier(i, "baseCostSoftcover", e.target.value)}
-                      className="h-9 w-24 rounded-md border border-input bg-background px-2 text-sm"
+                      className="h-9 w-24"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-500">Тверда (грн)</label>
-                    <input
+                    <Label className="text-xs text-gray-500">Тверда (грн)</Label>
+                    <Input
                       type="number"
                       min="0"
                       step="0.01"
                       value={tier.baseCostHardcover}
                       onChange={(e) => updateTier(i, "baseCostHardcover", e.target.value)}
-                      className="h-9 w-24 rounded-md border border-input bg-background px-2 text-sm"
+                      className="h-9 w-24"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-gray-500">За сторінку (грн)</label>
-                    <input
+                    <Label className="text-xs text-gray-500">За сторінку (грн)</Label>
+                    <Input
                       type="number"
                       min="0"
                       step="0.0001"
                       value={tier.costPerPage}
                       onChange={(e) => updateTier(i, "costPerPage", e.target.value)}
-                      className="h-9 w-24 rounded-md border border-input bg-background px-2 text-sm"
+                      className="h-9 w-24"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeTier(i)}
-                    className="h-9 rounded-md px-2 text-sm text-red-600 hover:bg-red-50"
-                  >
+                  <Button type="button" variant="ghost" onClick={() => removeTier(i)} className="h-9 text-red-600 hover:bg-red-50 hover:text-red-600">
                     Видалити
-                  </button>
+                  </Button>
                 </div>
               ))}
 
-              <button
-                type="button"
-                onClick={addTier}
-                className="rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-              >
+              <Button type="button" variant="outline" onClick={addTier} className="border-dashed">
                 + Додати рівень тиражу
-              </button>
+              </Button>
             </div>
 
             {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             {saved && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>}
 
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-            >
-              {saving ? "Збереження…" : "Зберегти"}
-            </button>
+            <Button onClick={handleSave} loading={saving} className="bg-gray-900 hover:bg-gray-800">
+              Зберегти
+            </Button>
           </>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

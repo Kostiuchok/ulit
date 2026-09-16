@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useApi } from "../../../hooks/useApi";
+import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { Input } from "../../../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 
 interface Author {
   id: string;
@@ -82,46 +87,47 @@ export default function AdminAuthorsPage() {
       </div>
 
       <div className="flex gap-3">
-        <input
+        <Input
           type="search"
           placeholder="Пошук автора…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-9 rounded-md border px-3 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-gray-300"
+          className="h-9 w-64"
         />
-        <select
-          value={contractFilter}
-          onChange={(e) => setContractFilter(e.target.value as ContractFilter)}
-          className="h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-        >
-          <option value="all">Всі договори</option>
-          <option value="signed">Підписаний</option>
-          <option value="unsigned">Не підписаний</option>
-        </select>
+        <Select value={contractFilter} onValueChange={(v) => setContractFilter(v as ContractFilter)}>
+          <SelectTrigger className="h-9 w-auto">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі договори</SelectItem>
+            <SelectItem value="signed">Підписаний</SelectItem>
+            <SelectItem value="unsigned">Не підписаний</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400">Завантаження…</div>
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-gray-400">Авторів не знайдено</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Автор</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-600">Книги</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Договір</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Зареєстрований</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Остання активність</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Дії</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Автор</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Email</TableHead>
+                <TableHead className="h-auto px-4 py-3 text-center font-semibold text-gray-600">Книги</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Договір</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Зареєстрований</TableHead>
+                <TableHead className="h-auto px-4 py-3 font-semibold text-gray-600">Остання активність</TableHead>
+                <TableHead className="h-auto px-4 py-3 text-right font-semibold text-gray-600">Дії</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.map((author) => (
-                <tr key={author.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
+                <TableRow key={author.id}>
+                  <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {author.avatarUrl ? (
                         <img src={author.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" />
@@ -133,34 +139,34 @@ export default function AdminAuthorsPage() {
                         <p className="text-xs text-gray-400">/{author.slug}</p>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{author.email}</td>
-                  <td className="px-4 py-3 text-center font-semibold text-gray-900">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-gray-600">{author.email}</TableCell>
+                  <TableCell className="px-4 py-3 text-center font-semibold text-gray-900">
                     {author._count.books}
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     {author.contractAcceptedAt ? (
                       <div>
-                        <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        <Badge className="rounded-full border-transparent bg-green-100 font-medium text-green-700 hover:bg-green-100">
                           ✓ Підписано
-                        </span>
+                        </Badge>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {formatDate(author.contractAcceptedAt)}
                         </p>
                       </div>
                     ) : (
-                      <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                      <Badge className="rounded-full border-transparent bg-red-100 font-medium text-red-700 hover:bg-red-100">
                         ✕ Не підписано
-                      </span>
+                      </Badge>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-gray-500 text-xs">
                     {formatDate(author.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-gray-500 text-xs">
                     {formatDate(author.lastBookAt)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Link href={`/admin/authors/${author.id}`}>
                         <Button size="sm" variant="outline">Деталі</Button>
@@ -194,13 +200,13 @@ export default function AdminAuthorsPage() {
                     {confirmId === author.id && deleteError && (
                       <p className="mt-1.5 text-xs text-red-600">{deleteError}</p>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
