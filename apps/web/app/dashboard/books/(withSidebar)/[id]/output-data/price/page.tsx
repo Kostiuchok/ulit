@@ -386,9 +386,16 @@ export default function OutputDataPricePage() {
                   shopPrice={anchor.priceEbook !== undefined ? formatUah(anchor.priceEbook) : "—"}
                   shopPriceBold
                   conditions={
-                    <span className="text-xs text-gray-500">
-                      Роялті складає {(platform("ULIT").royaltyMin * 100).toFixed(0)}% від ціни після відрахування ПДВ
-                    </span>
+                    anchor.priceEbook === undefined ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+                        <span aria-hidden>○</span>
+                        Ціну ще не встановлено — книга не продаватиметься як e-book, доки не вкажете гонорар вище нуля
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-500">
+                        Роялті складає {(platform("ULIT").royaltyMin * 100).toFixed(0)}% від ціни після відрахування ПДВ
+                      </span>
+                    )
                   }
                 />
                 <ChannelRow
@@ -608,10 +615,18 @@ export default function OutputDataPricePage() {
                       shopPrice={ulitPrintPrice !== undefined ? formatUah(ulitPrintPrice) : "—"}
                       shopPriceBold
                       conditions={
-                        <span className="text-xs text-gray-500">
-                          Собівартість ({printBinding === "softcover" ? "м'яка" : "тверда"}): {printCostBasis?.toFixed(2)} грн + Ваш
-                          гонорар + комісія платформи = ціна для покупця.
-                        </span>
+                        ulitPrintPrice === undefined ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+                            <span aria-hidden>○</span>
+                            Ціну ще не встановлено для цього поєднання ({printColorMode === "color" ? "кольоровий" : "ч/б"},{" "}
+                            {printBinding === "softcover" ? "м'яка" : "тверда"}) — вкажіть {printColorMode === "color" ? "гонорар" : "пряму ціну"} вище нуля
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-500">
+                            Собівартість ({printBinding === "softcover" ? "м'яка" : "тверда"}): {printCostBasis?.toFixed(2)} грн + Ваш
+                            гонорар + комісія платформи = ціна для покупця.
+                          </span>
+                        )
                       }
                     />
                     <ChannelRow
