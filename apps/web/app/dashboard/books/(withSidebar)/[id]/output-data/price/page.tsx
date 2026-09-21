@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
+import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import {
   computeAnchorPrices,
   computeBwPrices,
@@ -333,38 +334,9 @@ export default function OutputDataPricePage() {
       <OutputDataSectionHeading label={SECTION_LABELS.price} done={priceSectionDone && !priceCardRejected} />
       <Card className={cn("space-y-8 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400")}>
         {/* ── Продаж електронної книги ─────────────────────────────────── */}
-        <div className="space-y-4">
-          <div className="space-y-2 border-b pb-2">
-            <h3 className="text-xl font-bold text-gray-900">Продаж електронної книги</h3>
-          </div>
-
-          <div className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-3">
-            <div className="space-y-1">
-              <label htmlFor="royaltyEbook" className="block text-xs font-medium text-gray-600">
-                Ваш бажаний гонорар за примірник (ULIT)
-              </label>
-              <div className="flex items-center gap-1.5">
-                <Input
-                  id="royaltyEbook"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={royaltyEbook}
-                  onChange={(e) => setRoyaltyEbook(e.target.value)}
-                  placeholder="напр. 50"
-                  className="h-9 w-28 bg-white"
-                />
-                <span className="text-xs text-gray-500">грн / примірник</span>
-              </div>
-            </div>
-            {royaltyEbookNum !== undefined && anchor.priceEbook !== undefined && (
-              <p className="text-xs text-gray-500">
-                Ціна для покупця в ULIT (комісія 30%): <strong className="text-gray-900">{formatUah(anchor.priceEbook)}</strong> — саме
-                ця ціна й буде збережена. На інших каналах кінцева ціна відрізняється через їхню власну комісію.
-              </p>
-            )}
-          </div>
-
+        <div>
+          <CollapsibleSection title="Продаж електронної книги">
+          <div className="space-y-4">
           <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
@@ -393,7 +365,9 @@ export default function OutputDataPricePage() {
                       </span>
                     ) : (
                       <span className="text-xs text-gray-500">
-                        Роялті складає {(platform("ULIT").royaltyMin * 100).toFixed(0)}% від ціни після відрахування ПДВ
+                        Роялті складає {(platform("ULIT").royaltyMin * 100).toFixed(0)}% від ціни після відрахування ПДВ.
+                        Ціна для покупця (комісія 30%): <strong className="text-gray-900">{formatUah(anchor.priceEbook)}</strong> —
+                        саме ця ціна й буде збережена. На інших каналах кінцева ціна відрізняється через їхню власну комісію.
                       </span>
                     )
                   }
@@ -473,14 +447,17 @@ export default function OutputDataPricePage() {
               </TableBody>
             </Table>
           </div>
+          </div>
+          </CollapsibleSection>
         </div>
 
         {/* ── Продаж друкованої книги ──────────────────────────────────── */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b pb-2">
-            <h3 className="text-xl font-bold text-gray-900">Продаж друкованої книги</h3>
-          </div>
-          <p className="text-sm text-gray-600">Безкоштовно для автора. Друк оплачує читач, купуючи книгу в магазині.</p>
+        <div>
+          <CollapsibleSection
+            title="Продаж друкованої книги"
+            description="Безкоштовно для автора. Друк оплачує читач, купуючи книгу в магазині."
+          >
+          <div className="space-y-4">
 
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -650,12 +627,14 @@ export default function OutputDataPricePage() {
               </div>
             </>
           )}
+          </div>
+          </CollapsibleSection>
         </div>
 
         {/* ── Що відбудеться після внесення змін ───────────────────────── */}
         {(channels.includes("ULIT") || externalRows.length > 0) && (
-          <div className="space-y-3">
-            <h3 className="border-b pb-2 text-lg font-bold text-gray-900">Що відбудеться після внесення змін:</h3>
+          <div>
+            <CollapsibleSection title="Що відбудеться після внесення змін:">
             <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
               <div className="flex items-center gap-3">
                 <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded border bg-gray-50 px-2 py-1.5 text-[13px] font-bold text-gray-900">
@@ -679,6 +658,7 @@ export default function OutputDataPricePage() {
                 );
               })}
             </div>
+            </CollapsibleSection>
           </div>
         )}
 

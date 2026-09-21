@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
+import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { Card } from "@/components/ui/card";
@@ -79,8 +80,8 @@ export default function OutputDataFilePage() {
           style as "Рукопис (.docx)" so the two cards read as siblings, not
           a subsection of one another. */}
       {book?.originalDocxUrl && (
-        <Card className="border border-gray-300 p-6 shadow-sm space-y-3">
-          <h3 className="text-base font-semibold mb-1">Короткий огляд рукопису</h3>
+        <Card className="border border-gray-300 p-6 shadow-sm">
+          <CollapsibleSection title="Короткий огляд рукопису">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatTile
               label="сторінок (друк)"
@@ -99,14 +100,13 @@ export default function OutputDataFilePage() {
               value={stats?.status === "DONE" ? String(stats.images) : "—"}
             />
           </div>
+          </CollapsibleSection>
         </Card>
       )}
 
-      <Card className={cn("p-6 shadow-sm space-y-4", manuscriptRejected && "border-2 border-red-400")}>
-        <div>
-          <h3 className="text-base font-semibold mb-1">Рукопис (.docx)</h3>
-          <p className="text-xs text-gray-500">Завантажте файл або замініть уже завантажений.</p>
-        </div>
+      <Card className={cn("p-6 shadow-sm", manuscriptRejected && "border-2 border-red-400")}>
+        <CollapsibleSection title="Рукопис (.docx)" description="Завантажте файл або замініть уже завантажений.">
+        <div className="space-y-4">
         <DocxUploader
           bookId={id}
           currentDocxUrl={book?.originalDocxUrl}
@@ -147,16 +147,18 @@ export default function OutputDataFilePage() {
             )}
           </span>
         </div>
+        </div>
+        </CollapsibleSection>
       </Card>
 
       {/* Setting the free-preview page range is manuscript-content work,
           same as uploading/editing the .docx above. */}
       {book?.epubUrl && (
         <Card className="p-6 shadow-sm">
-          <h2 className="text-base font-semibold mb-1">Уривок для читачів</h2>
-          <p className="text-xs text-gray-500 mb-4">
-            Встановіть діапазон сторінок, які покупці зможуть прочитати безкоштовно.
-          </p>
+          <CollapsibleSection
+            title="Уривок для читачів"
+            description="Встановіть діапазон сторінок, які покупці зможуть прочитати безкоштовно."
+          >
           <PreviewRangeEditor
             bookId={id}
             pageCount={book?.pageCount}
@@ -166,6 +168,7 @@ export default function OutputDataFilePage() {
               setBook((b) => (b ? { ...b, previewStart: start, previewEnd: end } : b))
             }
           />
+          </CollapsibleSection>
         </Card>
       )}
     </div>

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
+import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
@@ -638,11 +639,12 @@ function OutputDataInfoForm({
           </div>
 
           {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача. */}
-          <div className={cn("space-y-2 rounded-lg border p-3", authorRejected && "border-2 border-red-400")}>
-              <Label>Автори книги</Label>
-              <p className="text-xs text-gray-400">
-                Якщо авторів декілька — кожен додає власне прізвище/ім&apos;я і, за бажанням, своє фото.
-              </p>
+          <div className={cn("rounded-lg border p-3", authorRejected && "border-2 border-red-400")}>
+            <CollapsibleSection
+              title="Автори книги"
+              description="Якщо авторів декілька — кожен додає власне прізвище/ім'я і, за бажанням, своє фото."
+            >
+            <div className="space-y-2">
               <div className="flex items-start gap-2 text-xs">
                 <span className={cn("mt-0.5", hasAnyAuthor ? "text-green-600" : "text-amber-500")}>
                   {hasAnyAuthor ? "✓" : "○"}
@@ -741,11 +743,13 @@ function OutputDataInfoForm({
               {newAuthorError && <p className="text-xs text-red-500">{newAuthorError}</p>}
               <Button type="button" variant="outline" size="sm" onClick={addBookAuthor}>+ Додати автора</Button>
             </div>
+            </CollapsibleSection>
+          </div>
 
             {/* T-2060 п.5 — окрема сутність, не змішана з авторами */}
-            <div className="space-y-2 rounded-lg border p-3">
-              <Label>Над книгою працювали</Label>
-              <p className="text-xs text-gray-400">Редактор, ілюстратор, дизайнер обкладинки тощо.</p>
+            <div className="rounded-lg border p-3">
+              <CollapsibleSection title="Над книгою працювали" description="Редактор, ілюстратор, дизайнер обкладинки тощо.">
+              <div className="space-y-2">
               {contributors.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {contributors.map((c, i) => (
@@ -781,17 +785,22 @@ function OutputDataInfoForm({
                 <Button type="button" variant="outline" size="sm" onClick={addContributor} className="shrink-0">+ Додати</Button>
               </div>
             </div>
+              </CollapsibleSection>
+            </div>
 
           {/* Тільки для книги, яка вже була опублікована десь ще (напр.
               proza.ru/stihi.ru) до приєднання до ULIT -- більшість
-              авторів це поле не заповнюють взагалі. */}
-          <div className="space-y-3 rounded-lg border p-3">
-            <div>
-              <Label>Авторське право / попередня публікація</Label>
-              <p className="text-xs text-gray-400">
-                Заповнюйте, лише якщо книга вже виходила раніше на іншій платформі — до приєднання до ULIT.
-              </p>
-            </div>
+              авторів це поле не заповнюють взагалі. Starts collapsed: no
+              usage stats yet on how many authors actually have prior-
+              publication data to fill in here, so it defaults closed until
+              there's data to justify opening it by default. */}
+          <div className="rounded-lg border p-3">
+            <CollapsibleSection
+              title="Авторське право / попередня публікація"
+              description="Заповнюйте, лише якщо книга вже виходила раніше на іншій платформі — до приєднання до ULIT."
+              defaultOpen={false}
+            >
+            <div className="space-y-3">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[100px_1fr]">
               <div className="space-y-1.5">
                 <Label htmlFor="copyrightYear" className="text-xs font-normal text-gray-500">Рік</Label>
@@ -867,6 +876,8 @@ function OutputDataInfoForm({
                 </>
               )}
             </div>
+            </div>
+            </CollapsibleSection>
           </div>
 
           <div className="space-y-2 rounded-lg border p-3">

@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
+import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import { Card } from "@/components/ui/card";
 import { useBook } from "@/hooks/useBook";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
@@ -108,15 +109,18 @@ function IsbnReadinessChecklist({ book, bookId }: { book: ReviewBook | null; boo
   ];
 
   return (
-    <Card className="p-5 space-y-3 text-sm">
-      <div>
-        <h2 className="text-base font-semibold">Готовність до реєстрації УДК</h2>
-        <p className="text-xs text-gray-500">
-          Перевірка інформації, яку потрібно надати Книжковій палаті для заявки на УДК + авторський знак —
-          детальніше в <code className="text-xs">docs/isbn-udc-requirements.md</code>. ISBN сюди не входить —
-          видавець призначає його сам, зі свого блоку номерів.
-        </p>
-      </div>
+    <Card className="p-5 text-sm">
+      <CollapsibleSection
+        title="Готовність до реєстрації УДК"
+        description={
+          <>
+            Перевірка інформації, яку потрібно надати Книжковій палаті для заявки на УДК + авторський знак —
+            детальніше в <code className="text-xs">docs/isbn-udc-requirements.md</code>. ISBN сюди не входить —
+            видавець призначає його сам, зі свого блоку номерів.
+          </>
+        }
+      >
+      <div className="space-y-3">
       <ul className="space-y-1.5">
         {items.map((it) => (
           <li key={it.label} className="flex items-start gap-2">
@@ -139,6 +143,8 @@ function IsbnReadinessChecklist({ book, bookId }: { book: ReviewBook | null; boo
         Структуру друкованого файлу (титул → порожня сторінка → текст, файл 2 для заявки на УДК) платформа формує
         автоматично в межах PDF для друку вище — окремо готувати цю структуру не потрібно.
       </p>
+      </div>
+      </CollapsibleSection>
     </Card>
   );
 }
@@ -197,14 +203,12 @@ export default function OutputDataReviewPage() {
         ) : null}
 
         {!!book?.distributionChannels?.length && (
-          <Card className="p-5 space-y-4 text-sm">
-            <div>
-              <h2 className="text-base font-semibold">Орієнтовний прибуток по каналах</h2>
-              <p className="text-xs text-gray-500">
-                Сума за один проданий примірник, за вирахуванням комісії платформи. Ціна вказана за книжку — це
-                вартість до відрахування цих комісій.
-              </p>
-            </div>
+          <Card className="p-5 text-sm">
+          <CollapsibleSection
+            title="Орієнтовний прибуток по каналах"
+            description="Сума за один проданий примірник, за вирахуванням комісії платформи. Ціна вказана за книжку — це вартість до відрахування цих комісій."
+          >
+          <div className="space-y-4">
             {[
               { label: "Е-книга", price: book?.priceEbook },
               { label: "Друк, м'яка (кольор.)", price: book?.pricePrint },
@@ -234,6 +238,8 @@ export default function OutputDataReviewPage() {
                   </div>
                 );
               })}
+          </div>
+          </CollapsibleSection>
           </Card>
         )}
       </div>
