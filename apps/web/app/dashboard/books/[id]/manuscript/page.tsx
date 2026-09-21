@@ -11,6 +11,7 @@ import { useApi } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface ManuscriptBook {
   title: string;
@@ -114,18 +115,18 @@ export default function ManuscriptEditorPage() {
 
   if (loading) {
     return (
-      <div className="flex h-full overflow-hidden">
+      <SidebarProvider className="flex h-full overflow-hidden">
         <AuthorBooksSidebar />
         <div className="flex-1 overflow-y-auto p-8">
           <div className="h-96 max-w-3xl animate-pulse rounded-xl bg-gray-100" />
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   if (!book?.originalDocxUrl) {
     return (
-      <div className="flex h-full overflow-hidden">
+      <SidebarProvider className="flex h-full overflow-hidden">
         <AuthorBooksSidebar />
         <div className="flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-2xl">
@@ -145,14 +146,14 @@ export default function ManuscriptEditorPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   if (!manuscript || manuscript.status !== "DONE") {
     const progress = manuscript?.status === "PROCESSING" ? manuscript.progress ?? 0 : 0;
     return (
-      <div className="flex h-full overflow-hidden">
+      <SidebarProvider className="flex h-full overflow-hidden">
         <AuthorBooksSidebar />
         <div className="flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-2xl">
@@ -176,7 +177,7 @@ export default function ManuscriptEditorPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
