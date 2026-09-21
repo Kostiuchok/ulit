@@ -211,22 +211,32 @@ export default function OutputDataInfoPage() {
   const [hydratedBook, setHydratedBook] = useState<InfoBook | null>(null);
 
   // Async-loaded book -> form values goes through useForm's own `values`
-  // option (not a manual reset() call in an effect) -- confirmed live via
-  // React-internals inspection on prod that a bare `infoForm.reset(...)`
-  // (and even an explicit follow-up `setValue()` per field) updates
-  // _defaultValues correctly but leaves _formValues stuck at "" for these
-  // 4 Controller-wrapped Select fields specifically (genre/printFormatKey/
-  // ageRating/language) -- the Select rendered its empty placeholder even
-  // though the book genuinely had a value saved. RHF's `values` option
-  // internally calls `_reset(values, { keepFieldsRef: true, ... })`, a
-  // different path that properly syncs already-registered Controller
-  // fields; a bare `reset()`/`setValue()` do not. `hydratedBook` is set
-  // once (see the effect below, guarded the same way as before) and never
-  // changes again, so RHF's own deep-equal check on this option (it only
-  // actually re-applies when the object differs from what it last applied)
-  // keeps this a one-time hydration, same guarantee the old ref guard
-  // gave -- a silent background refetch from useBook() re-running this
-  // component does NOT clobber unsaved typing.
+  // option. `hydratedBook` is set once (see the effect below, guarded the
+  // same way as before) and never changes again, so RHF's own deep-equal
+  // check on this option (it only actually re-applies when the object
+  // differs from what it last applied) keeps this a one-time hydration,
+  // same guarantee the old ref guard gave -- a silent background refetch
+  // from useBook() re-running this component does NOT clobber unsaved
+  // typing.
+  //
+  // This alone is NOT enough for the 5 Controller-wrapped fields
+  // (genre/printFormatKey/ageRating/language/aiGenerated) -- confirmed live
+  // on prod (React internals, direct fiber inspection): both a bare
+  // `reset()` and this `values` option internally go through the exact same
+  // bulk-sync path (RHF's `_reset(values, { keepFieldsRef: true, ... })`),
+  // which correctly updates `_formValues` but does NOT update
+  // `_fields[name]._f.value` for a Controller-registered field (there's no
+  // real DOM ref for it to write into, unlike register()'d <Input>s, which
+  // is why title/subtitle/description/etc. hydrate fine through this same
+  // option). Controller's own rendered value AND zodResolver validation
+  // both read `_f.value`, not `_formValues` -- so the Select kept showing
+  // its empty placeholder despite real data underneath, AND, since
+  // printFormatKey/language are required (non-optional) in the schema,
+  // "Зберегти зміни" silently failed client-side validation and never even
+  // reached the network on ANY edit, until the author manually re-picked
+  // every one of these fields by hand. See the separate effect below,
+  // which fixes exactly this with explicit setValue() calls -- confirmed
+  // live to correctly sync `_f.value` too, unlike reset()/values alone.
   const infoForm = useForm<InfoForm>({
     resolver: zodResolver(infoSchema),
     values: hydratedBook
@@ -278,6 +288,24 @@ export default function OutputDataInfoPage() {
     setAuthorBio(book.authorBio ?? "");
     setHydratedBook(book);
   }, [book]);
+
+  // Runs strictly AFTER the `values`-triggered internal reset above (this
+  // effect is declared later in this component than the useForm() call, so
+  // React fires it later within the same commit) -- explicit setValue()
+  // per Controller field is the one thing confirmed live to actually sync
+  // `_f.value` (see the long comment above), giving these 5 fields the
+  // last word regardless of whatever the values-option's own reset did or
+  // didn't do to them.
+  useEffect(() => {
+    if (!hydratedBook) return;
+    const opts = { shouldDirty: false, shouldTouch: false, shouldValidate: false } as const;
+    infoForm.setValue("genre", (hydratedBook.pendingGenre ?? hydratedBook.genre ?? "") as InfoForm["genre"], opts);
+    infoForm.setValue("printFormatKey", resolveBookPrintFormat(hydratedBook).key, opts);
+    infoForm.setValue("language", hydratedBook.language as InfoForm["language"], opts);
+    infoForm.setValue("ageRating", (hydratedBook.ageRating ?? "") as InfoForm["ageRating"], opts);
+    infoForm.setValue("aiGenerated", hydratedBook.aiGenerated ?? false, opts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydratedBook]);
 
   function addBookAuthor() {
     setNewAuthorError("");
