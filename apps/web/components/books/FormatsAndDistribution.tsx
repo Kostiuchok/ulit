@@ -43,7 +43,7 @@ export type PrintCost =
 
 const ULIT_RATE = 0.7; // DISTRIBUTION_PLATFORMS "ULIT" -- fixed, not a range, so it's the only channel we can derive a single concrete price from.
 
-function parseRoyalty(v: string): number | undefined {
+export function parseRoyalty(v: string): number | undefined {
   const n = Number(v.replace(",", "."));
   return v.trim() !== "" && Number.isFinite(n) && n > 0 ? n : undefined;
 }
@@ -108,14 +108,14 @@ export function computeBwPrices(
   };
 }
 
-function formatUah(n: number): string {
+export function formatUah(n: number): string {
   return `${n.toFixed(2)} грн`;
 }
 
 // min price at the channel's best rate (royaltyMax) .. max price at its
 // worst rate (royaltyMin) -- fixed-rate channels (Ulit, D2D, Google) collapse
 // to a single number since min===max there.
-function suggestedPriceRange(cost: number, royalty: number, royaltyMin: number, royaltyMax: number) {
+export function suggestedPriceRange(cost: number, royalty: number, royaltyMin: number, royaltyMax: number) {
   return { min: (cost + royalty) / royaltyMax, max: (cost + royalty) / royaltyMin };
 }
 
