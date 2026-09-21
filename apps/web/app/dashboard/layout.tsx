@@ -1,6 +1,7 @@
 import { auth } from "../../auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { AuthorNavUser } from "../../components/dashboard/AuthorNavUser";
 import { FontSizeControl } from "../../components/dashboard/FontSizeControl";
 import { NotificationsBell } from "../../components/dashboard/NotificationsBell";
 import { Toaster } from "../../components/ui/sonner";
@@ -25,10 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="flex items-center gap-4">
             <FontSizeControl />
             <NotificationsBell />
-            <Link href="/dashboard/settings" className="flex items-center gap-1.5 text-xs text-black">
-              <img src="/figma/account.svg" alt="" className="h-[1rem] w-[1rem]" />
-              ПРОФІЛЬ
-            </Link>
+            <AuthorNavUser user={session.user!} />
           </div>
         </div>
       </header>
