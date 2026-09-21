@@ -134,8 +134,52 @@ interface InfoBook {
 
 export default function OutputDataInfoPage() {
   const { id } = useParams<{ id: string }>();
-  const { apiFetch, apiUpload, token } = useApi();
   const { book, setBook, loading } = useBook<InfoBook>(id);
+
+  // The form (and its useForm() call) only ever mounts once `book` exists,
+  // so defaultValues are correct on OutputDataInfoForm's very first render
+  // -- no async "hydrate the form after the fact" step, and therefore no
+  // race with react-hook-form's own values/reset machinery to work around.
+  // (Previously: hydration went through useForm's `values` option, fed by a
+  // `hydratedBook` state latched via a ref-guarded effect. Confirmed live on
+  // prod, direct React-internals inspection: `values` -- and a bare
+  // reset(), and even an explicit setValue() called synchronously in the
+  // same effect -- all update react-hook-form's internal _formValues
+  // correctly but do NOT update `_fields[name]._f.value` for a
+  // Controller-registered field, which is what Controller's own rendered
+  // value AND zodResolver validation both actually read. Two real
+  // consequences, not a cosmetic glitch: genre/printFormatKey/language/
+  // ageRating/aiGenerated kept showing their empty placeholder despite real
+  // saved data, and -- since printFormatKey/language are required in the
+  // schema -- "Зберегти зміни" silently failed client-side validation and
+  // never even reached the network on ANY edit, until the author manually
+  // re-picked every one of those 5 fields by hand. Mounting the form only
+  // once real data exists sidesteps the whole problem at the root instead
+  // of chasing it with another reset-timing patch.)
+  if (loading || !book) {
+    return <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />;
+  }
+
+  // Keyed by book id: without this, navigating client-side from one book's
+  // "Вихідні дані" straight to another's (e.g. via the sidebar's book
+  // switcher, same route pattern) would reuse this component instance
+  // rather than remount it, leaving the form permanently stuck on the
+  // FIRST book's defaultValues -- the same class of staleness the old
+  // `hydratedBook`/ref-guard version had for exactly this navigation, just
+  // via a different mechanism.
+  return <OutputDataInfoForm key={id} book={book} bookId={id} setBook={setBook} />;
+}
+
+function OutputDataInfoForm({
+  book,
+  bookId: id,
+  setBook,
+}: {
+  book: InfoBook;
+  bookId: string;
+  setBook: (book: InfoBook) => void;
+}) {
+  const { apiFetch, apiUpload, token } = useApi();
 
   const [infoSaved, setInfoSaved] = useState(false);
   // Which sensitive fields (if any) the last save actually staged as
@@ -144,16 +188,19 @@ export default function OutputDataInfoPage() {
   // the "Публікація" page.
   const [justStagedFields, setJustStagedFields] = useState<string[]>([]);
   const [infoError, setInfoError] = useState("");
-  const [coAuthors, setCoAuthors] = useState<CoAuthor[]>([]);
+  // Lazy initializers, not an effect -- `book` is already the real data by
+  // the time this component ever mounts (see OutputDataInfoPage above), so
+  // these are correct from the first render with no separate hydration step.
+  const [coAuthors, setCoAuthors] = useState<CoAuthor[]>(() => (Array.isArray(book.coAuthors) ? book.coAuthors : []));
   const [authorPhotoUploading, setAuthorPhotoUploading] = useState(false);
   const [authorPhotoError, setAuthorPhotoError] = useState("");
   const [newAuthorError, setNewAuthorError] = useState("");
   const authorPhotoInputRef = useRef<HTMLInputElement>(null);
-  const [bookAuthors, setBookAuthors] = useState<BookAuthor[]>([]);
+  const [bookAuthors, setBookAuthors] = useState<BookAuthor[]>(() => (Array.isArray(book.bookAuthors) ? book.bookAuthors : []));
   const [newAuthor, setNewAuthor] = useState<BookAuthor>({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
-  const [contributors, setContributors] = useState<Contributor[]>([]);
+  const [contributors, setContributors] = useState<Contributor[]>(() => (Array.isArray(book.contributors) ? book.contributors : []));
   const [newContributor, setNewContributor] = useState<Contributor>({ role: "", name: "" });
-  const [authorBio, setAuthorBio] = useState("");
+  const [authorBio, setAuthorBio] = useState(() => book.authorBio ?? "");
 
   // Account profile (Налаштування профілю) -- single source of truth for
   // ПІБ/аватар/біографія, reused to auto-fill "Автори книги" and "Біографія
@@ -179,7 +226,7 @@ export default function OutputDataInfoPage() {
   }, [token, apiFetch]);
 
   useEffect(() => {
-    if (!book || !userProfile || profileAutofillApplied.current) return;
+    if (!userProfile || profileAutofillApplied.current) return;
     profileAutofillApplied.current = true;
 
     const bookHasAuthors = Array.isArray(book.bookAuthors) && book.bookAuthors.length > 0;
@@ -206,58 +253,29 @@ export default function OutputDataInfoPage() {
   const [claimIsbnSaving, setClaimIsbnSaving] = useState(false);
   const [claimIsbnError, setClaimIsbnError] = useState("");
 
-  // Latched once from `book` (see the hydration effect below) -- feeds
-  // useForm's `values` option just below.
-  const [hydratedBook, setHydratedBook] = useState<InfoBook | null>(null);
-
-  // Async-loaded book -> form values goes through useForm's own `values`
-  // option. `hydratedBook` is set once (see the effect below, guarded the
-  // same way as before) and never changes again, so RHF's own deep-equal
-  // check on this option (it only actually re-applies when the object
-  // differs from what it last applied) keeps this a one-time hydration,
-  // same guarantee the old ref guard gave -- a silent background refetch
-  // from useBook() re-running this component does NOT clobber unsaved
-  // typing.
-  //
-  // This alone is NOT enough for the 5 Controller-wrapped fields
-  // (genre/printFormatKey/ageRating/language/aiGenerated) -- confirmed live
-  // on prod (React internals, direct fiber inspection): both a bare
-  // `reset()` and this `values` option internally go through the exact same
-  // bulk-sync path (RHF's `_reset(values, { keepFieldsRef: true, ... })`),
-  // which correctly updates `_formValues` but does NOT update
-  // `_fields[name]._f.value` for a Controller-registered field (there's no
-  // real DOM ref for it to write into, unlike register()'d <Input>s, which
-  // is why title/subtitle/description/etc. hydrate fine through this same
-  // option). Controller's own rendered value AND zodResolver validation
-  // both read `_f.value`, not `_formValues` -- so the Select kept showing
-  // its empty placeholder despite real data underneath, AND, since
-  // printFormatKey/language are required (non-optional) in the schema,
-  // "Зберегти зміни" silently failed client-side validation and never even
-  // reached the network on ANY edit, until the author manually re-picked
-  // every one of these fields by hand. See the separate effect below,
-  // which fixes exactly this with explicit setValue() calls -- confirmed
-  // live to correctly sync `_f.value` too, unlike reset()/values alone.
+  // `book` is real data on this component's very first render (see
+  // OutputDataInfoPage above) -- defaultValues are correct from the start,
+  // for every field including the Controller-wrapped Selects/Checkbox
+  // (genre/printFormatKey/language/ageRating/aiGenerated), with no separate
+  // hydration step and nothing to re-sync later.
   const infoForm = useForm<InfoForm>({
     resolver: zodResolver(infoSchema),
-    values: hydratedBook
-      ? {
-          // Prefer the staged pending* value over the live one when this
-          // book is PUBLISHED and has an unsent edit sitting in moderation
-          // limbo.
-          title: hydratedBook.pendingTitle ?? hydratedBook.title,
-          subtitle: hydratedBook.subtitle ?? "",
-          description: hydratedBook.pendingDescription ?? hydratedBook.description ?? "",
-          genre: (hydratedBook.pendingGenre ?? hydratedBook.genre ?? "") as InfoForm["genre"],
-          printFormatKey: resolveBookPrintFormat(hydratedBook).key,
-          ageRating: (hydratedBook.ageRating ?? "") as InfoForm["ageRating"],
-          language: hydratedBook.language as InfoForm["language"],
-          aiGenerated: hydratedBook.aiGenerated ?? false,
-          aiGeneratedNote: hydratedBook.aiGeneratedNote ?? "",
-          copyrightYear: hydratedBook.copyrightYear ?? "",
-          copyrightHolder: hydratedBook.copyrightHolder ?? "",
-          priorPublicationCertificate: hydratedBook.priorPublicationCertificate ?? "",
-        }
-      : undefined,
+    defaultValues: {
+      // Prefer the staged pending* value over the live one when this book
+      // is PUBLISHED and has an unsent edit sitting in moderation limbo.
+      title: book.pendingTitle ?? book.title,
+      subtitle: book.subtitle ?? "",
+      description: book.pendingDescription ?? book.description ?? "",
+      genre: (book.pendingGenre ?? book.genre ?? "") as InfoForm["genre"],
+      printFormatKey: resolveBookPrintFormat(book).key,
+      ageRating: (book.ageRating ?? "") as InfoForm["ageRating"],
+      language: book.language as InfoForm["language"],
+      aiGenerated: book.aiGenerated ?? false,
+      aiGeneratedNote: book.aiGeneratedNote ?? "",
+      copyrightYear: book.copyrightYear ?? "",
+      copyrightHolder: book.copyrightHolder ?? "",
+      priorPublicationCertificate: book.priorPublicationCertificate ?? "",
+    },
   });
 
   const titleValue = infoForm.watch("title") ?? "";
@@ -269,53 +287,6 @@ export default function OutputDataInfoPage() {
   // can be changed after creation too, not just once at the start.
   const selectedFormatKey = (infoForm.watch("printFormatKey") || "standard") as PrintFormatKey;
   const displayFormat = PRINT_FORMATS[selectedFormatKey] ?? PRINT_FORMATS.standard;
-
-  // Hydrates every editable field from the freshly-loaded book -- but only
-  // ONCE, on initial load. useBook() silently refetches in the background
-  // whenever the tab regains focus, which gives `book` a new object
-  // reference on every such refetch; without this guard, that silent
-  // refetch re-ran this whole effect and clobbered any unsaved typing with
-  // whatever was still on the server. infoForm itself is hydrated via the
-  // `values` option above (fed by hydratedBook, set here) -- not reset()
-  // in this effect.
-  const bookHydratedRef = useRef(false);
-  useEffect(() => {
-    if (!book || bookHydratedRef.current) return;
-    bookHydratedRef.current = true;
-    setCoAuthors(Array.isArray(book.coAuthors) ? book.coAuthors : []);
-    setBookAuthors(Array.isArray(book.bookAuthors) ? book.bookAuthors : []);
-    setContributors(Array.isArray(book.contributors) ? book.contributors : []);
-    setAuthorBio(book.authorBio ?? "");
-    setHydratedBook(book);
-  }, [book]);
-
-  // Explicit setValue() per Controller field is the one thing confirmed
-  // live to actually sync `_f.value` (see the long comment above) -- but
-  // calling it directly in an effect declared after useForm(), same commit,
-  // measurably did NOT stick on prod (confirmed live: still blank on a
-  // fresh reload after shipping exactly that). The values-triggered reset
-  // fires its own internal setState, which schedules another render/effect
-  // pass in the same commit and apparently wins the last word back before
-  // paint, even though it deep-equal-skips the destructive branch on that
-  // pass. setTimeout(...,0) sidesteps the question of exactly which of
-  // React's own effect/commit passes wins by not competing for one at all
-  // -- it runs as a macrotask strictly after the browser has fully finished
-  // this render cycle (confirmed live: calling setValue from the console
-  // well after mount always sticks; only calling it synchronously inside
-  // the mount-time effect didn't).
-  useEffect(() => {
-    if (!hydratedBook) return;
-    const opts = { shouldDirty: false, shouldTouch: false, shouldValidate: false } as const;
-    const timer = setTimeout(() => {
-      infoForm.setValue("genre", (hydratedBook.pendingGenre ?? hydratedBook.genre ?? "") as InfoForm["genre"], opts);
-      infoForm.setValue("printFormatKey", resolveBookPrintFormat(hydratedBook).key, opts);
-      infoForm.setValue("language", hydratedBook.language as InfoForm["language"], opts);
-      infoForm.setValue("ageRating", (hydratedBook.ageRating ?? "") as InfoForm["ageRating"], opts);
-      infoForm.setValue("aiGenerated", hydratedBook.aiGenerated ?? false, opts);
-    }, 0);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydratedBook]);
 
   function addBookAuthor() {
     setNewAuthorError("");
@@ -471,17 +442,13 @@ export default function OutputDataInfoPage() {
     }
   }
 
-  if (loading) {
-    return <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />;
-  }
-
   // Same PUBLISH_FIELD_CHECKS (shared-types) as the backend's own pre-publish
   // gate and as output-data/layout.tsx's own nav-badge derivation -- reads
   // from the persisted book, not live form state, so this heading only turns
   // green once the section is actually saved, not just typed into.
-  const infoSectionDone = isPublishStepComplete("info", book ?? {});
-  const hasAnyAuthor = Array.isArray(book?.bookAuthors) && book!.bookAuthors!.some((a) => a.lastName?.trim() && a.firstName?.trim());
-  const unresolvedRejectionLines = book ? getUnresolvedRejectionLines(book) : [];
+  const infoSectionDone = isPublishStepComplete("info", book);
+  const hasAnyAuthor = Array.isArray(book.bookAuthors) && book.bookAuthors.some((a) => a.lastName?.trim() && a.firstName?.trim());
+  const unresolvedRejectionLines = getUnresolvedRejectionLines(book);
   const unresolvedCategory = (cat: (typeof unresolvedRejectionLines)[number]["category"]) =>
     unresolvedRejectionLines.some((l) => l.category === cat);
   // "Ще не виконано" per exact field this page can highlight, so a
