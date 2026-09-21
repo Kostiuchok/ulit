@@ -80,14 +80,6 @@ export function OutputDataTabs({ bookId, sectionDone, isDraftStatus, readyToPubl
           </Link>
         );
       })}
-
-      <span className="mx-1 shrink-0 self-center text-gray-200">|</span>
-      <Link
-        href={`/dashboard/books/${bookId}/print-order`}
-        className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-      >
-        Замовити тираж
-      </Link>
     </nav>
   );
 }
