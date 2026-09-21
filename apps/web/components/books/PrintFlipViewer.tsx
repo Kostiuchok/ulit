@@ -75,14 +75,34 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
   // here and rendered as its own leaf below, the same full-bleed <img>
   // treatment the front cover leaf already gets.
   const interiorPageCount = hasBackCover ? Math.max(0, printPageCount - 1) : printPageCount;
+
+  // react-pageflip's showCover mode (see createSpread() in
+  // react-pageflip-enhanced's build/index.js) marks leaf 0 as a lone hard
+  // "cover" spread, then walks the REST two at a time -- the final leaf
+  // only ends up alone (hard, closed-book style, matching the front cover)
+  // when the count of leaves AFTER the front cover is odd. With
+  // [blank, ...interior pages, backCover], that count is
+  // interiorPageCount + 2 -- odd only when interiorPageCount itself is odd.
+  // When interiorPageCount is even, the library instead pairs the back
+  // cover with the actual last text page into one ordinary two-page spread
+  // -- the last page of the text block and the cover rendering as if
+  // they're the same spread, when they're two different things (the text
+  // block's own last page belongs only inside that block; the cover only
+  // ever appears as the book's own closed-state outside, exactly like the
+  // front cover does at the start). One filler blank leaf right before the
+  // back cover flips that parity so the back cover always lands alone,
+  // regardless of how many text pages there are.
+  const needsBackCoverParityFiller = hasCover && hasBackCover && interiorPageCount % 2 === 0;
+
   const flipLeaves: FlipLeaf[] = useMemo(
     () => [
       ...(hasCover ? [{ kind: "cover" as const, url: coverUrl! }] : []),
       { kind: "blank" as const },
       ...Array.from({ length: interiorPageCount }, (_, i) => ({ kind: "page" as const, pageNumber: i + 1 })),
+      ...(needsBackCoverParityFiller ? [{ kind: "blank" as const }] : []),
       ...(hasBackCover ? [{ kind: "backCover" as const, url: backCoverUrl! }] : []),
     ],
-    [hasCover, coverUrl, hasBackCover, backCoverUrl, interiorPageCount]
+    [hasCover, coverUrl, hasBackCover, backCoverUrl, interiorPageCount, needsBackCoverParityFiller]
   );
   const totalLeaves = flipLeaves.length;
 
