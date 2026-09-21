@@ -31,7 +31,6 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
   useSidebar,
@@ -366,16 +365,6 @@ export function AuthorBooksSidebar({ user }: Props) {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="На сайт">
-              <Link href="/">
-                <span>←</span>
-                <span>На сайт</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
         {user && <AuthorSidebarNavUser user={user} />}
       </SidebarFooter>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronsUpDown, LogOut, Settings } from "lucide-react";
+import { ChevronsUpDown, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,6 +18,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { TABS } from "./ProfileTabs";
 
 interface Props {
   user: { name?: string | null; email?: string | null; image?: string | null };
@@ -81,12 +82,11 @@ export function AuthorSidebarNavUser({ user }: Props) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings">
-                <Settings />
-                Профіль
-              </Link>
-            </DropdownMenuItem>
+            {TABS.map((tab) => (
+              <DropdownMenuItem key={tab.href} asChild>
+                <Link href={tab.href}>{tab.label}</Link>
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => signOut({ callbackUrl: "/login" })}>
               <LogOut />

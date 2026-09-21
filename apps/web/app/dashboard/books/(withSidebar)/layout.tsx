@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { AuthorBooksSidebar } from "@/components/dashboard/AuthorBooksSidebar";
 import { FontSizeControl } from "@/components/dashboard/FontSizeControl";
@@ -23,6 +24,9 @@ export default async function BooksWithSidebarLayout({ children }: { children: R
             <Separator orientation="vertical" className="h-4" />
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/" className="text-xs text-gray-500 hover:text-black">
+              На сайт
+            </Link>
             <FontSizeControl />
             <NotificationsBell />
           </div>

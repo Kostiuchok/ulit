@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "../../lib/utils";
 
-const TABS = [
+// Exported so AuthorSidebarNavUser's dropdown can list the exact same
+// items in the exact same order, instead of a second hand-maintained copy
+// drifting out of sync with this one.
+export const TABS = [
   { href: "/dashboard", label: "Кабінет автора" },
   { href: "/dashboard/settings", label: "Профіль" },
   { href: "/dashboard/settings/royalties", label: "Авторські відрахування" },
