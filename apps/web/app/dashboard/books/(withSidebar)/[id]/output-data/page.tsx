@@ -289,21 +289,31 @@ export default function OutputDataInfoPage() {
     setHydratedBook(book);
   }, [book]);
 
-  // Runs strictly AFTER the `values`-triggered internal reset above (this
-  // effect is declared later in this component than the useForm() call, so
-  // React fires it later within the same commit) -- explicit setValue()
-  // per Controller field is the one thing confirmed live to actually sync
-  // `_f.value` (see the long comment above), giving these 5 fields the
-  // last word regardless of whatever the values-option's own reset did or
-  // didn't do to them.
+  // Explicit setValue() per Controller field is the one thing confirmed
+  // live to actually sync `_f.value` (see the long comment above) -- but
+  // calling it directly in an effect declared after useForm(), same commit,
+  // measurably did NOT stick on prod (confirmed live: still blank on a
+  // fresh reload after shipping exactly that). The values-triggered reset
+  // fires its own internal setState, which schedules another render/effect
+  // pass in the same commit and apparently wins the last word back before
+  // paint, even though it deep-equal-skips the destructive branch on that
+  // pass. setTimeout(...,0) sidesteps the question of exactly which of
+  // React's own effect/commit passes wins by not competing for one at all
+  // -- it runs as a macrotask strictly after the browser has fully finished
+  // this render cycle (confirmed live: calling setValue from the console
+  // well after mount always sticks; only calling it synchronously inside
+  // the mount-time effect didn't).
   useEffect(() => {
     if (!hydratedBook) return;
     const opts = { shouldDirty: false, shouldTouch: false, shouldValidate: false } as const;
-    infoForm.setValue("genre", (hydratedBook.pendingGenre ?? hydratedBook.genre ?? "") as InfoForm["genre"], opts);
-    infoForm.setValue("printFormatKey", resolveBookPrintFormat(hydratedBook).key, opts);
-    infoForm.setValue("language", hydratedBook.language as InfoForm["language"], opts);
-    infoForm.setValue("ageRating", (hydratedBook.ageRating ?? "") as InfoForm["ageRating"], opts);
-    infoForm.setValue("aiGenerated", hydratedBook.aiGenerated ?? false, opts);
+    const timer = setTimeout(() => {
+      infoForm.setValue("genre", (hydratedBook.pendingGenre ?? hydratedBook.genre ?? "") as InfoForm["genre"], opts);
+      infoForm.setValue("printFormatKey", resolveBookPrintFormat(hydratedBook).key, opts);
+      infoForm.setValue("language", hydratedBook.language as InfoForm["language"], opts);
+      infoForm.setValue("ageRating", (hydratedBook.ageRating ?? "") as InfoForm["ageRating"], opts);
+      infoForm.setValue("aiGenerated", hydratedBook.aiGenerated ?? false, opts);
+    }, 0);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydratedBook]);
 
