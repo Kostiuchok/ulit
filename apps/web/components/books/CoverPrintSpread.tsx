@@ -1,4 +1,4 @@
-import { computeCoverLayout, type CoverFormat } from "./CoverDesignerCanvas";
+import { computeCoverLayout, type CoverFormat } from "../../lib/coverLayout";
 
 interface Props {
   coverUrl?: string | null;

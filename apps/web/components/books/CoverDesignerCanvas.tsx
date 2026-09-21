@@ -22,6 +22,17 @@ import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
 import { CoverTemplatesModal } from "./CoverTemplatesModal";
+import {
+  computeCoverLayout,
+  type CoverFormat,
+  type CoverLayout,
+  type PanelRect,
+} from "../../lib/coverLayout";
+
+// Re-exported for CoverDesigner.tsx/CoverTemplatesModal.tsx/cover/page.tsx's
+// own type-only imports of these -- the runtime implementation itself now
+// lives in lib/coverLayout.ts (see that file's comment for why).
+export type { CoverFormat, CoverLayout, PanelRect };
 
 // Front-panel display vs export -- geometry derived from the BOOK's actual
 // print trim size (trimMm prop, resolveBookPrintFormat in shared-types;
@@ -56,52 +67,6 @@ const SAFE_MARGIN = 24;
 // any CSS font-family), never embedded/redistributed as a file, so this
 // carries no font-licensing risk. All have solid Cyrillic coverage.
 const FONTS = ["Georgia", "Arial", "Helvetica", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New"];
-
-const DEFAULT_PAGE_COUNT = 150;
-
-export type CoverFormat = "ebook" | "softcover" | "hardcover";
-
-interface PanelRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-interface CoverLayout {
-  format: CoverFormat;
-  totalW: number;
-  totalH: number;
-  front: PanelRect;
-  spine?: PanelRect;
-  back?: PanelRect;
-}
-
-function computeSpineWidthPx(format: CoverFormat, pageCount: number | null | undefined, pxPerMm: number): number {
-  const pages = pageCount && pageCount > 0 ? pageCount : DEFAULT_PAGE_COUNT;
-  const spineMm = pages * 0.1 + (format === "hardcover" ? 4 : 0);
-  return Math.max(6, Math.round(spineMm * pxPerMm));
-}
-
-export function computeCoverLayout(
-  format: CoverFormat,
-  pageCount?: number | null,
-  trimMm: { widthMm: number; heightMm: number } = PRINT_TRIM_SIZE_MM
-): CoverLayout {
-  const { displayH: DISPLAY_H, pxPerMm } = deriveGeometry(trimMm);
-  if (format === "ebook") {
-    return { format, totalW: DISPLAY_W, totalH: DISPLAY_H, front: { x: 0, y: 0, w: DISPLAY_W, h: DISPLAY_H } };
-  }
-  const spineW = computeSpineWidthPx(format, pageCount, pxPerMm);
-  return {
-    format,
-    totalW: DISPLAY_W * 2 + spineW,
-    totalH: DISPLAY_H,
-    back: { x: 0, y: 0, w: DISPLAY_W, h: DISPLAY_H },
-    spine: { x: DISPLAY_W, y: 0, w: spineW, h: DISPLAY_H },
-    front: { x: DISPLAY_W + spineW, y: 0, w: DISPLAY_W, h: DISPLAY_H },
-  };
-}
 
 // ─── Template contract ──────────────────────────────────────────────────────
 
