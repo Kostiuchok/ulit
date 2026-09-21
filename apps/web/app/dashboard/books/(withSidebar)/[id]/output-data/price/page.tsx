@@ -127,29 +127,25 @@ function ChannelRow({
       </TableCell>
       <TableCell>
         {input ? (
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <div className="flex items-center gap-1.5 rounded border bg-white px-2 py-1.5">
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={input.value}
-                onChange={(e) => input.onChange(e.target.value)}
-                placeholder="0"
-                className="h-5 w-14 border-0 p-0 text-[13px] font-semibold shadow-none focus-visible:ring-0"
-              />
-              <span className="text-xs text-gray-400">{input.unit ?? "грн"}</span>
-            </div>
-            <span className="text-[13px] font-semibold text-gray-600">{shopPrice}</span>
+          <div className="flex w-fit items-center gap-1.5 rounded border bg-white px-2 py-1.5 whitespace-nowrap">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={input.value}
+              onChange={(e) => input.onChange(e.target.value)}
+              placeholder="—"
+              className="h-5 w-14 border-0 p-0 text-[13px] font-semibold shadow-none focus-visible:ring-0"
+            />
+            <span className="text-xs text-gray-400">{input.unit ?? "грн"}</span>
           </div>
         ) : (
-          <span className="text-sm text-gray-400">{shopPrice}</span>
+          <span className="text-sm text-gray-400">—</span>
         )}
       </TableCell>
       <TableCell>
-        <span className={cn("text-sm", shopPriceBold ? "font-semibold text-gray-900" : "text-gray-900")}>
-          {input ? "" : shopPrice}
-          {input && " "}
+        <span className={cn("text-sm", shopPriceBold ? "font-semibold text-gray-900" : "text-gray-700")}>
+          {shopPrice}
         </span>
       </TableCell>
       <TableCell className="max-w-xs">{conditions}</TableCell>
@@ -332,9 +328,11 @@ export default function OutputDataPricePage() {
   return (
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.price} done={priceSectionDone && !priceCardRejected} />
-      <Card className={cn("space-y-8 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400")}>
-        {/* ── Продаж електронної книги ─────────────────────────────────── */}
-        <div>
+
+      {/* Own bordered block, separate from "Продаж друкованої книги" below
+          -- matches Figma, which draws these as two distinct boxes, not one
+          shared card with an internal divider. */}
+      <Card className={cn("border border-gray-300 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400")}>
           <CollapsibleSection title="Продаж електронної книги">
           <div className="space-y-4">
           <div className="overflow-hidden rounded-lg border">
@@ -438,10 +436,20 @@ export default function OutputDataPricePage() {
                   disabled
                   shopPrice="—"
                   conditions={
-                    <span className="text-xs text-gray-500">
-                      Ексклюзивність 90 днів: Draft2Digital і Google Play Books будуть заблоковані, скасувати не можна до кінця
-                      терміну. Керується нижче, кнопкою «Зареєструватись у KDP Select».
-                    </span>
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-gray-500">
+                        Ексклюзивність 90 днів: Draft2Digital і Google Play Books будуть заблоковані, скасувати не можна до
+                        кінця терміну.
+                      </span>
+                      {/* Post-publish strategy switch itself lives in
+                          KdpSelectPanel (self-gated on book.status ===
+                          "PUBLISHED", renders null before that) -- moved
+                          here from its own separate Card at the bottom of
+                          the page so the actual "Зареєструватись" button
+                          sits right next to the row it controls, not in an
+                          unrelated block below both tables. */}
+                      <KdpSelectPanel bookId={id} bookStatus={book.status ?? ""} />
+                    </div>
                   }
                 />
               </TableBody>
@@ -449,10 +457,10 @@ export default function OutputDataPricePage() {
           </div>
           </div>
           </CollapsibleSection>
-        </div>
+      </Card>
 
-        {/* ── Продаж друкованої книги ──────────────────────────────────── */}
-        <div>
+      {/* ── Продаж друкованої книги ──────────────────────────────────── */}
+      <Card className={cn("border border-gray-300 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400")}>
           <CollapsibleSection
             title="Продаж друкованої книги"
             description="Безкоштовно для автора. Друк оплачує читач, купуючи книгу в магазині."
@@ -629,51 +637,44 @@ export default function OutputDataPricePage() {
           )}
           </div>
           </CollapsibleSection>
-        </div>
-
-        {/* ── Що відбудеться після внесення змін ───────────────────────── */}
-        {(channels.includes("ULIT") || externalRows.length > 0) && (
-          <div>
-            <CollapsibleSection title="Що відбудеться після внесення змін:">
-            <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded border bg-gray-50 px-2 py-1.5 text-[13px] font-bold text-gray-900">
-                  {platform("ULIT").icon} ULIT
-                </span>
-                <p className="text-[13px] text-gray-600">Ціна на сайті оновиться одразу після збереження.</p>
-              </div>
-              {externalRows.map((r) => {
-                const s = EXTERNAL_STATUS_LABEL[r.status ?? "NOT_SENT"] ?? EXTERNAL_STATUS_LABEL.NOT_SENT;
-                return (
-                  <div key={r.key} className="flex items-center gap-3">
-                    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded border bg-gray-50 px-2 py-1.5 text-[13px] font-bold text-gray-900">
-                      {platform(r.key.toUpperCase()).icon} {r.label}
-                    </span>
-                    <p className="text-[13px] text-gray-600">
-                      Зміни тут не надсилаються автоматично — статус:{" "}
-                      <Badge className={cn("rounded-sm px-1.5 py-0.5 text-[11px]", s.className)}>{s.label}</Badge>
-                      {r.sentAt && <span className="ml-1">від {fmtDate(r.sentAt)}</span>}. Адміністрація оновить дані вручну.
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-            </CollapsibleSection>
-          </div>
-        )}
-
-        {formatsError && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{formatsError}</div>}
-        {formatsSaved && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>}
-        <Button onClick={saveFormatsAndDistribution} loading={formatsSaving}>
-          Зберегти
-        </Button>
       </Card>
 
-      {book.status === "PUBLISHED" && (
-        <Card className="p-6 shadow-sm">
-          <KdpSelectPanel bookId={id} bookStatus={book.status} />
-        </Card>
+      {/* Deliberately NOT inside a Card -- this is the conclusion of both
+          blocks above (per Figma), not a block of its own. */}
+      {(channels.includes("ULIT") || externalRows.length > 0) && (
+        <div className="space-y-3 px-1">
+          <h3 className="text-base font-semibold text-gray-900">Що відбудеться після внесення змін:</h3>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded border bg-gray-50 px-2 py-1.5 text-[13px] font-bold text-gray-900">
+                {platform("ULIT").icon} ULIT
+              </span>
+              <p className="text-[13px] text-gray-600">Ціна на сайті оновиться одразу після збереження.</p>
+            </div>
+            {externalRows.map((r) => {
+              const s = EXTERNAL_STATUS_LABEL[r.status ?? "NOT_SENT"] ?? EXTERNAL_STATUS_LABEL.NOT_SENT;
+              return (
+                <div key={r.key} className="flex items-center gap-3">
+                  <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded border bg-gray-50 px-2 py-1.5 text-[13px] font-bold text-gray-900">
+                    {platform(r.key.toUpperCase()).icon} {r.label}
+                  </span>
+                  <p className="text-[13px] text-gray-600">
+                    Зміни тут не надсилаються автоматично — статус:{" "}
+                    <Badge className={cn("rounded-sm px-1.5 py-0.5 text-[11px]", s.className)}>{s.label}</Badge>
+                    {r.sentAt && <span className="ml-1">від {fmtDate(r.sentAt)}</span>}. Адміністрація оновить дані вручну.
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
+
+      {formatsError && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{formatsError}</div>}
+      {formatsSaved && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>}
+      <Button onClick={saveFormatsAndDistribution} loading={formatsSaving}>
+        Зберегти
+      </Button>
     </div>
   );
 }
