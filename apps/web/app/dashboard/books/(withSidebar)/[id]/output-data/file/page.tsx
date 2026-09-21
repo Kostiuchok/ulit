@@ -71,6 +71,37 @@ export default function OutputDataFilePage() {
   return (
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.file} done={fileSectionDone && !manuscriptRejected} />
+
+      {/* Its own card, gray-bordered -- separate from the upload block
+          below on purpose (author-requested): these are read-only
+          statistics about the manuscript's content, not part of the
+          upload/replace decision the card below is about. Same heading
+          style as "Рукопис (.docx)" so the two cards read as siblings, not
+          a subsection of one another. */}
+      {book?.originalDocxUrl && (
+        <Card className="border border-gray-300 p-6 shadow-sm space-y-3">
+          <h3 className="text-base font-semibold mb-1">Короткий огляд рукопису</h3>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <StatTile
+              label="сторінок (друк)"
+              value={book?.printPageCount != null ? String(book.printPageCount) : "—"}
+            />
+            <StatTile
+              label="символів"
+              value={stats?.status === "DONE" ? stats.characters.toLocaleString("uk-UA") : "—"}
+            />
+            <StatTile
+              label="слів"
+              value={stats?.status === "DONE" ? stats.words.toLocaleString("uk-UA") : "—"}
+            />
+            <StatTile
+              label="зображень"
+              value={stats?.status === "DONE" ? String(stats.images) : "—"}
+            />
+          </div>
+        </Card>
+      )}
+
       <Card className={cn("p-6 shadow-sm space-y-4", manuscriptRejected && "border-2 border-red-400")}>
         <div>
           <h3 className="text-base font-semibold mb-1">Рукопис (.docx)</h3>
@@ -93,30 +124,6 @@ export default function OutputDataFilePage() {
         >
           Редагувати текст рукопису →
         </Link>
-
-        {book?.originalDocxUrl && (
-          <div className="space-y-1.5 border-t pt-4">
-            <p className="text-xs font-medium text-gray-600">Короткий огляд рукопису</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <StatTile
-                label="сторінок (друк)"
-                value={book?.printPageCount != null ? String(book.printPageCount) : "—"}
-              />
-              <StatTile
-                label="символів"
-                value={stats?.status === "DONE" ? stats.characters.toLocaleString("uk-UA") : "—"}
-              />
-              <StatTile
-                label="слів"
-                value={stats?.status === "DONE" ? stats.words.toLocaleString("uk-UA") : "—"}
-              />
-              <StatTile
-                label="зображень"
-                value={stats?.status === "DONE" ? String(stats.images) : "—"}
-              />
-            </div>
-          </div>
-        )}
 
         {/* printPdfUrl is only ever produced by opening /manuscript/preview
             (print-preview.ts renders it lazily on GET) -- a missing print

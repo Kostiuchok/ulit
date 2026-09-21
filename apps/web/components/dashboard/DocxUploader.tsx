@@ -102,20 +102,21 @@ export function DocxUploader({ bookId, currentDocxUrl, onUploadSuccess }: Props)
           own Word/Google Docs pagination was, guaranteed to drift once the
           platform reflows the manuscript into the book's real print
           geometry. Shown before upload so this is known ahead of time, not
-          discovered after the fact in the printed file. */}
-      <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
-        <span>💡</span>
-        <span>
-          Не додавайте власний Зміст із номерами сторінок — платформа сформує його автоматично з заголовків,
-          позначених стилями «Розділ»/«Глава» в редакторі рукопису, з правильними номерами сторінок готової
-          друкованої книги.
-        </span>
-      </div>
-
-      {currentDocxUrl && (
-        <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-700">
-          <span>✓</span>
-          <span>Рукопис завантажено. Ви можете завантажити нову версію.</span>
+          discovered after the fact in the printed file -- once a manuscript
+          is already uploaded, this is stale advice for a decision already
+          made, not a live warning, so it stops showing (author-requested:
+          this and the "✓ завантажено" banner below were both noise once
+          there's nothing left to decide or report -- the real signal for
+          "system found an actual problem" is the rejection banner this
+          page's own Card border already carries via manuscriptRejected). */}
+      {!currentDocxUrl && (
+        <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+          <span>💡</span>
+          <span>
+            Не додавайте власний Зміст із номерами сторінок — платформа сформує його автоматично з заголовків,
+            позначених стилями «Розділ»/«Глава» в редакторі рукопису, з правильними номерами сторінок готової
+            друкованої книги.
+          </span>
         </div>
       )}
 
