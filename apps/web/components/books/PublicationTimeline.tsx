@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FileText, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { cn } from "../../lib/utils";
 import { getBookStatusLabel } from "../../lib/bookStatus";
 
@@ -91,8 +92,18 @@ function Row({
   hideLine?: boolean;
   toggle?: { expanded: boolean; onClick: () => void };
 }) {
+  // Hovering anywhere on the row shows the tooltip (not just the small Info
+  // icon) -- own state driving a controlled Tooltip, mirroring what the
+  // group/row CSS hover this replaced used to do, since Radix's Tooltip only
+  // reacts to hovering its own Trigger by default.
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
   return (
-    <div className="group/row relative flex items-start gap-3 pb-5">
+    <div
+      className="group/row relative flex items-start gap-3 pb-5"
+      onMouseEnter={() => tooltip && setTooltipOpen(true)}
+      onMouseLeave={() => setTooltipOpen(false)}
+    >
       {!isLast && !hideLine && (
         <div
           className="absolute left-[9px] top-5 bottom-0 w-px"
@@ -120,13 +131,18 @@ function Row({
             {label}
           </span>
           {tooltip && (
-            <span className="relative inline-flex shrink-0 items-center">
-              <Info size={14} className="text-gray-400" />
-              <div className="absolute left-0 top-full z-20 mt-2 hidden w-72 items-start gap-1.5 rounded-md bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] group-hover/row:flex sm:left-full sm:top-1/2 sm:mt-0 sm:ml-2 sm:-translate-y-1/2">
+            <Tooltip open={tooltipOpen} onOpenChange={setTooltipOpen} delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Info size={14} className="shrink-0 text-gray-400" />
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                className="flex w-72 items-start gap-1.5 border bg-white px-3 py-2 text-[0.8125rem] leading-snug text-black shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]"
+              >
                 <span>📖</span>
                 <span>{tooltip}</span>
-              </div>
-            </span>
+              </TooltipContent>
+            </Tooltip>
           )}
           {date && <span className="text-sm text-gray-500 shrink-0">/ {fmt(date)}</span>}
           {toggle && (

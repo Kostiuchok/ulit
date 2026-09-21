@@ -117,14 +117,15 @@ function NavRow({
 
   if (item.action === "delete") {
     return (
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => onDeleteClick(bookId)}
-        className="flex h-[2rem] w-full items-center gap-2.5 pl-12 pr-8 text-left text-[0.875rem] font-medium text-black transition-colors hover:bg-[#e9e9e9]"
+        className="h-[2rem] w-full justify-start gap-2.5 rounded-none pl-12 pr-8 text-left text-[0.875rem] font-medium text-black hover:bg-[#e9e9e9] hover:text-black"
       >
         {iconEl}
         <span className="truncate whitespace-nowrap">{item.label}</span>
-      </button>
+      </Button>
     );
   }
 
@@ -146,10 +147,11 @@ function NavRow({
 
 function GroupLabel({ label, expanded, onClick }: { label: string; expanded: boolean; onClick: () => void }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
-      className="flex h-[2rem] w-full items-center gap-1 px-8 text-left text-[0.875rem] text-black"
+      className="h-[2rem] w-full justify-start gap-1 rounded-none px-8 text-left text-[0.875rem] font-normal text-black hover:bg-transparent hover:text-black"
     >
       <img
         src="/figma/chevron-collapse.svg"
@@ -157,7 +159,7 @@ function GroupLabel({ label, expanded, onClick }: { label: string; expanded: boo
         className={cn("h-2 w-3 shrink-0 transition-transform", expanded ? "rotate-180" : "rotate-90")}
       />
       <span className="truncate whitespace-nowrap">{label}</span>
-    </button>
+    </Button>
   );
 }
 

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { PRINT_TRIM_SIZE_MM } from "shared-types";
 import { Button } from "../ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
 import { CoverTemplatesModal } from "./CoverTemplatesModal";
 
@@ -2040,63 +2041,77 @@ export default function CoverDesignerCanvas({
 
         {activeObj && (
           <div className="flex w-full max-w-xs items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => alignSelected("left")}
               className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
               title="До безпечної зони ліворуч"
             >
               <AlignHorizontalJustifyStart size={15} />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => alignSelected("center")}
               className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
               title="По центру сторінки"
             >
               <AlignHorizontalJustifyCenter size={15} />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => alignSelected("right")}
               className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
               title="До безпечної зони праворуч"
             >
               <AlignHorizontalJustifyEnd size={15} />
-            </button>
+            </Button>
             <div className="mx-1 h-5 w-px bg-gray-300" />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => changeLayer("front")}
               className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
               title="На передній план"
             >
               ⤒
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => changeLayer("forward")}
               className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
               title="Перемістити вище"
             >
               ↑
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => changeLayer("backward")}
               className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
               title="Перемістити нижче"
             >
               ↓
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => changeLayer("back")}
               className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
               title="На задній план"
             >
               ⤓
-            </button>
+            </Button>
           </div>
         )}
 
@@ -2129,49 +2144,52 @@ export default function CoverDesignerCanvas({
           <div className="space-y-2 rounded-lg border bg-gray-50 p-2">
             <p className="text-xs font-medium text-gray-500">Текст</p>
             <div className="flex flex-wrap items-center gap-1">
-              <button type="button" onClick={() => toggleTextStyle("fontWeight")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Жирний">
+              <Button type="button" variant="ghost" size="icon" onClick={() => toggleTextStyle("fontWeight")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Жирний">
                 <Bold size={15} />
-              </button>
-              <button type="button" onClick={() => toggleTextStyle("fontStyle")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Курсив">
+              </Button>
+              <Button type="button" variant="ghost" size="icon" onClick={() => toggleTextStyle("fontStyle")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Курсив">
                 <Italic size={15} />
-              </button>
-              <button type="button" onClick={() => toggleTextStyle("underline")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Підкреслення">
+              </Button>
+              <Button type="button" variant="ghost" size="icon" onClick={() => toggleTextStyle("underline")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Підкреслення">
                 <Underline size={15} />
-              </button>
-              <button type="button" onClick={() => toggleTextStyle("linethrough")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Закреслення">
+              </Button>
+              <Button type="button" variant="ghost" size="icon" onClick={() => toggleTextStyle("linethrough")} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Закреслення">
                 <Strikethrough size={15} />
-              </button>
-              <button type="button" onClick={toggleAllCaps} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Всі літери великі">
+              </Button>
+              <Button type="button" variant="ghost" size="icon" onClick={toggleAllCaps} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="Всі літери великі">
                 <CaseUpper size={15} />
-              </button>
+              </Button>
               <div className="mx-0.5 h-5 w-px bg-gray-300" />
-              <button type="button" onClick={() => updateSelected({ textAlign: "left" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По лівому краю">
+              <Button type="button" variant="ghost" size="icon" onClick={() => updateSelected({ textAlign: "left" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По лівому краю">
                 <AlignLeft size={15} />
-              </button>
-              <button type="button" onClick={() => updateSelected({ textAlign: "center" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По центру">
+              </Button>
+              <Button type="button" variant="ghost" size="icon" onClick={() => updateSelected({ textAlign: "center" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По центру">
                 <AlignCenter size={15} />
-              </button>
-              <button type="button" onClick={() => updateSelected({ textAlign: "right" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По правому краю">
+              </Button>
+              <Button type="button" variant="ghost" size="icon" onClick={() => updateSelected({ textAlign: "right" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="По правому краю">
                 <AlignRight size={15} />
-              </button>
-              <button type="button" onClick={() => updateSelected({ textAlign: "justify" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="На всю ширину">
+              </Button>
+              <Button type="button" variant="ghost" size="icon" onClick={() => updateSelected({ textAlign: "justify" })} className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900" title="На всю ширину">
                 <AlignJustify size={15} />
-              </button>
+              </Button>
             </div>
 
             <div className="flex items-center gap-2">
-              <select
+              <Select
                 value={(activeObj as fabric.Textbox).fontFamily || FONTS[0]}
-                onChange={(e) => updateSelected({ fontFamily: e.target.value })}
-                className="h-7 flex-1 rounded border border-gray-200 bg-white px-1.5 text-xs"
-                title="Шрифт"
+                onValueChange={(v) => updateSelected({ fontFamily: v })}
               >
-                {FONTS.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="h-7 flex-1 rounded border-gray-200 bg-white px-1.5 text-xs" title="Шрифт">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONTS.map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {f}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <input
                 type="color"
                 value={typeof (activeObj as any)?.fill === "string" ? ((activeObj as any).fill as string) : "#000000"}
@@ -2465,24 +2483,28 @@ export default function CoverDesignerCanvas({
                 <div className="flex flex-wrap gap-1.5">
                   {slotLibrary.map((img) => (
                     <div key={img.url} className="group relative h-12 w-12 overflow-hidden rounded border">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => {
                           const canvas = canvasRef.current;
                           if (canvas) applyIllustrationImage(canvas, ctx.layout, img.url);
                         }}
-                        className="h-full w-full"
+                        className="h-full w-full p-0"
                       >
                         <img src={img.url} alt="" className="h-full w-full object-cover" />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => removeLibraryImage(img.url)}
-                        className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-bl bg-black/60 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-bl bg-black/60 text-[10px] text-white opacity-0 transition-opacity hover:bg-black/60 hover:text-white group-hover:opacity-100"
                         aria-label="Видалити"
                       >
                         ×
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -2494,33 +2516,39 @@ export default function CoverDesignerCanvas({
               <div className="flex flex-wrap gap-1.5">
                 {bgImageUrl && (
                   <div className="relative h-6 w-6">
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={selectBgImage}
-                      className="h-6 w-6 overflow-hidden rounded border-2 border-gray-900"
+                      className="h-6 w-6 overflow-hidden rounded border-2 border-gray-900 p-0"
                       aria-label="Завантажене фонове зображення"
                       title="Завантажене фонове зображення"
                     >
                       <img src={bgImageUrl} alt="" className="h-full w-full object-cover" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={removeBgImage}
-                      className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black/70 text-[9px] text-white hover:bg-red-600"
+                      className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black/70 text-[9px] text-white hover:bg-red-600 hover:text-white"
                       aria-label="Прибрати фонове зображення"
                       title="Прибрати фонове зображення"
                     >
                       ×
-                    </button>
+                    </Button>
                   </div>
                 )}
                 {template.palette.map((color) => (
-                  <button
+                  <Button
                     key={color}
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => recolor(color)}
                     style={{ backgroundColor: color }}
-                    className="h-6 w-6 rounded border border-gray-300"
+                    className="h-6 w-6 rounded border border-gray-300 p-0 hover:opacity-80"
                     aria-label={color}
                   />
                 ))}
@@ -2545,26 +2573,30 @@ export default function CoverDesignerCanvas({
                   <div className="flex flex-wrap gap-1.5">
                     {bgLibrary.map((img) => (
                       <div key={img.url} className="group relative h-12 w-12 overflow-hidden rounded border">
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => {
                             const canvas = canvasRef.current;
                             if (!canvas) return;
                             applyBackgroundImage(canvas, ctx.layout, img.url);
                             setBgImageUrl(img.url);
                           }}
-                          className="h-full w-full"
+                          className="h-full w-full p-0"
                         >
                           <img src={img.url} alt="" className="h-full w-full object-cover" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => removeLibraryImage(img.url)}
-                          className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-bl bg-black/60 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-bl bg-black/60 text-[10px] text-white opacity-0 transition-opacity hover:bg-black/60 hover:text-white group-hover:opacity-100"
                           aria-label="Видалити"
                         >
                           ×
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>

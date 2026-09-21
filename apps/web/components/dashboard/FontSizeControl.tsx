@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 const MIN = 87.5;
 const MAX = 137.5;
@@ -27,21 +28,27 @@ export function FontSizeControl() {
 
   return (
     <div className="flex items-center gap-1 rounded border border-gray-400/50 px-1.5 py-0.5">
-      <button
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
         onClick={() => apply(scale - STEP)}
         title="Зменшити розмір шрифту інтерфейсу"
-        className="text-xs font-bold text-black hover:opacity-60"
+        className="h-5 w-5 p-0 text-xs font-bold text-black hover:bg-transparent hover:opacity-60"
       >
         A−
-      </button>
+      </Button>
       <span className="text-[0.75rem] text-gray-500 tabular-nums">{Math.round(scale)}%</span>
-      <button
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
         onClick={() => apply(scale + STEP)}
         title="Збільшити розмір шрифту інтерфейсу"
-        className="text-sm font-bold text-black hover:opacity-60"
+        className="h-5 w-5 p-0 text-sm font-bold text-black hover:bg-transparent hover:opacity-60"
       >
         A+
-      </button>
+      </Button>
     </div>
   );
 }
