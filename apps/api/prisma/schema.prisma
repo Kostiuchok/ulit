@@ -186,6 +186,20 @@ model Book {
   pricePrintHardcover  Decimal?             @db.Decimal(10, 2) // Друк, тверда обкладинка, кольоровий друк
   pricePrintBw         Decimal?             @db.Decimal(10, 2) // Друк, м'яка обкладинка, чорно-білий друк -- дешевше в типографії
   pricePrintHardcoverBw Decimal?            @db.Decimal(10, 2) // Друк, тверда обкладинка, чорно-білий друк
+  // "Ціна та розповсюдження" table redesign (Figma, 2026-09-21) -- per-channel
+  // advisory royalty/price the author can type for each EXTERNAL channel row
+  // (D2D/KDP/GOOGLE ebook, KDP print), independent of the single shared
+  // desiredRoyaltyAmount(Print) above. ULIT itself is NOT a key here -- its
+  // row keeps reading/writing the real priceEbook/pricePrint(Hardcover)(Bw)
+  // columns above, since those are the only prices apps/api's orders.ts
+  // actually charges a buyer; every other channel's number here stays
+  // advisory (same "every channel's suggested price is ADVISORY except
+  // Ulit" reasoning FormatsAndDistribution.tsx already documents), which is
+  // why this is one loosely-shaped JSON map and not N more Decimal columns
+  // -- shape: { [channelKey: string]: { royalty?: number; priceSoftcover?:
+  // number; priceHardcover?: number } }, channelKey one of "D2D" | "KDP" |
+  // "GOOGLE" (ebook) or "KDP_PRINT" (print, distinct key -- KDP does both).
+  channelPricing       Json?
   genre                String?
   printFormatKey       String? // PrintFormatKey (shared-types) -- auto-set from GENRE_TO_PRINT_FORMAT when genre changes, unless author manually overrode printWidthMm/printHeightMm
   printWidthMm         Int? // actual per-book print trim width -- falls back to PRINT_TRIM_SIZE_MM (shared-types) when null

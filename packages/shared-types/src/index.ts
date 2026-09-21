@@ -470,6 +470,31 @@ export const distributionChannelsSchema = z
   .min(1, "Оберіть хоча б одну платформу")
   .refine((ch) => ch.includes("ULIT"), "Магазин Ulit завжди обов'язковий");
 
+// "Ціна та розповсюдження" table redesign (Figma, 2026-09-21) -- per-channel
+// advisory royalty/price, one row per EXTERNAL channel (ULIT itself isn't a
+// key here; its row keeps reading/writing the real priceEbook/pricePrint*
+// columns, same reasoning FormatsAndDistribution.tsx already documents:
+// every other channel's number is advisory, ULIT's is the one actually
+// charged at checkout). "KDP_PRINT" is its own key, distinct from "KDP" --
+// Amazon KDP does both ebook and print with potentially different
+// royalty/price choices, and the two rows live in different sections
+// (Продаж електронної книги / Продаж друкованої книги) of the same page.
+export const CHANNEL_PRICING_KEYS = ["D2D", "KDP", "GOOGLE", "KDP_PRINT"] as const;
+export type ChannelPricingKey = (typeof CHANNEL_PRICING_KEYS)[number];
+
+const channelPricingEntrySchema = z.object({
+  royalty: z.number().positive().optional(),
+  // Softcover/paperback price -- the only one for an ebook-only channel
+  // (D2D/GOOGLE/KDP ebook); KDP_PRINT's own row can additionally set
+  // priceHardcover, same softcover/hardcover split ULIT's own print pricing
+  // already has.
+  priceSoftcover: z.number().positive().optional(),
+  priceHardcover: z.number().positive().optional(),
+});
+
+export const channelPricingSchema = z.record(z.enum(CHANNEL_PRICING_KEYS), channelPricingEntrySchema);
+export type ChannelPricing = z.infer<typeof channelPricingSchema>;
+
 // T-2060 п.4 -- structured per-book authors, independent of the account
 // profile. Previously validated ONLY on the backend (apps/api's book.ts) --
 // the frontend's "Автори книги" add-author form had no length/URL checks of

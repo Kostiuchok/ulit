@@ -11,6 +11,7 @@ import {
   distributionChannelsSchema,
   bookAuthorSchema,
   priceFieldSchema,
+  channelPricingSchema,
   getRequiredDescriptionMinLength,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
@@ -63,6 +64,7 @@ const BOOK_SELECT = {
   pricePrintHardcover: true,
   pricePrintBw: true,
   pricePrintHardcoverBw: true,
+  channelPricing: true,
   genre: true,
   printFormatKey: true,
   printWidthMm: true,
@@ -151,6 +153,7 @@ const patchSchema = z.object({
   pricePrintHardcover: priceFieldSchema,
   pricePrintBw: priceFieldSchema,
   pricePrintHardcoverBw: priceFieldSchema,
+  channelPricing: channelPricingSchema.nullable().optional(),
   pageCount: z.number().int().positive().nullable().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
   distributionChannels: distributionChannelsSchema.optional(),
@@ -362,6 +365,9 @@ export async function bookRoutes(app: FastifyInstance) {
           : undefined,
         contributors: data.contributors !== undefined
           ? (data.contributors ?? Prisma.JsonNull)
+          : undefined,
+        channelPricing: data.channelPricing !== undefined
+          ? (data.channelPricing ?? Prisma.JsonNull)
           : undefined,
       },
       select: BOOK_SELECT,
