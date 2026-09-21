@@ -206,7 +206,49 @@ export default function OutputDataInfoPage() {
   const [claimIsbnSaving, setClaimIsbnSaving] = useState(false);
   const [claimIsbnError, setClaimIsbnError] = useState("");
 
-  const infoForm = useForm<InfoForm>({ resolver: zodResolver(infoSchema) });
+  // Latched once from `book` (see the hydration effect below) -- feeds
+  // useForm's `values` option just below.
+  const [hydratedBook, setHydratedBook] = useState<InfoBook | null>(null);
+
+  // Async-loaded book -> form values goes through useForm's own `values`
+  // option (not a manual reset() call in an effect) -- confirmed live via
+  // React-internals inspection on prod that a bare `infoForm.reset(...)`
+  // (and even an explicit follow-up `setValue()` per field) updates
+  // _defaultValues correctly but leaves _formValues stuck at "" for these
+  // 4 Controller-wrapped Select fields specifically (genre/printFormatKey/
+  // ageRating/language) -- the Select rendered its empty placeholder even
+  // though the book genuinely had a value saved. RHF's `values` option
+  // internally calls `_reset(values, { keepFieldsRef: true, ... })`, a
+  // different path that properly syncs already-registered Controller
+  // fields; a bare `reset()`/`setValue()` do not. `hydratedBook` is set
+  // once (see the effect below, guarded the same way as before) and never
+  // changes again, so RHF's own deep-equal check on this option (it only
+  // actually re-applies when the object differs from what it last applied)
+  // keeps this a one-time hydration, same guarantee the old ref guard
+  // gave -- a silent background refetch from useBook() re-running this
+  // component does NOT clobber unsaved typing.
+  const infoForm = useForm<InfoForm>({
+    resolver: zodResolver(infoSchema),
+    values: hydratedBook
+      ? {
+          // Prefer the staged pending* value over the live one when this
+          // book is PUBLISHED and has an unsent edit sitting in moderation
+          // limbo.
+          title: hydratedBook.pendingTitle ?? hydratedBook.title,
+          subtitle: hydratedBook.subtitle ?? "",
+          description: hydratedBook.pendingDescription ?? hydratedBook.description ?? "",
+          genre: (hydratedBook.pendingGenre ?? hydratedBook.genre ?? "") as InfoForm["genre"],
+          printFormatKey: resolveBookPrintFormat(hydratedBook).key,
+          ageRating: (hydratedBook.ageRating ?? "") as InfoForm["ageRating"],
+          language: hydratedBook.language as InfoForm["language"],
+          aiGenerated: hydratedBook.aiGenerated ?? false,
+          aiGeneratedNote: hydratedBook.aiGeneratedNote ?? "",
+          copyrightYear: hydratedBook.copyrightYear ?? "",
+          copyrightHolder: hydratedBook.copyrightHolder ?? "",
+          priorPublicationCertificate: hydratedBook.priorPublicationCertificate ?? "",
+        }
+      : undefined,
+  });
 
   const titleValue = infoForm.watch("title") ?? "";
   const descValue = infoForm.watch("description") ?? "";
@@ -223,7 +265,9 @@ export default function OutputDataInfoPage() {
   // whenever the tab regains focus, which gives `book` a new object
   // reference on every such refetch; without this guard, that silent
   // refetch re-ran this whole effect and clobbered any unsaved typing with
-  // whatever was still on the server.
+  // whatever was still on the server. infoForm itself is hydrated via the
+  // `values` option above (fed by hydratedBook, set here) -- not reset()
+  // in this effect.
   const bookHydratedRef = useRef(false);
   useEffect(() => {
     if (!book || bookHydratedRef.current) return;
@@ -232,37 +276,7 @@ export default function OutputDataInfoPage() {
     setBookAuthors(Array.isArray(book.bookAuthors) ? book.bookAuthors : []);
     setContributors(Array.isArray(book.contributors) ? book.contributors : []);
     setAuthorBio(book.authorBio ?? "");
-    infoForm.reset({
-      // Prefer the staged pending* value over the live one when this book is
-      // PUBLISHED and has an unsent edit sitting in moderation limbo.
-      title: book.pendingTitle ?? book.title,
-      subtitle: book.subtitle ?? "",
-      description: book.pendingDescription ?? book.description ?? "",
-      genre: (book.pendingGenre ?? book.genre ?? "") as InfoForm["genre"],
-      printFormatKey: resolveBookPrintFormat(book).key,
-      ageRating: (book.ageRating ?? "") as InfoForm["ageRating"],
-      language: book.language as InfoForm["language"],
-      aiGenerated: book.aiGenerated ?? false,
-      aiGeneratedNote: book.aiGeneratedNote ?? "",
-      copyrightYear: book.copyrightYear ?? "",
-      copyrightHolder: book.copyrightHolder ?? "",
-      priorPublicationCertificate: book.priorPublicationCertificate ?? "",
-    });
-    // react-hook-form's reset() above correctly updates _defaultValues, but
-    // for these 4 Controller-wrapped Select fields specifically it does NOT
-    // reliably sync the live _formValues Controller/Select actually render
-    // from (confirmed live: after reset(), _defaultValues.genre held the
-    // real value while _formValues.genre stayed "" -- the Select kept
-    // showing its empty placeholder even though the book genuinely had a
-    // genre/size/language/age rating saved). setValue() writes _formValues
-    // directly and does not have this gap -- register()'d plain <Input>
-    // fields (title, subtitle, description, ...) aren't affected, only the
-    // Select ones.
-    infoForm.setValue("genre", (book.pendingGenre ?? book.genre ?? "") as InfoForm["genre"]);
-    infoForm.setValue("printFormatKey", resolveBookPrintFormat(book).key);
-    infoForm.setValue("ageRating", (book.ageRating ?? "") as InfoForm["ageRating"]);
-    infoForm.setValue("language", book.language as InfoForm["language"]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setHydratedBook(book);
   }, [book]);
 
   function addBookAuthor() {
