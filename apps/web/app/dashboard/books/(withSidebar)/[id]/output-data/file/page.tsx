@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
@@ -7,6 +8,7 @@ import { PreviewRangeEditor } from "@/components/books/PreviewRangeEditor";
 import { DocxUploader } from "@/components/dashboard/DocxUploader";
 import { Card } from "@/components/ui/card";
 import { useBook } from "@/hooks/useBook";
+import { useApi } from "@/hooks/useApi";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
 import { cn } from "@/lib/utils";
@@ -18,6 +20,7 @@ interface FileBook {
   pdfUrl?: string | null;
   epubUrl?: string | null;
   printPdfUrl?: string | null;
+  printPageCount?: number | null;
   pageCount?: number | null;
   previewStart?: number | null;
   previewEnd?: number | null;
@@ -28,9 +31,34 @@ interface FileBook {
   moderationFieldSnapshot?: unknown;
 }
 
+type ManuscriptStats =
+  | { status: "NO_CONTENT" }
+  | { status: "DONE"; characters: number; words: number; images: number };
+
+function StatTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-gray-50 px-3 py-2 text-center">
+      <p className="text-lg font-bold text-gray-900">{value}</p>
+      <p className="text-[11px] text-gray-500">{label}</p>
+    </div>
+  );
+}
+
 export default function OutputDataFilePage() {
   const { id } = useParams<{ id: string }>();
+  const { apiFetch, token } = useApi();
   const { book, setBook, loading } = useBook<FileBook>(id);
+  const [stats, setStats] = useState<ManuscriptStats | null>(null);
+
+  // Author-requested: a short at-a-glance overview right here, without
+  // opening the full editor -- pageCount is already on the book (from the
+  // print PDF render); characters/words/images need their own lightweight
+  // endpoint (walks manuscriptContent server-side) since that JSON isn't
+  // otherwise fetched on this page at all.
+  useEffect(() => {
+    if (!id || !token) return;
+    apiFetch<ManuscriptStats>(`/api/books/${id}/manuscript-stats`).then(setStats).catch(() => {});
+  }, [id, token, apiFetch]);
 
   if (loading) {
     return <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />;
@@ -65,6 +93,30 @@ export default function OutputDataFilePage() {
         >
           Редагувати текст рукопису →
         </Link>
+
+        {book?.originalDocxUrl && (
+          <div className="space-y-1.5 border-t pt-4">
+            <p className="text-xs font-medium text-gray-600">Короткий огляд рукопису</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <StatTile
+                label="сторінок (друк)"
+                value={book?.printPageCount != null ? String(book.printPageCount) : "—"}
+              />
+              <StatTile
+                label="символів"
+                value={stats?.status === "DONE" ? stats.characters.toLocaleString("uk-UA") : "—"}
+              />
+              <StatTile
+                label="слів"
+                value={stats?.status === "DONE" ? stats.words.toLocaleString("uk-UA") : "—"}
+              />
+              <StatTile
+                label="зображень"
+                value={stats?.status === "DONE" ? String(stats.images) : "—"}
+              />
+            </div>
+          </div>
+        )}
 
         {/* printPdfUrl is only ever produced by opening /manuscript/preview
             (print-preview.ts renders it lazily on GET) -- a missing print

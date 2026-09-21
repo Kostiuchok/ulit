@@ -10,7 +10,60 @@ const patchSchema = z.object({
   styleOverrides: z.any().optional(),
 });
 
+interface ManuscriptStatsAcc {
+  characters: number;
+  words: number;
+  images: number;
+}
+
+// Walks a ProseMirror doc (Tiptap's manuscriptContent JSON) counting the
+// three numbers output-data's own "Рукопис" overview shows the author.
+// Word count is a simple per-text-node split -- a word that happens to
+// straddle two adjacent text nodes (e.g. a bold/italic mark boundary mid-
+// word) can double-count at that seam, same class of approximation as
+// every other character counter in this app; not worth a real tokenizer
+// for an informational stat. `image` matches ResizableImage's node type
+// too (shared-types/manuscript/resizableImage.ts extends Tiptap's own
+// Image node via .extend(), which doesn't rename it).
+function walkManuscriptStats(node: unknown, acc: ManuscriptStatsAcc): void {
+  if (!node || typeof node !== "object") return;
+  const n = node as { type?: string; text?: string; content?: unknown[] };
+  if (n.type === "text" && typeof n.text === "string") {
+    acc.characters += n.text.length;
+    acc.words += n.text.trim().split(/\s+/).filter(Boolean).length;
+  }
+  if (n.type === "image") {
+    acc.images += 1;
+  }
+  if (Array.isArray(n.content)) {
+    for (const child of n.content) walkManuscriptStats(child, acc);
+  }
+}
+
 export async function bookManuscriptRoutes(app: FastifyInstance) {
+  app.get(
+    "/api/books/:id/manuscript-stats",
+    { preHandler: authenticate },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const book = await prisma.book.findUnique({
+        where: { id },
+        select: { authorId: true, manuscriptContent: true },
+      });
+      if (!book) throw AppError.notFound("Book");
+      if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
+
+      if (!book.manuscriptContent) {
+        return reply.send({ status: "NO_CONTENT" });
+      }
+
+      const acc: ManuscriptStatsAcc = { characters: 0, words: 0, images: 0 };
+      walkManuscriptStats(book.manuscriptContent, acc);
+      return reply.send({ status: "DONE", ...acc });
+    }
+  );
+
+
   app.get(
     "/api/books/:id/manuscript",
     { preHandler: authenticate },
