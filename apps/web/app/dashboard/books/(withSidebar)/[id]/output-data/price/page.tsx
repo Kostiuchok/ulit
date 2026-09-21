@@ -166,7 +166,7 @@ function PlacedBadge() {
 
 export default function OutputDataPricePage() {
   const { id } = useParams<{ id: string }>();
-  const { apiFetch } = useApi();
+  const { apiFetch, token } = useApi();
   const { book, setBook, loading } = useBook<PriceBook>(id);
 
   const [printCost, setPrintCost] = useState<PrintCost | null>(null);
@@ -196,9 +196,21 @@ export default function OutputDataPricePage() {
   const [formatsError, setFormatsError] = useState("");
 
   useEffect(() => {
-    if (!id) return;
+    // Found live (Playwright, direct URL navigation): missing `token` from
+    // this effect's deps let it fire on mount before next-auth's session
+    // had actually hydrated on a fresh page load (a raw `useState`/
+    // `useSession` read is undefined for a beat before the JWT resolves --
+    // most navigations here come from the sidebar with the session already
+    // warm, which is why this wasn't noticed sooner). apiFetch's own
+    // withTokenRetry (useApi.ts) only retries a 401 when the ORIGINAL
+    // attempt already had a token to refresh -- an attempt made with
+    // token=undefined gets no retry at all, so this fired with no
+    // Authorization header, got a bare 401, and silently left printCost
+    // null forever (shown to the author as "кількість друкованих сторінок
+    // ще не визначена", even though it genuinely was).
+    if (!id || !token) return;
     apiFetch<PrintCost>(`/api/books/${id}/print-cost`).then(setPrintCost).catch(() => {});
-  }, [id]);
+  }, [id, token, apiFetch]);
 
   // Same "hydrate once" guard as the Інформація page -- useBook() silently
   // refetches in the background on tab focus, which would otherwise clobber
