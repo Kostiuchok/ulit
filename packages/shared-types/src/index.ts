@@ -292,6 +292,14 @@ export interface PublishStepBook {
   title?: string | null;
   description?: string | null;
   ageRating?: string | null;
+  // Both required (non-optional) in output-data's own infoSchema/save PATCH
+  // -- always present on any book that's actually been saved through that
+  // form, but not previously part of THIS gate, so a book could show the
+  // "Інформація" section as ✓ done while genre/розмір/мова had silently
+  // failed to persist (see the output-data/page.tsx hydration bug history)
+  // with nothing here to catch it.
+  language?: string | null;
+  printFormatKey?: string | null;
   coverUrl?: string | null;
   originalDocxUrl?: string | null;
   pdfUrl?: string | null;
@@ -310,7 +318,16 @@ export interface PublishStepBook {
   bookAuthors?: unknown;
 }
 
-export type PublishFieldKey = "title" | "description" | "ageRating" | "cover" | "file" | "price" | "bookAuthors";
+export type PublishFieldKey =
+  | "title"
+  | "description"
+  | "ageRating"
+  | "language"
+  | "printFormatKey"
+  | "cover"
+  | "file"
+  | "price"
+  | "bookAuthors";
 
 export interface PublishFieldCheck {
   key: PublishFieldKey;
@@ -333,6 +350,8 @@ export const PUBLISH_FIELD_CHECKS: PublishFieldCheck[] = [
     },
   },
   { key: "ageRating", isComplete: (b) => !!b.ageRating },
+  { key: "language", isComplete: (b) => !!b.language },
+  { key: "printFormatKey", isComplete: (b) => !!b.printFormatKey },
   {
     // Previously nothing at all required at least one listed author -- a
     // book could reach REVIEW/PUBLISHED with an empty bookAuthors array (e.g.
@@ -381,7 +400,7 @@ export type PublishStepKey = "info" | "file" | "cover" | "price";
 // section, so a section's checkbox/heading can never disagree with what
 // validateBook (the actual pre-publish gate) requires of the same fields.
 export const PUBLISH_STEP_FIELDS: Record<PublishStepKey, PublishFieldKey[]> = {
-  info: ["title", "description", "ageRating", "bookAuthors"],
+  info: ["title", "description", "ageRating", "language", "printFormatKey", "bookAuthors"],
   file: ["file"],
   cover: ["cover"],
   price: ["price"],

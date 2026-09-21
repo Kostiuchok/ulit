@@ -208,6 +208,8 @@ describe("isReadyToPublish + isRejectionReasonResolved (books.ts's needsAttentio
     title: "Кобзар",
     description: "А".repeat(150),
     ageRating: "12+",
+    language: "uk",
+    printFormatKey: "standard",
     coverUrl: "https://example.com/cover.jpg",
     originalDocxUrl: "https://example.com/book.docx",
     priceEbook: 100,
