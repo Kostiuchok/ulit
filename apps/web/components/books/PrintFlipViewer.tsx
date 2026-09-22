@@ -1,7 +1,7 @@
 "use client";
 
 import "@/lib/pdfJsPolyfills";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import HTMLFlipBook from "react-pageflip-enhanced";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -58,6 +58,25 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
 
   const bookRef = useRef<{ pageFlip: () => { flipPrev: () => void; flipNext: () => void; flip: (i: number) => void } } | null>(null);
   const [current, setCurrent] = useState(0);
+  // The page-number input is its own typed draft, not bound straight to
+  // `current` -- an onChange wired directly to goTo() flipped the book after
+  // the very first keystroke (typing "12" flips to page 1, then to page 2),
+  // making the field unusable for anything but single-digit books. It only
+  // commits (flips) on Enter or blur; `current` changing elsewhere (arrows,
+  // drag) re-syncs the draft via the effect below.
+  const [pageInput, setPageInput] = useState("1");
+  useEffect(() => {
+    setPageInput(String(current + 1));
+  }, [current]);
+
+  function commitPageInput() {
+    const n = Number(pageInput);
+    if (Number.isFinite(n) && pageInput.trim() !== "") {
+      goTo(n - 1);
+    } else {
+      setPageInput(String(current + 1));
+    }
+  }
 
   const hasCover = !!coverUrl;
   const hasBackCover = !!backCoverUrl;
@@ -132,8 +151,15 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
             type="number"
             min={1}
             max={totalLeaves}
-            value={current + 1}
-            onChange={(e) => goTo(Number(e.target.value) - 1)}
+            value={pageInput}
+            onChange={(e) => setPageInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                commitPageInput();
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            onBlur={commitPageInput}
             className="w-14 rounded border border-gray-300 px-2 py-1 text-center outline-none focus:border-gray-900"
             aria-label="Номер сторінки"
           />
