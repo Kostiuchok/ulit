@@ -53,22 +53,12 @@ export default function OutputDataCoverPage() {
       <OutputDataSectionHeading label={SECTION_LABELS.cover} done={coverSectionDone && !coverRejected} />
 
       {/* Author-requested: check the cover is actually there without
-          leaving this page for the full editor -- split into its own two
-          cards (ebook / print) instead of one carousel toggling between
-          them, so both are visible at once, not one-at-a-time. */}
+          leaving this page for the full editor. "Передперегляд" -- слайдер
+          (друковані перед/зад) зліва, електронна книжка (планшет-мокап)
+          справа, обидва видно одночасно, не перемикаючи вкладки. */}
       {book?.coverUrl && (
         <Card className="border border-gray-300 p-6 shadow-sm">
-          <CollapsibleSection title="Обкладинка для електронної книги">
-          <div className="mx-auto w-full max-w-[200px]">
-            <TabletCoverFrame coverUrl={book.coverUrl} />
-          </div>
-          </CollapsibleSection>
-        </Card>
-      )}
-
-      {book?.coverUrl && (
-        <Card className="border border-gray-300 p-6 shadow-sm">
-          <CollapsibleSection title="Обкладинка для друку">
+          <CollapsibleSection title="Передперегляд">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="mx-auto w-full max-w-[220px]">
               <BookCoverCarousel
@@ -82,36 +72,43 @@ export default function OutputDataCoverPage() {
                 hasPrint
               />
             </div>
-            {/* Own gray-bordered block, distinct from the slider on the
-                left -- the flat, unfolded print wrap (back+spine+front)
-                with dashed fold-line guides, same geometry the live cover
-                editor itself uses (CoverDesignerCanvas's computeCoverLayout)
-                for its own spine guides. Both bindings shown since the
-                spine width (and so the fold lines) genuinely differs
-                between them -- this is deliberately everything the
-                moderator will actually see, not an approximation. */}
-            {trimMm && (
-              <div className="space-y-4 rounded-lg border border-gray-300 bg-gray-50 p-3">
-                <CoverPrintSpread
-                  coverUrl={book.coverUrl}
-                  backCoverUrl={book.backCoverUrl}
-                  spineUrl={book.spineUrl}
-                  format="softcover"
-                  pageCount={printPageCount}
-                  trimMm={trimMm}
-                  label="М'яка обкладинка — розворот з лініями згину"
-                />
-                <CoverPrintSpread
-                  coverUrl={book.coverUrl}
-                  backCoverUrl={book.backCoverUrl}
-                  spineUrl={book.spineUrl}
-                  format="hardcover"
-                  pageCount={printPageCount}
-                  trimMm={trimMm}
-                  label="Тверда обкладинка — розворот з лініями згину"
-                />
-              </div>
-            )}
+            <div className="mx-auto w-full max-w-[200px]">
+              <TabletCoverFrame coverUrl={book.coverUrl} />
+            </div>
+          </div>
+          </CollapsibleSection>
+        </Card>
+      )}
+
+      {/* "Обкладинка для друку" -- на всю ширину контенту, м'яка обкладинка
+          зверху й тверда під нею (не поруч), бо це два окремі, повноцінно
+          читабельні розвороти, а не пара мініатюр. Той самий плаский
+          розгорнутий вигляд (перед+корінець+зад) з лініями згину, що й
+          раніше -- геометрія ідентична CoverDesignerCanvas's власним
+          напрямним корінця, це навмисно все, що реально побачить модератор,
+          не наближення. */}
+      {book?.coverUrl && trimMm && (
+        <Card className="border border-gray-300 p-6 shadow-sm">
+          <CollapsibleSection title="Обкладинка для друку">
+          <div className="space-y-6">
+            <CoverPrintSpread
+              coverUrl={book.coverUrl}
+              backCoverUrl={book.backCoverUrl}
+              spineUrl={book.spineUrl}
+              format="softcover"
+              pageCount={printPageCount}
+              trimMm={trimMm}
+              label="М'яка обкладинка — розворот з лініями згину"
+            />
+            <CoverPrintSpread
+              coverUrl={book.coverUrl}
+              backCoverUrl={book.backCoverUrl}
+              spineUrl={book.spineUrl}
+              format="hardcover"
+              pageCount={printPageCount}
+              trimMm={trimMm}
+              label="Тверда обкладинка — розворот з лініями згину"
+            />
           </div>
           </CollapsibleSection>
         </Card>
