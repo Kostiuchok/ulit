@@ -16,6 +16,8 @@ import {
   AlignHorizontalJustifyStart,
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { PRINT_TRIM_SIZE_MM } from "shared-types";
 import { Button } from "../ui/button";
@@ -67,6 +69,9 @@ const SAFE_MARGIN = 24;
 // any CSS font-family), never embedded/redistributed as a file, so this
 // carries no font-licensing risk. All have solid Cyrillic coverage.
 const FONTS = ["Georgia", "Arial", "Helvetica", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New"];
+const FONT_SIZE_MIN = 6;
+const FONT_SIZE_MAX = 300;
+const clampFontSize = (v: number) => Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, Math.round(v)));
 
 // ─── Template contract ──────────────────────────────────────────────────────
 
@@ -2162,6 +2167,57 @@ export default function CoverDesignerCanvas({
                 className="h-7 w-9 shrink-0 cursor-pointer rounded border border-gray-200"
                 title="Колір тексту"
               />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="w-20 shrink-0 text-xs text-gray-500">Розмір</label>
+              <div className="flex flex-1 items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    updateSelected({
+                      fontSize: clampFontSize(((activeObj as fabric.Textbox).fontSize ?? 16) - 1),
+                    })
+                  }
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-white hover:text-gray-900"
+                  title="Зменшити розмір шрифту"
+                >
+                  <Minus size={13} />
+                </Button>
+                <input
+                  type="number"
+                  min={FONT_SIZE_MIN}
+                  max={FONT_SIZE_MAX}
+                  value={Math.round((activeObj as fabric.Textbox).fontSize ?? 16)}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (!Number.isFinite(v)) return;
+                    updateSelected({ fontSize: clampFontSize(v) });
+                  }}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value);
+                    updateSelected({ fontSize: clampFontSize(Number.isFinite(v) ? v : 16) });
+                  }}
+                  className="h-7 w-14 rounded border border-gray-200 bg-white px-1 text-center text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  title="Розмір шрифту"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    updateSelected({
+                      fontSize: clampFontSize(((activeObj as fabric.Textbox).fontSize ?? 16) + 1),
+                    })
+                  }
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-white hover:text-gray-900"
+                  title="Збільшити розмір шрифту"
+                >
+                  <Plus size={13} />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-1.5 border-t pt-2">
