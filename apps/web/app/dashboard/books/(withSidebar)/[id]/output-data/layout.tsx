@@ -84,7 +84,20 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
     publish: readyToPublish,
   };
 
-  const isDraftStatus = !book?.status || book.status === "DRAFT";
+  // Drives OutputDataTabs' "Публікація" pill: whether it's a real
+  // "Опублікувати →" action trigger, or just a plain nav link (once the book
+  // is PROCESSING/REVIEW/PUBLISHED, PublishButton on that page already shows
+  // its own static status badge for those, so the pill is just a link).
+  // UNPUBLISHED belongs here too -- a book taken down via "Зняти з
+  // публікації" and then edited can go through this exact same
+  // validate-then-submit-to-moderation flow (PublishButton's generic
+  // fallback branch, and POST /api/books/:id/publish server-side, both
+  // already accept UNPUBLISHED -> REVIEW). Live bug: excluding it here left
+  // the pill a dead plain link for an unpublished-then-resubmitted book --
+  // readyToPublish was true, but the pill never switched into its trigger
+  // state, so "Опублікувати" never appeared no matter how many times the
+  // author resubmitted.
+  const isDraftStatus = !book?.status || book.status === "DRAFT" || book.status === "UNPUBLISHED";
 
   return (
     <div className="p-8">
