@@ -403,6 +403,49 @@ export function isPublishFieldComplete(key: PublishFieldKey, book: PublishStepBo
   return PUBLISH_FIELD_CHECKS.find((c) => c.key === key)!.isComplete(book);
 }
 
+// ─── Journal #32 fix: which real DB columns does readiness need? ─────────────
+//
+// The actual incident: GET /api/books' own hand-written `select` silently
+// left out `printFormatKey` -- isReadyToPublish read `undefined` for it on
+// EVERY book, so `needsAttention` (the sidebar's amber dot) was stuck `true`
+// for every book on the platform regardless of real readiness, for weeks,
+// with no type error anywhere (every PublishStepBook field is optional, so a
+// Prisma object simply missing a column still satisfies the type).
+//
+// A hand-maintained "these are the fields the select needs" list would only
+// move the same bug one level up -- someone adding a new PUBLISH_FIELD_CHECKS
+// entry still has to remember a SECOND list exists and update it too. This
+// derives that list directly from the checks themselves instead: runs each
+// `isComplete` against a Proxy that returns `undefined` for every property
+// and records every property name actually read. Callers (books.ts,
+// publish.ts) spread the result straight into their Prisma `select` --
+// adding a field to a NEW PublishFieldCheck automatically makes every caller
+// of this function select it too, with no second edit required anywhere.
+//
+// Why this reliably catches every field, including ones inside a `||` OR-
+// chain (like the `price` check's 7-field fallback list): against an
+// all-falsy/all-undefined object, `a || b || c` short-circuits ONLY on the
+// first truthy operand -- since nothing here is ever truthy, JS evaluates
+// (and this Proxy records a `get` for) every single operand, all the way to
+// the end of the chain. Optional chaining (`b.authorBio?.trim()`) and `??`
+// both still read the left-hand property unconditionally too.
+export function getPublishReadinessFields(): string[] {
+  const touched = new Set<string>();
+  const tracker = new Proxy(
+    {},
+    {
+      get(_target, prop) {
+        if (typeof prop === "string") touched.add(prop);
+        return undefined;
+      },
+    }
+  ) as PublishStepBook;
+  for (const check of PUBLISH_FIELD_CHECKS) {
+    check.isComplete(tracker);
+  }
+  return Array.from(touched);
+}
+
 export type PublishStepKey = "info" | "file" | "cover" | "price";
 
 // output-data/page.tsx's own section keys (info/file/cover/price -- "review"

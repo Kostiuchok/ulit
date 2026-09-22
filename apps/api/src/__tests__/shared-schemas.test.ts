@@ -14,6 +14,7 @@ import {
   isPublishFieldComplete,
   isReadyToPublish,
   isRejectionReasonResolved,
+  getPublishReadinessFields,
   toOptionalSelectField,
 } from "shared-types";
 
@@ -262,6 +263,56 @@ describe("isReadyToPublish + isRejectionReasonResolved (books.ts's needsAttentio
       (key) => !isRejectionReasonResolved(key as any, completeBook, null)
     );
     expect(hasUnresolvedRejection).toBe(false);
+  });
+
+  // Journal #32: GET /api/books' own select silently left out printFormatKey
+  // -- isReadyToPublish read `undefined` for it on EVERY book, so the
+  // sidebar's amber dot was permanently stuck on for every book on the
+  // platform. No type error anywhere, because every PublishStepBook field is
+  // optional -- a Prisma object missing a column still satisfies the type.
+  // Generalizes the single "e.g. cover" case above to every field this
+  // fixture actually relies on: catches ANY of them silently becoming
+  // non-blocking (the same class of regression, whichever field it hits).
+  it("removing any single field this fixture relies on breaks readiness", () => {
+    for (const field of Object.keys(completeBook)) {
+      const broken = { ...completeBook, [field]: null };
+      expect(isReadyToPublish(broken), `expected isReadyToPublish to be false with "${field}" missing`).toBe(false);
+    }
+  });
+});
+
+// The real fix for journal #32: books.ts/publish.ts no longer hand-list which
+// fields to SELECT for readiness checks -- they spread this function's
+// output instead, so a future PUBLISH_FIELD_CHECKS addition is selected
+// automatically with no second edit anywhere. This locks down the field set
+// it currently derives, on purpose: a future PUBLISH_FIELD_CHECKS change
+// SHOULD make this test fail and force a conscious update here, documenting
+// exactly which real DB columns the readiness gate now depends on.
+describe("getPublishReadinessFields (the journal #32 fix itself)", () => {
+  it("derives exactly the fields every current check reads, including every OR-chain alternative", () => {
+    expect(getPublishReadinessFields().sort()).toEqual(
+      [
+        "title",
+        "description",
+        "ageRating",
+        "language",
+        "printFormatKey",
+        "genre",
+        "authorBio",
+        "bookAuthors",
+        "coverUrl",
+        "originalDocxUrl",
+        "pdfUrl",
+        "epubUrl",
+        "priceEbook",
+        "pricePrint",
+        "pricePrintHardcover",
+        "pricePrintBw",
+        "pricePrintHardcoverBw",
+        "desiredRoyaltyAmount",
+        "desiredRoyaltyAmountPrint",
+      ].sort()
+    );
   });
 });
 

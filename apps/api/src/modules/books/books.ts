@@ -12,6 +12,7 @@ import {
   DESCRIPTION_MAX_LENGTH,
   isReadyToPublish,
   isRejectionReasonResolved,
+  getPublishReadinessFields,
   type RejectionReasonKey,
   type PrintFormatKey,
 } from "shared-types";
@@ -117,29 +118,29 @@ export async function booksRoutes(app: FastifyInstance) {
         createdAt: true,
         publishedAt: true,
         archivedAt: true,
-        // Selected only to compute `needsAttention` below -- stripped from
-        // the response afterwards, the list UI never needed these directly.
-        // printFormatKey was missing here entirely until now -- isReadyToPublish
-        // reads it (PUBLISH_STEP_FIELDS.info), so with it undefined on every
-        // single book, isPublishFieldComplete("printFormatKey") was always
-        // false and needsAttention was permanently stuck `true` for every
-        // book regardless of its actual readiness (live-confirmed: all 3 of
-        // this account's books, including fully complete/PUBLISHED ones,
-        // came back needsAttention:true from this exact endpoint).
-        ageRating: true,
-        authorBio: true,
-        printFormatKey: true,
-        originalDocxUrl: true,
-        pdfUrl: true,
-        epubUrl: true,
-        docxUpdatedAt: true,
-        bookAuthors: true,
-        pricePrintBw: true,
-        pricePrintHardcoverBw: true,
-        desiredRoyaltyAmount: true,
-        desiredRoyaltyAmountPrint: true,
         moderationReasons: true,
         moderationFieldSnapshot: true,
+        // Journal #32 -- printFormatKey was missing here entirely, silently
+        // (no type error: every PublishStepBook field is optional), which
+        // left isReadyToPublish permanently false and `needsAttention`
+        // permanently `true` for EVERY book on the platform regardless of
+        // actual readiness. Rather than hand-list the readiness fields here
+        // (the exact kind of parallel list that caused that bug -- adding a
+        // new PUBLISH_FIELD_CHECKS entry gives no signal that THIS select
+        // also needs editing), this spreads getPublishReadinessFields()
+        // (shared-types), which derives the field list directly from the
+        // check functions themselves by recording which properties they
+        // actually read. A future required field is selected here with zero
+        // additional edits -- see that function's own comment for how/why
+        // this holds even for the `price` check's OR-chain of 7 fields.
+        // Sends a few fields (ageRating, authorBio, bookAuthors,
+        // printFormatKey, originalDocxUrl/pdfUrl/epubUrl,
+        // pricePrintBw/HardcoverBw, desiredRoyaltyAmount(Print)) the list UI
+        // doesn't otherwise display -- deliberately not hand-stripped
+        // afterwards either, for the same reason: a hand-maintained strip
+        // list is just as capable of silently drifting as a hand-maintained
+        // select was.
+        ...(Object.fromEntries(getPublishReadinessFields().map((f) => [f, true])) as Record<string, true>),
       },
     });
 
@@ -159,13 +160,7 @@ export async function booksRoutes(app: FastifyInstance) {
         (key) => !isRejectionReasonResolved(key, book, snapshot)
       );
       const needsAttention = hasUnresolvedRejection || !isReadyToPublish(book);
-      const {
-        ageRating, authorBio, printFormatKey, originalDocxUrl, pdfUrl, epubUrl, docxUpdatedAt, bookAuthors,
-        pricePrintBw, pricePrintHardcoverBw, desiredRoyaltyAmount, desiredRoyaltyAmountPrint,
-        moderationReasons, moderationFieldSnapshot,
-        ...rest
-      } = book;
-      return { ...rest, needsAttention };
+      return { ...book, needsAttention };
     });
 
     return reply.send({ books: withFlags.map(withCoverVersion) });

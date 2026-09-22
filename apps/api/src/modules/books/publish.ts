@@ -3,7 +3,14 @@ import { Prisma } from "@prisma/client";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
-import { PUBLISH_FIELD_CHECKS, DESCRIPTION_MIN_LENGTH, DESCRIPTION_MAX_LENGTH, type PublishStepBook } from "shared-types";
+import {
+  PUBLISH_FIELD_CHECKS,
+  DESCRIPTION_MIN_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+  getPublishReadinessFields,
+  type PublishStepBook,
+  type PublishFieldKey,
+} from "shared-types";
 
 interface ValidationError {
   field: string;
@@ -17,7 +24,13 @@ interface ValidationError {
 // and output-data/page.tsx's per-section checkbox reads the exact same
 // checks (isPublishStepComplete), so the two can never disagree about what
 // counts as done.
-const FIELD_MESSAGES: Record<string, (book: PublishStepBook) => string> = {
+// PublishFieldKey (not `string`) as the key type -- TS then requires a
+// message for EVERY key in PUBLISH_FIELD_CHECKS at compile time. Without
+// this, a newly added check (e.g. today's genre/authorBio) with no matching
+// entry here wouldn't fail the build -- it'd crash at runtime the first
+// time that specific check actually failed (FIELD_MESSAGES[c.key] would be
+// `undefined`, and `undefined(book)` throws), not on every request.
+const FIELD_MESSAGES: Record<PublishFieldKey, (book: PublishStepBook) => string> = {
   title: () => "Назва відсутня",
   description: (b) => {
     const len = (b.description ?? "").trim().length;
@@ -56,28 +69,14 @@ export async function publishRoute(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       const book = await prisma.book.findUnique({
         where: { id },
+        // Journal #32 -- spreads getPublishReadinessFields() (shared-types)
+        // instead of hand-listing every field validateBook's checks read, so
+        // a newly added PUBLISH_FIELD_CHECKS entry is selected here
+        // automatically, with no second edit required.
         select: {
           authorId: true,
-          title: true,
-          description: true,
-          ageRating: true,
-          language: true,
-          printFormatKey: true,
-          genre: true,
-          authorBio: true,
-          coverUrl: true,
-          originalDocxUrl: true,
-          pdfUrl: true,
-          epubUrl: true,
-          priceEbook: true,
-          pricePrint: true,
-          pricePrintHardcover: true,
-          pricePrintBw: true,
-          pricePrintHardcoverBw: true,
-          desiredRoyaltyAmount: true,
-          desiredRoyaltyAmountPrint: true,
-          bookAuthors: true,
           status: true,
+          ...(Object.fromEntries(getPublishReadinessFields().map((f) => [f, true])) as Record<string, true>),
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -101,31 +100,14 @@ export async function publishRoute(app: FastifyInstance) {
 
       const book = await prisma.book.findUnique({
         where: { id },
+        // Same automatic derivation as the GET validate route above.
         select: {
           id: true,
-          title: true,
-          description: true,
-          ageRating: true,
-          language: true,
-          printFormatKey: true,
-          genre: true,
-          authorBio: true,
           status: true,
           authorId: true,
-          coverUrl: true,
-          originalDocxUrl: true,
-          pdfUrl: true,
-          epubUrl: true,
-          priceEbook: true,
-          pricePrint: true,
-          pricePrintHardcover: true,
-          pricePrintBw: true,
-          pricePrintHardcoverBw: true,
-          desiredRoyaltyAmount: true,
-          desiredRoyaltyAmountPrint: true,
-          bookAuthors: true,
           publicationTimeline: true,
           author: { select: { id: true, contractAcceptedAt: true } },
+          ...(Object.fromEntries(getPublishReadinessFields().map((f) => [f, true])) as Record<string, true>),
         },
       });
 
