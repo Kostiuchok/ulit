@@ -46,5 +46,26 @@ export function useBook<T = any>(id: string | undefined) {
     };
   }, [refetch]);
 
+  // Every useBook(id) call is its OWN independent fetch/state -- there's no
+  // shared cache between e.g. output-data/layout.tsx's instance (drives the
+  // top nav pills' ✓/○ badges) and a leaf page's own instance (drives that
+  // page's form). Live bug this fixed: saving "Інформація" updated the leaf
+  // page's own `book` via its local setBook(updated) just fine (that page's
+  // own heading turned green), but layout.tsx's separate `book` never heard
+  // about it -- the top "Інформація" tab pill stayed stuck on its old ✓/○
+  // state no matter how many times the author saved. "ulit:books-changed" is
+  // the existing app-wide "a book mutated, anyone holding one should
+  // refresh" signal (AuthorBooksSidebar/MyBooksList/useNotifications already
+  // listen for it) -- every useBook(id) instance now does too, so a save
+  // anywhere refreshes every other component's view of the same book without
+  // them needing to share state directly.
+  useEffect(() => {
+    function onBooksChanged() {
+      refetch({ silent: true });
+    }
+    window.addEventListener("ulit:books-changed", onBooksChanged);
+    return () => window.removeEventListener("ulit:books-changed", onBooksChanged);
+  }, [refetch]);
+
   return { book, setBook, loading, error, refetch };
 }

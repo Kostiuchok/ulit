@@ -110,13 +110,17 @@ export default function OutputDataFilePage() {
         <DocxUploader
           bookId={id}
           currentDocxUrl={book?.originalDocxUrl}
-          onUploadSuccess={(docxPath) =>
+          onUploadSuccess={(docxPath) => {
             setBook((b) =>
               b
                 ? { ...b, originalDocxUrl: docxPath ?? b.originalDocxUrl, docxUpdatedAt: new Date().toISOString() }
                 : b
-            )
-          }
+            );
+            // layout.tsx's top nav pills (✓/○ badges) read their own
+            // separate useBook(id) instance -- without this, the "Рукопис"
+            // pill stayed stuck on its pre-upload state.
+            window.dispatchEvent(new Event("ulit:books-changed"));
+          }}
         />
         <Link
           href={`/dashboard/books/${id}/manuscript`}

@@ -265,6 +265,10 @@ export default function OutputDataPricePage() {
       });
       setFormatsSaved(true);
       setTimeout(() => setFormatsSaved(false), 3000);
+      // Same fix as output-data/page.tsx's onSubmitInfo -- layout.tsx's top
+      // nav pills read their own separate useBook(id) instance and only
+      // learn a save happened via this event.
+      window.dispatchEvent(new Event("ulit:books-changed"));
     } catch (e: any) {
       setFormatsError(e.message || "Помилка збереження");
     } finally {

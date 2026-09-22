@@ -103,6 +103,11 @@ export default function CoverPage() {
     setBook((b) => (b ? { ...b, ...patch } : b));
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+    // Every other view of this book (output-data's "Обкладинка" tab pill,
+    // the sidebar's needsAttention dot) holds its own separate useBook(id)
+    // instance -- without this, saving here left them all stuck on the
+    // pre-save state until a full reload.
+    window.dispatchEvent(new Event("ulit:books-changed"));
   }
 
   function handleLibraryChange(library: { url: string; uploadedAt: string; kind?: "slot" | "background" }[]) {

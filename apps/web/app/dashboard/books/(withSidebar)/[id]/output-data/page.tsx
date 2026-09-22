@@ -449,6 +449,11 @@ function OutputDataInfoForm({
         ].filter(Boolean) as string[]
       );
       setInfoSaved(true);
+      // output-data/layout.tsx's top nav pills (✓/○ badges) come from their
+      // OWN separate useBook(id) instance, not this page's -- without this,
+      // the "Інформація" pill stayed on its stale state after saving no
+      // matter what, since layout.tsx never learned the save happened.
+      window.dispatchEvent(new Event("ulit:books-changed"));
     } catch (e: any) {
       setInfoError(e.message || "Помилка збереження");
     }
