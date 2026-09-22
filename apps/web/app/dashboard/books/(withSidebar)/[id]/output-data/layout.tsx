@@ -19,6 +19,7 @@ interface LayoutBook {
   genre?: string | null;
   language?: string | null;
   ageRating?: string | null;
+  authorBio?: string | null;
   coverUrl?: string | null;
   originalDocxUrl?: string | null;
   pdfUrl?: string | null;

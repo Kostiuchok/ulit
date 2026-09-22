@@ -300,6 +300,13 @@ export interface PublishStepBook {
   // with nothing here to catch it.
   language?: string | null;
   printFormatKey?: string | null;
+  // Genre and author bio were both previously left out of this gate entirely
+  // -- an empty Жанр select had no asterisk, no highlight, and didn't affect
+  // the "Інформація" checkmark/sidebar attention-dot at all, and a removed
+  // "Біографія автора" text left the section looking complete. Both now real
+  // requirements, same tier as ageRating/language.
+  genre?: string | null;
+  authorBio?: string | null;
   coverUrl?: string | null;
   originalDocxUrl?: string | null;
   pdfUrl?: string | null;
@@ -324,6 +331,8 @@ export type PublishFieldKey =
   | "ageRating"
   | "language"
   | "printFormatKey"
+  | "genre"
+  | "authorBio"
   | "cover"
   | "file"
   | "price"
@@ -352,6 +361,8 @@ export const PUBLISH_FIELD_CHECKS: PublishFieldCheck[] = [
   { key: "ageRating", isComplete: (b) => !!b.ageRating },
   { key: "language", isComplete: (b) => !!b.language },
   { key: "printFormatKey", isComplete: (b) => !!b.printFormatKey },
+  { key: "genre", isComplete: (b) => !!b.genre },
+  { key: "authorBio", isComplete: (b) => !!b.authorBio?.trim() },
   {
     // Previously nothing at all required at least one listed author -- a
     // book could reach REVIEW/PUBLISHED with an empty bookAuthors array (e.g.
@@ -400,7 +411,7 @@ export type PublishStepKey = "info" | "file" | "cover" | "price";
 // section, so a section's checkbox/heading can never disagree with what
 // validateBook (the actual pre-publish gate) requires of the same fields.
 export const PUBLISH_STEP_FIELDS: Record<PublishStepKey, PublishFieldKey[]> = {
-  info: ["title", "description", "ageRating", "language", "printFormatKey", "bookAuthors"],
+  info: ["title", "description", "ageRating", "language", "printFormatKey", "genre", "authorBio", "bookAuthors"],
   file: ["file"],
   cover: ["cover"],
   price: ["price"],

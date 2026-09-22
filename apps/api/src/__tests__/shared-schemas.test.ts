@@ -200,6 +200,26 @@ describe("bookAuthors publish-readiness check (PUBLISH_FIELD_CHECKS' \"bookAutho
   });
 });
 
+// Both previously left out of PUBLISH_FIELD_CHECKS entirely -- an empty
+// Жанр or Біографія автора had no effect on readiness at all.
+describe("genre + authorBio publish-readiness checks", () => {
+  it("rejects a missing genre", () => {
+    expect(isPublishFieldComplete("genre", { genre: null })).toBe(false);
+  });
+
+  it("accepts a real genre", () => {
+    expect(isPublishFieldComplete("genre", { genre: GENRES[0] })).toBe(true);
+  });
+
+  it("rejects a blank/whitespace-only authorBio", () => {
+    expect(isPublishFieldComplete("authorBio", { authorBio: "   " })).toBe(false);
+  });
+
+  it("accepts a non-empty authorBio", () => {
+    expect(isPublishFieldComplete("authorBio", { authorBio: "Народився 1814 року." })).toBe(true);
+  });
+});
+
 // books.ts's GET /api/books route composes exactly these two primitives into
 // a single `needsAttention` flag (T-2078) -- guards that composition against
 // either primitive silently changing behavior out from under it.
@@ -210,6 +230,8 @@ describe("isReadyToPublish + isRejectionReasonResolved (books.ts's needsAttentio
     ageRating: "12+",
     language: "uk",
     printFormatKey: "standard",
+    genre: GENRES[0],
+    authorBio: "Народився 1814 року.",
     coverUrl: "https://example.com/cover.jpg",
     originalDocxUrl: "https://example.com/book.docx",
     priceEbook: 100,

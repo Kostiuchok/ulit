@@ -120,6 +120,7 @@ export async function booksRoutes(app: FastifyInstance) {
         // Selected only to compute `needsAttention` below -- stripped from
         // the response afterwards, the list UI never needed these directly.
         ageRating: true,
+        authorBio: true,
         originalDocxUrl: true,
         pdfUrl: true,
         epubUrl: true,
@@ -151,7 +152,7 @@ export async function booksRoutes(app: FastifyInstance) {
       );
       const needsAttention = hasUnresolvedRejection || !isReadyToPublish(book);
       const {
-        ageRating, originalDocxUrl, pdfUrl, epubUrl, docxUpdatedAt, bookAuthors,
+        ageRating, authorBio, originalDocxUrl, pdfUrl, epubUrl, docxUpdatedAt, bookAuthors,
         pricePrintBw, pricePrintHardcoverBw, desiredRoyaltyAmount, desiredRoyaltyAmountPrint,
         moderationReasons, moderationFieldSnapshot,
         ...rest

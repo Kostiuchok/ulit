@@ -282,12 +282,42 @@ function OutputDataInfoForm({
   const titleValue = infoForm.watch("title") ?? "";
   const descValue = infoForm.watch("description") ?? "";
   const aiGeneratedValue = infoForm.watch("aiGenerated") ?? false;
+  // Live (watched) values, not the persisted `book.*` fields -- these drive
+  // the amber "missing required value" highlight below, which has to react
+  // to the author picking/clearing a value immediately, not just after save.
+  const genreValue = infoForm.watch("genre") ?? "";
+  const ageRatingValue = infoForm.watch("ageRating") ?? "";
+  const languageValue = infoForm.watch("language") ?? "";
+  const genreMissing = !genreValue;
+  const ageRatingMissing = !ageRatingValue;
+  const languageMissing = !languageValue;
+  // Amber ring for "required but currently empty" -- deliberately distinct
+  // from the red border used elsewhere on this page for "a moderator
+  // rejected this exact field" (*Rejected below), so the two reasons stay
+  // visually different.
+  const missingRing = "border-amber-400 focus:ring-amber-300 ring-1 ring-amber-200";
 
   // Розмір книги is its own independent field now (not derived from genre)
   // -- same "Розмір книги" selector BookWizard's creation step has, so it
   // can be changed after creation too, not just once at the start.
   const selectedFormatKey = (infoForm.watch("printFormatKey") || "standard") as PrintFormatKey;
   const displayFormat = PRINT_FORMATS[selectedFormatKey] ?? PRINT_FORMATS.standard;
+
+  // "Заповнити поля з кабінету автора" -- one-click recovery for the exact
+  // scenario reported live: an author accidentally removes their only
+  // bookAuthors entry, the badge correctly flips to amber, and this button
+  // (next to it) copies ПІБ/фото from the account profile straight back into
+  // the "add author" inputs so a single follow-up click on "+ Додати автора"
+  // restores it -- 2 clicks total instead of retyping everything by hand.
+  function fillAuthorFromProfile() {
+    if (!userProfile) return;
+    setNewAuthor({
+      lastName: userProfile.lastName ?? "",
+      firstName: userProfile.firstName ?? "",
+      middleName: userProfile.patronymic ?? "",
+      photoUrl: userProfile.avatarUrl ?? "",
+    });
+  }
 
   function addBookAuthor() {
     setNewAuthorError("");
@@ -448,7 +478,19 @@ function OutputDataInfoForm({
   // from the persisted book, not live form state, so this heading only turns
   // green once the section is actually saved, not just typed into.
   const infoSectionDone = isPublishStepComplete("info", book);
-  const hasAnyAuthor = Array.isArray(book.bookAuthors) && book.bookAuthors.some((a) => a.lastName?.trim() && a.firstName?.trim());
+  // Live -- reads the `bookAuthors` state array this page actually renders
+  // and lets the author add/remove from, not the persisted `book.bookAuthors`
+  // from the last save. Reading the persisted value here was the exact bug
+  // reported live: removing the only author left the "✓ Автор вказаний"
+  // badge showing green (it hadn't been saved yet, so `book.bookAuthors`
+  // still had the old entry) even though the section was no longer actually
+  // complete. A draft still sitting in the "add author" inputs (not yet
+  // clicked "+ Додати автора") also counts as present -- onSubmitInfo already
+  // silently folds that same draft in on save, so treating it as "missing"
+  // here would flash amber for a value that's about to be saved anyway.
+  const authorDraftFilled = !!(newAuthor.lastName.trim() && newAuthor.firstName.trim());
+  const hasAnyAuthor = bookAuthors.some((a) => a.lastName?.trim() && a.firstName?.trim()) || authorDraftFilled;
+  const authorBioMissing = !authorBio.trim();
   const unresolvedRejectionLines = getUnresolvedRejectionLines(book);
   const unresolvedCategory = (cat: (typeof unresolvedRejectionLines)[number]["category"]) =>
     unresolvedRejectionLines.some((l) => l.category === cat);
@@ -461,6 +503,24 @@ function OutputDataInfoForm({
   const authorRejected = unresolvedCategory("author");
   const languageRejected = unresolvedCategory("language");
   const infoCardRejected = titleRejected || descriptionRejected || genreRejected || authorRejected || languageRejected;
+
+  // Gates "Зберегти зміни" itself -- every required field this section has,
+  // computed live off current form/state values (not the formState.errors
+  // RHF only starts tracking after a first submit attempt under the default
+  // "onSubmit" validation mode, which would leave the button clickable on a
+  // freshly-opened page even with required fields still blank). Deliberately
+  // does NOT include *Rejected (moderator flagged this field) -- a rejected
+  // field still HAS a value, editing and re-saving it is exactly how an
+  // author resolves a rejection, so rejection state must never block Save.
+  const infoIncomplete =
+    !titleValue.trim() ||
+    descValue.trim().length < DESCRIPTION_MIN_LENGTH ||
+    descValue.trim().length > DESCRIPTION_MAX_LENGTH ||
+    genreMissing ||
+    ageRatingMissing ||
+    languageMissing ||
+    !hasAnyAuthor ||
+    authorBioMissing;
 
   return (
     <div className="space-y-3">
@@ -544,13 +604,16 @@ function OutputDataInfoForm({
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="genre">Жанр</Label>
+                <Label htmlFor="genre">Жанр <span className="text-red-500">*</span></Label>
                 <Controller
                   control={infoForm.control}
                   name="genre"
                   render={({ field }) => (
                     <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                      <SelectTrigger id="genre" className={cn(genreRejected && "border-red-400")}>
+                      <SelectTrigger
+                        id="genre"
+                        className={cn(genreRejected ? "border-red-400" : genreMissing && missingRing)}
+                      >
                         <SelectValue placeholder="Оберіть жанр" />
                       </SelectTrigger>
                       <SelectContent>
@@ -601,7 +664,10 @@ function OutputDataInfoForm({
                   name="language"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="language" className={cn(languageRejected && "border-red-400")}>
+                      <SelectTrigger
+                        id="language"
+                        className={cn(languageRejected ? "border-red-400" : languageMissing && missingRing)}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -619,10 +685,7 @@ function OutputDataInfoForm({
                   name="ageRating"
                   render={({ field }) => (
                     <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                      <SelectTrigger
-                        id="ageRating"
-                        className={cn(infoForm.formState.errors.ageRating && "border-red-400 focus:ring-red-300")}
-                      >
+                      <SelectTrigger id="ageRating" className={cn(ageRatingMissing && missingRing)}>
                         <SelectValue placeholder="Оберіть вікове обмеження" />
                       </SelectTrigger>
                       <SelectContent>
@@ -631,29 +694,44 @@ function OutputDataInfoForm({
                     </Select>
                   )}
                 />
-                {infoForm.formState.errors.ageRating && (
-                  <p className="text-sm text-red-500">{infoForm.formState.errors.ageRating.message}</p>
-                )}
               </div>
             </div>
           </div>
 
           {/* T-2060 п.4 — структуровані автори книги, незалежно від профілю користувача. */}
-          <div className={cn("rounded-lg border p-3", authorRejected && "border-2 border-red-400")}>
+          <div
+            className={cn(
+              "rounded-lg border p-3",
+              authorRejected ? "border-2 border-red-400" : !hasAnyAuthor && "border-2 border-amber-400"
+            )}
+          >
             <CollapsibleSection
-              title="Автори книги"
+              title={<h3 className="text-base font-semibold text-gray-900">Автори книги <span className="text-red-500">*</span></h3>}
               description="Якщо авторів декілька — кожен додає власне прізвище/ім'я і, за бажанням, своє фото."
             >
             <div className="space-y-2">
-              <div className="flex items-start gap-2 text-xs">
-                <span className={cn("mt-0.5", hasAnyAuthor ? "text-green-600" : "text-amber-500")}>
-                  {hasAnyAuthor ? "✓" : "○"}
+              <div className="flex flex-wrap items-start gap-x-2 gap-y-1.5 text-xs">
+                <span className="flex items-start gap-2">
+                  <span className={cn("mt-0.5", hasAnyAuthor ? "text-green-600" : "text-amber-500")}>
+                    {hasAnyAuthor ? "✓" : "○"}
+                  </span>
+                  <span className={hasAnyAuthor ? "text-gray-500" : "text-amber-600"}>
+                    {hasAnyAuthor
+                      ? "Автор вказаний"
+                      : "Автор не вказаний — без цього книгу не можна відправити на модерацію"}
+                  </span>
                 </span>
-                <span className={hasAnyAuthor ? "text-gray-500" : "text-amber-600"}>
-                  {hasAnyAuthor
-                    ? "Автор вказаний"
-                    : "Обов'язково: додайте принаймні одного автора (прізвище + ім'я) нижче — без цього книгу не можна відправити на модерацію"}
-                </span>
+                {!hasAnyAuthor && (userProfile?.lastName || userProfile?.firstName) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 shrink-0 px-2 text-xs"
+                    onClick={fillAuthorFromProfile}
+                  >
+                    Заповнити поля з кабінету автора
+                  </Button>
+                )}
               </div>
               {bookAuthors.length > 0 && (
                 <div className="space-y-1.5">
@@ -729,14 +807,14 @@ function OutputDataInfoForm({
               {/* T-2060 п.6 — канонічне джерело тексту біографії; показується й
                   редагується вживу на обкладинці */}
               <div className="space-y-1.5 pt-1">
-                <Label htmlFor="authorBio">Біографія автора</Label>
+                <Label htmlFor="authorBio">Біографія автора <span className="text-red-500">*</span></Label>
                 <Textarea
                   id="authorBio"
                   value={authorBio}
                   onChange={(e) => setAuthorBio(e.target.value)}
                   rows={3}
                   placeholder="Наприклад: Валентина Островська народилась у…"
-                  className="resize-none"
+                  className={cn("resize-none", authorBioMissing && missingRing)}
                 />
               </div>
 
@@ -946,7 +1024,12 @@ function OutputDataInfoForm({
             </div>
           )}
 
-          <Button type="submit" loading={infoForm.formState.isSubmitting}>
+          <Button
+            type="submit"
+            loading={infoForm.formState.isSubmitting}
+            disabled={infoIncomplete}
+            title={infoIncomplete ? "Заповніть усі обов'язкові поля (позначені *, підсвічені помаранчевим)" : undefined}
+          >
             Зберегти зміни
           </Button>
         </form>
