@@ -119,8 +119,16 @@ export async function booksRoutes(app: FastifyInstance) {
         archivedAt: true,
         // Selected only to compute `needsAttention` below -- stripped from
         // the response afterwards, the list UI never needed these directly.
+        // printFormatKey was missing here entirely until now -- isReadyToPublish
+        // reads it (PUBLISH_STEP_FIELDS.info), so with it undefined on every
+        // single book, isPublishFieldComplete("printFormatKey") was always
+        // false and needsAttention was permanently stuck `true` for every
+        // book regardless of its actual readiness (live-confirmed: all 3 of
+        // this account's books, including fully complete/PUBLISHED ones,
+        // came back needsAttention:true from this exact endpoint).
         ageRating: true,
         authorBio: true,
+        printFormatKey: true,
         originalDocxUrl: true,
         pdfUrl: true,
         epubUrl: true,
@@ -152,7 +160,7 @@ export async function booksRoutes(app: FastifyInstance) {
       );
       const needsAttention = hasUnresolvedRejection || !isReadyToPublish(book);
       const {
-        ageRating, authorBio, originalDocxUrl, pdfUrl, epubUrl, docxUpdatedAt, bookAuthors,
+        ageRating, authorBio, printFormatKey, originalDocxUrl, pdfUrl, epubUrl, docxUpdatedAt, bookAuthors,
         pricePrintBw, pricePrintHardcoverBw, desiredRoyaltyAmount, desiredRoyaltyAmountPrint,
         moderationReasons, moderationFieldSnapshot,
         ...rest
