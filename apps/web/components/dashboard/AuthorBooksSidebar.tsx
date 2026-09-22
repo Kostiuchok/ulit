@@ -15,6 +15,7 @@ import {
   Trash2,
   Info,
   Plus,
+  ChevronDown,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { getBookStatusLabel } from "@/lib/bookStatus";
@@ -331,6 +332,14 @@ export function AuthorBooksSidebar({ user }: Props) {
                             {status.label}
                           </Badge>
                         </div>
+                        <ChevronDown
+                          size={16}
+                          aria-hidden
+                          className={cn(
+                            "shrink-0 text-gray-400 transition-transform group-data-[collapsible=icon]:hidden",
+                            isExpanded && "rotate-180"
+                          )}
+                        />
                       </div>
 
                       {isExpanded && (
