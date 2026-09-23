@@ -1,36 +1,45 @@
-# ULIT (Knyha) — BUSINESS.md (v0.1 skeleton)
+# ULIT (Knyha) — BUSINESS.md
 
-> Заповнювати з рішень у чаті «Продукти». Claude Code: читай цей файл для бізнес-контексту; не плутай з технічним backlog.
+> Джерело істини: Notion BUSINESS (портфель / Продукти / ulit).
+> Версія: чернетка з документації · 2026-09-23. Комісія — розбіжність доки vs код (не вигадувати канон).
 
-## One-liner
-<!-- Платформа для авторів книг (Knyha / ULIT) -->
+## 1. One-liner
+Платформа самовидавництва для українських авторів: рукопис → ISBN → ел./друкована книга → продаж у власному магазині й (вручну) на зовнішніх сервісах.
 
-## Problem
-<!-- Яку біль вирішуємо -->
+**Live:** https://ulit.render.ua · **GitHub:** https://github.com/Kostiuchok/ulit
 
-## Audience
-<!-- Хто платить / хто користується -->
+## 2. Problem
+UA-автору важко пройти файли, ISBN, обкладинку, договір, магазин, виплати, вихід на KDP/D2D/Google без єдиної UA-платформи.
 
-## Product shape
-<!-- Основні модулі / платформа / live URL якщо є -->
+## 3. Solution / shape
+Кабінет автора (рукопис TipTap, обкладинка Fabric.js), конвертація (LibreOffice/Pandoc/GS/Calibre), магазин+кошик+LiqPay, адмін-модерація, ручна зовнішня дистрибуція. ISBN mock на альфі.
 
-## Business model
-<!-- Як заробляємо: підписка, разово, B2B, партнерка… -->
+## 4. Audience
+UA самовидавці (фізособа/ФОП); покупці магазину Ulit; адмін платформи.
 
-## Open commercial questions
-- 
-- 
+## 5. Market
+Self-pub / агрегатори; UX-референс у внутрішніх доках — Ridero (не публічний еталон). Ніша: UA-юридика+платежі+магазин+шлях назовні.
 
-## Alpha / current focus
-**Код (Claude):** …
-**Продукт (цей чат):** …
+## 6. Business model
+Комісія платформи з продажів у магазині Ulit. У TECHNICAL-DECISIONS — ~25% / `PLATFORM_FEE_PERCENT`; у коді інший royalty rate — **відкрите рішення**. Поріг виплати в доках 500 UAH — підтвердити. Hold 7 днів. MVP-виплати вручну.
 
-## Alpha exit
-1. 
-2. 
+## 7. GTM
+Довести альфу за docs/TASKS.md; WayForPay наступний по оплаті. Канал перших авторів — відкрито.
 
-## Product backlog notes for Claude
-- 
+## 8. Status
+Live; портфель Альфа; Band B. Фази 0–14 MVP у TASKS ✅; далі 19–26+. Тракшн не задокументовано.
 
-## Not alpha
-- 
+## 9. Alpha exit (робоча гіпотеза)
+Автор: договір→книга→модерація→PUBLISHED у магазині; покупець: кошик→LiqPay→файли; автор бачить royalty. Не альфа: реальний ISBN, авто-KDP/D2D/Google, автовиплати, обов’язковий WayForPay, аудіо/POD.
+
+## 10. Team
+Anatolii — продукт. Агенти — ulit repo.
+
+## 11. Finance (open)
+Канонічна комісія; поріг виплати; ISBN cost; CAC автора; GMV — ?
+
+## 12. Risks
+Розбіжність комісії; ручна дистрибуція; mock ISBN; червоний E2E; bottleneck модерації; залежність від LiqPay.
+
+## 13. Open decisions
+Комісія 25 vs 30; чи WayForPay в alpha exit; дата альфи; пул ISBN; канал авторів; синк цього файлу з Notion.
