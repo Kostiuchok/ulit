@@ -2,6 +2,8 @@
 
 > Статуси: `[ ]` не розпочато · `[~]` в процесі · `[x]` готово
 > Гілки: `feat/<task-id>-short-name`
+>
+> **Порядок робіт до виходу з альфи:** [`docs/ALPHA-SPRINTS.md`](./ALPHA-SPRINTS.md) (наступний — спринт 2). Не брати фази 19–26 замість цього плану.
 
 ---
 
@@ -333,7 +335,7 @@ headers: { Authorization: `Bearer ${token}` }
 
 ### Фаза 15a — Базова інфраструктура
 
-- [ ] **T-1501** `PLATFORM_FEE_PERCENT` в env (default: 25%) — додати до `.env.example`
+- [x] **T-1501** `PLATFORM_FEE_PERCENT` в env (default: 30%) — додано до `.env.example` (корінь і `apps/api`); `createSiteRoyalties` і калькулятор ціни читають `siteRoyaltyRate()` / `platformFeePercentFromEnv` з `shared-types`. Default 30, бо договір і живий UI давно були 70% автору (старе 25% у цьому файлі було розбіжністю з кодом).
 - [ ] **T-1502** Prisma: модель `PayoutRequest` (id, authorId, amount, status, bankDetails, requestedAt, paidAt)
 - [ ] **T-1503** Prisma: поля в `User` — `iban`, `cardNumber`, `taxId` (РНОКПП), `isFop` (ФОП чи фізособа)
 - [ ] **T-1504** Prisma міграція
@@ -618,15 +620,13 @@ headers: { Authorization: `Bearer ${token}` }
 
 ### 21c — Адмінка замовлень
 
-> Зараз адмін бачить лише `Royalty` (`/admin/royalties`) — жодного списку `Order`/`OrderItem` не існує.
-
-- [ ] **T-2019** `GET /api/admin/orders` (список, пагінація, фільтр по статусу) + `GET /api/admin/orders/:id`
-- [ ] **T-2020** `/admin/orders` — таблиця (id, покупець, кількість позицій, сума, статус, дата) + `/admin/orders/:id` — деталі замовлення (позиції, статус завантажень, payment id провайдера)
+- [x] **T-2019** `GET /api/admin/orders` (список, фільтр по статусу, take 100) + `GET /api/admin/orders/:id`
+- [x] **T-2020** `/admin/orders` — таблиця (дата, покупець, позиції, сума, статус) + `/admin/orders/:id` — деталі (позиції, paymentId)
 
 ### 21d — Дрібне
 
-- [ ] **T-2021** Авто-скасування "завислих" `PENDING`-замовлень — `OrderStatus.CANCELLED` є в enum, але ніде в коді не виставляється; наприклад, позначати як `CANCELLED`, якщо `PENDING` довше 24 год
-- [ ] **Звірити розбіжність документації**: `TECHNICAL-DECISIONS.md` (розділ "Система виплат авторам") каже — комісія платформи 25%, змінна `PLATFORM_FEE_PERCENT` env. У коді (`apps/api/src/modules/admin/admin.ts`, `createSiteRoyalties`) захардкоджено `ROYALTY_RATE = 0.7` (тобто 30% комісії); `PLATFORM_FEE_PERCENT` в коді не існує взагалі. З'ясувати з Анатолієм яке значення правильне — і чи виносити ставку в env, як і описано в документації
+- [x] **T-2021** Авто-скасування "завислих" `PENDING`-замовлень — `CANCELLED`, якщо `PENDING` довше 24 год (`cancelExpiredPendingOrders` на POST/GET замовлень + щогодини в API)
+- [x] **Звірити розбіжність документації**: канон **30% комісії / 70% автору** (договір + калькулятор + колишній хардкод). `PLATFORM_FEE_PERCENT` env, default 30. Старе 25% у TECHNICAL-DECISIONS виправлено.
 
 ---
 

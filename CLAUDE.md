@@ -8,7 +8,7 @@
 
 ## ⚡ QUICK RESUME
 
-When the user says **"resume"** — show this status block immediately:
+When the user says **"resume"** — show this status block immediately, using [`docs/ALPHA-SPRINTS.md`](./docs/ALPHA-SPRINTS.md) as the source of what is next (not the whole TASKS.md backlog):
 
 ```
 ✅ LAST DONE:    <last completed task — one line>

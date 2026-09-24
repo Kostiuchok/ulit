@@ -16,6 +16,11 @@ import {
   isRejectionReasonResolved,
   getPublishReadinessFields,
   toOptionalSelectField,
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  platformFeePercentFromEnv,
+  siteRoyaltyRate,
+  pendingOrderCutoff,
+  PENDING_ORDER_TTL_MS,
 } from "shared-types";
 
 // Unlike schemas.test.ts's hand-copied mirrors, these import the REAL
@@ -331,5 +336,33 @@ describe("priceInputSchema (raw <input> state for pricePrintBw/HardcoverBw)", ()
 
   it("rejects a non-numeric string", () => {
     expect(priceInputSchema.safeParse("abc").success).toBe(false);
+  });
+});
+
+describe("platform fee / site royalty (T-1501)", () => {
+  it("defaults to 30% fee and 70% royalty", () => {
+    expect(DEFAULT_PLATFORM_FEE_PERCENT).toBe(30);
+    expect(siteRoyaltyRate()).toBe(0.7);
+    expect(platformFeePercentFromEnv(undefined)).toBe(30);
+  });
+
+  it("reads a valid PLATFORM_FEE_PERCENT override", () => {
+    expect(platformFeePercentFromEnv("25")).toBe(25);
+    expect(siteRoyaltyRate(25)).toBe(0.75);
+  });
+
+  it("rejects empty, zero, 100, and non-numeric env values", () => {
+    expect(platformFeePercentFromEnv("")).toBe(30);
+    expect(platformFeePercentFromEnv("0")).toBe(30);
+    expect(platformFeePercentFromEnv("100")).toBe(30);
+    expect(platformFeePercentFromEnv("nope")).toBe(30);
+  });
+});
+
+describe("pending order TTL (T-2021)", () => {
+  it("cutoff is 24 hours before now", () => {
+    const now = new Date("2026-09-24T12:00:00.000Z");
+    expect(pendingOrderCutoff(now).toISOString()).toBe("2026-09-23T12:00:00.000Z");
+    expect(PENDING_ORDER_TTL_MS).toBe(24 * 60 * 60 * 1000);
   });
 });

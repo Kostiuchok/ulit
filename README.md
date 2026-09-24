@@ -230,6 +230,7 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 | Файл | Опис |
 |------|------|
 | [`CLAUDE.md`](./CLAUDE.md) | Архітектура, стек, схема БД, API routes — для Claude Code |
+| [`docs/ALPHA-SPRINTS.md`](./docs/ALPHA-SPRINTS.md) | Порядок спринтів до виходу з альфи (наступний — спринт 2) |
 | [`docs/TASKS.md`](./docs/TASKS.md) | Повний бэклог задач по фазах розробки (постійно росте, зараз — за 20 фаз) |
 | [`docs/TECHNICAL-DECISIONS.md`](./docs/TECHNICAL-DECISIONS.md) | Wiki рішень: юридика, договір з автором, дистрибуція |
 | [`docs/knyha-complete.html`](./docs/knyha-complete.html) | Повний UI прототип (24 екрани, відкрити у браузері) |
@@ -240,11 +241,8 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 
 MVP-фази (0–14: monorepo, auth, dashboard, конвертація, редактор обкладинки,
 ISBN, публікація, магазин, оплата, preview, адмінка, юридика, деплой, тести)
-— завершені. З фази 19 бэклог поповнюється по мірі аналізу референсів і
-живого тестування (редактор рукопису й обкладинки, вихідні дані, реєстрація
-в Книжковій палаті, observability тощо) — актуальний повний список задач і
-те, що вже зроблено, завжди дивитись у [`docs/TASKS.md`](./docs/TASKS.md),
-не тут.
+— завершені. Порядок подальшої роботи до виходу з альфи — [`docs/ALPHA-SPRINTS.md`](./docs/ALPHA-SPRINTS.md).
+Повний бэклог (у т.ч. Ridero UX) — [`docs/TASKS.md`](./docs/TASKS.md).
 
 ---
 

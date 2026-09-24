@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { priceInputSchema } from "shared-types";
+import { DEFAULT_PLATFORM_FEE_PERCENT, priceInputSchema, siteRoyaltyRate } from "shared-types";
 import { cn } from "@/lib/utils";
 import { DISTRIBUTION_PLATFORMS, KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "@/lib/distributionPlatforms";
 import { Card } from "@/components/ui/card";
@@ -41,7 +41,7 @@ export type PrintCost =
   | { status: "NO_SETTINGS" }
   | null;
 
-const ULIT_RATE = 0.7; // DISTRIBUTION_PLATFORMS "ULIT" -- fixed, not a range, so it's the only channel we can derive a single concrete price from.
+const ULIT_RATE = siteRoyaltyRate(); // DISTRIBUTION_PLATFORMS "ULIT" -- fixed, not a range, so it's the only channel we can derive a single concrete price from.
 
 export function parseRoyalty(v: string): number | undefined {
   const n = Number(v.replace(",", "."));
@@ -355,7 +355,7 @@ export function FormatsAndDistribution({
               {royaltyPrintNum !== undefined && (
                 <>
                   <PriceTiles
-                    caption="Ціна для покупця в магазині Ulit (комісія 30%) — саме ці ціни й буде збережено:"
+                    caption={`Ціна для покупця в магазині Ulit (комісія ${DEFAULT_PLATFORM_FEE_PERCENT}%) — саме ці ціни й буде збережено:`}
                     items={[
                       { label: "М'яка обкладинка", value: anchor.pricePrint },
                       { label: "Тверда обкладинка", value: anchor.pricePrintHardcover },
@@ -456,7 +456,7 @@ export function FormatsAndDistribution({
         {royaltyEbookNum !== undefined && anchor.priceEbook !== undefined && (
           <div className="space-y-1.5">
             <PriceTiles
-              caption="Ціна для покупця в магазині Ulit (комісія 30%) — саме ця ціна й буде збережена:"
+              caption={`Ціна для покупця в магазині Ulit (комісія ${DEFAULT_PLATFORM_FEE_PERCENT}%) — саме ця ціна й буде збережена:`}
               items={[{ label: "Електронна книга", value: anchor.priceEbook }]}
             />
             <p className="text-xs text-gray-500">

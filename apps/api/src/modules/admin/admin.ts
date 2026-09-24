@@ -10,7 +10,7 @@ const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<s
 import { Readable } from "stream";
 import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus, Prisma } from "@prisma/client";
-import { REJECTION_REASONS, getRejectionSnapshotValue, type RejectionReasonKey } from "shared-types";
+import { REJECTION_REASONS, getRejectionSnapshotValue, platformFeePercentFromEnv, siteRoyaltyRate, type RejectionReasonKey } from "shared-types";
 import { queuePublishedEmail, queueRejectedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
 import { enqueueConversionJobs } from "../../services/publishing.service";
 import { withAvatarVersion } from "../../lib/coverVersion";
@@ -1108,7 +1108,7 @@ export async function createSiteRoyalties(orderId: string) {
   });
   if (!order) return;
 
-  const ROYALTY_RATE = 0.7;
+  const royaltyRate = siteRoyaltyRate(platformFeePercentFromEnv(process.env.PLATFORM_FEE_PERCENT));
 
   for (const item of order.items) {
     await prisma.royalty.upsert({
@@ -1118,7 +1118,7 @@ export async function createSiteRoyalties(orderId: string) {
         id: `${orderId}_${item.id}`,
         authorId: item.book.authorId,
         bookId: item.bookId,
-        amount: Number(item.price) * ROYALTY_RATE,
+        amount: Number(item.price) * royaltyRate,
         source: "SITE",
         status: "PENDING",
       },

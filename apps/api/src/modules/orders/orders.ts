@@ -5,6 +5,7 @@ import { AppError } from "../../errors/AppError";
 import { authenticate } from "../../lib/jwt.middleware";
 import { generateLiqPayForm, LIQPAY_CHECKOUT_URL } from "../../services/liqpay.service";
 import { getSignedUrl } from "../../services/storage.service";
+import { pendingOrderCutoff } from "shared-types";
 
 const createOrderSchema = z.object({
   items: z
@@ -70,6 +71,14 @@ type OrderItemBook = {
   printPdfUrl: string | null;
 };
 
+export async function cancelExpiredPendingOrders(): Promise<number> {
+  const result = await prisma.order.updateMany({
+    where: { status: "PENDING", createdAt: { lt: pendingOrderCutoff() } },
+    data: { status: "CANCELLED" },
+  });
+  return result.count;
+}
+
 // Shared by GET /api/orders/:id and GET /api/orders (list mine) — builds
 // {bookId: [{label, url}]} signed-download-link maps for an order's items.
 async function buildDownloadLinks(
@@ -118,6 +127,7 @@ export async function ordersRoutes(app: FastifyInstance) {
     "/api/orders",
     { preHandler: [authenticate] },
     async (request, reply) => {
+      await cancelExpiredPendingOrders();
       const parsed = createOrderSchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.status(400).send({ error: parsed.error.errors[0].message });
@@ -237,6 +247,7 @@ export async function ordersRoutes(app: FastifyInstance) {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
+      await cancelExpiredPendingOrders();
 
       const order = await prisma.order.findUnique({
         where: { id },
@@ -296,6 +307,7 @@ export async function ordersRoutes(app: FastifyInstance) {
     "/api/orders",
     { preHandler: [authenticate] },
     async (request, reply) => {
+      await cancelExpiredPendingOrders();
       const orders = await prisma.order.findMany({
         where: { userId: request.user.id },
         include: {

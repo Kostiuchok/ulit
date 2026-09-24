@@ -1,3 +1,7 @@
+import { siteRoyaltyRate } from "shared-types";
+
+const ULIT_ROYALTY_RATE = siteRoyaltyRate();
+
 export interface DistributionPlatform {
   key: "ULIT" | "D2D" | "KDP" | "GOOGLE";
   icon: string;
@@ -24,9 +28,9 @@ export const DISTRIBUTION_PLATFORMS: DistributionPlatform[] = [
     key: "ULIT",
     icon: "📚",
     name: "Магазин Ulit",
-    royalty: "70%",
-    royaltyMin: 0.7,
-    royaltyMax: 0.7,
+    royalty: `${Math.round(ULIT_ROYALTY_RATE * 100)}%`,
+    royaltyMin: ULIT_ROYALTY_RATE,
+    royaltyMax: ULIT_ROYALTY_RATE,
     description: "Власний магазин платформи. Завжди увімкнений.",
     locked: true,
   },

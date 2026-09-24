@@ -36,6 +36,27 @@ export type OrderStatus = "PENDING" | "PAID" | "FULFILLED" | "CANCELLED";
 
 export type RoyaltyStatus = "PENDING" | "PAID";
 
+// Live product + author contract (ContractText §4.1) pay 70% royalty = 30%
+// platform fee. TECHNICAL-DECISIONS once said 25%; that was stale vs code.
+// API reads PLATFORM_FEE_PERCENT (default below). UI uses the same default
+// via siteRoyaltyRate() so the price calculator matches createSiteRoyalties.
+export const DEFAULT_PLATFORM_FEE_PERCENT = 30;
+export const PENDING_ORDER_TTL_MS = 24 * 60 * 60 * 1000;
+
+export function platformFeePercentFromEnv(raw: string | undefined): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0 || n >= 100) return DEFAULT_PLATFORM_FEE_PERCENT;
+  return n;
+}
+
+export function siteRoyaltyRate(feePercent: number = DEFAULT_PLATFORM_FEE_PERCENT): number {
+  return (100 - feePercent) / 100;
+}
+
+export function pendingOrderCutoff(now = new Date()): Date {
+  return new Date(now.getTime() - PENDING_ORDER_TTL_MS);
+}
+
 export type BookFormat = "EPUB" | "FB2" | "MOBI" | "PRINT";
 
 // Print formats per ДСТУ 3018-95 (Ukrainian state standard for book/print

@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS, KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "@/lib/distributionPlatforms";
+import { DEFAULT_PLATFORM_FEE_PERCENT } from "shared-types";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
 import { cn } from "@/lib/utils";
@@ -368,7 +369,7 @@ export default function OutputDataPricePage() {
                     ) : (
                       <span className="text-xs text-gray-500">
                         Роялті складає {(platform("ULIT").royaltyMin * 100).toFixed(0)}% від ціни після відрахування ПДВ.
-                        Ціна для покупця (комісія 30%): <strong className="text-gray-900">{formatUah(anchor.priceEbook)}</strong> —
+                        Ціна для покупця (комісія {DEFAULT_PLATFORM_FEE_PERCENT}%): <strong className="text-gray-900">{formatUah(anchor.priceEbook)}</strong> —
                         саме ця ціна й буде збережена. На інших каналах кінцева ціна відрізняється через їхню власну комісію.
                       </span>
                     )
@@ -574,7 +575,7 @@ export default function OutputDataPricePage() {
                 </div>
                 {ulitPrintPrice !== undefined && (
                   <p className="text-xs text-gray-500">
-                    Ціна для покупця в ULIT ({printBinding === "softcover" ? "м'яка" : "тверда"} обкладинка, комісія 30%):{" "}
+                    Ціна для покупця в ULIT ({printBinding === "softcover" ? "м'яка" : "тверда"} обкладинка, комісія {DEFAULT_PLATFORM_FEE_PERCENT}%):{" "}
                     <strong className="text-gray-900">{formatUah(ulitPrintPrice)}</strong>
                   </p>
                 )}

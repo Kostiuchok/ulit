@@ -1,12 +1,16 @@
 ---
-description: Always git pull without asking for confirmation
+description: Always git pull and git push origin main without asking
 alwaysApply: true
 ---
 
-# Git pull is always allowed
+# Git pull and push to origin/main are always allowed
 
-Anatolii always permits `git fetch` and `git pull` on this repo. Do not ask for confirmation before pulling.
+Anatolii always permits these on this repo. Do not ask for confirmation:
 
-- If local is behind `origin`, pull immediately (fast-forward preferred).
-- Do not wait for a second "yes" in the same conversation or later ones.
-- This does **not** grant commit, push, force-push, reset --hard, or rebase without an explicit request.
+- `git fetch`
+- `git pull` (fast-forward preferred if behind origin)
+- `git push origin main` (when there are local commits to publish)
+
+Do not wait for a second "yes" in the same conversation or later ones.
+
+This does **not** grant commit, force-push, push to other branches, reset --hard, or rebase without an explicit request.

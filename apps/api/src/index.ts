@@ -47,8 +47,10 @@ import { bookChamberRoutes } from "./modules/admin/book-chamber";
 import { publisherDocumentsRoutes } from "./modules/admin/publisher-documents";
 import { printCostSettingsRoutes } from "./modules/admin/print-cost-settings";
 import { printOrdersRoutes } from "./modules/admin/print-orders";
+import { adminOrdersRoutes } from "./modules/admin/orders";
 import { startEmailWorker } from "./lib/email-queue";
 import { metricsRegistry } from "./lib/metrics";
+import { cancelExpiredPendingOrders } from "./modules/orders/orders";
 
 const app = Fastify({
   logger: {
@@ -151,6 +153,7 @@ async function bootstrap() {
   await app.register(publisherDocumentsRoutes);
   await app.register(printCostSettingsRoutes);
   await app.register(printOrdersRoutes);
+  await app.register(adminOrdersRoutes);
 
   // Auto-promote ADMIN_EMAIL to ADMIN role (safe: only upgrades AUTHOR, never downgrades)
   const adminEmail = process.env.ADMIN_EMAIL;
@@ -166,6 +169,16 @@ async function bootstrap() {
 
   // Email worker runs in the API process
   startEmailWorker();
+
+  const hour = 60 * 60 * 1000;
+  await cancelExpiredPendingOrders().catch((err) => {
+    app.log.warn({ err }, "Failed to cancel expired pending orders on startup");
+  });
+  setInterval(() => {
+    cancelExpiredPendingOrders().catch((err) => {
+      app.log.warn({ err }, "Failed to cancel expired pending orders");
+    });
+  }, hour);
 
   const port = Number(process.env.PORT) || 3001;
   await app.listen({ port, host: "0.0.0.0" });
