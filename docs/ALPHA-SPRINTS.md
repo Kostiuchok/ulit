@@ -30,7 +30,7 @@
 
 Локально в робочому дереві (на момент запису плану могло ще не бути в `main` — перевірити `git status`).
 
-- [x] Комісія: канон **30% / 70% автору** (`PLATFORM_FEE_PERCENT`, default 30). Договір і калькулятор не змінювали на 25%.
+- [x] Комісія: канон **25% платформи / 75% автору** (`PLATFORM_FEE_PERCENT=25`, рішення власника 2026-09-24). Спринт 1 спочатку фіксував 30% / 70%; це рішення його замінює. Договір і код-фолбек у цьому PR не змінювались (`DEFAULT_PLATFORM_FEE_PERCENT` лишається 30).
 - [x] Адмін-замовлення: `GET /api/admin/orders`, `GET /api/admin/orders/:id`, UI `/admin/orders`, `/admin/orders/:id`.
 - [x] Автоскас `PENDING` > 24 год → `CANCELLED`.
 - [x] Документи: `BUSINESS.md`, `TECHNICAL-DECISIONS.md`, `TASKS.md` (T-1501, T-2019–T-2021).
