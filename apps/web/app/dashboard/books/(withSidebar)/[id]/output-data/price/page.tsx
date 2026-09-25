@@ -14,7 +14,8 @@ import {
 } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SaveActionButton } from "@/components/ui/SaveActionButton";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -144,8 +145,8 @@ function ChannelRow({
           <span className="text-sm text-gray-400">—</span>
         )}
       </TableCell>
-      <TableCell>
-        <span className={cn("text-sm", shopPriceBold ? "font-semibold text-gray-900" : "text-gray-700")}>
+      <TableCell className="whitespace-nowrap">
+        <span className={cn("whitespace-nowrap text-sm", shopPriceBold ? "font-semibold text-gray-900" : "text-gray-700")}>
           {shopPrice}
         </span>
       </TableCell>
@@ -191,7 +192,13 @@ export default function OutputDataPricePage() {
   const [printBinding, setPrintBinding] = useState<"softcover" | "hardcover">("softcover");
   const [formatsSaving, setFormatsSaving] = useState(false);
   const [formatsSaved, setFormatsSaved] = useState(false);
+  const [formatsDirty, setFormatsDirty] = useState(false);
   const [formatsError, setFormatsError] = useState("");
+
+  function markFormatsDirty() {
+    setFormatsDirty(true);
+    setFormatsSaved(false);
+  }
 
   useEffect(() => {
     // Found live (Playwright, direct URL navigation): missing `token` from
@@ -232,7 +239,25 @@ export default function OutputDataPricePage() {
 
   function toggleChannel(key: string) {
     if (key === "ULIT") return;
+    markFormatsDirty();
     setChannels((prev) => (prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]));
+  }
+
+  function setRoyaltyEbookDirty(v: string) {
+    markFormatsDirty();
+    setRoyaltyEbook(v);
+  }
+  function setRoyaltyPrintDirty(v: string) {
+    markFormatsDirty();
+    setRoyaltyPrint(v);
+  }
+  function setPricePrintBwDirty(v: string) {
+    markFormatsDirty();
+    setPricePrintBw(v);
+  }
+  function setChannelRoyaltyDirty(key: ChannelPricingKey, v: string) {
+    markFormatsDirty();
+    setChannelRoyalty((p) => ({ ...p, [key]: v }));
   }
 
   async function saveFormatsAndDistribution() {
@@ -265,7 +290,7 @@ export default function OutputDataPricePage() {
         body: JSON.stringify({ distributionChannels: channels }),
       });
       setFormatsSaved(true);
-      setTimeout(() => setFormatsSaved(false), 3000);
+      setFormatsDirty(false);
       // Same fix as output-data/page.tsx's onSubmitInfo -- layout.tsx's top
       // nav pills read their own separate useBook(id) instance and only
       // learn a save happened via this event.
@@ -340,14 +365,14 @@ export default function OutputDataPricePage() {
       <Card className={cn("border border-gray-300 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400")}>
           <CollapsibleSection title="Продаж електронної книги">
           <div className="space-y-4">
-          <div className="overflow-hidden rounded-lg border">
+          <HorizontalScrollHint className="rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-100 hover:bg-gray-100">
                   <TableHead className="w-10" />
                   <TableHead className="w-[200px] text-xs font-bold text-gray-600">Де буде викладена</TableHead>
                   <TableHead className="w-[220px] text-xs font-bold text-gray-600">Ваша ціна / роялті</TableHead>
-                  <TableHead className="w-[140px] text-xs font-bold text-gray-600">Ціна за книгу в магазині</TableHead>
+                  <TableHead className="w-[140px] whitespace-nowrap text-xs font-bold text-gray-600">Ціна за книгу в магазині</TableHead>
                   <TableHead className="text-xs font-bold text-gray-600">Умови розміщення</TableHead>
                 </TableRow>
               </TableHeader>
@@ -357,7 +382,7 @@ export default function OutputDataPricePage() {
                   name="ULIT"
                   checked
                   locked
-                  input={{ value: royaltyEbook, onChange: setRoyaltyEbook }}
+                  input={{ value: royaltyEbook, onChange: setRoyaltyEbookDirty }}
                   shopPrice={anchor.priceEbook !== undefined ? formatUah(anchor.priceEbook) : "—"}
                   shopPriceBold
                   conditions={
@@ -381,7 +406,7 @@ export default function OutputDataPricePage() {
                   checked={channels.includes("D2D")}
                   disabled={isKdpSelect}
                   onToggle={() => toggleChannel("D2D")}
-                  input={{ value: channelRoyalty.D2D, onChange: (v) => setChannelRoyalty((p) => ({ ...p, D2D: v })) }}
+                  input={{ value: channelRoyalty.D2D, onChange: (v) => setChannelRoyaltyDirty("D2D", v) }}
                   shopPrice={d2dPrice}
                   conditions={
                     channels.includes("D2D") ? (
@@ -402,7 +427,7 @@ export default function OutputDataPricePage() {
                   name="Amazon KDP"
                   checked={channels.includes("KDP")}
                   onToggle={() => toggleChannel("KDP")}
-                  input={{ value: channelRoyalty.KDP, onChange: (v) => setChannelRoyalty((p) => ({ ...p, KDP: v })) }}
+                  input={{ value: channelRoyalty.KDP, onChange: (v) => setChannelRoyaltyDirty("KDP", v) }}
                   shopPrice={kdpPrice}
                   conditions={
                     <div className="space-y-1">
@@ -459,7 +484,7 @@ export default function OutputDataPricePage() {
                 />
               </TableBody>
             </Table>
-          </div>
+          </HorizontalScrollHint>
           </div>
           </CollapsibleSection>
       </Card>
@@ -551,7 +576,7 @@ export default function OutputDataPricePage() {
                         step="0.01"
                         min="0"
                         value={royaltyPrint}
-                        onChange={(e) => setRoyaltyPrint(e.target.value)}
+                        onChange={(e) => setRoyaltyPrintDirty(e.target.value)}
                         placeholder="напр. 50"
                         className="h-9 w-28 bg-white"
                       />
@@ -565,7 +590,7 @@ export default function OutputDataPricePage() {
                         step="0.01"
                         min="0"
                         value={pricePrintBw}
-                        onChange={(e) => setPricePrintBw(e.target.value)}
+                        onChange={(e) => setPricePrintBwDirty(e.target.value)}
                         placeholder="149.99"
                         className="h-9 w-28 bg-white"
                       />
@@ -581,14 +606,14 @@ export default function OutputDataPricePage() {
                 )}
               </div>
 
-              <div className="overflow-hidden rounded-lg border">
+              <HorizontalScrollHint className="rounded-lg border">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-100 hover:bg-gray-100">
                       <TableHead className="w-10" />
                       <TableHead className="w-[200px] text-xs font-bold text-gray-600">Де буде викладена</TableHead>
                       <TableHead className="w-[220px] text-xs font-bold text-gray-600">Роялті / ціна (ваша ставка)</TableHead>
-                      <TableHead className="w-[140px] text-xs font-bold text-gray-600">Ціна в магазині</TableHead>
+                      <TableHead className="w-[140px] whitespace-nowrap text-xs font-bold text-gray-600">Ціна в магазині</TableHead>
                       <TableHead className="text-xs font-bold text-gray-600">Умови розміщення</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -600,7 +625,7 @@ export default function OutputDataPricePage() {
                       locked
                       input={{
                         value: printColorMode === "color" ? royaltyPrint : pricePrintBw,
-                        onChange: printColorMode === "color" ? setRoyaltyPrint : setPricePrintBw,
+                        onChange: printColorMode === "color" ? setRoyaltyPrintDirty : setPricePrintBwDirty,
                       }}
                       shopPrice={ulitPrintPrice !== undefined ? formatUah(ulitPrintPrice) : "—"}
                       shopPriceBold
@@ -624,7 +649,7 @@ export default function OutputDataPricePage() {
                       name="Amazon KDP"
                       checked={channels.includes("KDP")}
                       onToggle={() => toggleChannel("KDP")}
-                      input={{ value: channelRoyalty.KDP_PRINT, onChange: (v) => setChannelRoyalty((p) => ({ ...p, KDP_PRINT: v })) }}
+                      input={{ value: channelRoyalty.KDP_PRINT, onChange: (v) => setChannelRoyaltyDirty("KDP_PRINT", v) }}
                       shopPrice={kdpPrintPrice}
                       conditions={
                         <div className="space-y-1">
@@ -637,7 +662,7 @@ export default function OutputDataPricePage() {
                     />
                   </TableBody>
                 </Table>
-              </div>
+              </HorizontalScrollHint>
             </>
           )}
           </div>
@@ -676,10 +701,11 @@ export default function OutputDataPricePage() {
       )}
 
       {formatsError && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{formatsError}</div>}
-      {formatsSaved && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">✓ Збережено</div>}
-      <Button onClick={saveFormatsAndDistribution} loading={formatsSaving}>
-        Зберегти
-      </Button>
+      <SaveActionButton
+        state={formatsSaving ? "saving" : formatsSaved && !formatsDirty ? "saved" : "idle"}
+        idleLabel="Зберегти"
+        onClick={saveFormatsAndDistribution}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { SaveActionButton } from "@/components/ui/SaveActionButton";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -183,6 +184,8 @@ function OutputDataInfoForm({
   const { apiFetch, apiUpload, token } = useApi();
 
   const [infoSaved, setInfoSaved] = useState(false);
+  // Fields outside react-hook-form (authors, bio, contributors) — T2.1 dirty.
+  const [extraDirty, setExtraDirty] = useState(false);
   // Which sensitive fields (if any) the last save actually staged as
   // pending instead of publishing live -- drives the "✓ Збережено" note
   // right where the save happened, matching what RepublishButton shows on
@@ -335,6 +338,8 @@ function OutputDataInfoForm({
       return;
     }
     setBookAuthors((prev) => [...prev, result.data]);
+    setExtraDirty(true);
+    setInfoSaved(false);
     setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
   }
 
@@ -358,16 +363,22 @@ function OutputDataInfoForm({
 
   function removeBookAuthor(index: number) {
     setBookAuthors((prev) => prev.filter((_, i) => i !== index));
+    setExtraDirty(true);
+    setInfoSaved(false);
   }
 
   function addContributor() {
     if (!newContributor.role.trim() || !newContributor.name.trim()) return;
     setContributors((prev) => [...prev, { role: newContributor.role.trim(), name: newContributor.name.trim() }]);
     setNewContributor({ role: "", name: "" });
+    setExtraDirty(true);
+    setInfoSaved(false);
   }
 
   function removeContributor(index: number) {
     setContributors((prev) => prev.filter((_, i) => i !== index));
+    setExtraDirty(true);
+    setInfoSaved(false);
   }
 
   const onSubmitInfo = async (data: InfoForm) => {
@@ -449,6 +460,8 @@ function OutputDataInfoForm({
         ].filter(Boolean) as string[]
       );
       setInfoSaved(true);
+      setExtraDirty(false);
+      infoForm.reset(data);
       // output-data/layout.tsx's top nav pills (✓/○ badges) come from their
       // OWN separate useBook(id) instance, not this page's -- without this,
       // the "Інформація" pill stayed on its stale state after saving no
@@ -526,6 +539,12 @@ function OutputDataInfoForm({
     languageMissing ||
     !hasAnyAuthor ||
     authorBioMissing;
+  const infoDirty = infoForm.formState.isDirty || extraDirty;
+  const infoSaveState = infoForm.formState.isSubmitting
+    ? "saving"
+    : infoSaved && !infoDirty
+      ? "saved"
+      : "idle";
 
   return (
     <div className="space-y-3">
@@ -816,7 +835,11 @@ function OutputDataInfoForm({
                 <Textarea
                   id="authorBio"
                   value={authorBio}
-                  onChange={(e) => setAuthorBio(e.target.value)}
+                  onChange={(e) => {
+                    setAuthorBio(e.target.value);
+                    setExtraDirty(true);
+                    setInfoSaved(false);
+                  }}
                   rows={3}
                   placeholder="Наприклад: Валентина Островська народилась у…"
                   className={cn("resize-none", authorBioMissing && missingRing)}
@@ -1029,14 +1052,13 @@ function OutputDataInfoForm({
             </div>
           )}
 
-          <Button
+          <SaveActionButton
             type="submit"
-            loading={infoForm.formState.isSubmitting}
+            state={infoSaveState}
+            idleLabel="Зберегти зміни"
             disabled={infoIncomplete}
             title={infoIncomplete ? "Заповніть усі обов'язкові поля (позначені *, підсвічені помаранчевим)" : undefined}
-          >
-            Зберегти зміни
-          </Button>
+          />
         </form>
       </Card>
     </div>

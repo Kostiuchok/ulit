@@ -37,7 +37,12 @@ import {
   X,
   BookOpenCheck,
   ArrowLeftRight,
+  ListTree,
+  Type,
+  PencilLine,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StyledParagraph, STYLE_LABELS, OUTLINE_TIERS, ResizableImage, PageBreak, splitFrontMatter, type StyledBlockStyleName } from "shared-types";
 import { ManuscriptProseStyles } from "./manuscriptProseStyles";
 import { computePageGeometry, DEFAULT_PAGE_GEOMETRY } from "./manuscriptLayout";
@@ -256,6 +261,8 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   const [pageCheckMode, setPageCheckMode] = useState(false);
   const [cleanupMenuOpen, setCleanupMenuOpen] = useState(false);
   const cleanupMenuRef = useRef<HTMLDivElement>(null);
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const [stylesOpen, setStylesOpen] = useState(false);
 
   // Formatting-tools section scrolls horizontally (instead of wrapping to a
   // second row) once it no longer fits between the fixed "Передперегляд книги"
@@ -514,10 +521,34 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
   if (!editor) return null;
 
+  const outlineNav = (
+    <nav className="pb-4">
+      {outline.length === 0 && (
+        <p className="px-8 text-[0.8125rem] text-gray-400">
+          Позначте розділ/главу/заголовок через панель &quot;Стилі тексту&quot; праворуч — вони з&apos;являться тут.
+        </p>
+      )}
+      {outline.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => {
+            scrollToBlock(item.id);
+            setOutlineOpen(false);
+          }}
+          style={{ paddingLeft: `${32 + item.tier * 14}px` }}
+          className="block w-full truncate py-1.5 pr-3 text-left text-[0.9375rem] text-black hover:bg-[#e3e3e3]"
+          title={item.text}
+        >
+          {item.text}
+        </button>
+      ))}
+    </nav>
+  );
+
   return (
     <div className="flex h-full">
-      {/* Left — outline */}
-      <aside className="w-[260px] shrink-0 overflow-y-auto border-r border-gray-200 bg-[#f3f3f3]">
+      {/* Left — outline (desktop). Tablet: Sheet below. */}
+      <aside className="hidden w-[260px] shrink-0 overflow-y-auto border-r border-gray-200 bg-[#f3f3f3] xl:block">
         <Link
           href={`/dashboard/books/${bookId}`}
           className="flex items-center gap-2 px-8 py-3 text-[0.875rem] font-medium text-black border-b border-gray-300 hover:bg-[#e9e9e9] transition-colors"
@@ -527,29 +558,32 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           Рукопис
         </Link>
         <p className="px-8 pt-3 pb-2 text-[0.9375rem] font-bold text-black">Зміст</p>
-        <nav className="pb-4">
-          {outline.length === 0 && (
-            <p className="px-8 text-[0.8125rem] text-gray-400">
-              Позначте розділ/главу/заголовок через панель &quot;Стилі тексту&quot; праворуч — вони з&apos;являться тут.
-            </p>
-          )}
-          {outline.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => scrollToBlock(item.id)}
-              style={{ paddingLeft: `${32 + item.tier * 14}px` }}
-              className="block w-full truncate py-1.5 pr-3 text-left text-[0.9375rem] text-black hover:bg-[#e3e3e3]"
-              title={item.text}
-            >
-              {item.text}
-            </button>
-          ))}
-        </nav>
+        {outlineNav}
       </aside>
 
       {/* Center — toolbar + editor */}
       <div className="flex min-w-0 flex-1 flex-col">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadAndInsertImage(file);
+              e.target.value = "";
+            }}
+          />
         <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setOutlineOpen(true)}
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2 text-[0.75rem] font-medium text-gray-700 xl:hidden"
+            title="Зміст"
+          >
+            <ListTree size={15} />
+            Зміст
+          </button>
           {/* T-2076 -- renamed from "Передперегляд" to "PDF для друку": this
               route lazily generates the print PDF on open (print-preview.ts),
               which "Передперегляд" alone didn't convey -- unified with the
@@ -591,11 +625,10 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               </span>
             )}
           </button>
-          <div className="h-5 w-px shrink-0 bg-gray-200" />
+          <div className="hidden h-5 w-px shrink-0 bg-gray-200 xl:block" />
 
-          {/* Everything below scrolls horizontally as one unit once it no
-              longer fits between the two fixed buttons on either side,
-              instead of wrapping onto a second row -- see toolbarScrollRef. */}
+          {/* Desktop toolbar. Tablet: floating popover (T6). */}
+          <div className="hidden min-w-0 flex-1 items-center xl:flex">
           {canScrollToolbarLeft && (
             <button
               type="button"
@@ -724,17 +757,6 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           <ToolbarButton title="Вставити зображення" onClick={() => fileInputRef.current?.click()}>
             <ImagePlus size={15} />
           </ToolbarButton>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) uploadAndInsertImage(file);
-              e.target.value = "";
-            }}
-          />
           {editor.isActive("image") && (
             <>
               <div className="mx-1 h-5 w-px bg-gray-200" />
@@ -772,6 +794,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               <ChevronRight size={15} />
             </button>
           )}
+          </div>
 
           <div className="flex shrink-0 items-center gap-2 text-[0.75rem]">
             {imageError && <span className="text-red-600">{imageError}</span>}
@@ -785,7 +808,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
             <button
               type="button"
               onClick={saveNow}
-              disabled={saveState === "saving"}
+              disabled={saveState === "saving" || saveState === "saved"}
               // Explains + reassures rather than showing the raw server
               // error ("Invalid or missing token" etc.) -- that string is
               // accurate but reads as alarming/cryptic to an author, and by
@@ -807,6 +830,15 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
               {saveState === "saved" && "✓ Збережено"}
               {saveState === "error" && "⚠ Повторити"}
               {saveState === "idle" && "Зберегти"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStylesOpen(true)}
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2 text-[0.75rem] font-medium text-gray-700 xl:hidden"
+              title="Стилі тексту"
+            >
+              <Type size={15} />
+              Стилі
             </button>
           </div>
         </div>
@@ -840,7 +872,77 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto bg-white px-16 py-10">
+        <div className="relative flex-1 overflow-y-auto bg-white px-4 py-6 xl:px-16 xl:py-10">
+          <div className="absolute right-3 top-3 z-20 xl:hidden">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg"
+                  title="Форматування"
+                >
+                  <PencilLine size={18} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="left" align="start" className="w-auto max-w-[min(360px,90vw)] p-2">
+                <div className="flex flex-wrap items-center gap-1">
+                  <ToolbarButton title="Скасувати" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
+                    <Undo2 size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Повторити" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}>
+                    <Redo2 size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Жирний" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+                    <Bold size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Курсив" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+                    <Italic size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Підкреслення" active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+                    <UnderlineIcon size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Закреслення" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
+                    <Strikethrough size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Маркований список" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+                    <List size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Нумерований список" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+                    <ListOrdered size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="По лівому краю" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
+                    <AlignLeft size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="По центру" active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()}>
+                    <AlignCenter size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="По правому краю" active={editor.isActive({ textAlign: "right" })} onClick={() => editor.chain().focus().setTextAlign("right").run()}>
+                    <AlignRight size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="По ширині" active={editor.isActive({ textAlign: "justify" })} onClick={() => editor.chain().focus().setTextAlign("justify").run()}>
+                    <AlignJustify size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Вставити зображення" onClick={() => fileInputRef.current?.click()}>
+                    <ImagePlus size={15} />
+                  </ToolbarButton>
+                  <ToolbarButton title="Пошук" onClick={() => (search.open ? search.closeSearch() : search.openSearch())} active={search.open}>
+                    <Search size={15} />
+                  </ToolbarButton>
+                  <button
+                    type="button"
+                    onClick={() => setPageCheckMode((v) => !v)}
+                    title="Змінити розмір канвасу під формат книги"
+                    className={cn(
+                      "flex h-7 items-center gap-1 rounded px-2 text-[0.75rem] font-medium",
+                      pageCheckMode ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-100"
+                    )}
+                  >
+                    <BookOpenCheck size={14} />
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
           {/* Author feedback: the page-check box used to be sized to
               contentW only (the text column) -- book-shaped proportions
               broke down because side margins eat a much bigger share of a
@@ -880,8 +982,8 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
         </div>
       </div>
 
-      {/* Right — paragraph styles */}
-      <aside className="w-[240px] shrink-0 overflow-y-auto border-l border-gray-200 bg-[#f3f3f3] p-4">
+      {/* Right — paragraph styles (desktop). Tablet: Sheet. */}
+      <aside className="hidden w-[240px] shrink-0 overflow-y-auto border-l border-gray-200 bg-[#f3f3f3] p-4 xl:block">
         <p className="mb-3 text-[0.875rem] font-medium text-black">Стилі тексту</p>
         <div className="space-y-0.5">
           {(Object.keys(STYLE_LABELS) as StyledBlockStyleName[]).map((key) => {
@@ -1032,6 +1134,83 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
           ))}
         </div>
       </aside>
+
+      <Sheet open={outlineOpen} onOpenChange={setOutlineOpen}>
+        <SheetContent side="left" className="w-[280px] p-0 xl:hidden">
+          <SheetHeader className="border-b border-gray-200 px-6 py-3 text-left">
+            <SheetTitle>Зміст</SheetTitle>
+          </SheetHeader>
+          <div className="overflow-y-auto pt-2">{outlineNav}</div>
+        </SheetContent>
+      </Sheet>
+      <Sheet open={stylesOpen} onOpenChange={setStylesOpen}>
+        <SheetContent side="right" className="w-[280px] overflow-y-auto p-4 xl:hidden">
+          <SheetHeader className="mb-3 text-left">
+            <SheetTitle>Стилі тексту</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-0.5">
+            {(Object.keys(STYLE_LABELS) as StyledBlockStyleName[]).map((key) => {
+              const isActive = styleOfCurrentBlock === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => applyStyleToSelection(key)}
+                  className={cn(
+                    "block w-full rounded px-2.5 py-1.5 text-left text-[0.875rem] transition-colors",
+                    isActive ? "bg-gray-900 text-white" : "text-black hover:bg-[#e3e3e3]"
+                  )}
+                >
+                  {STYLE_LABELS[key]}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mb-3 mt-6 text-[0.875rem] font-medium text-black">Номери сторінок</p>
+          <div className="flex gap-1">
+            {(Object.keys(PAGE_NUMBER_POSITION_LABELS) as PageNumberPosition[]).map((pos) => {
+              const Icon =
+                pos === "bottom-left"
+                  ? AlignLeft
+                  : pos === "bottom-right"
+                    ? AlignRight
+                    : pos === "bottom-outer"
+                      ? ArrowLeftRight
+                      : AlignCenter;
+              const isActive = pageNumberPosition === pos;
+              return (
+                <button
+                  key={pos}
+                  type="button"
+                  onClick={() => setPageNumberPosition(pos)}
+                  title={PAGE_NUMBER_POSITION_LABELS[pos]}
+                  className={cn(
+                    "flex h-8 flex-1 items-center justify-center rounded border transition-colors",
+                    isActive ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                  )}
+                >
+                  <Icon size={14} />
+                </button>
+              );
+            })}
+          </div>
+          <p className="mb-3 mt-6 text-[0.875rem] font-medium text-black">Набір стилів</p>
+          <div className="space-y-2">
+            {LAYOUT_TEMPLATES.map((tpl) => (
+              <button
+                key={tpl.id}
+                onClick={() => setSelectedLayout(tpl.id)}
+                className={cn(
+                  "block w-full rounded-md border bg-white p-2.5 text-left transition-colors",
+                  selectedLayout === tpl.id ? "border-gray-900 ring-1 ring-gray-900" : "border-gray-200 hover:border-gray-400"
+                )}
+              >
+                <p className="text-[0.6875rem] font-bold uppercase leading-tight text-black">{tpl.name}</p>
+                <p className="mt-1 text-[0.6875rem] leading-snug text-gray-500">{tpl.description}</p>
+              </button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ManuscriptProseStyles />
     </div>

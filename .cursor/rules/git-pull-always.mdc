@@ -13,4 +13,6 @@ Anatolii always permits these on this repo. Do not ask for confirmation:
 
 Do not wait for a second "yes" in the same conversation or later ones.
 
-This does **not** grant commit, force-push, push to other branches, reset --hard, or rebase without an explicit request.
+Commit after a finished task is also allowed — see `git-commit-push-after-work.mdc`.
+
+This does **not** grant force-push, push to other branches, reset --hard, or rebase without an explicit request.

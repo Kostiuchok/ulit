@@ -26,6 +26,7 @@ import {
   spineThicknessMm,
 } from "shared-types";
 import { Button } from "../ui/button";
+import { SaveActionButton } from "../ui/SaveActionButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
 import { CoverTemplatesModal } from "./CoverTemplatesModal";
@@ -980,6 +981,11 @@ export default function CoverDesignerCanvas({
   const [templateId, setTemplateId] = useState(TEMPLATES[0].id);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [coverSaved, setCoverSaved] = useState(false);
+  const [coverDirty, setCoverDirty] = useState(false);
+  const coverReadyRef = useRef(false);
+  const canvasHostRef = useRef<HTMLDivElement>(null);
+  const [canvasScale, setCanvasScale] = useState(1);
   const [saveError, setSaveError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
@@ -1035,6 +1041,10 @@ export default function CoverDesignerCanvas({
       historyIndexRef.current = historyRef.current.length - 1;
       setCanUndo(historyIndexRef.current > 0);
       setCanRedo(false);
+      if (coverReadyRef.current) {
+        setCoverDirty(true);
+        setCoverSaved(false);
+      }
     });
   }, []);
 
@@ -1143,6 +1153,9 @@ export default function CoverDesignerCanvas({
         historyRef.current = [];
         historyIndexRef.current = -1;
         saveSnapshot();
+        queueMicrotask(() => {
+          coverReadyRef.current = true;
+        });
       });
     } else {
       template.apply(canvas, ctx);
@@ -1150,6 +1163,9 @@ export default function CoverDesignerCanvas({
       historyRef.current = [];
       historyIndexRef.current = -1;
       saveSnapshot();
+      queueMicrotask(() => {
+        coverReadyRef.current = true;
+      });
 
       const initAccent = canvas.getObjects().find((o: any) => o.data?.role === "accent") as any;
       backgroundRef.current = { color: (initAccent?.fill as string) ?? "#1a1a2e" };
@@ -1220,6 +1236,26 @@ export default function CoverDesignerCanvas({
     prevFormatRef.current = format;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.layout.totalW, ctx.layout.totalH, format]);
+
+  // T7 -- scale the canvas to the available tablet/desktop width so the
+  // wrap (back+spine+front) never forces a page-level horizontal scroll.
+  // Fabric stays at logical layout pixels; CSS transform is visual only.
+  useEffect(() => {
+    const host = canvasHostRef.current;
+    if (!host) return;
+    const apply = () => {
+      const w = host.clientWidth;
+      setCanvasScale(w > 0 ? Math.min(1, w / ctx.layout.totalW) : 1);
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, [ctx.layout.totalW]);
+
+  useEffect(() => {
+    canvasRef.current?.calcOffset();
+  }, [canvasScale, ctx.layout.totalW, ctx.layout.totalH]);
 
   // T-2060 п.8 -- "Вихідні дані" is the canonical text source (title/author/
   // subtitle/annotation/bio); by default the cover's own text objects stay
@@ -1885,6 +1921,8 @@ export default function CoverDesignerCanvas({
       });
 
       onSaved(patch);
+      setCoverDirty(false);
+      setCoverSaved(true);
     } catch (e: any) {
       setSaveError(e.message || "Помилка збереження обкладинки");
     } finally {
@@ -1987,8 +2025,23 @@ export default function CoverDesignerCanvas({
     <div className="flex flex-col gap-4 lg:flex-row">
       {/* Canvas */}
       <div className="flex flex-1 min-w-0 flex-col items-center gap-3">
-        <div className="max-w-full overflow-x-auto rounded-lg border-2 border-gray-200 shadow-md">
-          <div className="relative" style={{ width: ctx.layout.totalW, height: ctx.layout.totalH }}>
+        <div ref={canvasHostRef} className="w-full max-w-full">
+          <div
+            className="rounded-lg border-2 border-gray-200 shadow-md"
+            style={{
+              width: ctx.layout.totalW * canvasScale,
+              height: ctx.layout.totalH * canvasScale,
+              overflow: "hidden",
+            }}
+          >
+          <div
+            className="relative origin-top-left"
+            style={{
+              width: ctx.layout.totalW,
+              height: ctx.layout.totalH,
+              transform: `scale(${canvasScale})`,
+            }}
+          >
             <canvas ref={canvasEl} />
             {/* Non-printing guides marking the spine (торець книжки) fold lines,
                 so the author can judge its real thickness and whether text fits
@@ -2010,6 +2063,7 @@ export default function CoverDesignerCanvas({
                 />
               </>
             )}
+          </div>
           </div>
         </div>
         <p className="text-xs text-gray-400">Клікніть на назву, підзаголовок, автора чи анотацію, щоб редагувати текст прямо на обкладинці</p>
@@ -2111,9 +2165,12 @@ export default function CoverDesignerCanvas({
             ↪ Redo
           </Button>
         </div>
-        <Button onClick={saveToBook} loading={saving} className="w-full max-w-xs">
-          Зберегти обкладинку
-        </Button>
+        <SaveActionButton
+          state={saving ? "saving" : coverSaved && !coverDirty ? "saved" : "idle"}
+          idleLabel="Зберегти обкладинку"
+          onClick={saveToBook}
+          className="w-full max-w-xs"
+        />
         <Button
           variant="outline"
           onClick={saveAsTemplate}

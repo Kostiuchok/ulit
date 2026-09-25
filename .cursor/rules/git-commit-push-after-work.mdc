@@ -1,0 +1,16 @@
+---
+description: After finishing work, commit relevant files and push origin/main
+alwaysApply: true
+---
+
+# Commit and push after finishing work
+
+Anatolii wants this every time a task is done — do not wait for a separate "commit" message:
+
+1. Stage only the files that belong to the work (not secrets, not stray screenshots/PDFs in the repo root).
+2. Create a Conventional Commit (`feat:`, `fix:`, `chore:`, `docs:`).
+3. `git push origin main`.
+
+`git fetch` / `git pull` / `git push origin main` are already always allowed.
+
+This does **not** grant force-push, push to other branches, reset --hard, or rebase without an explicit request.
