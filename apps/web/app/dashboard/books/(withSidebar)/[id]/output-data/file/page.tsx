@@ -165,7 +165,7 @@ export default function OutputDataFilePage() {
           >
           <PreviewRangeEditor
             bookId={id}
-            pageCount={book?.pageCount}
+            pageCount={book?.printPageCount ?? book?.pageCount}
             initialStart={book?.previewStart}
             initialEnd={book?.previewEnd}
             onSaved={(start, end) =>

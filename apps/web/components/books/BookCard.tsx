@@ -6,6 +6,12 @@ import { getBookStatusLabel } from "../../lib/bookStatus";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Book {
   id: string;
@@ -87,8 +93,8 @@ export function BookCard({ book, onDelete, needsAttention }: Props) {
           )}
         </div>
 
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-[0.75rem] text-gray-500">
+        <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.75rem] text-gray-500">
             {pages && <span>{pages} стор.</span>}
             {book.priceEbook && <span>Е-книга: {Number(book.priceEbook).toFixed(0)} грн</span>}
             {book.pricePrint && <span>Друк (м&apos;яка): {Number(book.pricePrint).toFixed(0)} грн</span>}
@@ -101,14 +107,21 @@ export function BookCard({ book, onDelete, needsAttention }: Props) {
               <Link href={`/dashboard/books/${book.id}`}>Відкрити</Link>
             </Button>
             {onDelete && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onDelete(book.id)}
-                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-600"
-              >
-                Видалити
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" aria-label="Інші дії">
+                    ⋯
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={() => onDelete(book.id)}
+                  >
+                    Видалити
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>

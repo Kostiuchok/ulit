@@ -1,4 +1,4 @@
-import { PRINT_TRIM_SIZE_MM } from "shared-types";
+import { PRINT_TRIM_SIZE_MM, spineThicknessMm } from "shared-types";
 
 // Kept in its own module, deliberately separate from CoverDesignerCanvas.tsx
 // -- that file imports `fabric` (which pulls in the native `canvas` package
@@ -45,7 +45,7 @@ function deriveDisplayGeometry(trimMm: { widthMm: number; heightMm: number }) {
 
 function computeSpineWidthPx(format: CoverFormat, pageCount: number | null | undefined, pxPerMm: number): number {
   const pages = pageCount && pageCount > 0 ? pageCount : DEFAULT_PAGE_COUNT;
-  const spineMm = pages * 0.1 + (format === "hardcover" ? 4 : 0);
+  const spineMm = spineThicknessMm(pages, format === "hardcover");
   return Math.max(6, Math.round(spineMm * pxPerMm));
 }
 

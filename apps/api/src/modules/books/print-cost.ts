@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { effectivePageCount } from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
@@ -46,7 +47,7 @@ export async function bookPrintCostRoutes(app: FastifyInstance) {
       if (!book) throw AppError.notFound("Book");
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
 
-      const pageCount = book.printPageCount ?? book.pageCount;
+      const pageCount = effectivePageCount(book);
       if (!pageCount) {
         return reply.send({ status: "NO_PAGE_COUNT" });
       }

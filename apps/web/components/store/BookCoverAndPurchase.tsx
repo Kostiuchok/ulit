@@ -24,6 +24,7 @@ interface Props {
   printWidthMm?: number | null;
   printHeightMm?: number | null;
   printFormatKey?: string | null;
+  printPdfUrl?: string | null;
 }
 
 // Keeps the cover carousel in sync with the format the buyer picks in the
@@ -48,6 +49,7 @@ export function BookCoverAndPurchase({
   printWidthMm,
   printHeightMm,
   printFormatKey,
+  printPdfUrl,
 }: Props) {
   const hasEbook = priceEbook != null;
   const hasPrint = !!(pricePrint || pricePrintHardcover || pricePrintBw || pricePrintHardcoverBw);
@@ -65,9 +67,17 @@ export function BookCoverAndPurchase({
     setCoverKey(next === "ebook" ? "ebook" : "print-front");
   }
 
+  const trimMm =
+    printWidthMm && printHeightMm && printWidthMm > 0 && printHeightMm > 0
+      ? { widthMm: printWidthMm, heightMm: printHeightMm }
+      : null;
+
   return (
     <>
-      <div className="w-full max-w-xs mx-auto">
+      <div
+        className="mx-auto h-[min(42vh,340px)] w-auto max-w-full md:h-auto md:w-full md:max-w-xs"
+        style={{ aspectRatio: `${printWidthMm && printWidthMm > 0 ? printWidthMm : 130} / ${printHeightMm && printHeightMm > 0 ? printHeightMm : 200}` }}
+      >
         {coverUrl ? (
           <BookCoverCarousel
             coverUrl={coverUrl}
@@ -88,8 +98,8 @@ export function BookCoverAndPurchase({
         )}
       </div>
 
-      {epubUrl && (
-        <div className="mt-4 flex justify-center">
+      {(epubUrl || printPdfUrl) && (
+        <div className="mt-3 flex justify-center md:mt-4">
           <EpubReader
             bookSlug={bookSlug}
             bookTitle={title}
@@ -97,6 +107,7 @@ export function BookCoverAndPurchase({
             bookPrice={priceEbook ?? null}
             bookAuthor={author}
             coverUrl={coverUrl}
+            trimMm={trimMm}
           />
         </div>
       )}

@@ -8,6 +8,7 @@ import { BookCoverCarousel } from "@/components/books/BookCoverCarousel";
 import { CoverPrintSpread } from "@/components/books/CoverPrintSpread";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useBook } from "@/hooks/useBook";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
@@ -59,8 +60,8 @@ export default function OutputDataCoverPage() {
       {book?.coverUrl && (
         <Card className="border border-gray-300 p-6 shadow-sm">
           <CollapsibleSection title="Передперегляд">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="mx-auto w-full max-w-[220px]">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="w-full">
               <BookCoverCarousel
                 coverUrl={book.coverUrl}
                 backCoverUrl={book.backCoverUrl}
@@ -72,7 +73,7 @@ export default function OutputDataCoverPage() {
                 hasPrint
               />
             </div>
-            <div className="mx-auto w-full max-w-[200px]">
+            <div className="w-full">
               <TabletCoverFrame coverUrl={book.coverUrl} />
             </div>
           </div>
@@ -134,12 +135,11 @@ export default function OutputDataCoverPage() {
             )}
           </span>
         </div>
-        <Link
-          href={`/dashboard/books/${id}/cover`}
-          className="inline-block text-sm text-black underline hover:no-underline"
-        >
-          {book?.coverUrl ? "Редагувати обкладинку →" : "Створити обкладинку →"}
-        </Link>
+        <Button asChild>
+          <Link href={`/dashboard/books/${id}/cover`}>
+            {book?.coverUrl ? "Редагувати обкладинку" : "Створити обкладинку"}
+          </Link>
+        </Button>
       </Card>
     </div>
   );

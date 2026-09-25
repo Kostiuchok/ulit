@@ -19,7 +19,12 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { PRINT_TRIM_SIZE_MM } from "shared-types";
+import {
+  PRINT_TRIM_SIZE_MM,
+  MIN_SPINE_TEXT_THICKNESS_MM,
+  isSpineTooThinForText,
+  spineThicknessMm,
+} from "shared-types";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
@@ -2008,6 +2013,19 @@ export default function CoverDesignerCanvas({
           </div>
         </div>
         <p className="text-xs text-gray-400">Клікніть на назву, підзаголовок, автора чи анотацію, щоб редагувати текст прямо на обкладинці</p>
+        {format !== "ebook" &&
+          pageCount != null &&
+          pageCount > 0 &&
+          isSpineTooThinForText(pageCount, format === "hardcover") && (
+            <p
+              role="status"
+              className="w-full max-w-lg rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+            >
+              Корінець зараз ~{spineThicknessMm(pageCount, format === "hardcover").toFixed(1)} мм.
+              Текст на корінці можливий лише від {MIN_SPINE_TEXT_THICKNESS_MM} мм (близько 100 сторінок
+              для м&apos;якої палітурки). Надрукувати книгу все одно можна.
+            </p>
+          )}
 
         {activeObj && (
           <div className="flex w-full max-w-xs items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">

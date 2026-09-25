@@ -21,6 +21,12 @@ import {
   siteRoyaltyRate,
   pendingOrderCutoff,
   PENDING_ORDER_TTL_MS,
+  effectivePageCount,
+  padPrintPageCount,
+  spineThicknessMm,
+  isSpineTooThinForText,
+  MIN_SPINE_TEXT_THICKNESS_MM,
+  resolveExcerptRange,
 } from "shared-types";
 
 // Unlike schemas.test.ts's hand-copied mirrors, these import the REAL
@@ -364,5 +370,57 @@ describe("pending order TTL (T-2021)", () => {
     const now = new Date("2026-09-24T12:00:00.000Z");
     expect(pendingOrderCutoff(now).toISOString()).toBe("2026-09-23T12:00:00.000Z");
     expect(PENDING_ORDER_TTL_MS).toBe(24 * 60 * 60 * 1000);
+  });
+});
+
+describe("effectivePageCount (T-2055)", () => {
+  it("prefers printPageCount over pageCount", () => {
+    expect(effectivePageCount({ printPageCount: 48, pageCount: 12 })).toBe(48);
+  });
+
+  it("falls back to pageCount when print is missing", () => {
+    expect(effectivePageCount({ pageCount: 12 })).toBe(12);
+    expect(effectivePageCount({ printPageCount: null, pageCount: 12 })).toBe(12);
+  });
+
+  it("returns null for missing or non-positive counts", () => {
+    expect(effectivePageCount({})).toBeNull();
+    expect(effectivePageCount({ printPageCount: 0, pageCount: 0 })).toBeNull();
+  });
+});
+
+describe("print page pad and spine (T-2065)", () => {
+  it("pads an odd count to the next even page", () => {
+    expect(padPrintPageCount(1)).toBe(2);
+    expect(padPrintPageCount(47)).toBe(48);
+    expect(padPrintPageCount(48)).toBe(48);
+  });
+
+  it("does not pad invalid counts", () => {
+    expect(padPrintPageCount(0)).toBe(0);
+    expect(padPrintPageCount(-3)).toBe(-3);
+  });
+
+  it("warns when spine is thinner than 10mm", () => {
+    expect(spineThicknessMm(50, false)).toBe(5);
+    expect(isSpineTooThinForText(50, false)).toBe(true);
+    expect(isSpineTooThinForText(100, false)).toBe(false);
+    expect(isSpineTooThinForText(50, true)).toBe(true);
+    expect(isSpineTooThinForText(60, true)).toBe(false);
+    expect(MIN_SPINE_TEXT_THICKNESS_MM).toBe(10);
+  });
+});
+
+describe("resolveExcerptRange (F1a)", () => {
+  it("uses the author's inclusive page range", () => {
+    expect(resolveExcerptRange(3, 5, 48)).toEqual({ start: 3, end: 5 });
+  });
+
+  it("defaults to the first five pages when the author left the range empty", () => {
+    expect(resolveExcerptRange(null, null, 48)).toEqual({ start: 1, end: 5 });
+  });
+
+  it("clamps to the real page count", () => {
+    expect(resolveExcerptRange(40, 99, 48)).toEqual({ start: 40, end: 48 });
   });
 });

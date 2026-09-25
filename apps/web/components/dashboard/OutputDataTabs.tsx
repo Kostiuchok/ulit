@@ -21,7 +21,7 @@ export function OutputDataTabs({ bookId, sectionDone, isDraftStatus, readyToPubl
   const base = `/dashboard/books/${bookId}/output-data`;
 
   return (
-    <nav className="flex gap-1 overflow-x-auto">
+    <nav className="flex gap-1 overflow-x-auto pb-2.5">
       {SECTION_ORDER.map((key) => {
         const href = base + SECTION_PATH[key];
         // None of the 6 leaf paths is a prefix of another (they all diverge

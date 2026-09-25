@@ -68,7 +68,7 @@ export function BookPurchaseWidget({
     onFormatChange?.(f);
   };
   const [binding, setBinding] = useState<"softcover" | "hardcover">(hasSoftcover ? "softcover" : "hardcover");
-  const [colorMode, setColorMode] = useState<"color" | "bw">("color");
+  const [colorMode, setColorMode] = useState<"color" | "bw">("bw");
 
   const availableEbookFormats = EBOOK_FORMATS.filter(
     (f) => (f === "EPUB" && epubUrl) || (f === "FB2" && fb2Url) || (f === "MOBI" && mobiUrl)
@@ -219,7 +219,7 @@ function FormatPills({
   if (!hasEbook || !hasPrint) return null; // only one option -- nothing to switch between
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-center gap-3">
       <button
         type="button"
         onClick={() => onChange("ebook")}

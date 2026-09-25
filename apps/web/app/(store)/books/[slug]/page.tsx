@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BookCoverAndPurchase } from "../../../../components/store/BookCoverAndPurchase";
-import { PRINT_TRIM_SIZE_LABEL } from "shared-types";
+import { PRINT_TRIM_SIZE_LABEL, effectivePageCount } from "shared-types";
 import { Badge } from "../../../../components/ui/badge";
 import { Card } from "../../../../components/ui/card";
 
@@ -32,6 +32,7 @@ interface BookDetail {
   language?: string;
   isbn?: string | null;
   pageCount?: number | null;
+  printPageCount?: number | null;
   publishedAt?: string | null;
   epubUrl?: string | null;
   fb2Url?: string | null;
@@ -110,6 +111,7 @@ export default async function BookPage({ params }: Props) {
 
   const availableFormats = FORMAT_INFO.filter((f) => book[f.key]);
   const hasAnyPrint = !!(book.pricePrint || book.pricePrintHardcover || book.pricePrintBw || book.pricePrintHardcoverBw);
+  const pages = effectivePageCount(book);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -124,7 +126,7 @@ export default async function BookPage({ params }: Props) {
       url: `/authors/${book.author.slug}`,
     },
     inLanguage: book.language ?? "uk",
-    numberOfPages: book.pageCount ?? undefined,
+    numberOfPages: pages ?? undefined,
     datePublished: book.publishedAt ? book.publishedAt.slice(0, 10) : undefined,
     offers: [
       ...(book.priceEbook
@@ -182,12 +184,12 @@ export default async function BookPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-10">
-        <Link href="/books" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-8">
+      <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 sm:py-10">
+        <Link href="/books" className="mb-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 sm:mb-8">
           ← Каталог
         </Link>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-10">
           {/* Cover */}
           <div className="md:col-span-1">
             <div className="sticky top-20">
@@ -210,6 +212,7 @@ export default async function BookPage({ params }: Props) {
                 printWidthMm={book.printWidthMm}
                 printHeightMm={book.printHeightMm}
                 printFormatKey={book.printFormatKey}
+                printPdfUrl={book.printPdfUrl}
               />
             </div>
           </div>
@@ -284,10 +287,10 @@ export default async function BookPage({ params }: Props) {
                   <p className="text-sm font-mono font-semibold text-gray-900">{book.isbn}</p>
                 </Card>
               )}
-              {book.pageCount && (
+              {pages && (
                 <Card className="p-3 shadow-none">
                   <p className="text-xs text-gray-500">Сторінок</p>
-                  <p className="text-sm font-semibold text-gray-900">{book.pageCount}</p>
+                  <p className="text-sm font-semibold text-gray-900">{pages}</p>
                 </Card>
               )}
               {book.language && (

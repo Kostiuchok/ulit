@@ -11,9 +11,14 @@ const EpubReaderInner = dynamic(
   () => import("./EpubReaderInner").then((m) => m.EpubReaderInner),
   { ssr: false }
 );
+const PrintExcerptViewer = dynamic(
+  () => import("./PrintExcerptViewer").then((m) => m.PrintExcerptViewer),
+  { ssr: false }
+);
 
 interface PreviewConfig {
-  previewUrl: string;
+  previewUrl: string | null;
+  printPreviewUrl: string | null;
   previewStart: number | null;
   previewEnd: number | null;
   pageCount: number | null;
@@ -26,9 +31,10 @@ interface Props {
   bookPrice?: number | null;
   bookAuthor: string;
   coverUrl?: string | null;
+  trimMm?: { widthMm: number; heightMm: number } | null;
 }
 
-export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice, bookAuthor, coverUrl }: Props) {
+export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice, bookAuthor, coverUrl, trimMm }: Props) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const [config, setConfig] = useState<PreviewConfig | null>(null);
@@ -52,6 +58,10 @@ export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice, bookAuthor,
         return;
       }
       const data: PreviewConfig = await res.json();
+      if (!data.printPreviewUrl && !data.previewUrl) {
+        setError("Уривок недоступний");
+        return;
+      }
       setConfig(data);
       setOpen(true);
     } catch {
@@ -76,6 +86,8 @@ export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice, bookAuthor,
     router.push("/cart");
   }
 
+  const usePrint = !!(config?.printPreviewUrl);
+
   return (
     <>
       <Button variant="outline" onClick={handleOpen} loading={loading} className="border-gray-300 text-gray-700">
@@ -85,16 +97,30 @@ export function EpubReader({ bookSlug, bookTitle, bookId, bookPrice, bookAuthor,
 
       {open && config &&
         createPortal(
-          <EpubReaderInner
-            url={config.previewUrl}
-            previewStart={config.previewStart}
-            previewEnd={config.previewEnd}
-            pageCount={config.pageCount}
-            bookTitle={bookTitle}
-            bookPrice={bookPrice}
-            onBuy={handleBuy}
-            onClose={() => setOpen(false)}
-          />,
+          usePrint ? (
+            <PrintExcerptViewer
+              printPdfUrl={config.printPreviewUrl!}
+              previewStart={config.previewStart}
+              previewEnd={config.previewEnd}
+              pageCount={config.pageCount}
+              trimMm={trimMm}
+              bookTitle={bookTitle}
+              bookPrice={bookPrice}
+              onBuy={handleBuy}
+              onClose={() => setOpen(false)}
+            />
+          ) : (
+            <EpubReaderInner
+              url={config.previewUrl!}
+              previewStart={config.previewStart}
+              previewEnd={config.previewEnd}
+              pageCount={config.pageCount}
+              bookTitle={bookTitle}
+              bookPrice={bookPrice}
+              onBuy={handleBuy}
+              onClose={() => setOpen(false)}
+            />
+          ),
           document.body
         )}
     </>

@@ -39,6 +39,7 @@ const BOOK_SELECT = {
   language: true,
   isbn: true,
   pageCount: true,
+  printPageCount: true,
   publishedAt: true,
   epubUrl: true,
   fb2Url: true,
@@ -52,9 +53,16 @@ const BOOK_SELECT = {
 // stored under fixed-per-record object keys (coverVersion.ts) -- readers on
 // the public store otherwise see a stale cached author photo/cover after
 // the author re-uploads.
-function withBookAndAuthorVersion<T extends { author?: any }>(book: T): T {
+function withBookAndAuthorVersion<T extends { author?: any; pageCount?: number | null; printPageCount?: number | null }>(
+  book: T
+): T {
   const withCover = withCoverVersion(book as any);
-  return withCover.author ? { ...withCover, author: withAvatarVersion(withCover.author) } : withCover;
+  const versioned = withCover.author
+    ? { ...withCover, author: withAvatarVersion(withCover.author) }
+    : withCover;
+  // T-2055 -- store consumers still read `pageCount`. Prefer the print PDF
+  // count so the shop and JSON-LD show pages even if PAGE_THUMBNAILS never ran.
+  return { ...versioned, pageCount: versioned.printPageCount ?? versioned.pageCount };
 }
 
 export async function storeBooksRoutes(app: FastifyInstance) {
@@ -180,24 +188,28 @@ export async function storeBooksRoutes(app: FastifyInstance) {
       select: {
         status: true,
         epubUrl: true,
+        printPdfUrl: true,
         previewStart: true,
         previewEnd: true,
         pageCount: true,
+        printPageCount: true,
       },
     });
 
     if (!book || book.status !== "PUBLISHED") throw AppError.notFound("Book");
-    if (!book.epubUrl) {
-      return reply.status(404).send({ error: "No EPUB available for preview" });
+    if (!book.epubUrl && !book.printPdfUrl) {
+      return reply.status(404).send({ error: "No preview available" });
     }
 
-    const previewUrl = await getSignedUrl(book.epubUrl);
+    const previewUrl = book.epubUrl ? await getSignedUrl(book.epubUrl) : null;
+    const printPreviewUrl = book.printPdfUrl ? await getSignedUrl(book.printPdfUrl) : null;
 
     return reply.send({
       previewUrl,
+      printPreviewUrl,
       previewStart: book.previewStart,
       previewEnd: book.previewEnd,
-      pageCount: book.pageCount,
+      pageCount: book.printPageCount ?? book.pageCount,
     });
   });
 

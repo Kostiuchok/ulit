@@ -57,6 +57,60 @@ export function pendingOrderCutoff(now = new Date()): Date {
   return new Date(now.getTime() - PENDING_ORDER_TTL_MS);
 }
 
+// T-2055 -- printPageCount is written by the WeasyPrint job; pageCount was
+// only ever set by the old PAGE_THUMBNAILS job (opened "Передперегляд").
+// Prefer the print count everywhere a page number drives cost, spine, or
+// store metadata.
+export function effectivePageCount(book: {
+  printPageCount?: number | null;
+  pageCount?: number | null;
+}): number | null {
+  const n = book.printPageCount ?? book.pageCount ?? null;
+  return n != null && n > 0 ? n : null;
+}
+
+// T-2065 -- printto.ua recommends an even page count for any book; a
+// multiple of 4 is only required for saddle-stitched brochures (скоба).
+// Ulit ships perfect-bound soft/hardcover, so we pad to 2, not 4 -- extra
+// blanks at the end of a glued book are themselves a print defect.
+export const PRINT_PAGE_PAD_MULTIPLE = 2;
+export const MIN_SPINE_TEXT_THICKNESS_MM = 10;
+export const SPINE_MM_PER_PAGE = 0.1;
+export const HARDCOVER_SPINE_EXTRA_MM = 4;
+
+export function padPrintPageCount(
+  actual: number,
+  multiple: number = PRINT_PAGE_PAD_MULTIPLE
+): number {
+  if (!Number.isFinite(actual) || actual <= 0) return actual;
+  if (!Number.isFinite(multiple) || multiple < 2) return actual;
+  const rem = actual % multiple;
+  return rem === 0 ? actual : actual + (multiple - rem);
+}
+
+export function spineThicknessMm(pageCount: number, hardcover: boolean): number {
+  const pages = pageCount > 0 ? pageCount : 0;
+  return pages * SPINE_MM_PER_PAGE + (hardcover ? HARDCOVER_SPINE_EXTRA_MM : 0);
+}
+
+export function isSpineTooThinForText(pageCount: number, hardcover: boolean): boolean {
+  return spineThicknessMm(pageCount, hardcover) < MIN_SPINE_TEXT_THICKNESS_MM;
+}
+
+// F1a -- author previewStart/previewEnd are 1-based print-PDF pages.
+// Missing end → five pages from start so an unset book still has a finite excerpt.
+export function resolveExcerptRange(
+  previewStart: number | null | undefined,
+  previewEnd: number | null | undefined,
+  pageCount: number
+): { start: number; end: number } {
+  const last = Math.max(1, pageCount);
+  const start = previewStart != null && previewStart > 0 ? Math.min(previewStart, last) : 1;
+  const end =
+    previewEnd != null && previewEnd >= start ? Math.min(previewEnd, last) : Math.min(start + 4, last);
+  return { start, end };
+}
+
 export type BookFormat = "EPUB" | "FB2" | "MOBI" | "PRINT";
 
 // Print formats per ДСТУ 3018-95 (Ukrainian state standard for book/print

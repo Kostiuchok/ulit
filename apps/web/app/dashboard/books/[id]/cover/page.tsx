@@ -28,6 +28,7 @@ interface BookInfo {
   coverDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[] | null;
   pageCount?: number | null;
+  printPageCount?: number | null;
   moderationStatus?: string | null;
   moderationNote?: string | null;
   moderationReasons?: string[] | null;
@@ -259,7 +260,7 @@ export default function CoverPage() {
             description={book?.description}
             authorBio={book?.authorBio}
             isbn={book?.isbn}
-            pageCount={book?.pageCount}
+            pageCount={book?.printPageCount ?? book?.pageCount}
             trimMm={{ widthMm: trimFormat.widthMm, heightMm: trimFormat.heightMm }}
             format={format}
             existingCoverUrl={book?.coverUrl}

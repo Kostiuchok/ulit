@@ -6,6 +6,7 @@ import { OutputDataTabs } from "@/components/dashboard/OutputDataTabs";
 import { useBook } from "@/hooks/useBook";
 import { getUnresolvedRejectionLines, type OutputDataSectionKey as RejectionTargetKey } from "@/lib/rejectedBlocks";
 import { isPublishStepComplete } from "shared-types";
+import { Button } from "@/components/ui/button";
 
 // Trimmed to exactly what this layout needs: PublishStepBook's fields (for
 // the nav's ✓/○ badges) + RejectionFieldState's fields (for the banner) +
@@ -154,13 +155,10 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
 
         {children}
 
-        <div className="text-center pb-2">
-          <Link
-            href={`/dashboard/books/${id}`}
-            className="text-sm text-gray-500 underline hover:no-underline hover:text-gray-900"
-          >
-            До дашборду книги →
-          </Link>
+        <div className="pb-2 text-center">
+          <Button asChild variant="outline">
+            <Link href={`/dashboard/books/${id}`}>До дашборду книги</Link>
+          </Button>
         </div>
       </div>
     </div>

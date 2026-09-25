@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { resolveBookPrintFormat } from "shared-types";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
 import { PrintedCoverFrame } from "@/components/books/PrintedCoverFrame";
@@ -43,7 +43,7 @@ export function BookCoverCarousel({
   const slides: { key: string; label: string; node: React.ReactNode }[] = [];
 
   if (hasEbook) {
-    slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} /> });
+    slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} className="h-full" /> });
   }
   // A designed back cover is itself proof of print intent (CoverDesigner's
   // back-cover panel only exists for the print edition) -- an author who's
@@ -52,26 +52,29 @@ export function BookCoverCarousel({
   // matching front-cover slide beside it, which reads as broken.
   const hasPrintCover = hasPrint || !!backCoverUrl;
   if (hasPrintCover) {
-    slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} trimMm={trimMm} /> });
+    slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} trimMm={trimMm} className="h-full" /> });
   }
   if (backCoverUrl) {
-    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} trimMm={trimMm} mirror /> });
+    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} trimMm={trimMm} mirror className="h-full" /> });
   }
   if (slides.length === 0) {
-    slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} /> });
+    slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} className="h-full" /> });
   }
 
   const [internalActive, setInternalActive] = useState(0);
   const controlledIndex = activeKey != null ? slides.findIndex((s) => s.key === activeKey) : -1;
   const current = controlledIndex >= 0 ? controlledIndex : Math.min(internalActive, slides.length - 1);
+  const touchX = useRef<number | null>(null);
+  const swiped = useRef(false);
 
   function selectIndex(i: number) {
-    setInternalActive(i);
-    onActiveKeyChange?.(slides[i].key);
+    const next = Math.min(Math.max(0, i), slides.length - 1);
+    setInternalActive(next);
+    onActiveKeyChange?.(slides[next].key);
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full flex-col space-y-3">
       {/* No shared fixed aspect-ratio here: TabletCoverFrame keeps its own
           fixed tablet-shaped ratio (a physical tablet screen has one shape),
           while PrintedCoverFrame now sizes itself from the book's own real
@@ -82,10 +85,31 @@ export function BookCoverCarousel({
           switching between the ebook and print slides, which is correct --
           they really are differently-shaped objects. */}
       <div
-        className={`relative flex w-full items-center justify-center ${slides.length > 1 ? "cursor-pointer" : ""}`}
-        onClick={slides.length > 1 ? () => selectIndex((current + 1) % slides.length) : undefined}
+        className={`relative flex min-h-0 w-full flex-1 items-center justify-center ${slides.length > 1 ? "cursor-pointer" : ""}`}
+        onClick={
+          slides.length > 1
+            ? () => {
+                if (swiped.current) {
+                  swiped.current = false;
+                  return;
+                }
+                selectIndex((current + 1) % slides.length);
+              }
+            : undefined
+        }
+        onTouchStart={(e) => {
+          touchX.current = e.changedTouches[0].clientX;
+        }}
+        onTouchEnd={(e) => {
+          if (touchX.current == null || slides.length < 2) return;
+          const dx = e.changedTouches[0].clientX - touchX.current;
+          touchX.current = null;
+          if (Math.abs(dx) < 40) return;
+          swiped.current = true;
+          selectIndex(current + (dx < 0 ? 1 : -1));
+        }}
       >
-        <div key={slides[current].key} aria-label={slides[current].label} className="w-full">
+        <div key={slides[current].key} aria-label={slides[current].label} className="h-full w-full">
           {slides[current].node}
         </div>
       </div>

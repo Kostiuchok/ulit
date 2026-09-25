@@ -1,11 +1,12 @@
 import { Job } from "bullmq";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
 import { PRINT_TRIM_SIZE_MM, extractPageNumberPosition, type FrontMatterMeta } from "shared-types";
 import { uploadFromFile } from "../lib/minio";
 import { prisma } from "../lib/prisma";
+import { countPdfPages, padPdfToEvenPages } from "../lib/padPrintPdf";
 import { renderManuscriptPdf } from "../lib/renderManuscriptPdf";
 
 export interface PrintPdfData {
@@ -131,40 +132,43 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
 
     if (!fs.existsSync(rawPdf)) throw new Error("WeasyPrint did not produce a PDF");
 
-    const stat = fs.statSync(rawPdf);
+    // T-2065 -- even page count for perfect binding, before the CMYK pass
+    // (and before the >10 MB skip, which otherwise ships an odd raw PDF).
+    const paddedPdf = padPdfToEvenPages(rawPdf, tmpDir, widthMm, heightMm);
+
+    const stat = fs.statSync(paddedPdf);
     const outputPdf = path.join(tmpDir, "print.pdf");
 
     // T-414: if > 10 MB skip compression and use raw PDF
     if (stat.size > 10 * 1024 * 1024) {
-      fs.copyFileSync(rawPdf, outputPdf);
+      fs.copyFileSync(paddedPdf, outputPdf);
     } else {
       // Ghostscript: PDF/X-3, CMYK, 300 DPI, 3mm bleed -- unchanged from the
       // old pipeline, just now runs over WeasyPrint's output instead of
       // LibreOffice's (docs/T-2057-checklist.md checklist item).
-      execSync(
-        `gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dCompatibilityLevel=1.3 ` +
-        `-dPDFSETTINGS=/prepress -dColorConversionStrategy=/CMYK ` +
-        `-dProcessColorModel=/DeviceCMYK -r300 ` +
-        `-dBleedOffset=8.504 ` + // 3mm in points (1pt = 0.353mm)
-        `-sOutputFile="${outputPdf}" "${rawPdf}"`,
-        { timeout: 180_000, stdio: "pipe" }
+      execFileSync(
+        "gs",
+        [
+          "-dBATCH",
+          "-dNOPAUSE",
+          "-sDEVICE=pdfwrite",
+          "-dCompatibilityLevel=1.3",
+          "-dPDFSETTINGS=/prepress",
+          "-dColorConversionStrategy=/CMYK",
+          "-dProcessColorModel=/DeviceCMYK",
+          "-r300",
+          "-dBleedOffset=8.504", // 3mm in points (1pt = 0.353mm)
+          `-sOutputFile=${outputPdf}`,
+          paddedPdf,
+        ],
+        { timeout: 180_000 }
       );
     }
     await job.updateProgress(85);
 
     if (!fs.existsSync(outputPdf)) throw new Error("Ghostscript did not produce a print PDF");
 
-    let printPageCount: number | undefined;
-    try {
-      const pageCountOutput = execSync(
-        `gs -q -dNODISPLAY -dNOSAFER -c "(${outputPdf}) (r) file runpdfbegin pdfpagecount = quit"`,
-        { timeout: 30_000, stdio: "pipe" }
-      ).toString().trim();
-      const parsed = parseInt(pageCountOutput, 10);
-      if (Number.isFinite(parsed) && parsed > 0) printPageCount = parsed;
-    } catch {
-      // Non-fatal -- cost estimate falls back to the online pageCount.
-    }
+    const printPageCount = countPdfPages(outputPdf);
     await job.updateProgress(95);
 
     const objectName = `private/books/${bookId}/print.pdf`;
@@ -184,7 +188,9 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
         // before the artificially-future printPdfGeneratedAt, and the PDF
         // would wrongly register as fresh.
         printPdfGeneratedAt: new Date(),
-        ...(printPageCount ? { printPageCount } : {}),
+        ...(printPageCount
+          ? { printPageCount, pageCount: printPageCount }
+          : {}),
       },
       select: { id: true },
     });
