@@ -23,6 +23,14 @@ interface Props {
   // drive which slide is shown. Uncontrolled (internal state) when omitted.
   activeKey?: string;
   onActiveKeyChange?: (key: string) => void;
+  // Fill the parent's height instead of sizing to the slide's own aspect
+  // ratio. ONLY for a parent that has its own definite height AND aspect
+  // ratio (the store's BookCoverAndPurchase wrapper). Everywhere else it must
+  // stay off: h-full inside a grid/flex cell that merely STRETCHES to a taller
+  // sibling (the book dashboard's cover column next to the timeline) is a
+  // definite height too, and with a definite width the frame's aspect-ratio
+  // is ignored -- the preview stretched vertically.
+  fill?: boolean;
 }
 
 export function BookCoverCarousel({
@@ -36,14 +44,16 @@ export function BookCoverCarousel({
   printFormatKey,
   activeKey,
   onActiveKeyChange,
+  fill = false,
 }: Props) {
   const format = resolveBookPrintFormat({ genre, printWidthMm, printHeightMm, printFormatKey });
   const trimMm = { widthMm: format.widthMm, heightMm: format.heightMm };
+  const frameClass = fill ? "h-full" : undefined;
 
   const slides: { key: string; label: string; node: React.ReactNode }[] = [];
 
   if (hasEbook) {
-    slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} className="h-full" /> });
+    slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} className={frameClass} /> });
   }
   // A designed back cover is itself proof of print intent (CoverDesigner's
   // back-cover panel only exists for the print edition) -- an author who's
@@ -52,13 +62,13 @@ export function BookCoverCarousel({
   // matching front-cover slide beside it, which reads as broken.
   const hasPrintCover = hasPrint || !!backCoverUrl;
   if (hasPrintCover) {
-    slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} trimMm={trimMm} className="h-full" /> });
+    slides.push({ key: "print-front", label: "Друкована — перед", node: <PrintedCoverFrame coverUrl={coverUrl} trimMm={trimMm} className={frameClass} /> });
   }
   if (backCoverUrl) {
-    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} trimMm={trimMm} mirror className="h-full" /> });
+    slides.push({ key: "print-back", label: "Задня сторона обкладинки", node: <PrintedCoverFrame coverUrl={backCoverUrl} trimMm={trimMm} mirror className={frameClass} /> });
   }
   if (slides.length === 0) {
-    slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} className="h-full" /> });
+    slides.push({ key: "ebook", label: "Електронна", node: <TabletCoverFrame coverUrl={coverUrl} className={frameClass} /> });
   }
 
   const [internalActive, setInternalActive] = useState(0);
@@ -74,7 +84,7 @@ export function BookCoverCarousel({
   }
 
   return (
-    <div className="flex h-full flex-col space-y-3">
+    <div className={fill ? "flex h-full flex-col space-y-3" : "space-y-3"}>
       {/* No shared fixed aspect-ratio here: TabletCoverFrame keeps its own
           fixed tablet-shaped ratio (a physical tablet screen has one shape),
           while PrintedCoverFrame now sizes itself from the book's own real
@@ -85,7 +95,7 @@ export function BookCoverCarousel({
           switching between the ebook and print slides, which is correct --
           they really are differently-shaped objects. */}
       <div
-        className={`relative flex min-h-0 w-full flex-1 items-center justify-center ${slides.length > 1 ? "cursor-pointer" : ""}`}
+        className={`relative flex w-full items-center justify-center ${fill ? "min-h-0 flex-1" : ""} ${slides.length > 1 ? "cursor-pointer" : ""}`}
         onClick={
           slides.length > 1
             ? () => {
@@ -109,7 +119,7 @@ export function BookCoverCarousel({
           selectIndex(current + (dx < 0 ? 1 : -1));
         }}
       >
-        <div key={slides[current].key} aria-label={slides[current].label} className="h-full w-full">
+        <div key={slides[current].key} aria-label={slides[current].label} className={fill ? "h-full w-full" : "w-full"}>
           {slides[current].node}
         </div>
       </div>

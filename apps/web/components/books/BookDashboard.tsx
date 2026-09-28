@@ -137,7 +137,10 @@ export function BookDashboard() {
   const showOtherBlock = (unresolvedOtherLines.length > 0 || showGenericFallback) && !otherNoticeDismissed;
 
   return (
-    <div className="min-h-screen bg-white p-8">
+    // min-h-full, not min-h-screen: this sits inside a scroll pane that is
+    // shorter than the viewport (site header + top bar), so min-h-screen made
+    // even a short page overflow it and show a scrollbar.
+    <div className="min-h-full bg-white p-8">
       <div className="space-y-8">
         {hasCoverNotice && (
           <div

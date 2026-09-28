@@ -15,9 +15,14 @@ export default async function BooksWithSidebarLayout({ children }: { children: R
   const session = await auth();
 
   return (
-    <SidebarProvider>
+    // h-full min-h-0, not the provider's default min-h-svh: this layout already
+    // sits inside dashboard/layout.tsx's <main overflow-y-auto> UNDER the
+    // site header, so a min-h-svh (100vh) wrapper is always taller than that
+    // area -- <main> got its own scrollbar on top of the content pane's
+    // (two scrollbars). The content pane below is the one and only scroller.
+    <SidebarProvider className="h-full min-h-0">
       <AuthorBooksSidebar user={session?.user} />
-      <SidebarInset className="min-w-0">
+      <SidebarInset className="min-h-0 min-w-0">
         <header className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-3">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="h-6 w-6" />
