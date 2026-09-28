@@ -365,17 +365,22 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
       break-before: page;
     }
 
-    /* Розділ (chapter) always starts a fresh recto page; section/heading/
-       subheading intentionally force no break (natural flow). */
+    /* Розділ / Глава / Заголовок / Підзаголовок: NO forced page breaks --
+       everything flows naturally (author decision, 2026-09-28). Розділ used
+       to force break-before: recto, which also produced a blank verso page
+       whenever the previous chapter ended on a right-hand page. A page break
+       is now only ever an explicit one the author inserted. Розділ still
+       feeds the running header (top-center chapter title). */
     .manuscript-prose p[data-style="chapter"] {
-      break-before: recto;
       string-set: chapter-title content();
     }
 
-    /* Епіграф always alone on its own page, both sides. */
+    /* Епіграф flows like any other block -- no forced page before or after
+       (author decision, 2026-09-28). It used to sit alone on its own page,
+       which pushed ALL the text following it onto a new page. Stays in one
+       piece rather than being split across a page boundary mid-quote. */
     .manuscript-prose p[data-style="epigraph"] {
-      break-before: page;
-      break-after: page;
+      break-inside: avoid;
     }
 
     /* An inserted image that doesn't fit in the remaining space on the

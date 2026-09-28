@@ -17,11 +17,6 @@ interface NodeMetric {
   isPageBreak: boolean;
   isHeading: boolean;
   isFloatedImage: boolean;
-  // Ridero-style convention (T-1963 follow-up, Figma node 14:841): an
-  // epigraph/dedication paragraph always gets a page to itself -- forced
-  // page boundary both before and after it, regardless of surrounding
-  // content's height, not just "when it doesn't fit".
-  isEpigraph: boolean;
   // Bottom edge of each visual LINE inside this node, relative to the
   // node's own top (so `node.top + lineBreakYs[i]` is an absolute
   // container-relative Y, same coordinate space as `top`/`height`) --
@@ -87,7 +82,10 @@ export function measureNodes(container: HTMLElement): NodeMetric[] {
       isPageBreak,
       isHeading,
       isFloatedImage: floatAlignOf(element) !== null,
-      isEpigraph,
+      // An epigraph flows like any other block (author decision, 2026-09-28:
+      // it used to force its own page before AND after, which pushed all the
+      // following text onto a new page) -- it just stays atomic, never split
+      // mid-quote, like a heading.
       lineBreakYs: isPageBreak || isEpigraph || isHeading ? undefined : measureLineBottoms(element),
     };
   });
@@ -155,16 +153,6 @@ export function paginateNodes(nodes: NodeMetric[], pageHeight: number): PageLeaf
       pageStartY = node.top + node.height;
       continue;
     }
-    if (node.isEpigraph) {
-      // Always its own page -- cut off whatever came before, place it alone,
-      // then cut off again so the next node starts fresh too.
-      flush();
-      current.push(node);
-      flush();
-      pageStartY = node.top + node.height;
-      continue;
-    }
-
     // A left/right-aligned image's box overlaps the paragraph(s) that wrap
     // around it (CSS float takes it out of normal flow), so the very next
     // node's measured top/height can't be trusted to decide a break here --
