@@ -17,6 +17,10 @@ export const PAGE_MARGIN_OUTER_MM = 20;
 // vertical-align:bottom + padding-bottom of this value so it lands exactly
 // here regardless of how tall the bottom margin area is.
 export const PAGE_NUMBER_BOTTOM_OFFSET_MM = 10;
+// Page-number size -- deliberately a fixed value, NOT tied to BODY_FONT_PT:
+// tying it made the number as large as a paragraph of body text (author
+// report, 2026-09-28 -- it had been 9pt before 60f2de2 linked the two).
+export const PAGE_NUMBER_FONT_PT = 9;
 // Body text size -- author-specified 2026-09-09, superseding the earlier
 // cap-height-ruler-derived value (8.66pt, itself derived from a 2mm
 // cap-height reading against a real printed book) that read too small at

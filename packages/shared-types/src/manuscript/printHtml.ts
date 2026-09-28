@@ -12,6 +12,7 @@ import {
   BODY_FONT_PT,
   BODY_LINE_HEIGHT_EM,
   PAGE_NUMBER_BOTTOM_OFFSET_MM,
+  PAGE_NUMBER_FONT_PT,
   TITLE_PAGE_REFERENCE_HEIGHT_MM,
   TITLE_PAGE_PEN_NAME_TOP_MM,
   TITLE_PAGE_TITLE_CENTER_MM,
@@ -235,7 +236,7 @@ function pageNumberMarginBox(position: PageNumberPosition): string {
 // verso) without drifting from the fixed-side case's styling.
 function pageNumberDeclarations(): string {
   return `
-        content: counter(page); font-size: ${BODY_FONT_PT}pt; color: #333;
+        content: counter(page); font-size: ${PAGE_NUMBER_FONT_PT}pt; color: #333;
         font-family: "Times New Roman", "Liberation Serif", "Times", serif;
         vertical-align: bottom; padding-bottom: ${PAGE_NUMBER_BOTTOM_OFFSET_MM}mm;`;
 }
@@ -529,6 +530,27 @@ export interface BuildManuscriptPrintHtmlInput {
   backCoverUrl?: string | null;
 }
 
+// A manuscript imported from Word often opens with an empty paragraph and/or a
+// manual page break (a leftover "title page" gap). In print that is a bug: the
+// body already starts on a fresh page right after Зміст, so the empty
+// paragraph lands alone on that page (only its page number shows) and the
+// manual break then pushes the real text one page further -- a blank sheet
+// after Зміст. Only LEADING blanks are dropped; anything after the first real
+// content is the author's own layout and stays.
+function isBlankParagraph(node: any): boolean {
+  if (node?.type !== "paragraph") return false;
+  const children: any[] = node.content ?? [];
+  return children.every((c) => c?.type === "text" && !String(c.text ?? "").trim());
+}
+
+function stripLeadingBlankNodes(nodes: any[]): any[] {
+  let start = 0;
+  while (start < nodes.length && (nodes[start]?.type === "pageBreak" || isBlankParagraph(nodes[start]))) {
+    start++;
+  }
+  return start === 0 ? nodes : nodes.slice(start);
+}
+
 // Full standalone HTML document for WeasyPrint to render straight to PDF.
 // This is the ONLY place print-specific pagination CSS (break-before/after:
 // recto/verso/page, @page geometry) is defined -- MANUSCRIPT_PROSE_CSS stays
@@ -559,7 +581,7 @@ export function buildManuscriptPrintHtml({
   // it's purely a structural seam between the title page and the colophon,
   // not part of either's own node list anymore.
   const titleColophonBreakHtml = `<div data-type="page-break" contenteditable="false"></div>`;
-  const bodyHtml = manuscriptContentToHtml({ type: "doc", content: body });
+  const bodyHtml = manuscriptContentToHtml({ type: "doc", content: stripLeadingBlankNodes(body) });
   const tocHtml = buildTocHtml(body);
   const backCoverHtml = backCoverUrl
     ? `<div class="back-cover-page"><img src="${escapeHtml(backCoverUrl)}" alt=""></div>`

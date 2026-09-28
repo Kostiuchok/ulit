@@ -49,7 +49,9 @@ export async function exportPrintCurves(job: Job<ExportPrintCurvesData>) {
     // extra time is worth it every time.
     const outputPdf = path.join(tmpDir, "curves.pdf");
     execSync(
-      `gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dCompatibilityLevel=1.3 ` +
+      // 1.4, not 1.3 -- see generate-pdf-print.ts: 1.3 flattens transparency
+      // by rasterizing whole pages, which defeats the point of an outlines file.
+      `gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 ` +
       `-dPDFSETTINGS=/prepress -dColorConversionStrategy=/CMYK ` +
       `-dProcessColorModel=/DeviceCMYK -dNoOutputFonts=true -r300 ` +
       `-dBleedOffset=8.504 ` + // 3mm in points (1pt = 0.353mm)

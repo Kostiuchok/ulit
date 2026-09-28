@@ -5,6 +5,7 @@ import { AppError } from "../../errors/AppError";
 import { requireAdmin } from "../../lib/jwt.middleware";
 import { validateIsbn13 } from "../../services/isbn.service";
 import { getSignedUrl } from "../../services/storage.service";
+import { PRINT_FORMATS, resolveBookPrintFormat, type PrintFormatKey } from "shared-types";
 
 // T-2078 -- same annotation-length cap as output-data/page.tsx's
 // IsbnReadinessChecklist (ISBN_ANNOTATION_HALF_PAGE_CHARS), kept in sync
@@ -187,11 +188,33 @@ export async function bookChamberRoutes(app: FastifyInstance) {
     printPageCount: true,
     genre: true,
     language: true,
+    printWidthMm: true,
+    printHeightMm: true,
+    printFormatKey: true,
     isbn: true,
     udcCode: true,
     authorSign: true,
     author: { select: { name: true } },
   } as const;
+
+  // "Розмір книги: Енциклопедичний (145 × 215 мм)" -- same resolution the
+  // author-facing output-data page uses (resolveBookPrintFormat), so the
+  // number in the application always matches the book's real trim. The name
+  // comes from the saved format key when there is one; resolveBookPrintFormat's
+  // own label falls back to "Індивідуальний" whenever the key differs from the
+  // genre default, which would mislabel a deliberately chosen standard size.
+  function formatBookSize(book: {
+    genre: string | null;
+    printWidthMm: number | null;
+    printHeightMm: number | null;
+    printFormatKey: string | null;
+  }) {
+    const format = resolveBookPrintFormat(book);
+    const keyed = book.printFormatKey ? PRINT_FORMATS[book.printFormatKey as PrintFormatKey] : undefined;
+    const isCustom = !keyed && !!book.printWidthMm && !!book.printHeightMm;
+    const name = keyed?.label ?? (isCustom ? "Індивідуальний" : format.label);
+    return `${name} (${format.widthMm} × ${format.heightMm} мм)`;
+  }
 
   function buildApplicationText(book: {
     title: string;
@@ -199,6 +222,9 @@ export async function bookChamberRoutes(app: FastifyInstance) {
     bookAuthors: unknown;
     genre: string | null;
     language: string;
+    printWidthMm: number | null;
+    printHeightMm: number | null;
+    printFormatKey: string | null;
     printPageCount: number | null;
     isbn: string | null;
     udcCode: string | null;
@@ -210,6 +236,7 @@ export async function bookChamberRoutes(app: FastifyInstance) {
       `Автор (ПІБ): ${authorFullName}`,
       `Мова видання: ${book.language}`,
       `Жанр: ${book.genre ?? "—"}`,
+      `Розмір книги: ${formatBookSize(book)}`,
       `Кількість сторінок: ${book.printPageCount ?? "—"}`,
       "",
       `ISBN: ${book.isbn ?? "ще не присвоєно"}`,
