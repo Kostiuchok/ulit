@@ -293,7 +293,14 @@ export function BookDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[320px_1fr_260px]">
+        {/* Three fixed-ish columns (320 + 1fr + 260 + gaps) need ~1200px of
+            CONTENT width. A landscape tablet (1024-1194px) loses 256px of that
+            to the app sidebar, which squeezed the middle timeline column to
+            ~100px so it overlapped the price card and promo (author report,
+            tablet QA). Below xl: cover+price left, timeline right, promo full
+            width underneath. minmax(0,1fr) lets the timeline shrink instead of
+            overflowing into its neighbours. */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_260px]">
           {/* Left: cover + price */}
           <div className="space-y-4">
             <BookCoverCarousel
@@ -355,8 +362,9 @@ export function BookDashboard() {
             )}
           </div>
 
-          {/* Right sidebar: promo — scrolls with the page, not sticky */}
-          <div>
+          {/* Right sidebar: promo — scrolls with the page, not sticky. Below xl
+              it drops under the two columns above instead of a third column. */}
+          <div className="lg:col-span-2 xl:col-span-1">
             <BookPromoSidebar />
           </div>
         </div>
