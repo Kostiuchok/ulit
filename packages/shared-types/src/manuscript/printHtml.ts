@@ -375,6 +375,24 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
       string-set: chapter-title content();
     }
 
+    /* A heading is never left alone at the bottom of a page: break-after:
+       avoid keeps it with whatever follows (it moves to the next page
+       together with the first lines of the text it introduces), and chains --
+       Розділ + Глава + Заголовок in a row travel as one group. This is
+       "keep together", not a forced break, so it never adds a page break by
+       itself. Verified against WeasyPrint on a synthetic page-fill sweep:
+       without it 5 of 30 fill levels stranded a heading (or the first of two
+       stacked headings) on the last line of a page, with it 0 of 30.
+       break-inside: avoid stops a heading that wraps to two lines from being
+       split across pages. */
+    .manuscript-prose p[data-style="chapter"],
+    .manuscript-prose p[data-style="section"],
+    .manuscript-prose p[data-style="heading"],
+    .manuscript-prose p[data-style="subheading"] {
+      break-after: avoid;
+      break-inside: avoid;
+    }
+
     /* Епіграф flows like any other block -- no forced page before or after
        (author decision, 2026-09-28). It used to sit alone on its own page,
        which pushed ALL the text following it onto a new page. Stays in one

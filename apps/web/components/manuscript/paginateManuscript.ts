@@ -189,16 +189,29 @@ export function paginateNodes(nodes: NodeMetric[], pageHeight: number): PageLeaf
       }
 
       // Don't leave a heading alone as the last item on a page with the
-      // content it introduces pushed to the next page -- carry the heading
-      // forward so it lands together with what follows it.
+      // content it introduces pushed to the next page -- carry the WHOLE run
+      // of trailing headings (Розділ + Глава + Заголовок stacked) forward so
+      // they land together with what follows. Mirrors the print CSS
+      // (break-after: avoid on headings + WeasyPrint's default orphans: 2):
+      // if the next node can put at least two of its lines under the heading
+      // on this page, the heading stays; only otherwise does the run move.
       const last = current.length > 0 ? current[current.length - 1] : null;
       if (firstPass && last?.isHeading) {
-        current.pop();
-        flush();
-        pageStartY = last.top;
-        current.push(last);
-        firstPass = false;
-        continue;
+        const linesFitting = node.lineBreakYs
+          ? node.lineBreakYs.filter((L) => L > consumedFromTop + 0.5 && L - consumedFromTop <= budget).length
+          : 0;
+        let runStart = current.length;
+        while (runStart > 0 && current[runStart - 1].isHeading) runStart--;
+        // runStart === 0: the page holds nothing but headings -- moving them
+        // would just recreate the same page, so fall through to normal logic.
+        if (linesFitting < 2 && runStart > 0) {
+          const carried = current.splice(runStart);
+          flush();
+          pageStartY = carried[0].top;
+          current.push(...carried);
+          firstPass = false;
+          continue;
+        }
       }
 
       const splitRel = node.lineBreakYs ? findSplitLine(node.lineBreakYs, consumedFromTop, budget) : null;
