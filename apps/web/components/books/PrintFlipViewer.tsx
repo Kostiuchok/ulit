@@ -135,17 +135,28 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
   // front cover does at the start). One filler blank leaf right before the
   // back cover flips that parity so the back cover always lands alone,
   // regardless of how many text pages there are.
-  const needsBackCoverParityFiller = hasCover && hasBackCover && interiorPageCount % 2 === 0;
+  //
+  // The inside of the back cover (the glued-down side) must ALWAYS be empty --
+  // no text page may ever sit there. With showCover, leaf 0 is alone and the
+  // rest pair up as (1,2), (3,4)... so the RIGHT side of each spread is an
+  // even leaf index. Interior page k lives at index k+1, i.e. on the right
+  // when k is odd. So:
+  //   - even interiorPageCount: last text page lands LEFT; one blank on the
+  //     right = inside of the back cover.
+  //   - odd interiorPageCount: last text page lands RIGHT -- that IS the
+  //     inside-back-cover slot, so text would print on it. Add one blank leaf
+  //     to push a fresh spread, then the inside-back-cover blank, i.e. two.
+  const backCoverFillerCount = hasCover && hasBackCover ? (interiorPageCount % 2 === 0 ? 1 : 2) : 0;
 
   const flipLeaves: FlipLeaf[] = useMemo(
     () => [
       ...(hasCover ? [{ kind: "cover" as const, url: coverUrl! }] : []),
       { kind: "blank" as const },
       ...Array.from({ length: interiorPageCount }, (_, i) => ({ kind: "page" as const, pageNumber: i + 1 })),
-      ...(needsBackCoverParityFiller ? [{ kind: "blank" as const }] : []),
+      ...Array.from({ length: backCoverFillerCount }, () => ({ kind: "blank" as const })),
       ...(hasBackCover ? [{ kind: "backCover" as const, url: backCoverUrl! }] : []),
     ],
-    [hasCover, coverUrl, hasBackCover, backCoverUrl, interiorPageCount, needsBackCoverParityFiller]
+    [hasCover, coverUrl, hasBackCover, backCoverUrl, interiorPageCount, backCoverFillerCount]
   );
   const totalLeaves = flipLeaves.length;
 
