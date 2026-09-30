@@ -13,7 +13,10 @@ import { getSignedUrl } from "../../services/storage.service";
 // interior block only (the cover is printed separately). PDFs rendered before
 // this cutoff still have that extra page, and the flipbook would treat it as a
 // text page -- so they are treated as stale and re-rendered on the next open.
-const INTERIOR_ONLY_PDF_SINCE = new Date("2026-10-01T00:00:00Z");
+// MUST be a moment in the PAST (the deploy time of the interior-only worker):
+// a future date makes every freshly rendered PDF look stale forever, so the
+// preview re-queues the render on every poll (seen 2026-09-30).
+const INTERIOR_ONLY_PDF_SINCE = new Date("2026-09-30T10:43:00Z");
 
 export async function printPreviewRoutes(app: FastifyInstance) {
   app.get(
