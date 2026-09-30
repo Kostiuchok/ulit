@@ -101,7 +101,7 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
   const isDraftStatus = !book?.status || book.status === "DRAFT" || book.status === "UNPUBLISHED";
 
   return (
-    <div className="p-8">
+    <div className="px-8 pb-8">
       <div className="space-y-6">
         {/* Sticky title+nav, same as before the route split -- only this
             block is sticky, not the rejection banner or the page content
