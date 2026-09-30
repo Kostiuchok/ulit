@@ -41,13 +41,11 @@ export async function uploadBackCoverRoute(app: FastifyInstance) {
       await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype);
       const backCoverUrl = publicUrl(objectName);
 
-      // backCoverUrl is baked directly into the print PDF as its literal
-      // last page (generate-pdf-print.ts) -- print-preview.ts's staleness
-      // check needs this bump or a new back cover would never invalidate
-      // the cached render.
+      // The back cover is NOT part of print.pdf (it is printed separately, the
+      // PDF is the interior block only) -- so no printMetaUpdatedAt bump.
       await prisma.book.update({
         where: { id },
-        data: { backCoverUrl, printMetaUpdatedAt: new Date() },
+        data: { backCoverUrl },
         select: { id: true },
       });
       return reply.send({ backCoverUrl });

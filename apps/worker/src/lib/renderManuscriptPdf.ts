@@ -22,7 +22,6 @@ export interface RenderManuscriptPdfInput {
   heightMm: number;
   pageNumberPosition?: PageNumberPosition;
   frontMatterMeta: FrontMatterMeta;
-  backCoverUrl?: string | null;
   tmpDir: string;
   outputPdfPath: string;
 }
@@ -38,7 +37,6 @@ export function renderManuscriptPdf({
   heightMm,
   pageNumberPosition,
   frontMatterMeta,
-  backCoverUrl,
   tmpDir,
   outputPdfPath,
 }: RenderManuscriptPdfInput): void {
@@ -48,7 +46,6 @@ export function renderManuscriptPdf({
     heightMm,
     pageNumberPosition,
     frontMatterMeta,
-    backCoverUrl,
   });
   const htmlPath = path.join(tmpDir, "manuscript.html");
   fs.writeFileSync(htmlPath, html, "utf-8");

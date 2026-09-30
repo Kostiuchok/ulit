@@ -110,14 +110,10 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
   // 1 always lands on the first spread's right (recto) side -- this blank
   // leaf is what pushes it there, with or without a cover set.
   //
-  // When there's a back cover, the print PDF (buildManuscriptPrintHtml)
-  // already bakes it in as that PDF's literal last page -- rendering it
-  // through the same <Page pageNumber> interior-page component every other
-  // page uses made it look like just another plain interior page instead of
-  // the outside of a closed book. Excluded from the interior page range
-  // here and rendered as its own leaf below, the same full-bleed <img>
-  // treatment the front cover leaf already gets.
-  const interiorPageCount = hasBackCover ? Math.max(0, printPageCount - 1) : printPageCount;
+  // The print PDF is the interior block only -- both covers are printed
+  // separately, so every PDF page is a text page. The covers are rendered
+  // below as their own full-bleed <img> leaves.
+  const interiorPageCount = printPageCount;
 
   // react-pageflip's showCover mode (see createSpread() in
   // react-pageflip-enhanced's build/index.js) marks leaf 0 as a lone hard
