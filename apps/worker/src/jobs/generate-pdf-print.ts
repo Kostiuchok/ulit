@@ -152,7 +152,13 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
           "-dBATCH",
           "-dNOPAUSE",
           "-sDEVICE=pdfwrite",
-          "-dCompatibilityLevel=1.3",
+          // 1.4, NOT 1.3: PDF 1.3 has no transparency, so pdfwrite FLATTENS
+          // it -- and any page holding a soft-masked image (a transparent
+          // PNG, so any book with one) came out as a single 300ppi raster of
+          // the whole page: text no longer text, no fonts, 5-6x the size.
+          // Reproduced on real books (fonts=0, one image per page); 1.4 keeps
+          // the transparency live and the text as embedded-font vectors.
+          "-dCompatibilityLevel=1.4",
           "-dPDFSETTINGS=/prepress",
           "-dColorConversionStrategy=/CMYK",
           "-dProcessColorModel=/DeviceCMYK",

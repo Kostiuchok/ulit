@@ -17,11 +17,6 @@ interface NodeMetric {
   isPageBreak: boolean;
   isHeading: boolean;
   isFloatedImage: boolean;
-  // Ridero-style convention (T-1963 follow-up, Figma node 14:841): an
-  // epigraph/dedication paragraph always gets a page to itself -- forced
-  // page boundary both before and after it, regardless of surrounding
-  // content's height, not just "when it doesn't fit".
-  isEpigraph: boolean;
   // Bottom edge of each visual LINE inside this node, relative to the
   // node's own top (so `node.top + lineBreakYs[i]` is an absolute
   // container-relative Y, same coordinate space as `top`/`height`) --
@@ -87,7 +82,10 @@ export function measureNodes(container: HTMLElement): NodeMetric[] {
       isPageBreak,
       isHeading,
       isFloatedImage: floatAlignOf(element) !== null,
-      isEpigraph,
+      // An epigraph flows like any other block (author decision, 2026-09-28:
+      // it used to force its own page before AND after, which pushed all the
+      // following text onto a new page) -- it just stays atomic, never split
+      // mid-quote, like a heading.
       lineBreakYs: isPageBreak || isEpigraph || isHeading ? undefined : measureLineBottoms(element),
     };
   });
@@ -155,16 +153,6 @@ export function paginateNodes(nodes: NodeMetric[], pageHeight: number): PageLeaf
       pageStartY = node.top + node.height;
       continue;
     }
-    if (node.isEpigraph) {
-      // Always its own page -- cut off whatever came before, place it alone,
-      // then cut off again so the next node starts fresh too.
-      flush();
-      current.push(node);
-      flush();
-      pageStartY = node.top + node.height;
-      continue;
-    }
-
     // A left/right-aligned image's box overlaps the paragraph(s) that wrap
     // around it (CSS float takes it out of normal flow), so the very next
     // node's measured top/height can't be trusted to decide a break here --
@@ -201,16 +189,29 @@ export function paginateNodes(nodes: NodeMetric[], pageHeight: number): PageLeaf
       }
 
       // Don't leave a heading alone as the last item on a page with the
-      // content it introduces pushed to the next page -- carry the heading
-      // forward so it lands together with what follows it.
+      // content it introduces pushed to the next page -- carry the WHOLE run
+      // of trailing headings (Розділ + Глава + Заголовок stacked) forward so
+      // they land together with what follows. Mirrors the print CSS
+      // (break-after: avoid on headings + WeasyPrint's default orphans: 2):
+      // if the next node can put at least two of its lines under the heading
+      // on this page, the heading stays; only otherwise does the run move.
       const last = current.length > 0 ? current[current.length - 1] : null;
       if (firstPass && last?.isHeading) {
-        current.pop();
-        flush();
-        pageStartY = last.top;
-        current.push(last);
-        firstPass = false;
-        continue;
+        const linesFitting = node.lineBreakYs
+          ? node.lineBreakYs.filter((L) => L > consumedFromTop + 0.5 && L - consumedFromTop <= budget).length
+          : 0;
+        let runStart = current.length;
+        while (runStart > 0 && current[runStart - 1].isHeading) runStart--;
+        // runStart === 0: the page holds nothing but headings -- moving them
+        // would just recreate the same page, so fall through to normal logic.
+        if (linesFitting < 2 && runStart > 0) {
+          const carried = current.splice(runStart);
+          flush();
+          pageStartY = carried[0].top;
+          current.push(...carried);
+          firstPass = false;
+          continue;
+        }
       }
 
       const splitRel = node.lineBreakYs ? findSplitLine(node.lineBreakYs, consumedFromTop, budget) : null;

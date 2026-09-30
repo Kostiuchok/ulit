@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -179,6 +180,22 @@ function ToolbarButton({
 
 const MARK_NAMES = ["bold", "italic", "underline", "strike"] as const;
 
+// Autosave timing -- see scheduleSave in ManuscriptEditor. The save runs when
+// the author PAUSES typing (SAVE_IDLE_MS), never in the middle of a burst;
+// SAVE_MAX_WAIT_MS only caps how long a non-stop burst can go unsaved.
+const SAVE_IDLE_MS = 3000;
+const SAVE_MAX_WAIT_MS = 60000;
+
+// requestIdleCallback isn't in Safari (iPad), so fall back to a short timeout.
+function runWhenIdle(cb: () => void): () => void {
+  if (typeof window.requestIdleCallback === "function") {
+    const handle = window.requestIdleCallback(cb, { timeout: 2000 });
+    return () => window.cancelIdleCallback(handle);
+  }
+  const handle = window.setTimeout(cb, 50);
+  return () => window.clearTimeout(handle);
+}
+
 // Applies a captured formatting (marks + alignment) to every paragraph in the
 // document carrying the given style — the "update style to match selection"
 // behaviour: redefine a style once, every block using it updates immediately.
@@ -257,7 +274,24 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   const [newSetDescription, setNewSetDescription] = useState("");
   const [savingSet, setSavingSet] = useState(false);
   const [, forceTick] = useState(0);
+  // Autosave (tablet report: it felt slow, a PATCH after every typed letter).
+  // Serializing the doc (editor.getJSON + JSON.stringify) walks the WHOLE
+  // manuscript on the UI thread, so the save is (1) deferred until the author
+  // pauses (saveTimer, SAVE_IDLE_MS), (2) capped for non-stop typing
+  // (maxWaitTimer), (3) serialized lazily and inside an idle callback
+  // (cancelIdle) -- never on each keystroke. pendingSave being non-null IS
+  // the "unsaved edits exist" flag; it stays set until serialization starts.
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxWaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelIdle = useRef<(() => void) | null>(null);
+  const pendingSave = useRef<{ getContent: () => any; overrides: Record<string, StyleOverride> } | null>(null);
+  const inFlightSave = useRef<Promise<void> | null>(null);
+  const editorRef = useRef<{ getJSON: () => any; isDestroyed: boolean } | null>(null);
+  // Latest performSave, for effects/handlers created once (avoids a stale
+  // apiFetch/token closure).
+  const performSaveRef = useRef<(content: any, overrides: Record<string, StyleOverride>) => Promise<void>>(
+    async () => {}
+  );
   const [pageCheckMode, setPageCheckMode] = useState(false);
   const [cleanupMenuOpen, setCleanupMenuOpen] = useState(false);
   const cleanupMenuRef = useRef<HTMLDivElement>(null);
@@ -289,6 +323,62 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       .catch(() => {});
   }, []);
 
+  function cancelSaveTimers() {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    if (maxWaitTimer.current) {
+      clearTimeout(maxWaitTimer.current);
+      maxWaitTimer.current = null;
+    }
+    if (cancelIdle.current) {
+      cancelIdle.current();
+      cancelIdle.current = null;
+    }
+  }
+
+  // Fire-and-forget write of any unsaved edit, right now -- for moments the
+  // author is leaving the editor (tab hidden, keyboard dismissed, unmount).
+  // Touches refs only, so the copy captured by the effect below is never stale.
+  function flushInBackground() {
+    const pending = pendingSave.current;
+    const ed = editorRef.current;
+    if (!pending || !ed || ed.isDestroyed) return;
+    cancelSaveTimers();
+    pendingSave.current = null;
+    try {
+      void performSaveRef.current(ed.getJSON(), pending.overrides);
+    } catch {
+      // best effort -- the editor is going away either way
+    }
+  }
+
+  // Declared BEFORE useEditor on purpose: cleanups run in declaration order,
+  // so on unmount this flush serializes the doc before useEditor's own
+  // cleanup destroys the editor.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (pendingSave.current) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flushInBackground();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("pagehide", flushInBackground);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("pagehide", flushInBackground);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      flushInBackground();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ paragraph: false }),
@@ -300,8 +390,11 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     content: effectiveInitialContent,
     onUpdate: ({ editor }) => {
       setOutline(extractOutline(editor));
-      scheduleSave(editor.getJSON(), withPageNumberPosition(styleOverrides, pageNumberPosition));
+      scheduleSave(() => editor.getJSON(), withPageNumberPosition(styleOverrides, pageNumberPosition));
     },
+    // Tablet: dismissing the on-screen keyboard blurs the editor -- a natural
+    // pause, so write what's pending now instead of waiting for the idle timer.
+    onBlur: () => flushInBackground(),
     onSelectionUpdate: () => forceTick((t) => t + 1),
     onTransaction: () => forceTick((t) => t + 1),
     editorProps: {
@@ -325,8 +418,10 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     },
     immediatelyRender: false,
   });
+  editorRef.current = editor;
+  performSaveRef.current = performSave;
 
-  const livePageBreaks = useLivePageBreaks(editor, pageCheckMode, pageGeometry.contentH);
+  const livePageBreaks =useLivePageBreaks(editor, pageCheckMode, pageGeometry.contentH);
   const search = useManuscriptSearch(editor);
 
   useEffect(() => {
@@ -382,10 +477,52 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     }
   }
 
-  function scheduleSave(content: any, overrides: Record<string, StyleOverride>) {
+  function scheduleSave(getContent: () => any, overrides: Record<string, StyleOverride>) {
     setSaveState("saving");
+    // Keep only the LATEST request; nothing is serialized here.
+    pendingSave.current = { getContent, overrides };
+    // Idle debounce: every keystroke pushes the save further out, so it only
+    // runs once the author pauses.
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => performSave(content, overrides), 2000);
+    saveTimer.current = setTimeout(runPendingSave, SAVE_IDLE_MS);
+    // Non-stop typing would postpone that forever -- cap the wait.
+    if (!maxWaitTimer.current) maxWaitTimer.current = setTimeout(runPendingSave, SAVE_MAX_WAIT_MS);
+  }
+
+  // Timer fired: serialize + send, but inside an idle callback so it lands in
+  // a gap between keystrokes instead of stalling one. New edits made while
+  // that callback is queued are simply included (getContent is lazy).
+  function runPendingSave() {
+    cancelSaveTimers();
+    cancelIdle.current = runWhenIdle(() => {
+      cancelIdle.current = null;
+      const pending = pendingSave.current;
+      pendingSave.current = null;
+      if (!pending || editorRef.current?.isDestroyed) return;
+      const p = performSaveRef.current(pending.getContent(), pending.overrides);
+      inFlightSave.current = p;
+      void p.finally(() => {
+        if (inFlightSave.current === p) inFlightSave.current = null;
+      });
+    });
+  }
+
+  // Writes any unsaved edit now and waits for it (or for a save already on
+  // the wire) -- call before navigating away from the editor.
+  async function flushPendingSave() {
+    const pending = pendingSave.current;
+    if (pending) {
+      cancelSaveTimers();
+      pendingSave.current = null;
+      if (editor) await performSave(editor.getJSON(), pending.overrides);
+    } else if (inFlightSave.current) {
+      await inFlightSave.current;
+    }
+  }
+
+  async function navigateAfterSave(href: string) {
+    await flushPendingSave();
+    router.push(href);
   }
 
   function saveStyleOverride(style: StyledBlockStyleName) {
@@ -400,7 +537,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     applyStyleFormatting(editor, style, fmt);
     const next = { ...styleOverrides, [style]: fmt };
     setStyleOverrides(next);
-    scheduleSave(editor.getJSON(), withPageNumberPosition(next, pageNumberPosition));
+    scheduleSave(() => editor.getJSON(), withPageNumberPosition(next, pageNumberPosition));
   }
 
   function applyStyleToSelection(style: StyledBlockStyleName) {
@@ -419,13 +556,13 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
     const newPosition = extractPageNumberPosition(set.styleOverrides);
     setStyleOverrides(overrides);
     setPageNumberPositionState(newPosition);
-    scheduleSave(editor.getJSON(), withPageNumberPosition(overrides, newPosition));
+    scheduleSave(() => editor.getJSON(), withPageNumberPosition(overrides, newPosition));
   }
 
   function setPageNumberPosition(position: PageNumberPosition) {
     if (!editor) return;
     setPageNumberPositionState(position);
-    scheduleSave(editor.getJSON(), withPageNumberPosition(styleOverrides, position));
+    scheduleSave(() => editor.getJSON(), withPageNumberPosition(styleOverrides, position));
   }
 
   async function submitSaveStyleSet() {
@@ -453,10 +590,8 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
 
   function saveNow() {
     if (!editor) return;
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-    }
+    cancelSaveTimers();
+    pendingSave.current = null;
     performSave(editor.getJSON(), withPageNumberPosition(styleOverrides, pageNumberPosition));
   }
 
@@ -471,14 +606,7 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
   // розмір картинки... результат: картинка залишилася без змін". Flushing
   // any pending save FIRST (awaited) before navigating closes that race.
   async function goToPreview() {
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-      if (editor) {
-        await performSave(editor.getJSON(), withPageNumberPosition(styleOverrides, pageNumberPosition));
-      }
-    }
-    router.push(`/dashboard/books/${bookId}/manuscript/preview`);
+    await navigateAfterSave(`/dashboard/books/${bookId}/manuscript/preview`);
   }
 
   useEffect(() => {
@@ -551,6 +679,10 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
       <aside className="hidden w-[260px] shrink-0 overflow-y-auto border-r border-gray-200 bg-[#f3f3f3] xl:block">
         <Link
           href={`/dashboard/books/${bookId}`}
+          onClick={(e) => {
+            e.preventDefault();
+            void navigateAfterSave(`/dashboard/books/${bookId}`);
+          }}
           className="flex items-center gap-2 px-8 py-3 text-[0.875rem] font-medium text-black border-b border-gray-300 hover:bg-[#e9e9e9] transition-colors"
         >
           <ChevronLeft size={12} className="shrink-0 text-gray-500" />
@@ -575,6 +707,18 @@ export function ManuscriptEditor({ bookId, initialContent, initialStyleOverrides
             }}
           />
         <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-2">
+          {/* Tablet/mobile: the outline sidebar (with its "Рукопис" back link)
+              is hidden below xl, so the way back to the book dashboard lives here. */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void navigateAfterSave(`/dashboard/books/${bookId}`)}
+            className="h-8 shrink-0 gap-1 px-2.5 text-[0.8125rem] xl:hidden"
+            title="Повернутися до дашборду книги"
+          >
+            <ChevronLeft size={15} />
+            Назад
+          </Button>
           <button
             type="button"
             onClick={() => setOutlineOpen(true)}

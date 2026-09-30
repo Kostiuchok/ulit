@@ -90,6 +90,9 @@ export function BookCoverAndPurchase({
             printFormatKey={printFormatKey}
             activeKey={coverKey}
             onActiveKeyChange={setCoverKey}
+            // This wrapper has its own definite height (phones) and aspect
+            // ratio, so the carousel should fill it -- see BookCoverCarousel.
+            fill
           />
         ) : (
           <div className="flex aspect-[2/3] w-full items-center justify-center rounded-xl bg-gray-100 text-7xl">
