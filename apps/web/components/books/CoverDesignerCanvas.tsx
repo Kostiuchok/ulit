@@ -2027,7 +2027,7 @@ export default function CoverDesignerCanvas({
       <div className="flex flex-1 min-w-0 flex-col items-center gap-3">
         <div ref={canvasHostRef} className="w-full max-w-full">
           <div
-            className="rounded-lg border-2 border-gray-200 shadow-md"
+            className="mx-auto rounded-lg border-2 border-gray-200 shadow-md"
             style={{
               width: ctx.layout.totalW * canvasScale,
               height: ctx.layout.totalH * canvasScale,
