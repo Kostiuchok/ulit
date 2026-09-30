@@ -134,7 +134,7 @@
 
 **Статус 2026-09-28:** хмарний агент відкрив **PR #12** («test: Sprint 3 — E2E + unit + golden PDF», 2026-09-25): E2E публікації в каталог, unit LiqPay-підпису / print-cost / BullMQ dedup / signed URL, golden PDF. Ще не змерджений; його workflow «E2E Sprint 3» пропущено. У `main` E2E досі `continue-on-error`.
 
-**Статус 2026-09-30:** PR #12 досі відкритий, нових комітів і коментарів немає. CI на `3a7de51`: Lint, Typecheck & Unit Tests ✅, Golden print PDF ✅, E2E Tests і Sprint 3 E2E — skipped. База PR (`f7a03e6`) відстає від `main` на 12 комітів (QA-фікси й канон 30/70 від 28.09); в описі PR ще «Business canon is 25%». Перед мерджем: оновити гілку, додати `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD`, запустити E2E Sprint 3 вручну.
+**Статус 2026-09-30:** PR #12 досі відкритий, нових комітів і коментарів немає. CI на `3a7de51`: Lint, Typecheck & Unit Tests ✅, Golden print PDF ✅, E2E Tests і Sprint 3 E2E — skipped. База PR (`f7a03e6`) відстає від `main` на 12 комітів (QA-фікси й канон 30/70 від 28.09); в описі PR ще «Business canon is 25%». Секрети `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` додано (30.09). Перед мерджем: оновити гілку, запустити E2E Sprint 3 вручну.
 
 Поки E2E з `continue-on-error` — фічу не вважати готовою.
 
