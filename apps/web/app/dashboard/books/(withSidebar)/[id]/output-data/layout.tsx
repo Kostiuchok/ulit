@@ -109,7 +109,7 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
             of this layout's own `p-8` padding while scrolling underneath it.
             (docs journal #11: `sticky` always opens a new stacking context --
             render any future fixed/modal element via a portal, not inline.) */}
-        <div className="sticky top-0 z-10 -mx-8 border-b bg-white px-8 pt-5 pb-2.5 shadow-sm">
+        <div className="sticky top-0 z-10 -mx-8 border-b bg-white px-8 pt-0 pb-2.5 shadow-sm">
           <h1 className="mb-2.5 text-lg font-semibold text-gray-900">Вихідні дані</h1>
           <OutputDataTabs bookId={id} sectionDone={sectionDone} isDraftStatus={isDraftStatus} readyToPublish={readyToPublish} />
         </div>
