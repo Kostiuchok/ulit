@@ -24,7 +24,15 @@ export function CoverPrintSpread({ coverUrl, backCoverUrl, spineUrl, format, pag
   const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 
   return (
-    <div className="space-y-1.5">
+    // Height is capped the same way as the e-book mockup on the same tab
+    // (TabletCoverFrame block): at most 41rem (28rem-wide tablet frame) and
+    // never taller than the viewport minus the page chrome -- so the whole
+    // spread fits in the browser window. Width = that height * the spread's
+    // own aspect ratio, centred.
+    <div
+      className="mx-auto w-full space-y-1.5"
+      style={{ maxWidth: `min(100%, calc(min(41rem, 100vh - 16rem) * ${layout.totalW / layout.totalH}))` }}
+    >
       <p className="text-xs font-medium text-gray-600">{label}</p>
       <div
         className="relative w-full overflow-hidden rounded-sm border border-gray-300 bg-gray-100"
