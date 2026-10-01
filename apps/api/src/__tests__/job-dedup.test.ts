@@ -172,9 +172,13 @@ describe("BullMQ deterministic jobId dedup", () => {
     });
 
     it("does not touch the queue when the stored PDF is still fresh", async () => {
+      // print-preview treats any PDF rendered before INTERIOR_ONLY_PDF_SINCE
+      // (2026-09-30T10:43:00Z) as stale: those files still embed the back cover
+      // as a page, and print.pdf is now the interior block only. A genuinely
+      // fresh file is generated after that cutoff and after the last edit.
       bookFindUnique.mockResolvedValue({
         ...staleBook,
-        printPdfGeneratedAt: new Date("2026-09-03T00:00:00.000Z"),
+        printPdfGeneratedAt: new Date("2026-09-30T12:00:00.000Z"),
       });
       const res = await getPreview();
       expect(res.json()).toEqual({

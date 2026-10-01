@@ -108,8 +108,15 @@ test("author walks the wizard and saves a draft", async ({ page }) => {
     await page.locator("#payoutDocumentUnsigned").fill("E2E тестовий документ, не для виплат");
     await page.getByRole("checkbox").nth(0).check();
     await page.getByRole("checkbox").nth(1).check();
+    const signed = page.waitForResponse(
+      (r) => r.url().includes("/api/users/me/contract/sign") && r.request().method() === "POST"
+    );
     await page.getByRole("button", { name: "Підписати договір" }).click();
-    await expect(page.getByText(/дату ухвалення|підписан/i).first()).toBeVisible({ timeout: 15_000 });
+    const signRes = await signed;
+    expect(signRes.ok(), `contract sign → ${signRes.status()} ${await signRes.text()}`).toBeTruthy();
+    // Success copy is nominative "Договір укладено" / "Дата ухвалення умов",
+    // not the accusative "дату ухвалення" or a "підписан…" stem.
+    await expect(page.getByRole("heading", { name: "Договір укладено" })).toBeVisible();
   }
 
   await page.goto("/dashboard/books/new");
