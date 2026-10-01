@@ -4,7 +4,6 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
 import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
-import { BookCoverCarousel } from "@/components/books/BookCoverCarousel";
 import { CoverPrintSpread } from "@/components/books/CoverPrintSpread";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
 import { Card } from "@/components/ui/card";
@@ -54,29 +53,20 @@ export default function OutputDataCoverPage() {
       <OutputDataSectionHeading label={SECTION_LABELS.cover} done={coverSectionDone && !coverRejected} />
 
       {/* Author-requested: check the cover is actually there without
-          leaving this page for the full editor. "Передперегляд" -- слайдер
-          (друковані перед/зад) зліва, електронна книжка (планшет-мокап)
-          справа, обидва видно одночасно, не перемикаючи вкладки. */}
+          leaving this page for the full editor. Only the e-book (tablet
+          mockup) is shown here -- centred, and capped by the viewport height
+          (232/341 = the frame's own aspect ratio) so the whole device fits
+          in the browser window without scrolling. The printed front/back
+          are covered by "Обкладинка для друку" below. */}
       {book?.coverUrl && (
         <Card className="border border-gray-300 p-6 shadow-sm">
-          <CollapsibleSection title="Передперегляд">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="w-full">
-              <BookCoverCarousel
-                coverUrl={book.coverUrl}
-                backCoverUrl={book.backCoverUrl}
-                genre={book.genre}
-                printWidthMm={book.printWidthMm}
-                printHeightMm={book.printHeightMm}
-                printFormatKey={book.printFormatKey}
-                hasEbook={false}
-                hasPrint
-              />
-            </div>
-            <div className="w-full">
+          <CollapsibleSection title="Електронна обкладинка">
+            <div
+              className="mx-auto w-full"
+              style={{ maxWidth: "min(100%, 28rem, calc((100vh - 16rem) * 232 / 341))" }}
+            >
               <TabletCoverFrame coverUrl={book.coverUrl} />
             </div>
-          </div>
           </CollapsibleSection>
         </Card>
       )}

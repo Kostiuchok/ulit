@@ -101,7 +101,7 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
   const isDraftStatus = !book?.status || book.status === "DRAFT" || book.status === "UNPUBLISHED";
 
   return (
-    <div className="p-8">
+    <div className="px-8 pb-8">
       <div className="space-y-6">
         {/* Sticky title+nav, same as before the route split -- only this
             block is sticky, not the rejection banner or the page content
@@ -109,8 +109,10 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
             of this layout's own `p-8` padding while scrolling underneath it.
             (docs journal #11: `sticky` always opens a new stacking context --
             render any future fixed/modal element via a portal, not inline.) */}
+        {/* pt-5 (1.25rem) mirrors the bottom gap: pb-2.5 here + pb-2.5 on the
+            tabs nav itself (scrollbar room) = 1.25rem -- keep them equal, also
+            while stuck. */}
         <div className="sticky top-0 z-10 -mx-8 border-b bg-white px-8 pt-5 pb-2.5 shadow-sm">
-          <h1 className="mb-2.5 text-lg font-semibold text-gray-900">Вихідні дані</h1>
           <OutputDataTabs bookId={id} sectionDone={sectionDone} isDraftStatus={isDraftStatus} readyToPublish={readyToPublish} />
         </div>
 

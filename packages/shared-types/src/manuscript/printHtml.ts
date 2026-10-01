@@ -306,24 +306,6 @@ function printCss(widthMm: number, heightMm: number, pageNumberPosition: PageNum
       margin-left: ${PAGE_MARGIN_OUTER_MM}mm;
       margin-right: ${PAGE_MARGIN_INNER_MM}mm;
     }
-    /* Back cover -- its own named page, zero margin, so the image fills the
-       full physical page (not inset by the interior pages' text margins). */
-    @page back-cover {
-      size: ${widthMm}mm ${heightMm}mm;
-      margin: 0;
-      ${mirrored ? "@bottom-right { content: none; } @bottom-left { content: none; }" : `${pageNumberBox} { content: none; }`}
-      @top-center { content: none; }
-    }
-    .back-cover-page {
-      page: back-cover;
-      break-before: page;
-    }
-    .back-cover-page img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
     body { font-size: ${BODY_FONT_PT}pt; line-height: ${BODY_LINE_HEIGHT_EM}em; }
 
     /* T-2057 розділ 2 -- front matter always opens on recto (WeasyPrint
@@ -545,12 +527,6 @@ export interface BuildManuscriptPrintHtmlInput {
   // insert-into-manuscript approach, T-1953/T-1962) is stripped and
   // discarded below via splitFrontMatter, same mechanism, opposite purpose.
   frontMatterMeta: FrontMatterMeta;
-  // Rendered as the PDF's final page, full-bleed (its own zero-margin named
-  // @page, unlike every interior page) -- so a print-preview download shows
-  // the whole physical object (interior + back cover), not just the text.
-  // A public URL (storage.service.ts's publicUrl()) -- WeasyPrint fetches it
-  // like a browser would, same as the on-site cover images already are.
-  backCoverUrl?: string | null;
 }
 
 // A manuscript imported from Word often opens with an empty paragraph and/or a
@@ -585,7 +561,6 @@ export function buildManuscriptPrintHtml({
   heightMm,
   pageNumberPosition = DEFAULT_PAGE_NUMBER_POSITION,
   frontMatterMeta,
-  backCoverUrl,
 }: BuildManuscriptPrintHtmlInput): string {
   const doc = content ?? { type: "doc", content: [] };
   const allContent: any[] = doc.content ?? [];
@@ -606,9 +581,6 @@ export function buildManuscriptPrintHtml({
   const titleColophonBreakHtml = `<div data-type="page-break" contenteditable="false"></div>`;
   const bodyHtml = manuscriptContentToHtml({ type: "doc", content: stripLeadingBlankNodes(body) });
   const tocHtml = buildTocHtml(body);
-  const backCoverHtml = backCoverUrl
-    ? `<div class="back-cover-page"><img src="${escapeHtml(backCoverUrl)}" alt=""></div>`
-    : "";
 
   return `<!doctype html>
 <html lang="uk">
@@ -632,7 +604,6 @@ ${colophonHtml}
 ${tocHtml}
 <div class="manuscript-body">${bodyHtml}</div>
 </div>
-${backCoverHtml}
 </body>
 </html>`;
 }

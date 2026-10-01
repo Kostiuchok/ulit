@@ -110,14 +110,10 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
   // 1 always lands on the first spread's right (recto) side -- this blank
   // leaf is what pushes it there, with or without a cover set.
   //
-  // When there's a back cover, the print PDF (buildManuscriptPrintHtml)
-  // already bakes it in as that PDF's literal last page -- rendering it
-  // through the same <Page pageNumber> interior-page component every other
-  // page uses made it look like just another plain interior page instead of
-  // the outside of a closed book. Excluded from the interior page range
-  // here and rendered as its own leaf below, the same full-bleed <img>
-  // treatment the front cover leaf already gets.
-  const interiorPageCount = hasBackCover ? Math.max(0, printPageCount - 1) : printPageCount;
+  // The print PDF is the interior block only -- both covers are printed
+  // separately, so every PDF page is a text page. The covers are rendered
+  // below as their own full-bleed <img> leaves.
+  const interiorPageCount = printPageCount;
 
   // react-pageflip's showCover mode (see createSpread() in
   // react-pageflip-enhanced's build/index.js) marks leaf 0 as a lone hard
@@ -135,17 +131,28 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
   // front cover does at the start). One filler blank leaf right before the
   // back cover flips that parity so the back cover always lands alone,
   // regardless of how many text pages there are.
-  const needsBackCoverParityFiller = hasCover && hasBackCover && interiorPageCount % 2 === 0;
+  //
+  // The inside of the back cover (the glued-down side) must ALWAYS be empty --
+  // no text page may ever sit there. With showCover, leaf 0 is alone and the
+  // rest pair up as (1,2), (3,4)... so the RIGHT side of each spread is an
+  // even leaf index. Interior page k lives at index k+1, i.e. on the right
+  // when k is odd. So:
+  //   - even interiorPageCount: last text page lands LEFT; one blank on the
+  //     right = inside of the back cover.
+  //   - odd interiorPageCount: last text page lands RIGHT -- that IS the
+  //     inside-back-cover slot, so text would print on it. Add one blank leaf
+  //     to push a fresh spread, then the inside-back-cover blank, i.e. two.
+  const backCoverFillerCount = hasCover && hasBackCover ? (interiorPageCount % 2 === 0 ? 1 : 2) : 0;
 
   const flipLeaves: FlipLeaf[] = useMemo(
     () => [
       ...(hasCover ? [{ kind: "cover" as const, url: coverUrl! }] : []),
       { kind: "blank" as const },
       ...Array.from({ length: interiorPageCount }, (_, i) => ({ kind: "page" as const, pageNumber: i + 1 })),
-      ...(needsBackCoverParityFiller ? [{ kind: "blank" as const }] : []),
+      ...Array.from({ length: backCoverFillerCount }, () => ({ kind: "blank" as const })),
       ...(hasBackCover ? [{ kind: "backCover" as const, url: backCoverUrl! }] : []),
     ],
-    [hasCover, coverUrl, hasBackCover, backCoverUrl, interiorPageCount, needsBackCoverParityFiller]
+    [hasCover, coverUrl, hasBackCover, backCoverUrl, interiorPageCount, backCoverFillerCount]
   );
   const totalLeaves = flipLeaves.length;
 

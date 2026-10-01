@@ -9,6 +9,15 @@ import { getSignedUrl } from "../../services/storage.service";
 // section 0). This is the single trigger point for the print-PDF render: both
 // the manuscript editor's "Передперегляд" button and the sidebar preview link
 // call this same route, so they can never show two different files.
+// print.pdf used to carry the back cover as its literal last page; it is now the
+// interior block only (the cover is printed separately). PDFs rendered before
+// this cutoff still have that extra page, and the flipbook would treat it as a
+// text page -- so they are treated as stale and re-rendered on the next open.
+// MUST be a moment in the PAST (the deploy time of the interior-only worker):
+// a future date makes every freshly rendered PDF look stale forever, so the
+// preview re-queues the render on every poll (seen 2026-09-30).
+const INTERIOR_ONLY_PDF_SINCE = new Date("2026-09-30T10:43:00Z");
+
 export async function printPreviewRoutes(app: FastifyInstance) {
   app.get(
     "/api/books/:id/print-preview",
@@ -65,6 +74,7 @@ export async function printPreviewRoutes(app: FastifyInstance) {
       const stale =
         force ||
         !book.printPdfGeneratedAt ||
+        book.printPdfGeneratedAt < INTERIOR_ONLY_PDF_SINCE ||
         (lastEdit !== null && lastEdit > book.printPdfGeneratedAt) ||
         (book.printMetaUpdatedAt !== null && book.printMetaUpdatedAt > book.printPdfGeneratedAt);
 

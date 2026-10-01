@@ -65,7 +65,6 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
         manuscriptStyleOverrides: true,
         printWidthMm: true,
         printHeightMm: true,
-        backCoverUrl: true,
         title: true,
         subtitle: true,
         description: true,
@@ -124,7 +123,6 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
       heightMm,
       pageNumberPosition,
       frontMatterMeta,
-      backCoverUrl: book.backCoverUrl,
       tmpDir,
       outputPdfPath: rawPdf,
     });
