@@ -1,4 +1,4 @@
-> **Чернетка на погодження Анатолієм.** Figma: https://www.figma.com/design/Jv1BqZkdSNnNnkEITh36Bf (фрейми 1:2 Дашборд опубліковано, 2:2 Дашборд є зміни, 3:2 Вихідні дані, 4:2 Меню «⋯»). HTML — референс, будувати на наявних компонентах/токенах apps/web.
+> **Чернетка на погодження Анатолієм.** Figma: https://www.figma.com/design/Jv1BqZkdSNnNnkEITh36Bf (фрейми 1:2 Дашборд опубліковано, 2:2 Дашборд є зміни, 3:2 Вихідні дані, 4:2 Меню «⋯», 24:2 Ціна (є зміни), 25:2 Обкладинка, 26:2 Огляд (є зміни)). HTML — референс, будувати на наявних компонентах/токенах apps/web.
 
 # ULIT — вайрфрейми редизайну дашборду книги (v1)
 
@@ -7,8 +7,11 @@
 - `index.html` — посилання на всі стани
 - `dashboard.html?state=published|changes|menu` — `/dashboard/books/[id]`
 - `output-data.html?state=dirty|saved` — `/dashboard/books/[id]/output-data`
+- `price.html?state=dirty|saved` — `/dashboard/books/[id]/output-data/price` (05 «Ціна та розповсюдження»)
+- `cover.html` — `/dashboard/books/[id]/output-data/cover` (06 «Обкладинка»)
+- `review.html?state=published|changes` — `/dashboard/books/[id]/output-data/review` (07 «Огляд перед публікацією»)
 - `&clean=1` — сховати службові WF-перемикачі; `&static=1` — нижня панель не sticky (для full-page скрінів)
 - `WF-SPEC.md` — специфікація; `shots/` — PNG 1280px
-- `build.py` генерує HTML (спільні сайдбар/топбар), `shoot.py` — скріни (playwright + chrome)
+- `build.py` генерує HTML (спільні сайдбар/топбар/степер/нижня панель), `shoot.py` — скріни (playwright + chrome; `python3 shoot.py 05 07` — лише вибрані)
 
 Відкривати без збірки (Tailwind і lucide через CDN, потрібен інтернет). Desktop 1280; мобільна поведінка — у WF-SPEC.md.

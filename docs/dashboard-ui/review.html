@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ULIT — Огляд перед публікацією (WF)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;color:#0a0a0a}
+  .wf-note{font-size:11px;color:#7c3aed;background:#f5f3ff;border:1px dashed #c4b5fd;border-radius:6px;padding:2px 6px}
+  [data-lucide]{width:16px;height:16px;stroke-width:2}
+  details>summary{list-style:none} details>summary::-webkit-details-marker{display:none}
+  details[open] .chev{transform:rotate(180deg)}
+  .clean .wf-only{display:none!important}
+</style></head>
+<body class="bg-white">
+
+<div class="flex min-h-screen">
+
+<aside class="flex w-[264px] shrink-0 flex-col border-r border-gray-200 bg-[#fafafa]">
+  <div class="p-3"><button class="flex w-full items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-[14px] font-medium text-white shadow-sm"><i data-lucide="plus" class=""></i>Створити нову книжку</button></div>
+  <div class="mx-3 flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2.5">
+    <div class="h-12 w-9 shrink-0 rounded-sm bg-gradient-to-b from-slate-300 to-slate-500"></div>
+    <div class="min-w-0"><div class="text-[15px] font-semibold leading-tight">Назва книги</div>
+      <span class="mt-1 inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 ring-1 ring-green-200">Опубліковано</span></div>
+    <i data-lucide="chevrons-up-down" class="ml-auto text-gray-400"></i>
+  </div>
+  <nav class="flex-1 px-2 pt-1">
+    <div class="mt-3"><div class="flex items-center gap-1.5 px-2.5 pb-1 text-[12px] font-semibold uppercase tracking-wide text-gray-500">Редагувати книгу</div><a href="output-data.html" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] bg-gray-100 font-medium text-black"><i data-lucide="info" class="shrink-0 text-gray-500"></i><span>Вихідні дані</span></a><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="file-text" class="shrink-0 text-gray-500"></i><span>Рукопис</span></a><a href="cover.html" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="image" class="shrink-0 text-gray-500"></i><span>Обкладинка</span></a><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="eye" class="shrink-0 text-gray-500"></i><span>Перегляд книги</span></a><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="trash-2" class="shrink-0 text-gray-500"></i><span>Видалити книгу</span></a></div>
+    <div class="mt-3"><div class="flex items-center gap-1.5 px-2.5 pb-1 text-[12px] font-semibold uppercase tracking-wide text-gray-500">У магазинах</div><a href="dashboard.html" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="store" class="shrink-0 text-gray-500"></i><span>Публікація</span></a></div>
+    <div class="mt-3"><div class="flex items-center gap-1.5 px-2.5 pb-1 text-[12px] font-semibold uppercase tracking-wide text-gray-500">Реклама</div><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="package" class="shrink-0 text-gray-500"></i><span>Замовити тираж</span></a></div>
+  </nav>
+  <details class="mx-2 mb-2 rounded-md border border-dashed border-gray-300 bg-white">
+    <summary class="flex cursor-pointer items-center gap-2 px-2.5 py-2 text-[13px] text-gray-500"><i data-lucide="clock" class="text-gray-400"></i><span>Скоро: ще 4 розділи</span><i data-lucide="chevron-down" class="chev ml-auto text-gray-400 transition"></i></summary>
+    <div class="space-y-0.5 px-2.5 pb-2 text-[13px] text-gray-400">
+      <div class="flex items-center gap-2 py-1"><i data-lucide="bar-chart-3" class=""></i>Статистика</div>
+      <div class="flex items-center gap-2 py-1"><i data-lucide="download" class=""></i>Завантаження</div>
+      <div class="flex items-center gap-2 py-1"><i data-lucide="message-square" class=""></i>Обговорення</div>
+      <div class="flex items-center gap-2 py-1"><i data-lucide="users" class=""></i>Знайти читачів</div>
+    </div>
+  </details>
+  <div class="flex items-center gap-3 border-t border-gray-200 p-3">
+    <div class="flex h-8 w-8 items-center justify-center rounded-md bg-gray-200 text-[13px] font-semibold">E</div>
+    <div class="leading-tight"><div class="text-[14px] font-medium">e2e</div><div class="text-[12px] text-gray-500">e2e@render.ua</div></div>
+    <i data-lucide="chevrons-up-down" class="ml-auto text-gray-400"></i>
+  </div>
+</aside>
+<div class="relative flex min-w-0 flex-1 flex-col">
+<header class="flex h-12 items-center justify-between border-b border-gray-200 px-4">
+  <i data-lucide="panel-left" class="text-gray-600"></i>
+  <div class="flex items-center gap-3 text-[13px]"><a class="text-gray-600">На сайт</a>
+    <div class="flex items-center gap-1 rounded-md border border-gray-200 px-2 py-0.5"><b>A−</b><span class="text-gray-500">100%</span><b>A+</b></div>
+    <i data-lucide="bell" class="text-gray-700"></i></div>
+</header>
+<div class="sticky top-0 z-10 flex items-center gap-1 border-b border-gray-200 bg-white px-8 py-2.5"><a href="output-data.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600 hover:text-black"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Вихідні дані</a><a href="#" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600 hover:text-black"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Рукопис</a><a href="cover.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600 hover:text-black"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Обкладинка</a><a href="price.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600 hover:text-black"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Ціна та розповсюдження</a><a href="review.html" class="inline-flex items-center gap-1.5 rounded-full bg-gray-900 px-3 py-1.5 text-[13px] font-medium text-white"><i data-lucide="circle-check" class="text-green-400 !w-3.5 !h-3.5"></i>Огляд перед публікацією</a><a href="dashboard.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600 hover:text-black"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Публікація</a></div>
+<main class="flex-1 px-8 pb-28 pt-6">
+  <div class="wf-only mb-4 flex items-center gap-2 text-[12px]"><span class="wf-note">WF · стан:</span><a href="?state=published" class="rounded border px-2 py-0.5">опубліковано, змін немає</a><a href="?state=changes" class="rounded border px-2 py-0.5">є зміни з останньої публікації</a></div>
+  <h1 class="flex items-center gap-2 text-[20px] font-bold"><i data-lucide="circle-check" class="text-green-600 !w-5 !h-5"></i>Огляд перед публікацією</h1>
+  <p class="mt-1 text-[13px] text-gray-500">Так дані книги підуть у магазини. Щоб виправити — «Змінити» у потрібному блоці.</p>
+  <div class="mt-5 grid grid-cols-2 gap-5"><section id="blk-out" data-hl="changes" data-default="published" data-hl-on="border-2 border-amber-400" data-hl-off="border border-gray-200" class="border border-gray-200 scroll-mt-20 rounded-xl p-5 ">
+<div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2"><h2 class="text-[16px] font-bold">Вихідні дані</h2><span data-state="changes" data-default="published" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-medium text-amber-800 ring-1 ring-amber-300"><i data-lucide="pencil" class="!w-3 !h-3"></i>Змінено</span></div>
+<a href="output-data.html" class="inline-flex items-center gap-1 text-[13px] font-medium underline"><i data-lucide="pencil" class="!w-3.5 !h-3.5"></i>Змінити</a></div>
+<div class="mt-3"><dl class="divide-y divide-gray-100 text-[14px]"><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Назва</dt><dd class="text-right font-medium">Назва книги</dd></div><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Підзаголовок<span data-state="changes" data-default="published" class="ml-1.5 rounded bg-amber-50 px-1.5 py-px text-[11px] font-medium text-amber-700 ring-1 ring-amber-200">змінено</span></dt><dd class="text-right font-medium">Роман у віршах</dd></div><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Анотація<span data-state="changes" data-default="published" class="ml-1.5 rounded bg-amber-50 px-1.5 py-px text-[11px] font-medium text-amber-700 ring-1 ring-amber-200">змінено</span></dt><dd class="text-right font-medium">257 / 500 символів</dd></div><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Жанр</dt><dd class="text-right font-medium">Поезія</dd></div><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Розмір книги</dt><dd class="text-right font-medium">Стандартний 130×200 мм</dd></div><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Мова</dt><dd class="text-right font-medium">Українська</dd></div><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Вікові обмеження</dt><dd class="text-right font-medium">18+</dd></div></dl></div></section><div class="space-y-5"><section class="border border-gray-200 scroll-mt-20 rounded-xl p-5 ">
+<div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2"><h2 class="text-[16px] font-bold">Рукопис</h2></div>
+<a href="#" class="inline-flex items-center gap-1 text-[13px] font-medium underline"><i data-lucide="pencil" class="!w-3.5 !h-3.5"></i>Змінити</a></div>
+<div class="mt-3"><dl class="divide-y divide-gray-100 text-[14px]"><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Рукопис</dt><dd class="text-right font-medium"><span class="inline-flex items-center gap-1 text-green-700"><i data-lucide="check" class="!w-3.5 !h-3.5"></i>Завантажено</span></dd></div><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Кількість сторінок</dt><dd class="text-right font-medium">12 ст.</dd></div></dl></div></section><section class="border border-gray-200 scroll-mt-20 rounded-xl p-5 ">
+<div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2"><h2 class="text-[16px] font-bold">Обкладинка</h2></div>
+<a href="cover.html" class="inline-flex items-center gap-1 text-[13px] font-medium underline"><i data-lucide="pencil" class="!w-3.5 !h-3.5"></i>Змінити</a></div>
+<div class="mt-3"><div class="flex items-center gap-3"><div class="flex h-20 w-14 shrink-0 flex-col items-center justify-between rounded border border-gray-200 bg-slate-100 p-1"><span class="text-[6px] font-bold">Назва книги</span><span class="h-8 w-full rounded-sm bg-slate-400/50"></span><span class="text-[5px]">e2e</span></div>
+<dl class="divide-y divide-gray-100 text-[14px]"><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Обкладинка</dt><dd class="text-right font-medium"><span class="inline-flex items-center gap-1 text-green-700"><i data-lucide="check" class="!w-3.5 !h-3.5"></i>Завантажено</span></dd></div><div class="flex justify-between gap-4 py-1.5"><dt class="text-gray-500">Друк</dt><dd class="text-right font-medium">Стандартний 130×200 мм</dd></div></dl></div></div></section></div><section id="blk-price" data-hl="changes" data-default="published" data-hl-on="border-2 border-amber-400" data-hl-off="border border-gray-200" class="border border-gray-200 scroll-mt-20 rounded-xl p-5 col-span-2">
+<div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2"><h2 class="text-[16px] font-bold">Ціна та розповсюдження</h2><span data-state="changes" data-default="published" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-medium text-amber-800 ring-1 ring-amber-300"><i data-lucide="pencil" class="!w-3 !h-3"></i>Змінено</span></div>
+<a href="price.html" class="inline-flex items-center gap-1 text-[13px] font-medium underline"><i data-lucide="pencil" class="!w-3.5 !h-3.5"></i>Змінити</a></div>
+<div class="mt-3">
+<div class="overflow-hidden rounded-lg border border-gray-200"><table class="w-full text-[14px]">
+<thead><tr class="bg-gray-50 text-left text-[12px] font-semibold uppercase tracking-wide text-gray-500"><th class="py-2.5 pl-4">Варіант</th><th class="py-2.5">Ціна для читача</th><th class="py-2.5">Ваш прибуток</th><th class="py-2.5 pr-4">Магазин</th></tr></thead><tbody>
+<tr class="border-t border-gray-100"><td class="py-2 pl-4">Е-книга</td><td class="py-2">142.86 грн</td><td class="py-2 font-medium">100.00 грн</td><td class="py-2 pr-4"><span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-1 text-[13px] font-semibold "><i data-lucide="book-open" class="!w-3.5 !h-3.5 text-gray-500"></i>ULIT</span></td></tr><tr class="border-t border-gray-100"><td class="py-2 pl-4">Друк, м'яка (кольор.)<span data-state="changes" data-default="published" class="ml-1.5 rounded bg-amber-50 px-1.5 py-px text-[11px] font-medium text-amber-700 ring-1 ring-amber-200">змінено</span></td><td class="py-2"><span data-state="changes" data-default="published"><span class="text-[12px] text-gray-400 line-through">374.29</span> <b class="text-amber-700">388.57 грн</b></span><span data-state="published" data-default="published">374.29 грн</span></td><td class="py-2 font-medium"><span data-state="changes" data-default="published"><span class="text-[12px] text-gray-400 line-through">262.00</span> <b class="text-amber-700">272.00 грн</b></span><span data-state="published" data-default="published">262.00 грн</span></td><td class="py-2 pr-4"><span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-1 text-[13px] font-semibold "><i data-lucide="book-open" class="!w-3.5 !h-3.5 text-gray-500"></i>ULIT</span></td></tr><tr class="border-t border-gray-100"><td class="py-2 pl-4">Друк, тверда (кольор.)</td><td class="py-2">517.14 грн</td><td class="py-2 font-medium">362.00 грн</td><td class="py-2 pr-4"><span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-1 text-[13px] font-semibold "><i data-lucide="book-open" class="!w-3.5 !h-3.5 text-gray-500"></i>ULIT</span></td></tr><tr class="border-t border-gray-100"><td class="py-2 pl-4">Друк, м'яка (ч/б)</td><td class="py-2">150.00 грн</td><td class="py-2 font-medium">105.00 грн</td><td class="py-2 pr-4"><span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-1 text-[13px] font-semibold "><i data-lucide="book-open" class="!w-3.5 !h-3.5 text-gray-500"></i>ULIT</span></td></tr><tr class="border-t border-gray-100"><td class="py-2 pl-4">Друк, тверда (ч/б)</td><td class="py-2">292.86 грн</td><td class="py-2 font-medium">205.00 грн</td><td class="py-2 pr-4"><span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-1 text-[13px] font-semibold "><i data-lucide="book-open" class="!w-3.5 !h-3.5 text-gray-500"></i>ULIT</span></td></tr>
+</tbody></table></div>
+<p class="mt-1.5 text-[12px] text-gray-500">Прибуток — за один проданий примірник, після комісії платформи.</p>
+<div class="mt-4 flex items-center gap-2 text-[14px]"><span class="text-gray-500">Магазини:</span><span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2 py-1 text-[13px] font-semibold "><i data-lucide="book-open" class="!w-3.5 !h-3.5 text-gray-500"></i>ULIT</span><a href="price.html" class="ml-1 inline-flex items-center gap-1 text-[13px] font-medium text-green-700 underline"><i data-lucide="plus" class="!w-3.5 !h-3.5"></i>Додати магазини</a></div></div></section><details class="col-span-2 rounded-xl border border-gray-200">
+<summary class="flex cursor-pointer items-center gap-3 p-5"><h2 class="text-[16px] font-bold">Готовність до реєстрації УДК</h2>
+<span class="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[12px] font-medium text-green-700 ring-1 ring-green-200"><i data-lucide="check" class="!w-3 !h-3"></i>4 з 4 вимог виконано</span>
+<span class="ml-auto inline-flex items-center gap-1 text-[13px] text-gray-500">Показати<i data-lucide="chevron-down" class="chev transition"></i></span></summary>
+<div class="border-t border-gray-100 px-5 pb-4 pt-3 text-[14px]"><p class="text-[13px] text-gray-500">Дані для заявки на УДК і авторський знак у Книжковій палаті. ISBN сюди не входить — видавець призначає його сам.</p>
+<ul class="mt-2 space-y-1"><li class="flex items-center gap-2"><i data-lucide="check" class="!w-4 !h-4 text-green-600"></i>Анотація (файл 1 для заявки на УДК) — 120–500 символів</li><li class="flex items-center gap-2"><i data-lucide="check" class="!w-4 !h-4 text-green-600"></i>Повне ПІБ автора (файл 1 для заявки на УДК)</li><li class="flex items-center gap-2"><i data-lucide="check" class="!w-4 !h-4 text-green-600"></i>Обкладинка завантажена</li><li class="flex items-center gap-2"><i data-lucide="check" class="!w-4 !h-4 text-green-600"></i>PDF для друку рукопису (файл 2 для заявки на УДК)</li></ul></div></details></div>
+</main>
+<style>html{scroll-behavior:smooth}</style>
+<div class="sticky bottom-0 z-20 border-t border-gray-200 bg-white/95 px-8 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] backdrop-blur">
+  <div class="flex items-center gap-4">
+    <a href="dashboard.html" class="inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] text-gray-600"><i data-lucide="arrow-left" class=""></i>До дашборду книги</a>
+    <div class="ml-auto flex items-center gap-3 whitespace-nowrap">
+      <span data-state="changes" data-default="published" class="inline-flex items-center gap-2 whitespace-nowrap text-[13px] text-amber-700"><span class="h-2 w-2 rounded-full bg-amber-500"></span><a href="#blk-out" class="underline decoration-amber-300 underline-offset-2">Змінено 2 блоки з останньої публікації</a><span class="text-gray-300">·</span><span class="text-gray-600">зміни підуть на повторну модерацію</span></span>
+      <span data-state="published" data-default="published" class="inline-flex items-center gap-1.5 text-[13px] font-medium text-green-700"><i data-lucide="circle-check" class=""></i>Усі зміни опубліковано</span>
+      <span data-state="changes" data-default="published" class="contents"><button class="inline-flex h-10 items-center gap-1.5 rounded-md bg-green-600 px-5 text-[14px] font-medium text-white shadow-sm"><i data-lucide="upload-cloud" class=""></i>Опублікувати зміни<span class="ml-0.5 rounded-full bg-white/25 px-1.5 text-[11px]">2</span></button></span>
+      <span data-state="published" data-default="published" class="contents"></span>
+    </div>
+  </div></div>
+<script>
+  // data-hl="dirty": у вказаних станах класи data-hl-off замінюються на data-hl-on (підсвітка блоків/полів)
+  (()=>{const q=new URLSearchParams(location.search);
+  document.querySelectorAll('[data-hl]').forEach(el=>{
+    const on=el.dataset.hl.split(' ').includes(q.get('state')||el.dataset.default);
+    const add=(on?el.dataset.hlOn:el.dataset.hlOff)||'', rm=(on?el.dataset.hlOff:el.dataset.hlOn)||'';
+    rm.split(' ').filter(Boolean).forEach(c=>el.classList.remove(c));
+    add.split(' ').filter(Boolean).forEach(c=>el.classList.add(c));
+  });})();
+</script>
+</div></div><script>
+  const q=new URLSearchParams(location.search);
+  if(q.get('static')==='1')document.querySelectorAll('.sticky').forEach(e=>{e.classList.remove('sticky');});
+  if(q.get('clean')==='1')document.body.classList.add('clean');
+  document.querySelectorAll('[data-state]').forEach(el=>{
+    const want=el.dataset.state, cur=q.get('state')||el.dataset.default;
+    el.style.display = (want.split(' ').includes(cur))?'':'none';
+  });
+  lucide.createIcons();
+</script></body></html>
