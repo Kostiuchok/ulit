@@ -11,6 +11,10 @@ SHOTS=[("01-dashboard-published","dashboard.html?state=published&clean=1",True),
        ("06-cover","cover.html?clean=1&static=1",True),
        ("06b-cover-pending","cover.html?state=pending&clean=1",False),
        ("06c-cover-locked","cover.html?state=locked&clean=1",False),
+       ("08-editor-ebook","cover-editor.html?tab=ebook&clean=1&static=1",True),
+       ("08b-editor-soft","cover-editor.html?tab=soft&clean=1&static=1",True),
+       ("08c-editor-design","cover-editor.html?tab=ebook&panel=design&clean=1",False),
+       ("08d-editor-overlap","cover-editor.html?tab=ebook&overlap=1&clean=1",False),
        ("07-review-changes","review.html?state=changes&clean=1&static=1",True),
        ("07b-review-published","review.html?state=published&clean=1",False)]
 async def main():
