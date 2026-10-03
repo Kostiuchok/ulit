@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import {
   PRINT_TRIM_SIZE_MM,
-  MIN_SPINE_TEXT_THICKNESS_MM,
+  MIN_SPINE_TEXT_PAGES,
   isSpineTooThinForText,
   spineThicknessMm,
 } from "shared-types";
@@ -2075,9 +2075,10 @@ export default function CoverDesignerCanvas({
               role="status"
               className="w-full max-w-lg rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
             >
-              Корінець зараз ~{spineThicknessMm(pageCount, format === "hardcover").toFixed(1)} мм.
-              Текст на корінці можливий лише від {MIN_SPINE_TEXT_THICKNESS_MM} мм (близько 100 сторінок
-              для м&apos;якої палітурки). Надрукувати книгу все одно можна.
+              Книга має {pageCount} {pageCount === 1 ? "сторінку" : "сторінок"} (корінець ~
+              {spineThicknessMm(pageCount, format === "hardcover").toFixed(1)} мм). Текст на корінці
+              підтримується лише від {MIN_SPINE_TEXT_PAGES} сторінок (вимога Amazon KDP). Надрукувати
+              книгу все одно можна — лишити корінець без тексту.
             </p>
           )}
 

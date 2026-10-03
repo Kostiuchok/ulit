@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 export * from "./manuscript";
+export * from "./print-specs";
+
+import { MIN_SPINE_TEXT_PAGES } from "./print-specs";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
@@ -74,7 +77,6 @@ export function effectivePageCount(book: {
 // Ulit ships perfect-bound soft/hardcover, so we pad to 2, not 4 -- extra
 // blanks at the end of a glued book are themselves a print defect.
 export const PRINT_PAGE_PAD_MULTIPLE = 2;
-export const MIN_SPINE_TEXT_THICKNESS_MM = 10;
 export const SPINE_MM_PER_PAGE = 0.1;
 export const HARDCOVER_SPINE_EXTRA_MM = 4;
 
@@ -93,8 +95,12 @@ export function spineThicknessMm(pageCount: number, hardcover: boolean): number 
   return pages * SPINE_MM_PER_PAGE + (hardcover ? HARDCOVER_SPINE_EXTRA_MM : 0);
 }
 
-export function isSpineTooThinForText(pageCount: number, hardcover: boolean): boolean {
-  return spineThicknessMm(pageCount, hardcover) < MIN_SPINE_TEXT_THICKNESS_MM;
+// Page-count rule (KDP's actual published threshold), not a physical-
+// thickness one -- see print-specs.ts's MIN_SPINE_TEXT_PAGES for why.
+// `hardcover` kept in the signature for forward compat (every call site
+// already passes it) in case hardcover gets its own threshold later.
+export function isSpineTooThinForText(pageCount: number, _hardcover: boolean): boolean {
+  return pageCount < MIN_SPINE_TEXT_PAGES;
 }
 
 // F1a -- author previewStart/previewEnd are 1-based print-PDF pages.

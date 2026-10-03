@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS, KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "@/lib/distributionPlatforms";
-import { DEFAULT_PLATFORM_FEE_PERCENT } from "shared-types";
+import { DEFAULT_PLATFORM_FEE_PERCENT, KDP_PRINT_ROYALTY_RATE } from "shared-types";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
 import { cn } from "@/lib/utils";
@@ -340,10 +340,13 @@ export default function OutputDataPricePage() {
         ? bw.pricePrintBw
         : bw.pricePrintHardcoverBw;
   const printCostBasis = cost ? (printBinding === "softcover" ? cost.softcoverCost : cost.hardcoverCost) : undefined;
+  // KDP's PRINT royalty is a flat 60% of list price minus KDP's own print
+  // cost -- NOT the 35-70% tiered rate above, which applies to KDP EBOOKS
+  // only (print-specs.ts's KDP_PRINT_ROYALTY_RATE).
   const kdpPrintRoyalty = parseRoyalty(channelRoyalty.KDP_PRINT);
   const kdpPrintRange =
     kdpPrintRoyalty !== undefined && printCostBasis !== undefined
-      ? suggestedPriceRange(printCostBasis, kdpPrintRoyalty, platform("KDP").royaltyMin, platform("KDP").royaltyMax)
+      ? suggestedPriceRange(printCostBasis, kdpPrintRoyalty, KDP_PRINT_ROYALTY_RATE, KDP_PRINT_ROYALTY_RATE)
       : null;
   const kdpPrintPrice = kdpPrintRange ? `від ${formatUah(kdpPrintRange.min)}` : "—";
 

@@ -25,7 +25,7 @@ import {
   padPrintPageCount,
   spineThicknessMm,
   isSpineTooThinForText,
-  MIN_SPINE_TEXT_THICKNESS_MM,
+  MIN_SPINE_TEXT_PAGES,
   resolveExcerptRange,
 } from "shared-types";
 
@@ -401,13 +401,18 @@ describe("print page pad and spine (T-2065)", () => {
     expect(padPrintPageCount(-3)).toBe(-3);
   });
 
-  it("warns when spine is thinner than 10mm", () => {
+  it("still computes physical spine thickness in mm", () => {
     expect(spineThicknessMm(50, false)).toBe(5);
-    expect(isSpineTooThinForText(50, false)).toBe(true);
-    expect(isSpineTooThinForText(100, false)).toBe(false);
-    expect(isSpineTooThinForText(50, true)).toBe(true);
-    expect(isSpineTooThinForText(60, true)).toBe(false);
-    expect(MIN_SPINE_TEXT_THICKNESS_MM).toBe(10);
+    expect(spineThicknessMm(50, true)).toBe(9);
+  });
+
+  it("warns when page count is below KDP's spine-text threshold (not a thickness rule)", () => {
+    expect(isSpineTooThinForText(MIN_SPINE_TEXT_PAGES - 1, false)).toBe(true);
+    expect(isSpineTooThinForText(MIN_SPINE_TEXT_PAGES, false)).toBe(false);
+    // Same threshold for hardcover for now (print-specs.ts TODO) -- the
+    // `hardcover` param must not change the result until that's confirmed.
+    expect(isSpineTooThinForText(MIN_SPINE_TEXT_PAGES - 1, true)).toBe(true);
+    expect(isSpineTooThinForText(MIN_SPINE_TEXT_PAGES, true)).toBe(false);
   });
 });
 
