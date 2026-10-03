@@ -1,33 +1,23 @@
 # 06d «Обкладинка — автоматична за шаблоном» (cover.html?state=auto). Підключається з build.py (exec).
 # Кожен стиль — готовий набір: фон, блоки, колір тексту (підібрано для контрасту). Окремих контролів кольору немає.
 STYLES = [
- # family, variant, bg, fg(title), sub(author), decor, accent
+ # family, variant, bg, fg(title), sub(author), decor, accent — альфа: 12 стилів
  ("Класик","темна","#1f2937","#ffffff","#d1d5db","band-photo","#111827"),
  ("Класик","світла","#f5f5f4","#111827","#4b5563","band-photo","#ffffff"),
- ("Класик","темна · без фото","#0f172a","#f8fafc","#94a3b8","band","#1e293b"),
- ("Класик","світла · без фото","#fafaf9","#1c1917","#57534e","band","#e7e5e4"),
  ("Мінімал","темна","#111111","#fafafa","#a3a3a3","none",""),
  ("Мінімал","світла","#ffffff","#111111","#6b7280","none",""),
  ("Мінімал","пастельна","#fde68a","#422006","#78350f","none",""),
- ("Мінімал","пастельна · м'ята","#bbf7d0","#14532d","#166534","none",""),
- ("Мінімал","світла · рамка","#fffbeb","#1c1917","#78716c","frame","#a8a29e"),
  ("Текстури","кольорова","#7c3aed","#ffffff","#ede9fe","blobs","#f472b6"),
- ("Текстури","монохромна","#e5e5e5","#171717","#404040","blobs-mono","#a3a3a3"),
  ("Текстури","квіти","#14532d","#fefce8","#d9f99d","flowers","#facc15"),
  ("Текстури","місто","#1e3a8a","#ffffff","#bfdbfe","city","#0f172a"),
- ("Текстури","папір","#f5f0e6","#3f2d1d","#7c5e3c","paper","#e7dcc8"),
- ("Текстури","акварель","#e0f2fe","#0c4a6e","#0369a1","blobs","#7dd3fc"),
- ("Патерн","кольоровий","#f97316","#ffffff","#ffedd5","stripes","#fb923c"),
- ("Патерн","монохром","#262626","#ffffff","#d4d4d4","squares","#404040"),
  ("Патерн","кружечки","#fef3c7","#7c2d12","#9a3412","dots","#f59e0b"),
  ("Патерн","квадрати","#dbeafe","#1e3a8a","#1d4ed8","squares","#93c5fd"),
  ("Патерн","фігури","#fce7f3","#831843","#9d174d","shapes","#f472b6"),
- ("Патерн","смуги","#ecfccb","#365314","#4d7c0f","stripes","#bef264"),
- ("Патерн","ромби","#ede9fe","#4c1d95","#6d28d9","diamonds","#c4b5fd"),
- ("Патерн","клітинка","#ffffff","#0f172a","#334155","grid","#cbd5e1"),
  ("Патерн","конфеті","#0f766e","#ffffff","#ccfbf1","confetti","#fde047"),
 ]
-FAMILIES = [("Класик",4),("Мінімал",5),("Текстури",6),("Патерн",9)]
+FAMILIES = [("Класик",2),("Мінімал",3),("Текстури",3),("Патерн",4)]
+N = len(STYLES)
+GENRE = "Поезія"  # жанр книги → перший стиль (мапа — у WF-SPEC)
 
 def cover_art(i, w, title="Назва книги", author="e2e", photo_ok=True, long=False):
     fam, var, bg, fg, sub, decor, acc = STYLES[i]
@@ -98,23 +88,24 @@ def cover_art(i, w, title="Назва книги", author="e2e", photo_ok=True, 
     author_html = f'<div class="absolute text-center font-medium" style="left:0;right:0;{a_top};font-size:{5.2*u:.1f}px;color:{acolor}">{author}</div>'
     return f'<div class="relative overflow-hidden" style="width:{w}px;height:{h}px;background:{bg}">{"".join(els)}{title_html}{author_html}</div>'
 
-def auto_block():
-    CUR = 11  # Текстури · квіти → «12 з 24»
+def auto_block(checklist=""):
+    CUR = 6  # Текстури · квіти → «7 з 12» (перший стиль для жанру «Поезія»)
     LONG = "Дорога на Говерлу, або Чому ми досі не вміємо прощатися"
     fam = STYLES[CUR][0]
     chip = lambda name, n, on=False: f'<a class="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] {"bg-gray-900 font-medium text-white" if on else "border border-gray-300 bg-white text-gray-700"}">{name}<span class="{"text-white/60" if on else "text-gray-400"} text-[12px]">{n}</span></a>'
-    chips_for = lambda fm: f'<div class="flex flex-wrap items-center gap-2">{chip("Усі",24)}' + "".join(chip(n, k, n == fm) for n, k in FAMILIES) + '</div>'
+    chips_for = lambda fm: f'<div class="flex flex-wrap items-center gap-2">{chip("Усі",N)}' + "".join(chip(n, k, n == fm) for n, k in FAMILIES) + '</div>'
     seg = lambda on: f'''<div class="inline-flex rounded-lg bg-gray-100 p-1 text-[13px]"><a href="?state=auto" class="rounded-md px-3 py-1 {"bg-white font-medium shadow-sm" if on=="ebook" else "text-gray-600"}">Е-книга</a><a href="?state=auto&view=print" class="rounded-md px-3 py-1 {"bg-white font-medium shadow-sm" if on=="print" else "text-gray-600"}">Друк</a></div>'''
     arrow = lambda i, t: f'<button title="{t}" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white shadow-sm">{ic(i,"!w-5 !h-5")}</button>'
-    strip_idx = list(range(7, 16))
+    strip_idx = list(range(2, 11))
     def thumb(i):
         on = i == CUR
         return f'<div class="flex flex-col items-center gap-1"><div class="overflow-hidden rounded {"ring-2 ring-green-600 ring-offset-2" if on else "ring-1 ring-gray-200"}">{cover_art(i, 46)}</div><span class="w-[58px] truncate text-center text-[10px] {"font-semibold text-gray-900" if on else "text-gray-500"}">{STYLES[i][1]}</span></div>'
     strip = '<div class="flex items-end justify-center gap-2.5">' + "".join(thumb(i) for i in strip_idx) + '</div>'
 
+    genre_note = f'<div class="mt-1 inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">{ic("sparkles","!w-3 !h-3")}Підібрано за жанром «{GENRE}»</div>'
     def name_line(i):
         f, v = STYLES[i][0], STYLES[i][1]
-        return f'<div class="text-center"><div class="text-[15px] font-semibold">{f} · {v}</div><div class="text-[12px] text-gray-500">{i+1} з 24</div></div>'
+        return f'<div class="text-center"><div class="text-[15px] font-semibold">{f} · {v}</div><div class="text-[12px] text-gray-500">{i+1} з {N}</div>{genre_note if i == CUR else ""}</div>'
 
     # друк: розворот у тому ж стилі
     def spread(i):
@@ -147,6 +138,7 @@ def auto_block():
   <p class="text-[12px] text-gray-500">Кожен стиль — готовий: фон, блоки й колір тексту підібрано для контрасту й читабельності. Окремо налаштовувати кольори не потрібно — просто гортайте.</p>
   <div class="h-px bg-gray-100"></div>
   <a class="inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-700 underline">{ic("upload","!w-4 !h-4")}Завантажити свою обкладинку (JPG/PNG)</a>
+  {checklist}
 </div>'''
 
     def card(view, long=False):
