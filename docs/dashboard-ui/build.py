@@ -539,7 +539,6 @@ def price():
 
 # ---------------------------------------------------------------- 06 COVER
 def cover():
-    AUTO_BODY, AUTO_SCRIPT = auto_block()
     btn_off = 'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-gray-100 px-4 text-[14px] font-medium text-gray-400 cursor-not-allowed'
     status = f'''<div data-state="uploaded" data-default="uploaded" class="flex items-center gap-4 rounded-xl border border-green-200 bg-green-50/60 p-5">
   <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-600 text-white">{ic("check","!w-5 !h-5")}</div>
@@ -622,6 +621,17 @@ def cover():
   <div class="text-[14px]"><div class="font-semibold text-gray-900">Змінити обкладинку поки не можна</div>
   <div class="mt-0.5 text-gray-600">Обкладинку змінено 03.10.2026. Наступна зміна можлива з 01.01.2027.</div></div>
 </div>'''
+    req_ok = lambda t: f'<li class="flex items-start gap-1.5">{ic("circle-check","mt-0.5 !w-3.5 !h-3.5 shrink-0 text-green-600")}<span>{t}</span></li>'
+    req_auto = f'''<details class="group rounded-lg border border-gray-200">
+  <summary class="flex cursor-pointer items-center gap-2 px-3 py-2 text-[13px] font-medium">{ic("list-checks","!w-4 !h-4 text-gray-500")}Вимоги до обкладинки<span class="ml-auto text-[12px] font-medium text-green-700">3 з 4 ✓</span>{ic("chevron-down","chev !w-4 !h-4 text-gray-400 transition")}</summary>
+  <ul class="space-y-1.5 border-t border-gray-100 px-3 py-2 text-[12px]">
+    {req_ok("Електронна обкладинка готова")}
+    {req_ok(f"Розворот для друку під формат {FORMAT}")}
+    {req_ok("Назва книги та автор є на лицевій стороні")}
+    <li class="flex items-start gap-1.5 rounded bg-amber-50 px-1.5 py-1 ring-1 ring-amber-200">{ic("triangle-alert","mt-0.5 !w-3.5 !h-3.5 shrink-0 text-amber-600")}<span><b class="font-medium">Текст на корінці: немає</b> — для 12 сторінок корінець завузький. Нічого робити не потрібно.</span></li>
+    <li class="pt-1 text-gray-500">Своя обкладинка: JPG/PNG, мінімум 768×1181 px, текст не ближче 10–15 мм до краю.</li>
+  </ul></details>'''
+    AUTO_BODY, AUTO_SCRIPT = auto_block(req_auto)
     main = f'''{stepper_bar(2)}
 <main class="flex-1 px-8 pb-10 pt-6">
   {wf_switch("стан", [("uploaded","обкладинку завантажено"),("pending","нова обкладинка на перевірці"),("locked","зміна недоступна (90 днів)"),("auto","авто за шаблоном (неопублікована)")])}
