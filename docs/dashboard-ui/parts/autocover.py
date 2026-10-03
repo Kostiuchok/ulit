@@ -88,6 +88,42 @@ def cover_art(i, w, title="Назва книги", author="e2e", photo_ok=True, 
     author_html = f'<div class="absolute text-center font-medium" style="left:0;right:0;{a_top};font-size:{5.2*u:.1f}px;color:{acolor}">{author}</div>'
     return f'<div class="relative overflow-hidden" style="width:{w}px;height:{h}px;background:{bg}">{"".join(els)}{title_html}{author_html}</div>'
 
+SAVED = 6  # збережена обкладинка опублікованої книги (06/06b/06c) — той самий стиль «Текстури · квіти»
+
+def print_spread(i, W=230, spine_mm=1.2, hard=False, guides=False, caption=True):
+    """Друкований розворот у масштабі: задня 130×200 мм · корінець (мм → px у тому ж масштабі) · лицева 130×200 мм."""
+    fam_, var, bg, fg, sub, decor, acc = STYLES[i]
+    H = round(W * 200 / 130)
+    mm = W / 130  # px на 1 мм
+    sp = max(1.0, spine_mm * mm)
+    k = W / 230  # масштаб дрібних елементів задньої сторони
+    mini = lambda c: f'<span class="block rounded-[2px] shadow-sm" style="width:{20*k:.0f}px;height:{30*k:.0f}px;background:{c}"></span>'
+    back = f'''<div class="relative flex flex-col p-3" style="width:{W}px;height:{H}px;background:{bg};color:{sub};font-size:{8*k:.1f}px;line-height:1.4;gap:{6*k:.0f}px;padding:{12*k:.0f}px">
+  <div class="flex items-center gap-2"><span class="shrink-0 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 ring-2" style="width:{36*k:.0f}px;height:{36*k:.0f}px;--tw-ring-color:{fg}"></span><b style="color:{fg};font-size:{11*k:.1f}px">e2e</b></div>
+  <p><b style="color:{fg}">Про автора.</b> Авторка поезії та малої прози. Пише про Карпати, дорогу й людей.</p>
+  <p><b style="color:{fg}">Про книгу.</b> Роман у віршах про двох людей, які вирушають у гори, щоб знайти одне одного.</p>
+  <div><b style="color:{fg}">Інші книги автора на ULIT</b><div class="mt-1 flex gap-1.5">{mini("#047857")}{mini("#4338ca")}{mini("#b45309")}</div></div>
+  <div class="mt-auto flex items-end justify-between"><span class="grid grid-cols-3 gap-px bg-white p-0.5" style="width:{28*k:.0f}px;height:{28*k:.0f}px">{"".join("<span class='bg-gray-900'></span>" if q in (0,2,4,6,8) else "<span></span>" for q in range(9))}</span><span class="flex items-stretch gap-[2px] bg-white p-0.5" style="width:{48*k:.0f}px;height:{24*k:.0f}px">{"".join(f"<span class='bg-gray-900' style='width:{x}px'></span>" for x in [1,2,1,1,3,1,2,1])}</span></div>
+</div>'''
+    g = ""
+    if guides:
+        bl = 3 * mm  # обріз 3 мм
+        g = (f'<span class="pointer-events-none absolute inset-y-0 border-l border-dashed border-gray-900/70" style="left:{W:.1f}px"></span>'
+             f'<span class="pointer-events-none absolute inset-y-0 border-l border-dashed border-gray-900/70" style="left:{W+sp:.1f}px"></span>'
+             f'<span class="pointer-events-none absolute border border-dotted border-rose-500" style="inset:{bl:.1f}px"></span>')
+    body = f'<div class="relative flex">{back}<div style="width:{sp:.1f}px;height:{H}px;background:{acc or fg}"></div>{cover_art(i, W)}{g}</div>'
+    wrap = (f'<div class="rounded-[3px] bg-slate-700 shadow-[0_4px_16px_rgba(0,0,0,0.18)]" style="padding:{4*mm:.0f}px">{body}</div>' if hard
+            else f'<div class="shadow-[0_4px_16px_rgba(0,0,0,0.18)] ring-1 ring-gray-200">{body}</div>')
+    sm = f"{spine_mm:g}".replace(".", ",")
+    cap = (f'<div class="mt-2 text-[12px] text-gray-500">Задня сторона — «Промо автора» · корінець {sm} мм · лицева'
+           + (' · загин на картон' if hard else '') + '</div>') if caption else ""
+    lab = ""
+    if guides:
+        pad = 4 * mm if hard else 0
+        lab = (f'<div class="relative mb-1 flex text-center text-[11px] font-medium text-gray-500" style="padding:0 {pad:.0f}px">'
+               f'<span style="width:{W}px">Задня сторона</span><span class="relative" style="width:{sp:.1f}px"><span class="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">↓ корінець</span></span><span style="width:{W}px">Лицева</span></div>')
+    return f'<div class="flex flex-col items-center">{lab}{wrap}{cap}</div>'
+
 def auto_block(checklist=""):
     CUR = 6  # Текстури · квіти → «7 з 12» (перший стиль для жанру «Поезія»)
     LONG = "Дорога на Говерлу, або Чому ми досі не вміємо прощатися"
@@ -107,21 +143,9 @@ def auto_block(checklist=""):
         f, v = STYLES[i][0], STYLES[i][1]
         return f'<div class="text-center"><div class="text-[15px] font-semibold">{f} · {v}</div><div class="text-[12px] text-gray-500">{i+1} з {N}</div>{genre_note if i == CUR else ""}</div>'
 
-    # друк: розворот у тому ж стилі
+    # друк: розворот у тому ж стилі (спільний рендер — print_spread)
     def spread(i):
-        fam_, var, bg, fg, sub, decor, acc = STYLES[i]
-        W = 230
-        H = round(W * 200 / 130)
-        mini = lambda c: f'<span class="block h-[30px] w-[20px] rounded-[2px] shadow-sm" style="background:{c}"></span>'
-        back = f'''<div class="relative flex flex-col gap-1.5 p-3 text-[8px] leading-snug" style="width:{W}px;height:{H}px;background:{bg};color:{sub}">
-  <div class="flex items-center gap-2"><span class="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 ring-2" style="--tw-ring-color:{fg}"></span><b class="text-[11px]" style="color:{fg}">e2e</b></div>
-  <p><b style="color:{fg}">Про автора.</b> Авторка поезії та малої прози. Пише про Карпати, дорогу й людей.</p>
-  <p><b style="color:{fg}">Про книгу.</b> Роман у віршах про двох людей, які вирушають у гори, щоб знайти одне одного.</p>
-  <div><b style="color:{fg}">Інші книги автора на ULIT</b><div class="mt-1 flex gap-1.5">{mini("#047857")}{mini("#4338ca")}{mini("#b45309")}</div></div>
-  <div class="mt-auto flex items-end justify-between"><span class="grid h-7 w-7 grid-cols-3 gap-px bg-white p-0.5">{"".join("<span class='bg-gray-900'></span>" if k in (0,2,4,6,8) else "<span></span>" for k in range(9))}</span><span class="flex h-6 w-12 items-stretch gap-[2px] bg-white p-0.5">{"".join(f"<span class='bg-gray-900' style='width:{x}px'></span>" for x in [1,2,1,1,3,1,2,1])}</span></div>
-</div>'''
-        return f'''<div class="flex flex-col items-center"><div class="flex shadow-[0_4px_16px_rgba(0,0,0,0.18)] ring-1 ring-gray-200">{back}<div class="relative" style="width:6px;height:{H}px;background:{acc or fg}"></div>{cover_art(i, W)}</div>
-<div class="mt-2 text-[12px] text-gray-500">Задня сторона — «Промо автора» · корінець 1,2 мм · лицева</div></div>'''
+        return print_spread(i, 230, 1.2)
 
     def preview(view, long=False):
         center = (f'<div class="shadow-[0_4px_16px_rgba(0,0,0,0.18)] ring-1 ring-gray-200">{cover_art(CUR if not long else 0, 250, title=LONG if long else "Назва книги", long=long)}</div>'

@@ -566,34 +566,44 @@ def cover():
   <div><div class="font-semibold text-amber-900">Обкладинку опублікованої книги можна змінювати раз на 90 днів</div>
   <div class="mt-1 text-amber-900/80">ISBN зберігається, якщо не змінюються формат, тип друку, назва чи автор, а кількість сторінок змінюється не більш ніж на 10%. Інакше потрібне нове видання з новим ISBN.</div></div></div>
 </div>'''
-    front = f'''<div class="flex h-full flex-col items-center justify-between bg-slate-50 p-3"><div class="pt-1 text-[15px] font-bold">Назва книги</div>
-<div class="flex h-24 w-full items-center justify-center rounded bg-slate-400/50 text-slate-600">{ic("image","!w-6 !h-6")}</div><div class="text-[10px] text-gray-600">e2e</div></div>'''
+    # превʼю збереженої обкладинки (06/06b/06c): той самий рендер, що й 06e (autocover.py), у масштабі, лише перегляд
+    fs_btn = lambda tgt: f'<button data-fs="{tgt}" title="Відкрити на весь екран" class="inline-flex h-8 items-center gap-1 rounded-md border border-gray-200 bg-white px-2 text-[12px] font-medium text-gray-700 shadow ring-1 ring-gray-200">{ic("maximize-2","!w-3.5 !h-3.5")}</button>'
+    pv_caption = f'''<div data-state="uploaded" data-default="uploaded" class="flex items-center gap-2 text-[13px] text-gray-600">{ic("eye","!w-4 !h-4 text-gray-400")}<b class="font-medium text-gray-800">Поточна обкладинка</b> · «{STYLES[SAVED][0]} · {STYLES[SAVED][1]}» · лише перегляд — змінити: «Редагувати обкладинку»</div>
+<div data-state="pending" data-default="uploaded" class="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-900 ring-1 ring-amber-200">{ic("clock","!w-4 !h-4 text-amber-600")}<b class="font-medium">Нова обкладинка на перевірці · читачі бачать попередню</b><span class="text-amber-800/80">· показано нову, «{STYLES[SAVED][0]} · {STYLES[SAVED][1]}» · лише перегляд</span></div>
+<div data-state="locked" data-default="uploaded" class="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-[13px] text-gray-700 ring-1 ring-gray-200"><b class="font-medium">🔒 Збережена обкладинка · лише перегляд</b><span class="text-gray-500">· «{STYLES[SAVED][0]} · {STYLES[SAVED][1]}» · змінити можна з 01.01.2027</span></div>'''
     ebook = f'''<div class="rounded-xl border border-gray-200 p-5">
   <h2 class="text-[16px] font-bold">Електронна обкладинка</h2><p class="mt-0.5 text-[13px] text-gray-500">Так її бачать у магазинах.</p>
-  <div class="mt-4 flex justify-center"><div class="w-[170px] rounded-[18px] border-2 border-gray-300 bg-white p-2 shadow-sm">
-    <div class="mx-auto mb-1.5 h-1 w-1 rounded-full bg-gray-400"></div><div class="aspect-[2/3] overflow-hidden rounded">{front}</div>
-    <div class="mx-auto mt-1.5 h-3 w-3 rounded-full border border-gray-300"></div></div></div>
+  <div class="relative mt-4 flex justify-center"><button data-fs="ebook" title="Відкрити на весь екран" class="cursor-zoom-in rounded-[18px] border-2 border-gray-300 bg-white p-2 shadow-sm">
+    <div class="mx-auto mb-1.5 h-1 w-1 rounded-full bg-gray-400"></div><div class="overflow-hidden rounded">{cover_art(SAVED, 150)}</div>
+    <div class="mx-auto mt-1.5 h-3 w-3 rounded-full border border-gray-300"></div></button></div>
+  <p class="mt-2 text-center text-[12px] text-gray-500">130×200 мм · клікніть, щоб збільшити</p>
 </div>'''
-    def spread(spine_w, hard=False):
-        back = '''<div class="flex h-full flex-col bg-white"><div class="p-2.5 text-[7px] leading-tight text-gray-500">Анотація до книги має бути такої довжини, щоб читач зрозумів, про що книга, і захотів її відкрити. Розкажіть про головного героя, конфлікт і атмосферу…</div><div class="flex-1 bg-gray-200"></div><div class="h-7"></div></div>'''
-        pad = "p-2 bg-slate-200" if hard else ""
-        return f'''<div class="relative {pad} rounded">
-<div class="relative grid h-[230px] border border-gray-300 bg-white" style="grid-template-columns:1fr {spine_w}px 1fr">
-  {back}
-  <div class="relative bg-white"><span class="absolute inset-y-0 left-0 border-l-2 border-dashed border-gray-500"></span><span class="absolute inset-y-0 right-0 border-l-2 border-dashed border-gray-500"></span></div>
-  {front}
-  <span class="pointer-events-none absolute inset-1.5 border border-dotted border-rose-400"></span>
-</div></div>'''
-    labels = lambda sw: f'''<div class="mb-1 grid text-center text-[11px] font-medium text-gray-500" style="grid-template-columns:1fr {sw+40}px 1fr"><span>Задня сторона</span><span>Корінець</span><span>Лицева</span></div>'''
     printc = f'''<div class="rounded-xl border border-gray-200 p-5">
-  <div class="flex items-start justify-between gap-3"><div><h2 class="text-[16px] font-bold">Обкладинка для друку</h2><p class="mt-0.5 text-[13px] text-gray-500">Розворот: задня сторона · корінець · лицева.</p></div>
-    <div class="inline-flex rounded-md border border-gray-200 bg-gray-50 p-0.5 text-[13px]"><span class="rounded bg-white px-3 py-1 font-medium shadow-sm">М'яка</span><span class="px-3 py-1 text-gray-500">Тверда</span></div></div>
-  <div class="mt-4">{labels(10)}{spread(10)}</div>
+  <div class="flex items-start justify-between gap-3"><div><h2 class="text-[16px] font-bold">Обкладинка для друку</h2><p class="mt-0.5 text-[13px] text-gray-500">Розворот у масштабі: задня 130×200 мм · корінець · лицева 130×200 мм.</p></div>
+    <div class="flex shrink-0 items-center gap-2"><div class="inline-flex rounded-md border border-gray-200 bg-gray-50 p-0.5 text-[13px]"><button data-bind="soft" class="pb rounded bg-white px-3 py-1 font-medium shadow-sm">М'яка</button><button data-bind="hard" class="pb rounded px-3 py-1 text-gray-500">Тверда</button></div>{fs_btn("soft")}</div></div>
+  <div class="relative mt-4"><div data-pv="soft" data-fs="soft" class="cursor-zoom-in">{print_spread(SAVED, 230, 1.2, guides=True)}</div><div data-pv="hard" data-fs="hard" class="hidden cursor-zoom-in">{print_spread(SAVED, 220, 5.2, hard=True, guides=True)}</div></div>
   <div class="mt-3 flex flex-wrap items-center gap-4 text-[12px] text-gray-600">
     <span class="inline-flex items-center gap-1.5"><span class="w-6 border-t-2 border-dashed border-gray-500"></span>згин (корінець)</span>
-    <span class="inline-flex items-center gap-1.5"><span class="w-6 border-t border-dotted border-rose-400"></span>обріз — фон заводьте за лінію</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-6 border-t border-dotted border-rose-400"></span>обріз 3 мм — фон заводьте за лінію</span>
     <span class="ml-auto text-gray-400">{FORMAT} · 12 с.</span></div>
 </div>'''
+    fs_dialog = f'''<div id="cover-fs" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-8">
+  <button data-fs-close title="Закрити" class="absolute right-6 top-6 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90">{ic("x","!w-5 !h-5")}</button>
+  <div data-fsv="ebook" class="hidden">{cover_art(SAVED, 440)}</div>
+  <div data-fsv="soft" class="hidden">{print_spread(SAVED, 520, 1.2, guides=True, caption=False)}</div>
+  <div data-fsv="hard" class="hidden">{print_spread(SAVED, 500, 5.2, hard=True, guides=True, caption=False)}</div>
+  <div class="absolute bottom-6 left-0 right-0 text-center text-[13px] text-white/80">Лише перегляд · Esc — закрити</div>
+</div>
+<script>(function(){{const fs=document.getElementById('cover-fs');let mode='soft';
+document.querySelectorAll('[data-bind]').forEach(b=>b.addEventListener('click',()=>{{mode=b.dataset.bind;
+ document.querySelectorAll('[data-pv]').forEach(e=>e.classList.toggle('hidden',e.dataset.pv!==mode));
+ document.querySelectorAll('.pb').forEach(x=>{{const on=x.dataset.bind===mode;x.classList.toggle('bg-white',on);x.classList.toggle('shadow-sm',on);x.classList.toggle('font-medium',on);x.classList.toggle('text-gray-500',!on);}});
+ document.querySelectorAll('button[data-fs]').forEach(x=>{{if(x.dataset.fs!=='ebook')x.dataset.fs=mode;}});}}));
+document.querySelectorAll('[data-fs]').forEach(el=>el.addEventListener('click',e=>{{e.stopPropagation();const t=el.dataset.fs;
+ fs.querySelectorAll('[data-fsv]').forEach(v=>v.classList.toggle('hidden',v.dataset.fsv!==t));fs.classList.remove('hidden');fs.classList.add('flex');}}));
+const close=()=>{{fs.classList.add('hidden');fs.classList.remove('flex');}};
+fs.addEventListener('click',e=>{{if(e.target===fs||e.target.closest('[data-fs-close]'))close();}});
+document.addEventListener('keydown',e=>{{if(e.key==='Escape')close();}});}})();</script>'''
     ok = lambda t: f'<li class="flex items-start gap-2">{ic("circle-check","mt-0.5 !w-4 !h-4 shrink-0 text-green-600")}<span>{t}</span></li>'
     checklist = f'''<div class="rounded-xl border border-gray-200 p-5">
   <div class="flex items-center justify-between"><h2 class="text-[16px] font-bold">Вимоги до обкладинки</h2><span class="text-[13px] font-medium text-green-700">3 з 4 ✓</span></div>
@@ -640,13 +650,14 @@ def cover():
   <div class="mt-6">{h1("Обкладинка")}</div>
   <div class="mt-4">{status}</div>
   <div class="mt-3">{rules}</div>
-  <div class="mt-5 grid grid-cols-[300px_minmax(0,1fr)] gap-5">{ebook}{printc}</div>
+  <div class="mt-5">{pv_caption}</div>
+  <div class="mt-3 grid grid-cols-[300px_minmax(0,1fr)] gap-5">{ebook}{printc}</div>
   <div class="mt-5">{checklist}</div>
   </div>
   <div data-state="auto" data-default="uploaded">{AUTO_BODY}</div>
   <a href="dashboard.html" class="mt-6 inline-flex items-center gap-1.5 text-[14px] text-gray-600">{ic("arrow-left")}До дашборду книги</a>
 </main>
-{HL_SCRIPT}{AUTO_SCRIPT}'''
+{fs_dialog}{HL_SCRIPT}{AUTO_SCRIPT}'''
     return page("ULIT — Обкладинка (WF)", "cover", main)
 
 # ---------------------------------------------------------------- 07 REVIEW
