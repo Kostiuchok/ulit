@@ -539,6 +539,7 @@ def price():
 
 # ---------------------------------------------------------------- 06 COVER
 def cover():
+    AUTO_BODY, AUTO_SCRIPT = auto_block()
     btn_off = 'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-gray-100 px-4 text-[14px] font-medium text-gray-400 cursor-not-allowed'
     status = f'''<div data-state="uploaded" data-default="uploaded" class="flex items-center gap-4 rounded-xl border border-green-200 bg-green-50/60 p-5">
   <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-600 text-white">{ic("check","!w-5 !h-5")}</div>
@@ -623,16 +624,19 @@ def cover():
 </div>'''
     main = f'''{stepper_bar(2)}
 <main class="flex-1 px-8 pb-10 pt-6">
-  {wf_switch("стан", [("uploaded","обкладинку завантажено"),("pending","нова обкладинка на перевірці"),("locked","зміна недоступна (90 днів)")])}
+  {wf_switch("стан", [("uploaded","обкладинку завантажено"),("pending","нова обкладинка на перевірці"),("locked","зміна недоступна (90 днів)"),("auto","авто за шаблоном (неопублікована)")])}
+  <div data-state="uploaded pending locked" data-default="uploaded">
   {banner}
   <div class="mt-6">{h1("Обкладинка")}</div>
   <div class="mt-4">{status}</div>
   <div class="mt-3">{rules}</div>
   <div class="mt-5 grid grid-cols-[300px_minmax(0,1fr)] gap-5">{ebook}{printc}</div>
   <div class="mt-5">{checklist}</div>
+  </div>
+  <div data-state="auto" data-default="uploaded">{AUTO_BODY}</div>
   <a href="dashboard.html" class="mt-6 inline-flex items-center gap-1.5 text-[14px] text-gray-600">{ic("arrow-left")}До дашборду книги</a>
 </main>
-{HL_SCRIPT}'''
+{HL_SCRIPT}{AUTO_SCRIPT}'''
     return page("ULIT — Обкладинка (WF)", "cover", main)
 
 # ---------------------------------------------------------------- 07 REVIEW
@@ -694,6 +698,7 @@ def review():
 
 
 exec(open(OUT/"parts"/"editor.py").read())
+exec(open(OUT/"parts"/"autocover.py").read())
 
 INDEX = HEAD.format(title="ULIT — вайрфрейми") + f'''
 <main class="mx-auto max-w-2xl px-6 py-12">
@@ -710,6 +715,7 @@ INDEX = HEAD.format(title="ULIT — вайрфрейми") + f'''
     <li><a class="text-green-700 underline" href="cover.html?state=uploaded">06 Обкладинка</a></li>
     <li><a class="text-green-700 underline" href="cover.html?state=pending">06b Обкладинка — нова на перевірці</a></li>
     <li><a class="text-green-700 underline" href="cover.html?state=locked">06c Обкладинка — зміна недоступна до 01.01.2027</a></li>
+    <li><a class="text-green-700 underline" href="cover.html?state=auto">06d Обкладинка — автоматична за шаблоном (неопублікована книга)</a> · <a class="text-green-700 underline" href="cover.html?state=auto&view=print">друк</a> · <a class="text-green-700 underline" href="cover.html?state=auto&long=1">довга назва</a></li>
     <li><a class="text-green-700 underline" href="cover-editor.html?tab=ebook">08 Редактор обкладинки — електронна, виділено назву</a> · <a class="text-green-700 underline" href="cover-editor.html?tab=ebook&panel=design">Дизайн</a> · <a class="text-green-700 underline" href="cover-editor.html?tab=ebook&overlap=1">фігура перекриває текст</a></li>
     <li><a class="text-green-700 underline" href="cover-editor.html?tab=soft">08b Редактор обкладинки — м'яка, задня сторона (промо автора), корінець</a> · <a class="text-green-700 underline" href="cover-editor.html?tab=hard">тверда</a></li>
     <li><a class="text-green-700 underline" href="review.html?state=changes">07 Огляд перед публікацією — є зміни (Вихідні дані → модерація, ціни застосовано)</a></li>
