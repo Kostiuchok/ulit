@@ -8,6 +8,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "test:e2e": "playwright test",
+    "test:e2e:sprint3": "playwright test -c playwright.sprint3.config.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
   },
   "devDependencies": {

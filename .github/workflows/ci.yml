@@ -41,6 +41,49 @@ jobs:
       - name: Unit tests (API)
         run: pnpm --filter api test
 
+      - name: Unit tests (web)
+        run: pnpm --filter web test
+
+      # HTML assertions always run. PDF cases skip unless weasyprint is on
+      # PATH; the golden-pdf job below is the one that installs it.
+      - name: Unit tests (worker)
+        run: pnpm --filter worker test
+
+  golden-pdf:
+    name: Golden print PDF
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Same libraries as apps/worker/Dockerfile (WeasyPrint >= 70 so floated
+      # images paginate). A venv avoids Ubuntu's externally-managed pip.
+      - name: Install WeasyPrint and poppler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip python3-venv \
+            libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 \
+            libcairo2 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info \
+            fonts-dejavu poppler-utils
+          python3 -m venv /tmp/weasyprint-venv
+          /tmp/weasyprint-venv/bin/pip install --no-cache-dir "weasyprint>=70.0"
+          echo "/tmp/weasyprint-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Golden PDF tests
+        run: pnpm --filter worker test
+        env:
+          REQUIRE_WEASYPRINT: "1"
+
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
@@ -63,6 +106,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # playwright.config.ts ignores e2e/sprint3. Those specs publish real
+      # books and run from .github/workflows/e2e-sprint3.yml instead.
       - name: Run E2E tests
         run: pnpm test:e2e
         env:
