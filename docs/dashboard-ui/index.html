@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ULIT — вайрфрейми</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;color:#0a0a0a}
+  .wf-note{font-size:11px;color:#7c3aed;background:#f5f3ff;border:1px dashed #c4b5fd;border-radius:6px;padding:2px 6px}
+  [data-lucide]{width:16px;height:16px;stroke-width:2}
+  details>summary{list-style:none} details>summary::-webkit-details-marker{display:none}
+  details[open] .chev{transform:rotate(180deg)}
+  .clean .wf-only{display:none!important}
+</style></head>
+<body class="bg-white">
+
+<main class="mx-auto max-w-2xl px-6 py-12">
+  <h1 class="text-[24px] font-bold">ULIT — редизайн дашборду книги · WF v1</h1>
+  <p class="mt-2 text-[14px] text-gray-600">HTML — референс; будувати на наявних компонентах/токенах apps/web (shadcn Button, Badge, Card; lucide-іконки).</p>
+  <ul class="mt-6 space-y-2 text-[15px]">
+    <li><a class="text-green-700 underline" href="dashboard.html?state=published">01 Дашборд — опубліковано</a></li>
+    <li><a class="text-green-700 underline" href="dashboard.html?state=changes">02 Дашборд — є неопубліковані зміни (кроки розгорнуто)</a></li>
+    <li><a class="text-green-700 underline" href="dashboard.html?state=menu">04 Дашборд — відкрите меню «⋯»</a></li>
+    <li><a class="text-green-700 underline" href="output-data.html?state=dirty">03 Вихідні дані — є незбережені зміни</a></li>
+    <li><a class="text-green-700 underline" href="output-data.html?state=saved">03b Вихідні дані — збережено ✓</a></li>
+    <li><a class="text-green-700 underline" href="WF-SPEC.md">WF-SPEC.md</a> · <a class="text-green-700 underline" href="shots/">shots/</a></li>
+  </ul>
+  <p class="mt-6 text-[13px] text-gray-500">Додайте <code>&clean=1</code>, щоб сховати службові WF-перемикачі.</p>
+</main><script>
+  const q=new URLSearchParams(location.search);
+  if(q.get('static')==='1')document.querySelectorAll('.sticky').forEach(e=>{e.classList.remove('sticky');});
+  if(q.get('clean')==='1')document.body.classList.add('clean');
+  document.querySelectorAll('[data-state]').forEach(el=>{
+    const want=el.dataset.state, cur=q.get('state')||el.dataset.default;
+    el.style.display = (want.split(' ').includes(cur))?'':'none';
+  });
+  lucide.createIcons();
+</script></body></html>
