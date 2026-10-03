@@ -20,6 +20,7 @@ interface Book {
   description?: string | null;
   status: string;
   coverUrl?: string | null;
+  coverThumbUrl?: string | null;
   priceEbook?: string | null;
   pricePrint?: string | null;
   pricePrintHardcover?: string | null;
@@ -52,7 +53,10 @@ export function BookCard({ book, onDelete, needsAttention }: Props) {
       <div className="flex-shrink-0">
         {book.coverUrl ? (
           <img
-            src={book.coverUrl}
+            // coverThumbUrl (small WebP, sharp-generated at upload) falls
+            // back to the full-resolution coverUrl for a book whose cover
+            // predates this field.
+            src={book.coverThumbUrl || book.coverUrl}
             alt={book.title}
             className="h-32 w-24 rounded-md object-cover"
           />

@@ -15,8 +15,10 @@ export interface AppNotification {
 
 // Admin actions (approve/reject) happen in a different browser session than
 // the author's, so there's no in-tab event to react to -- polling is the only
-// way the bell learns about it. Also refreshes on `ulit:books-changed` so
-// marking read/resubmitting doesn't wait for the next poll tick. Per-book
+// way the bell learns about it. Also refreshes on `ulit:books-changed` (a
+// book mutated) and `ulit:notifications-changed` (only read-state changed,
+// no book field did) so marking read/resubmitting doesn't wait for the next
+// poll tick. Per-book
 // "needs attention" badges (sidebar, book list) are a SEPARATE, live-computed
 // flag from GET /api/books (needsAttention) -- not driven by this hook, so
 // they never go stale just because a notification was marked read without
@@ -48,7 +50,15 @@ export function useNotifications() {
 
   useEffect(() => {
     window.addEventListener("ulit:books-changed", load);
-    return () => window.removeEventListener("ulit:books-changed", load);
+    // Narrower sibling of "ulit:books-changed" -- fired by BookDashboard's
+    // mark-read effect, which doesn't change any Book field (so the wider
+    // event's other listeners, AuthorBooksSidebar/useBook, have nothing to
+    // gain from also refetching on it).
+    window.addEventListener("ulit:notifications-changed", load);
+    return () => {
+      window.removeEventListener("ulit:books-changed", load);
+      window.removeEventListener("ulit:notifications-changed", load);
+    };
   }, [load]);
 
   const markRead = useCallback(

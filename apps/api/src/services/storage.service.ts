@@ -37,12 +37,23 @@ export async function uploadFile(
   objectName: string,
   stream: Readable,
   size: number,
-  contentType: string
+  contentType: string,
+  opts?: { cacheControl?: string }
 ): Promise<string> {
   await ensureBucket();
-  await minio.putObject(BUCKET, objectName, stream, size, { "Content-Type": contentType });
+  const metadata: Record<string, string> = { "Content-Type": contentType };
+  if (opts?.cacheControl) metadata["Cache-Control"] = opts.cacheControl;
+  await minio.putObject(BUCKET, objectName, stream, size, metadata);
   return objectName;
 }
+
+// Cover/back-cover/spine/thumb objects are written to a fixed, versioned-by-
+// query-param key (coverVersion.ts's withCoverVersion) -- once uploaded,
+// those exact bytes at that exact URL never change, so the browser (and any
+// CDN/proxy in front of /storage) can cache them forever. A re-upload writes
+// the SAME object key but bumps coverUpdatedAt, which changes the URL's ?v=
+// -- so "immutable" is safe per-URL, never serves stale bytes.
+export const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 export async function getSignedUrl(objectName: string): Promise<string> {
   const raw = await minio.presignedGetObject(BUCKET, objectName, SIGNED_URL_EXPIRY);

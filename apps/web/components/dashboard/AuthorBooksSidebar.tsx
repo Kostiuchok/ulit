@@ -41,6 +41,7 @@ interface SidebarBook {
   id: string;
   title: string;
   coverUrl?: string | null;
+  coverThumbUrl?: string | null;
   status: string;
   publicationTimeline?: Record<string, string> | null;
   needsAttention?: boolean;
@@ -306,7 +307,12 @@ export function AuthorBooksSidebar({ user }: Props) {
                         )}
                         {book.coverUrl ? (
                           <img
-                            src={book.coverUrl}
+                            // coverThumbUrl (small WebP, sharp-generated at
+                            // upload) falls back to the full-resolution
+                            // coverUrl for a book whose cover predates this
+                            // field -- never missing, just briefly heavier
+                            // until the author re-saves the cover once.
+                            src={book.coverThumbUrl || book.coverUrl}
                             alt=""
                             className="h-[35px] w-[22px] shrink-0 object-cover shadow-[0px_2px_4px_0px_rgba(0,0,0,0.25)]"
                           />

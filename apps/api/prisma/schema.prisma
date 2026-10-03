@@ -167,6 +167,8 @@ model Book {
   coverUrl             String?
   backCoverUrl         String?
   spineUrl             String? // exported crop of the spine panel (softcover/hardcover only) -- used by the 3D preview rotator
+  coverThumbUrl        String? // small WebP generated from coverUrl at upload time (sharp) -- AuthorBooksSidebar/MyBooksList render this instead of the full-resolution coverUrl, same "don't ship the print-res asset to a 22x35 icon" fix as pages-bw's grayscale thumbnails
+  coverUpdatedAt       DateTime? // bumped only by upload-cover/upload-back-cover/upload-spine, same split as printMetaUpdatedAt -- withCoverVersion (coverVersion.ts) keys the cache-busting ?v= off THIS, not the blanket `updatedAt` (which fires on every PATCH, incl. price/distribution, none of which change the actual image bytes). Falls back to `updatedAt` for rows written before this column existed.
   coverImageLibrary    Json? // previously uploaded cover images the author can re-pick — [{url, uploadedAt}]
   coverDesign          Json? // editable cover design state — {front, backSpine, background}, restored into the canvas on next open of /cover (T-1962 sibling; see coverVersion.ts for the exported-PNG cache-busting, this is the separate editable-state save)
   originalDocxUrl      String?

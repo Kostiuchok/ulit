@@ -44,6 +44,8 @@ const BOOK_SELECT = {
   coverUrl: true,
   backCoverUrl: true,
   spineUrl: true,
+  coverThumbUrl: true,
+  coverUpdatedAt: true,
   coverImageLibrary: true,
   coverDesign: true,
   originalDocxUrl: true,
@@ -103,6 +105,16 @@ const BOOK_SELECT = {
   publicationTimeline: true,
   author: { select: { name: true, contractAcceptedAt: true } },
 } as const;
+
+// GET /api/books/:id?fields=light -- the book dashboard overview
+// (BookDashboard.tsx) renders title/price/status/cover etc. but never the
+// cover editor canvas, so it has no use for coverDesign (the full editable
+// Fabric.js layer state) or coverImageLibrary (every previously-uploaded
+// cover image, {url, uploadedAt}[]) -- both grow unbounded over a book's
+// life and were shipped on every dashboard load regardless. Derived by
+// omitting from BOOK_SELECT rather than a hand-written second list, so a
+// future heavy field added there doesn't also need to be remembered here.
+const { coverDesign: _coverDesign, coverImageLibrary: _coverImageLibrary, ...BOOK_SELECT_LIGHT } = BOOK_SELECT;
 
 const coAuthorSchema = z.object({
   name: z.string().min(1).max(255),
@@ -235,9 +247,11 @@ export async function bookRoutes(app: FastifyInstance) {
   // Get single book
   app.get("/api/books/:id", { preHandler: authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
+    const { fields } = request.query as { fields?: string };
     await assertOwnership(id, request.user.id);
 
-    const book = await prisma.book.findUnique({ where: { id }, select: BOOK_SELECT });
+    const select = fields === "light" ? BOOK_SELECT_LIGHT : BOOK_SELECT;
+    const book = await prisma.book.findUnique({ where: { id }, select });
     return reply.send({ book: withCoverVersion(book) });
   });
 

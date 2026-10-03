@@ -3,7 +3,8 @@ import { Readable } from "stream";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
-import { uploadFile, publicUrl } from "../../services/storage.service";
+import { uploadFile, publicUrl, IMMUTABLE_CACHE_CONTROL } from "../../services/storage.service";
+import { toCoverThumbnail } from "../../lib/coverThumbnail";
 
 const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp"];
@@ -38,11 +39,28 @@ export async function uploadCoverRoute(app: FastifyInstance) {
       const ext = data.mimetype === "image/png" ? "png" : data.mimetype === "image/webp" ? "webp" : "jpg";
       const objectName = `public/covers/${id}.${ext}`;
 
-      await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype);
+      await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype, {
+        cacheControl: IMMUTABLE_CACHE_CONTROL,
+      });
       const coverUrl = publicUrl(objectName);
 
-      await prisma.book.update({ where: { id }, data: { coverUrl }, select: { id: true } });
-      return reply.send({ coverUrl });
+      // Small WebP sidecar for AuthorBooksSidebar/MyBooksList -- the full
+      // export above stays untouched (same bytes/resolution as before, so
+      // nothing that relies on it -- cover print spread, admin's per-book
+      // cover download for distribution, the store page -- changes).
+      const thumbBuffer = await toCoverThumbnail(buffer);
+      const thumbObjectName = `public/covers-thumb/${id}.webp`;
+      await uploadFile(thumbObjectName, Readable.from(thumbBuffer), thumbBuffer.length, "image/webp", {
+        cacheControl: IMMUTABLE_CACHE_CONTROL,
+      });
+      const coverThumbUrl = publicUrl(thumbObjectName);
+
+      await prisma.book.update({
+        where: { id },
+        data: { coverUrl, coverThumbUrl, coverUpdatedAt: new Date() },
+        select: { id: true },
+      });
+      return reply.send({ coverUrl, coverThumbUrl });
     }
   );
 }

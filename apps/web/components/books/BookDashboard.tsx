@@ -75,7 +75,9 @@ interface DashboardBook {
 
 export function BookDashboard() {
   const { id } = useParams<{ id: string }>();
-  const { book, setBook, loading } = useBook<DashboardBook>(id);
+  // light:true -- this overview never renders the cover editor canvas, so it
+  // has no use for coverDesign/coverImageLibrary (book.ts's BOOK_SELECT_LIGHT).
+  const { book, setBook, loading } = useBook<DashboardBook>(id, { light: true });
   const [coverNoticeDismissed, setCoverNoticeDismissed] = useState(false);
   const [otherNoticeDismissed, setOtherNoticeDismissed] = useState(false);
   const { apiFetch, token } = useApi();
@@ -84,13 +86,23 @@ export function BookDashboard() {
   // link) is itself the author looking at whatever the moderator said about
   // it. Marks every unread notification FOR THIS BOOK read, then tells the
   // bell (mounted elsewhere, its own separate useNotifications() instance)
-  // to refresh via the same `ulit:books-changed` event every other
-  // cross-component "something changed" signal in this app already uses --
-  // no shared context needed for two components to agree the count changed.
+  // to refresh.
+  //
+  // Dispatches "ulit:notifications-changed", NOT "ulit:books-changed" --
+  // marking a notification read never changes any Book field, so the
+  // `ulit:books-changed` listeners (this same component's own useBook(id),
+  // AuthorBooksSidebar, MyBooksList) have nothing to actually refetch.
+  // Before this split, opening any book fired THREE redundant requests on
+  // top of this one: GET /api/books/:id (refetching what useBook had just
+  // loaded a moment earlier), GET /api/books (the sidebar's full list, for
+  // data that didn't change), and GET /api/notifications (the only one that
+  // actually needed to run). useNotifications listens for both events --
+  // this is strictly a narrower signal for the one case that doesn't need
+  // the wider one.
   useEffect(() => {
     if (!token || !id) return;
     apiFetch(`/api/notifications/book/${id}/read`, { method: "PATCH" })
-      .then(() => window.dispatchEvent(new Event("ulit:books-changed")))
+      .then(() => window.dispatchEvent(new Event("ulit:notifications-changed")))
       .catch(() => {});
   }, [token, id, apiFetch]);
 

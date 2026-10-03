@@ -1,29 +1,36 @@
 import { useCallback, useEffect, useState } from "react";
 import { useApi } from "./useApi";
 
-export function useBook<T = any>(id: string | undefined) {
+export function useBook<T = any>(id: string | undefined, opts?: { light?: boolean }) {
   const { apiFetch, token } = useApi();
   const [book, setBook] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Dashboard overview (BookDashboard.tsx) doesn't render the cover editor
+  // canvas -- light:true drops coverDesign/coverImageLibrary from the
+  // response (book.ts's BOOK_SELECT_LIGHT), both of which otherwise grow
+  // unbounded over a book's life and were shipped on every dashboard load
+  // for no reason. Every other useBook(id) caller (cover editor, output-data
+  // pages) still gets the full record as before.
+  const light = opts?.light;
 
   const refetch = useCallback(
-    (opts?: { silent?: boolean }) => {
+    (fetchOpts?: { silent?: boolean }) => {
       if (!token || !id) return;
-      if (!opts?.silent) setLoading(true);
-      return apiFetch<{ book: T }>(`/api/books/${id}`)
+      if (!fetchOpts?.silent) setLoading(true);
+      return apiFetch<{ book: T }>(`/api/books/${id}${light ? "?fields=light" : ""}`)
         .then(({ book }) => {
           setBook(book);
           setError(null);
         })
         .catch((e: any) => {
-          if (!opts?.silent) setError(e.message || "Помилка завантаження");
+          if (!fetchOpts?.silent) setError(e.message || "Помилка завантаження");
         })
         .finally(() => {
-          if (!opts?.silent) setLoading(false);
+          if (!fetchOpts?.silent) setLoading(false);
         });
     },
-    [token, id]
+    [token, id, light]
   );
 
   useEffect(() => {

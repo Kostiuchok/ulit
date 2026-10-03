@@ -101,6 +101,8 @@ export async function booksRoutes(app: FastifyInstance) {
         status: true,
         moderationStatus: true,
         coverUrl: true,
+        coverThumbUrl: true,
+        coverUpdatedAt: true,
         updatedAt: true,
         priceEbook: true,
         pricePrint: true,

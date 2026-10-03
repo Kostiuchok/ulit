@@ -22,6 +22,7 @@ interface Book {
   kdpStatus?: string;
   googleStatus?: string;
   coverUrl?: string | null;
+  coverThumbUrl?: string | null;
   priceEbook?: string | null;
   pricePrint?: string | null;
   pricePrintHardcover?: string | null;

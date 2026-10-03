@@ -3,7 +3,7 @@ import { Readable } from "stream";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
-import { uploadFile, publicUrl } from "../../services/storage.service";
+import { uploadFile, publicUrl, IMMUTABLE_CACHE_CONTROL } from "../../services/storage.service";
 
 const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp"];
@@ -38,14 +38,18 @@ export async function uploadBackCoverRoute(app: FastifyInstance) {
       const ext = data.mimetype === "image/png" ? "png" : data.mimetype === "image/webp" ? "webp" : "jpg";
       const objectName = `public/covers-back/${id}.${ext}`;
 
-      await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype);
+      await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype, {
+        cacheControl: IMMUTABLE_CACHE_CONTROL,
+      });
       const backCoverUrl = publicUrl(objectName);
 
       // The back cover is NOT part of print.pdf (it is printed separately, the
       // PDF is the interior block only) -- so no printMetaUpdatedAt bump.
+      // coverUpdatedAt IS bumped -- withCoverVersion (coverVersion.ts) keys
+      // backCoverUrl's own cache-busting ?v= off this same field.
       await prisma.book.update({
         where: { id },
-        data: { backCoverUrl },
+        data: { backCoverUrl, coverUpdatedAt: new Date() },
         select: { id: true },
       });
       return reply.send({ backCoverUrl });

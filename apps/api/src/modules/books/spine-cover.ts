@@ -3,7 +3,7 @@ import { Readable } from "stream";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
-import { uploadFile, publicUrl } from "../../services/storage.service";
+import { uploadFile, publicUrl, IMMUTABLE_CACHE_CONTROL } from "../../services/storage.service";
 
 const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp"];
@@ -38,10 +38,16 @@ export async function uploadSpineCoverRoute(app: FastifyInstance) {
       const ext = data.mimetype === "image/png" ? "png" : data.mimetype === "image/webp" ? "webp" : "jpg";
       const objectName = `public/covers-spine/${id}.${ext}`;
 
-      await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype);
+      await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype, {
+        cacheControl: IMMUTABLE_CACHE_CONTROL,
+      });
       const spineUrl = publicUrl(objectName);
 
-      await prisma.book.update({ where: { id }, data: { spineUrl }, select: { id: true } });
+      await prisma.book.update({
+        where: { id },
+        data: { spineUrl, coverUpdatedAt: new Date() },
+        select: { id: true },
+      });
       return reply.send({ spineUrl });
     }
   );
