@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ULIT — Вихідні дані (WF)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;color:#0a0a0a}
+  .wf-note{font-size:11px;color:#7c3aed;background:#f5f3ff;border:1px dashed #c4b5fd;border-radius:6px;padding:2px 6px}
+  [data-lucide]{width:16px;height:16px;stroke-width:2}
+  details>summary{list-style:none} details>summary::-webkit-details-marker{display:none}
+  details[open] .chev{transform:rotate(180deg)}
+  .clean .wf-only{display:none!important}
+</style></head>
+<body class="bg-white">
+
+<div class="flex min-h-screen">
+
+<aside class="flex w-[264px] shrink-0 flex-col border-r border-gray-200 bg-[#fafafa]">
+  <div class="p-3"><button class="flex w-full items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2.5 text-[14px] font-medium text-white shadow-sm"><i data-lucide="plus" class=""></i>Створити нову книжку</button></div>
+  <div class="mx-3 flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2.5">
+    <div class="h-12 w-9 shrink-0 rounded-sm bg-gradient-to-b from-slate-300 to-slate-500"></div>
+    <div class="min-w-0"><div class="text-[15px] font-semibold leading-tight">Назва книги</div>
+      <span class="mt-1 inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 ring-1 ring-green-200">Опубліковано</span></div>
+    <i data-lucide="chevrons-up-down" class="ml-auto text-gray-400"></i>
+  </div>
+  <nav class="flex-1 px-2 pt-1">
+    <div class="mt-3"><div class="flex items-center gap-1.5 px-2.5 pb-1 text-[12px] font-semibold uppercase tracking-wide text-gray-500">Редагувати книгу</div><a href="output-data.html" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] bg-gray-100 font-medium text-black"><i data-lucide="info" class="shrink-0 text-gray-500"></i><span>Вихідні дані</span></a><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="file-text" class="shrink-0 text-gray-500"></i><span>Рукопис</span></a><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="image" class="shrink-0 text-gray-500"></i><span>Обкладинка</span></a><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="eye" class="shrink-0 text-gray-500"></i><span>Перегляд книги</span></a><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="trash-2" class="shrink-0 text-gray-500"></i><span>Видалити книгу</span></a></div>
+    <div class="mt-3"><div class="flex items-center gap-1.5 px-2.5 pb-1 text-[12px] font-semibold uppercase tracking-wide text-gray-500">У магазинах</div><a href="dashboard.html" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="store" class="shrink-0 text-gray-500"></i><span>Публікація</span></a></div>
+    <div class="mt-3"><div class="flex items-center gap-1.5 px-2.5 pb-1 text-[12px] font-semibold uppercase tracking-wide text-gray-500">Реклама</div><a href="#" class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] text-gray-800 hover:bg-gray-50"><i data-lucide="package" class="shrink-0 text-gray-500"></i><span>Замовити тираж</span></a></div>
+  </nav>
+  <details class="mx-2 mb-2 rounded-md border border-dashed border-gray-300 bg-white">
+    <summary class="flex cursor-pointer items-center gap-2 px-2.5 py-2 text-[13px] text-gray-500"><i data-lucide="clock" class="text-gray-400"></i><span>Скоро: ще 4 розділи</span><i data-lucide="chevron-down" class="chev ml-auto text-gray-400 transition"></i></summary>
+    <div class="space-y-0.5 px-2.5 pb-2 text-[13px] text-gray-400">
+      <div class="flex items-center gap-2 py-1"><i data-lucide="bar-chart-3" class=""></i>Статистика</div>
+      <div class="flex items-center gap-2 py-1"><i data-lucide="download" class=""></i>Завантаження</div>
+      <div class="flex items-center gap-2 py-1"><i data-lucide="message-square" class=""></i>Обговорення</div>
+      <div class="flex items-center gap-2 py-1"><i data-lucide="users" class=""></i>Знайти читачів</div>
+    </div>
+  </details>
+  <div class="flex items-center gap-3 border-t border-gray-200 p-3">
+    <div class="flex h-8 w-8 items-center justify-center rounded-md bg-gray-200 text-[13px] font-semibold">E</div>
+    <div class="leading-tight"><div class="text-[14px] font-medium">e2e</div><div class="text-[12px] text-gray-500">e2e@render.ua</div></div>
+    <i data-lucide="chevrons-up-down" class="ml-auto text-gray-400"></i>
+  </div>
+</aside>
+<div class="relative flex min-w-0 flex-1 flex-col">
+<header class="flex h-12 items-center justify-between border-b border-gray-200 px-4">
+  <i data-lucide="panel-left" class="text-gray-600"></i>
+  <div class="flex items-center gap-3 text-[13px]"><a class="text-gray-600">На сайт</a>
+    <div class="flex items-center gap-1 rounded-md border border-gray-200 px-2 py-0.5"><b>A−</b><span class="text-gray-500">100%</span><b>A+</b></div>
+    <i data-lucide="bell" class="text-gray-700"></i></div>
+</header>
+<div class="sticky top-0 z-10 flex items-center gap-1 border-b border-gray-200 bg-white px-8 py-2.5"><span class="inline-flex items-center gap-1.5 rounded-full bg-gray-900 px-3 py-1.5 text-[13px] font-medium text-white"><i data-lucide="circle-check" class="text-green-400 !w-3.5 !h-3.5"></i>Вихідні дані</span><span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Рукопис</span><span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Обкладинка</span><span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Ціна та розповсюдження</span><span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Огляд перед публікацією</span><span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-gray-600"><i data-lucide="circle-check" class="text-green-600 !w-3.5 !h-3.5"></i>Публікація</span></div>
+<main class="flex-1 px-8 pb-28 pt-6">
+  <div class="wf-only mb-4 flex items-center gap-2 text-[12px]"><span class="wf-note">WF · панель збереження:</span>
+    <a href="?state=dirty" class="rounded border px-2 py-0.5">є незбережені зміни</a>
+    <a href="?state=saved" class="rounded border px-2 py-0.5">збережено</a></div>
+  <div class="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+  <i data-lucide="info" class="mt-0.5 shrink-0 text-blue-600"></i>
+  <div class="text-[14px]"><div class="font-semibold text-blue-900">Книга вже опублікована</div>
+  <div class="mt-0.5 text-blue-900/80">Збережені зміни не потрапляють у магазини одразу. Щоб їх оприлюднити, натисніть «Опублікувати зміни» на дашборді книги — книга піде на повторну модерацію, а до схвалення в магазинах лишиться поточна версія.</div></div>
+  <a href="dashboard.html?state=changes" class="ml-auto shrink-0 whitespace-nowrap text-[13px] font-medium text-blue-900 underline">До дашборду книги</a>
+</div>
+  <h1 class="mt-6 flex items-center gap-2 text-[20px] font-bold"><i data-lucide="circle-check" class="text-green-600 !w-5 !h-5"></i>Вихідні дані</h1>
+  <div class="mt-4 rounded-xl border border-gray-200 p-6">
+    <div class="grid grid-cols-2 gap-8"><div class="space-y-5"><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Назва<span class="text-red-500"> *</span></label><span class="text-[12px] text-gray-400">11/255</span></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>Назва книги</span></div></div><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Підзаголовок</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span class="text-gray-400">Наприклад: збірка оповідань</span></div></div><div><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Анотація<span class="text-red-500"> *</span></label><span class="text-[12px] text-gray-600"><b class="text-green-700">257</b> / 500 · мінімум 120</span></div>
+<div class="h-32 rounded-md border border-gray-200 px-3 py-2 text-[14px] leading-relaxed text-gray-800">Анотація до книги має бути такої довжини, щоб читач зрозумів, про що книга, і захотів її відкрити. Розкажіть про головного героя, конфлікт і атмосферу…</div>
+<div class="mt-2">
+  <div class="relative h-1.5 rounded-full bg-gray-100"><div class="h-1.5 rounded-full bg-green-500" style="width:51.4%"></div></div>
+  <div class="relative h-7"><div class="absolute top-0 flex -translate-x-1/2 flex-col items-center" style="left:10.0%">
+<span class="h-3 w-0.5 bg-green-600"></span>
+<span class="mt-0.5 whitespace-nowrap text-[11px] font-medium text-green-700">50</span></div><div class="absolute top-0 flex -translate-x-1/2 flex-col items-center" style="left:24.0%">
+<span class="h-3 w-0.5 bg-green-600"></span>
+<span class="mt-0.5 whitespace-nowrap text-[11px] font-medium text-green-700">120</span></div><div class="absolute top-0 flex -translate-x-1/2 flex-col items-center" style="left:30.0%">
+<span class="h-3 w-0.5 bg-green-600"></span>
+<span class="mt-0.5 whitespace-nowrap text-[11px] font-medium text-green-700">150</span></div><div class="absolute top-0 flex -translate-x-1/2 flex-col items-center" style="left:50.0%">
+<span class="h-3 w-0.5 bg-green-600"></span>
+<span class="mt-0.5 whitespace-nowrap text-[11px] font-medium text-green-700">250</span></div><div class="absolute right-0 top-0 flex flex-col items-end"><span class="h-3 w-0.5 bg-gray-300"></span><span class="mt-0.5 text-[11px] text-gray-500">500 макс.</span></div></div>
+  <div class="flex flex-wrap gap-1.5"><span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ring-1 bg-green-50 text-green-700 ring-green-200">✓ D2D · 50+</span><span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ring-1 bg-green-50 text-green-700 ring-green-200">✓ УДК · 120+</span><span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ring-1 bg-green-50 text-green-700 ring-green-200">✓ Google Play · 150+</span><span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ring-1 bg-green-50 text-green-700 ring-green-200">✓ Amazon KDP · 250+</span></div>
+</div>
+<p class="mt-1.5 text-[12px] text-gray-500">Позначки — мінімальна довжина для кожного магазину. Зелені — вимогу виконано.</p></div><div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+  <div class="text-[13px] font-semibold uppercase tracking-wide text-gray-500">Декларації</div>
+  <label class="mt-2 flex items-start gap-2.5 text-[14px]"><span class="mt-0.5 h-4 w-4 shrink-0 rounded border border-gray-400 bg-white"></span>
+  <span>Текст (або обкладинку) частково/повністю створено за допомогою ШІ<span class="block text-[12px] text-gray-500">Деякі магазини (Amazon KDP, Google Play) вимагають позначати такий контент.</span></span></label>
+</div></div><div class="space-y-5"><div><label class="mb-1.5 block text-[14px] font-medium">Жанр<span class="text-red-500"> *</span></label>
+<div class="flex h-10 items-center justify-between rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>Поезія</span><i data-lucide="chevron-down" class="text-gray-500"></i></div></div>
+<div><label class="mb-1.5 block text-[14px] font-medium">Розмір книги<span class="text-red-500"> *</span></label>
+<div class="flex h-10 items-center justify-between rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>Стандартний (130×200 мм)</span><i data-lucide="chevron-down" class="text-gray-500"></i></div><p class="mt-1 flex items-center gap-1 text-[12px] text-gray-500"><i data-lucide="ruler" class="!w-3.5 !h-3.5"></i>Друкована версія матиме розмір <b class='mx-1 text-gray-700'>130×200 мм</b></p></div>
+<div><label class="mb-1.5 block text-[14px] font-medium">Мова книги<span class="text-red-500"> *</span></label>
+<div class="flex h-10 items-center justify-between rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>🇺🇦 Українська</span><i data-lucide="chevron-down" class="text-gray-500"></i></div><p class="mt-1 flex items-center gap-1 text-[12px] text-gray-500"><i data-lucide="info" class="!w-3.5 !h-3.5"></i>Потрібна для Amazon, Google Play</p></div>
+<div><label class="mb-1.5 block text-[14px] font-medium">Вікові обмеження<span class="text-red-500"> *</span></label>
+<div class="flex h-10 items-center justify-between rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>18+</span><i data-lucide="chevron-down" class="text-gray-500"></i></div></div></div></div>
+  </div>
+  <div class="mt-5 space-y-5"><section class="rounded-xl border border-gray-200 p-5">
+<div class="flex items-start justify-between"><div><h2 class="text-[16px] font-bold">Автори книги<span class="text-red-500"> *</span></h2><p class="mt-0.5 text-[13px] text-gray-500">Якщо авторів декілька — кожен додає власне прізвище/ім'я і, за бажанням, своє фото.</p></div><i data-lucide="chevron-up" class="text-gray-400"></i></div>
+<div class="mt-4">
+<div class="flex items-center gap-1.5 text-[12px] text-green-700"><i data-lucide="check" class="!w-3.5 !h-3.5"></i>Автора вказано</div>
+<div class="mt-2 flex items-center gap-3 rounded-md bg-gray-50 px-3 py-2"><span class="h-7 w-7 rounded-full bg-slate-400"></span><span class="text-[14px] font-medium">Тестовий Тест Тестович</span><i data-lucide="x" class="ml-auto text-gray-400"></i></div>
+<div class="mt-3 grid grid-cols-3 gap-3"><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Прізвище<span class="text-red-500"> *</span></label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>Тестовий</span></div></div><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Ім'я<span class="text-red-500"> *</span></label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>Тест</span></div></div><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">По батькові</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>Тестович</span></div></div></div>
+<div class="mt-3 flex items-end gap-2"><div class="flex-1"><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Фото автора</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span class="text-gray-400">URL фото (необов'язково)</span></div></div></div><button class="inline-flex h-10 items-center gap-1.5 rounded-md border border-gray-300 px-3 text-[13px] font-medium"><i data-lucide="upload" class=""></i>Завантажити фото</button></div>
+<div class="mt-3"><label class="mb-1.5 block text-[14px] font-medium">Біографія автора<span class="text-red-500"> *</span></label>
+<div class="h-20 rounded-md border border-gray-200 px-3 py-2 text-[14px] text-gray-800">Це моя біографія на декілька речень: пишу казки і поезію, інколи вірші й наукові праці…</div></div>
+<button class="mt-3 inline-flex h-9 items-center gap-1.5 rounded-md border border-gray-300 px-3 text-[13px] font-medium"><i data-lucide="plus" class=""></i>Додати автора</button></div></section><section class="rounded-xl border border-gray-200 p-5">
+<div class="flex items-start justify-between"><div><h2 class="text-[16px] font-bold">Над книгою працювали</h2><p class="mt-0.5 text-[13px] text-gray-500">Редактор, ілюстратор, дизайнер обкладинки тощо.</p></div><i data-lucide="chevron-up" class="text-gray-400"></i></div>
+<div class="mt-4">
+<div class="flex items-end gap-2"><div class="w-56"><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Роль</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span class="text-gray-400">Напр. редактор</span></div></div></div><div class="flex-1"><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Ім'я</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span class="text-gray-400">Ім'я та прізвище</span></div></div></div><button class="inline-flex h-10 items-center gap-1.5 rounded-md border border-gray-300 px-3 text-[13px] font-medium"><i data-lucide="plus" class=""></i>Додати</button></div></div></section><section class="rounded-xl border border-gray-200 p-5">
+<div class="flex items-start justify-between"><div><h2 class="text-[16px] font-bold">Авторське право / попередня публікація</h2><p class="mt-0.5 text-[13px] text-gray-500">Заповніть, лише якщо книга вже виходила раніше на іншій платформі — до приєднання до ULIT.</p></div><i data-lucide="chevron-up" class="text-gray-400"></i></div>
+<div class="mt-4">
+<div class="grid grid-cols-[120px_1fr] gap-3"><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Рік</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>2013</span></div></div><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Власник авторського права</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span class="text-gray-400">Наприклад: Валентина Островська</span></div></div></div>
+<div class="mt-3"><div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">Номер свідоцтва про публікацію</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span class="text-gray-400">Наприклад: №113122609908</span></div></div></div>
+<div class="my-4 h-px bg-gray-100"></div>
+<div class=""><div class="mb-1.5 flex items-end justify-between"><label class="text-[14px] font-medium">ISBN, вже присвоєний книзі раніше</label></div>
+<div class="flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-[14px]"><span>978-5-4474-2357-5</span></div><p class="mt-1 text-[12px] text-gray-500">Лише якщо книга вже мала власний ISBN до ULIT — він стане ISBN цієї книги, реєстрація в Книжковій палаті через ULIT більше не знадобиться. Зберігається разом з усією формою.</p></div>
+<label class="mt-3 flex items-start gap-2.5 text-[14px]"><span class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-green-600 bg-green-600 text-white"><i data-lucide="check" class="!w-3 !h-3"></i></span>Підтверджую, що цей ISBN дійсно раніше офіційно присвоєно саме цій книзі, і я несу відповідальність за коректність цих даних.</label></div></section></div>
+</main>
+<div class="sticky bottom-0 z-20 border-t border-gray-200 bg-white/95 px-8 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] backdrop-blur">
+  <div class="flex items-center gap-4">
+    <a href="dashboard.html" class="inline-flex items-center gap-1.5 text-[14px] text-gray-600"><i data-lucide="arrow-left" class=""></i>До дашборду книги</a>
+    <div class="ml-auto flex items-center gap-3">
+      <span data-state="dirty" data-default="dirty" class="inline-flex items-center gap-2 text-[13px] text-amber-700"><span class="h-2 w-2 rounded-full bg-amber-500"></span>Є незбережені зміни (3 поля)</span>
+      <span data-state="saved" data-default="dirty" class="inline-flex items-center gap-1.5 text-[13px] font-medium text-green-700"><i data-lucide="check" class=""></i>Збережено ✓ · 12:41</span>
+      <button data-state="dirty" data-default="dirty" class="inline-flex h-10 items-center gap-1.5 rounded-md bg-green-600 px-5 text-[14px] font-medium text-white shadow-sm"><i data-lucide="save" class=""></i>Зберегти зміни</button>
+      <button data-state="saved" data-default="dirty" disabled class="inline-flex h-10 items-center gap-1.5 rounded-md bg-gray-100 px-5 text-[14px] font-medium text-gray-400"><i data-lucide="save" class=""></i>Зберегти зміни</button>
+    </div>
+  </div></div>
+</div></div><script>
+  const q=new URLSearchParams(location.search);
+  if(q.get('static')==='1')document.querySelectorAll('.sticky').forEach(e=>{e.classList.remove('sticky');});
+  if(q.get('clean')==='1')document.body.classList.add('clean');
+  document.querySelectorAll('[data-state]').forEach(el=>{
+    const want=el.dataset.state, cur=q.get('state')||el.dataset.default;
+    el.style.display = (want.split(' ').includes(cur))?'':'none';
+  });
+  lucide.createIcons();
+</script></body></html>

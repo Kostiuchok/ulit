@@ -1,0 +1,14 @@
+> **Чернетка на погодження Анатолієм.** Figma: https://www.figma.com/design/Jv1BqZkdSNnNnkEITh36Bf (фрейми 1:2 Дашборд опубліковано, 2:2 Дашборд є зміни, 3:2 Вихідні дані, 4:2 Меню «⋯»). HTML — референс, будувати на наявних компонентах/токенах apps/web.
+
+# ULIT — вайрфрейми редизайну дашборду книги (v1)
+
+> **HTML — референс; будувати на наявних компонентах/токенах apps/web** (shadcn `Button`/`Badge`/`Card`, токени з `app/globals.css` і `tailwind.config.ts`, lucide-іконки). Не копіювати розмітку як є.
+
+- `index.html` — посилання на всі стани
+- `dashboard.html?state=published|changes|menu` — `/dashboard/books/[id]`
+- `output-data.html?state=dirty|saved` — `/dashboard/books/[id]/output-data`
+- `&clean=1` — сховати службові WF-перемикачі; `&static=1` — нижня панель не sticky (для full-page скрінів)
+- `WF-SPEC.md` — специфікація; `shots/` — PNG 1280px
+- `build.py` генерує HTML (спільні сайдбар/топбар), `shoot.py` — скріни (playwright + chrome)
+
+Відкривати без збірки (Tailwind і lucide через CDN, потрібен інтернет). Desktop 1280; мобільна поведінка — у WF-SPEC.md.
