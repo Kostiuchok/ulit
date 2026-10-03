@@ -9,6 +9,8 @@ SHOTS=[("01-dashboard-published","dashboard.html?state=published&clean=1",True),
        ("05-price-dirty","price.html?state=dirty&clean=1&static=1",True),
        ("05b-price-saved","price.html?state=saved&clean=1",False),
        ("06-cover","cover.html?clean=1&static=1",True),
+       ("06b-cover-pending","cover.html?state=pending&clean=1",False),
+       ("06c-cover-locked","cover.html?state=locked&clean=1",False),
        ("07-review-changes","review.html?state=changes&clean=1&static=1",True),
        ("07b-review-published","review.html?state=published&clean=1",False)]
 async def main():
