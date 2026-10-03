@@ -545,7 +545,7 @@ def cover():
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2 text-[16px] font-bold">Обкладинку завантажено<span class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[12px] font-medium text-green-700 ring-1 ring-green-300">{ic("circle-check","!w-3 !h-3")}Зміна доступна</span></div>
     <p class="text-[13px] text-gray-600">Використовується для електронної та друкованої версій · формат {FORMAT}, 12 сторінок</p></div>
   <a class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-gray-300 bg-white px-4 text-[14px] font-medium">{ic("upload")}Замінити файлом</a>
-  <a class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-green-600 px-4 text-[14px] font-medium text-white shadow-sm">{ic("pencil")}Редагувати обкладинку</a>
+  <a href="cover-editor.html?tab=ebook" class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-green-600 px-4 text-[14px] font-medium text-white shadow-sm">{ic("pencil")}Редагувати обкладинку</a>
 </div>
 <div data-state="pending" data-default="uploaded" class="flex items-center gap-4 rounded-xl border border-amber-200 bg-amber-50/50 p-5">
   <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">{ic("clock","!w-5 !h-5")}</div>
@@ -693,6 +693,8 @@ def review():
     return page("ULIT — Огляд перед публікацією (WF)", "output", main, bar)
 
 
+exec(open(OUT/"parts"/"editor.py").read())
+
 INDEX = HEAD.format(title="ULIT — вайрфрейми") + f'''
 <main class="mx-auto max-w-2xl px-6 py-12">
   <h1 class="text-[24px] font-bold">ULIT — редизайн дашборду книги · WF v1</h1>
@@ -708,6 +710,8 @@ INDEX = HEAD.format(title="ULIT — вайрфрейми") + f'''
     <li><a class="text-green-700 underline" href="cover.html?state=uploaded">06 Обкладинка</a></li>
     <li><a class="text-green-700 underline" href="cover.html?state=pending">06b Обкладинка — нова на перевірці</a></li>
     <li><a class="text-green-700 underline" href="cover.html?state=locked">06c Обкладинка — зміна недоступна до 01.01.2027</a></li>
+    <li><a class="text-green-700 underline" href="cover-editor.html?tab=ebook">08 Редактор обкладинки — електронна, виділено назву</a> · <a class="text-green-700 underline" href="cover-editor.html?tab=ebook&panel=design">Дизайн</a> · <a class="text-green-700 underline" href="cover-editor.html?tab=ebook&overlap=1">фігура перекриває текст</a></li>
+    <li><a class="text-green-700 underline" href="cover-editor.html?tab=soft">08b Редактор обкладинки — м'яка, задня сторона (промо автора), корінець</a> · <a class="text-green-700 underline" href="cover-editor.html?tab=hard">тверда</a></li>
     <li><a class="text-green-700 underline" href="review.html?state=changes">07 Огляд перед публікацією — є зміни (Вихідні дані → модерація, ціни застосовано)</a></li>
     <li><a class="text-green-700 underline" href="review.html?state=published">07b Огляд перед публікацією — опубліковано</a></li>
     <li><a class="text-green-700 underline" href="WF-SPEC.md">WF-SPEC.md</a> · <a class="text-green-700 underline" href="shots/">shots/</a></li>
@@ -720,5 +724,6 @@ INDEX = HEAD.format(title="ULIT — вайрфрейми") + f'''
 (OUT/"price.html").write_text(price())
 (OUT/"cover.html").write_text(cover())
 (OUT/"review.html").write_text(review())
+(OUT/"cover-editor.html").write_text(cover_editor())
 (OUT/"index.html").write_text(INDEX)
 print("ok")
