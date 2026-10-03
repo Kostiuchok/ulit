@@ -2,8 +2,10 @@ import { z } from "zod";
 
 export * from "./manuscript";
 export * from "./print-specs";
+export * from "./discounts";
 
 import { MIN_SPINE_TEXT_PAGES } from "./print-specs";
+import { MIN_DISCOUNT_PERCENT, MAX_DISCOUNT_PERCENT } from "./discounts";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
@@ -274,9 +276,28 @@ export function resolveBookPrintFormat(book: {
     ? PRINT_FORMATS[GENRE_TO_PRINT_FORMAT[book.genre as Genre] ?? "standard"]
     : PRINT_FORMATS.standard;
   if (book.printWidthMm && book.printHeightMm) {
+    // printFormatKey (set by the independent "Розмір книги" selector, or by
+    // GENRE_TO_PRINT_FORMAT's one-time fallback at creation) IS the known
+    // preset when it's a real one -- trust it directly instead of
+    // recomparing against a freshly-recomputed genre guess. Size and genre
+    // are independently chosen (BookWizard's own "Розмір книги" selector),
+    // so a book's real printFormatKey almost never equals a fresh
+    // genre-derived key -- the previous comparison made this show
+    // "Індивідуальний" for what was actually just the "Стандартний" preset
+    // (docs/dashboard-ui/WF-SPEC.md "Знайдені баги" #2).
+    const known = book.printFormatKey ? PRINT_FORMATS[book.printFormatKey as PrintFormatKey] : undefined;
+    if (known && known.widthMm === book.printWidthMm && known.heightMm === book.printHeightMm) {
+      return known;
+    }
+    // Genuinely custom/stale dimensions -- look for ANY preset whose exact
+    // mm match before giving up and calling it "Індивідуальний".
+    const matched = Object.values(PRINT_FORMATS).find(
+      (f) => f.widthMm === book.printWidthMm && f.heightMm === book.printHeightMm
+    );
+    if (matched) return matched;
     return {
       key: (book.printFormatKey as PrintFormatKey) ?? genreFormat.key,
-      label: genreFormat.key === book.printFormatKey ? genreFormat.label : "Індивідуальний",
+      label: "Індивідуальний",
       sheetFraction: genreFormat.sheetFraction,
       purpose: genreFormat.purpose,
       widthMm: book.printWidthMm,
@@ -284,6 +305,15 @@ export function resolveBookPrintFormat(book: {
     };
   }
   return genreFormat;
+}
+
+// Canonical display string for a resolved print format -- "Стандартний
+// 130×200 мм" (label first, proper spacing before "мм") -- was built ad hoc
+// at each call site with inconsistent ordering/spacing (price/page.tsx had
+// "130×200мм (Стандартний)", review/page.tsx had "Стандартний (130×200мм)")
+// -- WF-SPEC acceptance criterion #21: one canonical phrase everywhere.
+export function formatPrintFormatLabel(format: PrintFormat): string {
+  return `${format.label} ${format.widthMm}×${format.heightMm} мм`;
 }
 
 // ─── User ────────────────────────────────────────────────────────────────────
@@ -605,30 +635,16 @@ export const distributionChannelsSchema = z
   .min(1, "Оберіть хоча б одну платформу")
   .refine((ch) => ch.includes("ULIT"), "Магазин Ulit завжди обов'язковий");
 
-// "Ціна та розповсюдження" table redesign (Figma, 2026-09-21) -- per-channel
-// advisory royalty/price, one row per EXTERNAL channel (ULIT itself isn't a
-// key here; its row keeps reading/writing the real priceEbook/pricePrint*
-// columns, same reasoning FormatsAndDistribution.tsx already documents:
-// every other channel's number is advisory, ULIT's is the one actually
-// charged at checkout). "KDP_PRINT" is its own key, distinct from "KDP" --
-// Amazon KDP does both ebook and print with potentially different
-// royalty/price choices, and the two rows live in different sections
-// (Продаж електронної книги / Продаж друкованої книги) of the same page.
-export const CHANNEL_PRICING_KEYS = ["D2D", "KDP", "GOOGLE", "KDP_PRINT"] as const;
-export type ChannelPricingKey = (typeof CHANNEL_PRICING_KEYS)[number];
-
-const channelPricingEntrySchema = z.object({
-  royalty: z.number().positive().optional(),
-  // Softcover/paperback price -- the only one for an ebook-only channel
-  // (D2D/GOOGLE/KDP ebook); KDP_PRINT's own row can additionally set
-  // priceHardcover, same softcover/hardcover split ULIT's own print pricing
-  // already has.
-  priceSoftcover: z.number().positive().optional(),
-  priceHardcover: z.number().positive().optional(),
-});
-
-export const channelPricingSchema = z.record(z.enum(CHANNEL_PRICING_KEYS), channelPricingEntrySchema);
-export type ChannelPricing = z.infer<typeof channelPricingSchema>;
+// Dashboard redesign (WF-SPEC v1, "Рішення 03.10") replaced the old
+// per-channel advisory royalty/price map with ONE shared royalty for ebook
+// and ONE for print -- see discounts.ts and print-specs.ts for the
+// derived-price math that replaced it; the Book.channelPricing column this
+// validated was dropped outright (no other reader).
+export const discountPercentSchema = z
+  .number()
+  .int()
+  .min(MIN_DISCOUNT_PERCENT, `Знижка має бути від ${MIN_DISCOUNT_PERCENT}%`)
+  .max(MAX_DISCOUNT_PERCENT, `Знижка має бути до ${MAX_DISCOUNT_PERCENT}%`);
 
 // T-2060 п.4 -- structured per-book authors, independent of the account
 // profile. Previously validated ONLY on the backend (apps/api's book.ts) --

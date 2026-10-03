@@ -20,6 +20,9 @@ interface Props {
   pricePrintHardcover?: number | null;
   pricePrintBw?: number | null;
   pricePrintHardcoverBw?: number | null;
+  discountPercent?: number | null;
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
   genre?: string | null;
   printWidthMm?: number | null;
   printHeightMm?: number | null;
@@ -45,6 +48,9 @@ export function BookCoverAndPurchase({
   pricePrintHardcover,
   pricePrintBw,
   pricePrintHardcoverBw,
+  discountPercent,
+  discountStartsAt,
+  discountEndsAt,
   genre,
   printWidthMm,
   printHeightMm,
@@ -129,6 +135,9 @@ export function BookCoverAndPurchase({
           pricePrintHardcover={pricePrintHardcover}
           pricePrintBw={pricePrintBw}
           pricePrintHardcoverBw={pricePrintHardcoverBw}
+          discountPercent={discountPercent}
+          discountStartsAt={discountStartsAt}
+          discountEndsAt={discountEndsAt}
           format={format}
           onFormatChange={handleFormatChange}
         />

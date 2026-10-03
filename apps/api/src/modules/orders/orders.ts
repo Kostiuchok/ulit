@@ -5,7 +5,7 @@ import { AppError } from "../../errors/AppError";
 import { authenticate } from "../../lib/jwt.middleware";
 import { generateLiqPayForm, LIQPAY_CHECKOUT_URL } from "../../services/liqpay.service";
 import { getSignedUrl } from "../../services/storage.service";
-import { pendingOrderCutoff } from "shared-types";
+import { pendingOrderCutoff, discountedPrice } from "shared-types";
 
 const createOrderSchema = z.object({
   items: z
@@ -150,6 +150,9 @@ export async function ordersRoutes(app: FastifyInstance) {
           fb2Url: true,
           mobiUrl: true,
           printPdfUrl: true,
+          discountPercent: true,
+          discountStartsAt: true,
+          discountEndsAt: true,
         },
       });
 
@@ -176,7 +179,16 @@ export async function ordersRoutes(app: FastifyInstance) {
           if (formats.length === 0) {
             return reply.status(400).send({ error: `Book "${book.title}" has no ebook files yet` });
           }
-          orderItems.push({ bookId: item.bookId, format: "EBOOK", formats, price: Number(book.priceEbook) });
+          // "Знижка в ULIT" -- the charge must match whatever the storefront
+          // DISPLAYED (BookPurchaseWidget), server-authoritative so a client
+          // can't send a stale/undiscounted price and can't fabricate a
+          // discount the book doesn't actually have either.
+          orderItems.push({
+            bookId: item.bookId,
+            format: "EBOOK",
+            formats,
+            price: discountedPrice(Number(book.priceEbook), book),
+          });
         } else {
           const priceField = PRINT_FORMAT_PRICE_FIELD[item.format as keyof typeof PRINT_FORMAT_PRICE_FIELD];
           const price = book[priceField];
@@ -186,7 +198,7 @@ export async function ordersRoutes(app: FastifyInstance) {
           if (!book.printPdfUrl) {
             return reply.status(400).send({ error: `Book "${book.title}" has no print file yet` });
           }
-          orderItems.push({ bookId: item.bookId, format: item.format, formats: [], price: Number(price) });
+          orderItems.push({ bookId: item.bookId, format: item.format, formats: [], price: discountedPrice(Number(price), book) });
         }
       }
 

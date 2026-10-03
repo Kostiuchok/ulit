@@ -6,34 +6,37 @@ import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSecti
 import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import {
   computeAnchorPrices,
-  computeBwPrices,
   formatUah,
   parseRoyalty,
   suggestedPriceRange,
   type PrintCost,
 } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
+import { QuestionHint } from "@/components/books/QuestionHint";
 import { Badge } from "@/components/ui/badge";
 import { SaveActionButton } from "@/components/ui/SaveActionButton";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS, KDP_EBOOK_UNSUPPORTED_LANGUAGES } from "@/lib/distributionPlatforms";
-import { DEFAULT_PLATFORM_FEE_PERCENT, KDP_PRINT_ROYALTY_RATE } from "shared-types";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
 import { cn } from "@/lib/utils";
 import {
-  PRINT_FORMATS,
   resolveBookPrintFormat,
+  formatPrintFormatLabel,
   isPublishStepComplete,
-  CHANNEL_PRICING_KEYS,
-  type ChannelPricingKey,
-  type ChannelPricing,
+  isDiscountActive,
+  discountedPrice,
+  royaltyFromPrice,
+  MIN_DISCOUNT_PERCENT,
+  MAX_DISCOUNT_PERCENT,
+  KDP_PRINT_ROYALTY_RATE,
 } from "shared-types";
 
 interface PriceBook {
@@ -44,6 +47,7 @@ interface PriceBook {
   printHeightMm?: number | null;
   printPageCount?: number | null;
   pageCount?: number | null;
+  genre?: string | null;
   originalDocxUrl?: string | null;
   pdfUrl?: string | null;
   epubUrl?: string | null;
@@ -54,7 +58,9 @@ interface PriceBook {
   pricePrintHardcoverBw?: number | string | null;
   desiredRoyaltyAmount?: number | string | null;
   desiredRoyaltyAmountPrint?: number | string | null;
-  channelPricing?: ChannelPricing | null;
+  discountPercent?: number | null;
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
   distributionChannels?: string[] | null;
   d2dStatus?: string | null;
   d2dSentAt?: string | null;
@@ -77,18 +83,46 @@ const EXTERNAL_STATUS_LABEL: Record<string, { label: string; className: string }
   WITHDRAWN: { label: "Знято", className: "bg-gray-100 text-gray-500" },
 };
 
+// Same text wherever a KDP Select / Kindle Countdown Deal hint shows up
+// (the KDP Select row AND the "Знижки в ULIT" card) -- WF-SPEC explicitly
+// calls for the identical copy in both places.
+const KDP_SELECT_DISCOUNT_HINT =
+  "Хочете знижки на Amazon? Зареєструйтеся в KDP Select — тоді зможете запускати акції Kindle Countdown Deal (90 днів ексклюзиву електронної книги на Amazon).";
+
 function fmtDate(d?: string | null): string {
   return d ? new Date(d).toLocaleDateString("uk-UA") : "";
+}
+
+function fmtTime(d: Date): string {
+  return d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 function platform(key: string) {
   return DISTRIBUTION_PLATFORMS.find((p) => p.key === key)!;
 }
 
-// One row of either table -- checkbox / store chip / your price-or-royalty
-// input / computed shop price / conditions. A row with no `input` (Google
-// Play Books, KDP Select) shows shopPrice as plain informational text
-// instead.
+// yyyy-mm-dd for a date-only <input type="date">.
+function toDateInputValue(d?: string | Date | null): string {
+  if (!d) return "";
+  const date = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function tomorrowDateInputValue(): string {
+  return toDateInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000));
+}
+
+// One row of either table -- checkbox / store chip / computed shop price /
+// conditions. Rows never carry their own editable input any more (bug #1,
+// "Знайдені баги": the ULIT row used to duplicate the single royalty field
+// above the table) -- the shared royalty input above each table is the
+// only place a number is typed; every row (including ULIT's) only DISPLAYS
+// the derived price.
 function ChannelRow({
   icon,
   name,
@@ -96,7 +130,6 @@ function ChannelRow({
   locked,
   disabled,
   onToggle,
-  input,
   shopPrice,
   shopPriceBold,
   conditions,
@@ -107,8 +140,7 @@ function ChannelRow({
   locked?: boolean;
   disabled?: boolean;
   onToggle?: () => void;
-  input?: { value: string; onChange: (v: string) => void; unit?: string };
-  shopPrice: string;
+  shopPrice: React.ReactNode;
   shopPriceBold?: boolean;
   conditions: React.ReactNode;
 }) {
@@ -126,24 +158,6 @@ function ChannelRow({
           <span>{icon}</span>
           {name}
         </span>
-      </TableCell>
-      <TableCell>
-        {input ? (
-          <div className="flex w-fit items-center gap-1.5 rounded border bg-white px-2 py-1.5 whitespace-nowrap">
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              value={input.value}
-              onChange={(e) => input.onChange(e.target.value)}
-              placeholder="—"
-              className="h-5 w-14 border-0 p-0 text-[13px] font-semibold shadow-none focus-visible:ring-0"
-            />
-            <span className="text-xs text-gray-400">{input.unit ?? "грн"}</span>
-          </div>
-        ) : (
-          <span className="text-sm text-gray-400">—</span>
-        )}
       </TableCell>
       <TableCell className="whitespace-nowrap">
         <span className={cn("whitespace-nowrap text-sm", shopPriceBold ? "font-semibold text-gray-900" : "text-gray-700")}>
@@ -163,6 +177,17 @@ function PlacedBadge() {
   );
 }
 
+// Amber border + "Змінено · N" badge on a block with unsaved changes --
+// same visual rule WF-SPEC uses across 03/05/06/07 (amber-400 border,
+// "Змінено · N" badge).
+function ChangedBadge({ count, label = "поле" }: { count: number; label?: string }) {
+  return (
+    <Badge className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">
+      Змінено · {count} {count === 1 ? label : label === "поле" ? "поля" : label}
+    </Badge>
+  );
+}
+
 export default function OutputDataPricePage() {
   const { id } = useParams<{ id: string }>();
   const { apiFetch, token } = useApi();
@@ -172,28 +197,26 @@ export default function OutputDataPricePage() {
   const [channels, setChannels] = useState<string[]>(["ULIT"]);
   const [royaltyEbook, setRoyaltyEbook] = useState("");
   const [royaltyPrint, setRoyaltyPrint] = useState("");
-  const [pricePrintBw, setPricePrintBw] = useState("");
-  // Per-EXTERNAL-channel advisory royalty (channelPricing) -- string inputs,
-  // same pattern as royaltyEbook/royaltyPrint above, keyed by
-  // ChannelPricingKey (D2D/KDP/GOOGLE ebook, KDP_PRINT print).
-  const [channelRoyalty, setChannelRoyalty] = useState<Record<ChannelPricingKey, string>>({
-    D2D: "",
-    KDP: "",
-    GOOGLE: "",
-    KDP_PRINT: "",
-  });
-  // Print specs toggles -- which combination the print table's price column
-  // currently shows/edits. Color only actually branches ULIT's own price
-  // (pricePrint* vs pricePrintBw* -- the only place a B&W/colour distinction
-  // exists in the schema); KDP_PRINT's own advisory number stays the same
-  // regardless, same simplification FormatsAndDistribution.tsx's own
-  // "чорно-білий друк (опційно)" sub-block already made.
-  const [printColorMode, setPrintColorMode] = useState<"color" | "bw">("color");
-  const [printBinding, setPrintBinding] = useState<"softcover" | "hardcover">("softcover");
+  const [discountPercent, setDiscountPercent] = useState("");
+  const [discountStartsAt, setDiscountStartsAt] = useState("");
+  const [discountEndsAt, setDiscountEndsAt] = useState("");
   const [formatsSaving, setFormatsSaving] = useState(false);
   const [formatsSaved, setFormatsSaved] = useState(false);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [formatsDirty, setFormatsDirty] = useState(false);
   const [formatsError, setFormatsError] = useState("");
+
+  // Snapshot of the hydrated/last-saved values -- drives the per-block
+  // amber highlighting (WF-SPEC: a block's own border, not a single
+  // page-wide flag) independently of `formatsDirty` (which only gates the
+  // Save button).
+  const originalRef = useRef<{
+    royaltyEbook: string;
+    royaltyPrint: string;
+    discountPercent: string;
+    discountStartsAt: string;
+    discountEndsAt: string;
+  } | null>(null);
 
   function markFormatsDirty() {
     setFormatsDirty(true);
@@ -201,40 +224,28 @@ export default function OutputDataPricePage() {
   }
 
   useEffect(() => {
-    // Found live (Playwright, direct URL navigation): missing `token` from
-    // this effect's deps let it fire on mount before next-auth's session
-    // had actually hydrated on a fresh page load (a raw `useState`/
-    // `useSession` read is undefined for a beat before the JWT resolves --
-    // most navigations here come from the sidebar with the session already
-    // warm, which is why this wasn't noticed sooner). apiFetch's own
-    // withTokenRetry (useApi.ts) only retries a 401 when the ORIGINAL
-    // attempt already had a token to refresh -- an attempt made with
-    // token=undefined gets no retry at all, so this fired with no
-    // Authorization header, got a bare 401, and silently left printCost
-    // null forever (shown to the author as "кількість друкованих сторінок
-    // ще не визначена", even though it genuinely was).
     if (!id || !token) return;
     apiFetch<PrintCost>(`/api/books/${id}/print-cost`).then(setPrintCost).catch(() => {});
   }, [id, token, apiFetch]);
 
-  // Same "hydrate once" guard as the Інформація page -- useBook() silently
-  // refetches in the background on tab focus, which would otherwise clobber
-  // unsaved royalty/channel edits with whatever's still on the server.
   const bookHydratedRef = useRef(false);
   useEffect(() => {
     if (!book || bookHydratedRef.current) return;
     bookHydratedRef.current = true;
     setChannels(Array.isArray(book.distributionChannels) && book.distributionChannels.length > 0 ? book.distributionChannels : ["ULIT"]);
-    setRoyaltyEbook(book.desiredRoyaltyAmount ? String(Number(book.desiredRoyaltyAmount)) : "");
-    setRoyaltyPrint(book.desiredRoyaltyAmountPrint ? String(Number(book.desiredRoyaltyAmountPrint)) : "");
-    setPricePrintBw(book.pricePrintBw ? String(Number(book.pricePrintBw)) : "");
-    const cp = book.channelPricing ?? {};
-    setChannelRoyalty({
-      D2D: cp.D2D?.royalty != null ? String(cp.D2D.royalty) : "",
-      KDP: cp.KDP?.royalty != null ? String(cp.KDP.royalty) : "",
-      GOOGLE: cp.GOOGLE?.royalty != null ? String(cp.GOOGLE.royalty) : "",
-      KDP_PRINT: cp.KDP_PRINT?.royalty != null ? String(cp.KDP_PRINT.royalty) : "",
-    });
+    const hydrated = {
+      royaltyEbook: book.desiredRoyaltyAmount ? String(Number(book.desiredRoyaltyAmount)) : "",
+      royaltyPrint: book.desiredRoyaltyAmountPrint ? String(Number(book.desiredRoyaltyAmountPrint)) : "",
+      discountPercent: book.discountPercent != null ? String(book.discountPercent) : "",
+      discountStartsAt: toDateInputValue(book.discountStartsAt),
+      discountEndsAt: toDateInputValue(book.discountEndsAt),
+    };
+    setRoyaltyEbook(hydrated.royaltyEbook);
+    setRoyaltyPrint(hydrated.royaltyPrint);
+    setDiscountPercent(hydrated.discountPercent);
+    setDiscountStartsAt(hydrated.discountStartsAt);
+    setDiscountEndsAt(hydrated.discountEndsAt);
+    originalRef.current = hydrated;
   }, [book]);
 
   function toggleChannel(key: string) {
@@ -251,26 +262,54 @@ export default function OutputDataPricePage() {
     markFormatsDirty();
     setRoyaltyPrint(v);
   }
-  function setPricePrintBwDirty(v: string) {
+  function setDiscountPercentDirty(v: string) {
     markFormatsDirty();
-    setPricePrintBw(v);
+    setDiscountPercent(v);
   }
-  function setChannelRoyaltyDirty(key: ChannelPricingKey, v: string) {
+  function setDiscountStartsAtDirty(v: string) {
     markFormatsDirty();
-    setChannelRoyalty((p) => ({ ...p, [key]: v }));
+    setDiscountStartsAt(v);
+  }
+  function setDiscountEndsAtDirty(v: string) {
+    markFormatsDirty();
+    setDiscountEndsAt(v);
   }
 
   async function saveFormatsAndDistribution() {
     setFormatsError("");
+    // "Знижка в ULIT" -- a percent needs a real end date (not before
+    // tomorrow); mirrors book.ts's own server-side check so the author
+    // sees the problem before the round trip, not just after a 400.
+    const discountPercentNum = discountPercent.trim() !== "" ? Number(discountPercent) : null;
+    if (discountPercentNum != null) {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      tomorrow.setHours(0, 0, 0, 0);
+      const endsAt = discountEndsAt ? new Date(discountEndsAt) : null;
+      if (!endsAt || endsAt < tomorrow) {
+        setFormatsError("Дата завершення знижки має бути не раніше завтрашнього дня");
+        return;
+      }
+      if (discountStartsAt && new Date(discountStartsAt) >= endsAt) {
+        setFormatsError("Дата початку знижки має бути раніше дати завершення");
+        return;
+      }
+    }
+
     setFormatsSaving(true);
     try {
       const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
-      const bw = computeBwPrices(printCost, pricePrintBw);
-      const channelPricing: ChannelPricing = {};
-      for (const key of CHANNEL_PRICING_KEYS) {
-        const royalty = parseRoyalty(channelRoyalty[key]);
-        if (royalty !== undefined) channelPricing[key] = { royalty };
-      }
+      const cost = printCost?.status === "DONE" ? printCost : null;
+      // Same formula as ULIT's color variants -- print-cost.ts has no
+      // separate B&W cost basis yet (TODO, print-specs.ts), so B&W and
+      // colour share the same per-binding cost until that exists; both
+      // still read the one shared royaltyPrint, matching "Рішення 03.10"
+      // (one royalty for all 4 print variants).
+      const royaltyPrintNum = parseRoyalty(royaltyPrint);
+      const pricePrintBw =
+        royaltyPrintNum !== undefined && cost ? round2((cost.softcoverCost + royaltyPrintNum) / 0.7) : null;
+      const pricePrintHardcoverBw =
+        royaltyPrintNum !== undefined && cost ? round2((cost.hardcoverCost + royaltyPrintNum) / 0.7) : null;
+
       const { book: updated } = await apiFetch<{ book: PriceBook }>(`/api/books/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -279,9 +318,11 @@ export default function OutputDataPricePage() {
           priceEbook: anchor.priceEbook ?? null,
           pricePrint: anchor.pricePrint ?? null,
           pricePrintHardcover: anchor.pricePrintHardcover ?? null,
-          pricePrintBw: bw.pricePrintBw ?? null,
-          pricePrintHardcoverBw: bw.pricePrintHardcoverBw ?? null,
-          channelPricing: Object.keys(channelPricing).length > 0 ? channelPricing : null,
+          pricePrintBw,
+          pricePrintHardcoverBw,
+          discountPercent: discountPercentNum,
+          discountStartsAt: discountPercentNum != null && discountStartsAt ? new Date(discountStartsAt).toISOString() : null,
+          discountEndsAt: discountPercentNum != null && discountEndsAt ? new Date(discountEndsAt).toISOString() : null,
         }),
       });
       setBook(updated);
@@ -289,11 +330,10 @@ export default function OutputDataPricePage() {
         method: "PATCH",
         body: JSON.stringify({ distributionChannels: channels }),
       });
+      originalRef.current = { royaltyEbook, royaltyPrint, discountPercent, discountStartsAt, discountEndsAt };
       setFormatsSaved(true);
       setFormatsDirty(false);
-      // Same fix as output-data/page.tsx's onSubmitInfo -- layout.tsx's top
-      // nav pills read their own separate useBook(id) instance and only
-      // learn a save happened via this event.
+      setSavedAt(new Date());
       window.dispatchEvent(new Event("ulit:books-changed"));
     } catch (e: any) {
       setFormatsError(e.message || "Помилка збереження");
@@ -312,41 +352,56 @@ export default function OutputDataPricePage() {
   const priceCardRejected = unresolvedRejectionLines.some((l) => l.category === "price");
 
   const displayFormat = resolveBookPrintFormat(book);
-  const formatLabel = `${displayFormat.widthMm}×${displayFormat.heightMm}мм (${PRINT_FORMATS[displayFormat.key as keyof typeof PRINT_FORMATS]?.label ?? "Стандартний"})`;
+  const formatLabel = formatPrintFormatLabel(displayFormat);
   const pageCount = book.printPageCount ?? book.pageCount;
 
   const cost = printCost?.status === "DONE" ? printCost : null;
   const royaltyEbookNum = parseRoyalty(royaltyEbook);
   const royaltyPrintNum = parseRoyalty(royaltyPrint);
   const anchor = computeAnchorPrices(printCost, royaltyEbook, royaltyPrint);
-  const bw = computeBwPrices(printCost, pricePrintBw);
   const kdpEbookUnsupported = KDP_EBOOK_UNSUPPORTED_LANGUAGES.includes(book.language);
   const isKdpSelect = channels.includes("KDP") && !channels.includes("D2D") && !channels.includes("GOOGLE");
 
-  // ── Електронна книга: shop price per row ──────────────────────────────
-  const d2dRoyalty = parseRoyalty(channelRoyalty.D2D);
-  const d2dPrice = d2dRoyalty !== undefined ? formatUah(d2dRoyalty / platform("D2D").royaltyMin) : "—";
-  const kdpRoyalty = parseRoyalty(channelRoyalty.KDP);
-  const kdpRange = kdpRoyalty !== undefined ? suggestedPriceRange(0, kdpRoyalty, platform("KDP").royaltyMin, platform("KDP").royaltyMax) : null;
+  const ebookOriginal = originalRef.current;
+  const ebookDirty = ebookOriginal ? royaltyEbook !== ebookOriginal.royaltyEbook : false;
+  const printDirty = ebookOriginal ? royaltyPrint !== ebookOriginal.royaltyPrint : false;
+  const discountDirty = ebookOriginal
+    ? discountPercent !== ebookOriginal.discountPercent ||
+      discountStartsAt !== ebookOriginal.discountStartsAt ||
+      discountEndsAt !== ebookOriginal.discountEndsAt
+    : false;
+  const dirtyBlockCount = [ebookDirty, printDirty, discountDirty].filter(Boolean).length;
+
+  // ── Електронна книга: ONE shared royalty drives every channel's own
+  // derived price (Рішення 03.10 -- "один гонорар для е-книги, всі
+  // магазини"). Rows only ever DISPLAY the result now.
+  const d2dPrice = royaltyEbookNum !== undefined ? formatUah(royaltyEbookNum / platform("D2D").royaltyMin) : "—";
+  const kdpRange =
+    royaltyEbookNum !== undefined
+      ? suggestedPriceRange(0, royaltyEbookNum, platform("KDP").royaltyMin, platform("KDP").royaltyMax)
+      : null;
   const kdpPrice = kdpRange ? `від ${formatUah(kdpRange.min)}` : "—";
 
-  // ── Друкована книга: shop price for ULIT depends on both toggles ──────
-  const ulitPrintPrice =
-    printColorMode === "color"
-      ? printBinding === "softcover"
-        ? anchor.pricePrint
-        : anchor.pricePrintHardcover
-      : printBinding === "softcover"
-        ? bw.pricePrintBw
-        : bw.pricePrintHardcoverBw;
-  const printCostBasis = cost ? (printBinding === "softcover" ? cost.softcoverCost : cost.hardcoverCost) : undefined;
-  // KDP's PRINT royalty is a flat 60% of list price minus KDP's own print
-  // cost -- NOT the 35-70% tiered rate above, which applies to KDP EBOOKS
-  // only (print-specs.ts's KDP_PRINT_ROYALTY_RATE).
-  const kdpPrintRoyalty = parseRoyalty(channelRoyalty.KDP_PRINT);
+  // ── Друкована книга: same shared royalty -> static 2x2 matrix (colour x
+  // B&W, softcover x hardcover), all four always visible -- no more
+  // "pick one combination" toggle (that was the old UI; WF-SPEC always
+  // shows the whole matrix).
+  const printMatrix = royaltyPrintNum !== undefined && cost
+    ? {
+        colorSoft: round2((cost.softcoverCost + royaltyPrintNum) / 0.7),
+        colorHard: round2((cost.hardcoverCost + royaltyPrintNum) / 0.7),
+        // Same per-binding cost as colour -- print-cost.ts has no B&W-specific
+        // cost basis yet (print-specs.ts TODO); both read the one shared
+        // royalty either way.
+        bwSoft: round2((cost.softcoverCost + royaltyPrintNum) / 0.7),
+        bwHard: round2((cost.hardcoverCost + royaltyPrintNum) / 0.7),
+      }
+    : null;
+  const ulitPrintFrom = printMatrix ? Math.min(printMatrix.colorSoft, printMatrix.bwSoft) : undefined;
+
   const kdpPrintRange =
-    kdpPrintRoyalty !== undefined && printCostBasis !== undefined
-      ? suggestedPriceRange(printCostBasis, kdpPrintRoyalty, KDP_PRINT_ROYALTY_RATE, KDP_PRINT_ROYALTY_RATE)
+    royaltyPrintNum !== undefined && cost
+      ? suggestedPriceRange(cost.softcoverCost, royaltyPrintNum, KDP_PRINT_ROYALTY_RATE, KDP_PRINT_ROYALTY_RATE)
       : null;
   const kdpPrintPrice = kdpPrintRange ? `від ${formatUah(kdpPrintRange.min)}` : "—";
 
@@ -358,25 +413,57 @@ export default function OutputDataPricePage() {
     ] as const
   ).filter((r) => channels.includes(r.key.toUpperCase()));
 
+  // ── "Знижка в ULIT" preview -- shown only while the author is actually
+  // configuring one (percent typed in, regardless of whether the dates
+  // make it valid/active yet -- this is a live preview, not the real
+  // isDiscountActive gate the storefront uses).
+  const previewPercent = discountPercent.trim() !== "" ? Number(discountPercent) : null;
+  const discountPreviewFields = { discountPercent: previewPercent, discountStartsAt: null, discountEndsAt: new Date(8.64e15) };
+  const showDiscountPreview = previewPercent != null && previewPercent >= MIN_DISCOUNT_PERCENT && previewPercent <= MAX_DISCOUNT_PERCENT;
+
   return (
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.price} done={priceSectionDone && !priceCardRejected} />
 
-      {/* Own bordered block, separate from "Продаж друкованої книги" below
-          -- matches Figma, which draws these as two distinct boxes, not one
-          shared card with an internal divider. */}
-      <Card className={cn("border border-gray-300 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400")}>
-          <CollapsibleSection title="Продаж електронної книги">
+      {/* ── Продаж електронної книги ──────────────────────────────────── */}
+      <Card className={cn("border border-gray-300 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400", ebookDirty && !priceCardRejected && "border-2 border-amber-400")}>
+          <CollapsibleSection
+            title="Продаж електронної книги"
+            badge={ebookDirty ? <ChangedBadge count={1} /> : undefined}
+          >
           <div className="space-y-4">
+            <div className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-3">
+              <div className="space-y-1">
+                <Label htmlFor="royaltyEbook" className="block text-xs font-medium text-gray-600">
+                  Ваш гонорар за електронний примірник
+                </Label>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id="royaltyEbook"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={royaltyEbook}
+                    onChange={(e) => setRoyaltyEbookDirty(e.target.value)}
+                    placeholder="напр. 100"
+                    className={cn("h-9 w-28 bg-white", ebookDirty && "border-amber-400")}
+                  />
+                  <span className="text-xs text-gray-500">грн / примірник</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                Застосовується до всіх магазинів нижче — ціну для читача в кожному порахує платформа автоматично.
+              </p>
+            </div>
+
           <HorizontalScrollHint className="rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-100 hover:bg-gray-100">
                   <TableHead className="w-10" />
-                  <TableHead className="w-[200px] text-xs font-bold text-gray-600">Де буде викладена</TableHead>
-                  <TableHead className="w-[220px] text-xs font-bold text-gray-600">Ваша ціна / роялті</TableHead>
-                  <TableHead className="w-[140px] whitespace-nowrap text-xs font-bold text-gray-600">Ціна за книгу в магазині</TableHead>
-                  <TableHead className="text-xs font-bold text-gray-600">Умови розміщення</TableHead>
+                  <TableHead className="w-[200px] text-xs font-bold text-gray-600">Магазин</TableHead>
+                  <TableHead className="w-[140px] whitespace-nowrap text-xs font-bold text-gray-600">Ціна для читача</TableHead>
+                  <TableHead className="text-xs font-bold text-gray-600">Умови</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -385,7 +472,6 @@ export default function OutputDataPricePage() {
                   name="ULIT"
                   checked
                   locked
-                  input={{ value: royaltyEbook, onChange: setRoyaltyEbookDirty }}
                   shopPrice={anchor.priceEbook !== undefined ? formatUah(anchor.priceEbook) : "—"}
                   shopPriceBold
                   conditions={
@@ -395,11 +481,9 @@ export default function OutputDataPricePage() {
                         Ціну ще не встановлено — книга не продаватиметься як e-book, доки не вкажете гонорар вище нуля
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-500">
-                        Роялті складає {(platform("ULIT").royaltyMin * 100).toFixed(0)}% від ціни після відрахування ПДВ.
-                        Ціна для покупця (комісія {DEFAULT_PLATFORM_FEE_PERCENT}%): <strong className="text-gray-900">{formatUah(anchor.priceEbook)}</strong> —
-                        саме ця ціна й буде збережена. На інших каналах кінцева ціна відрізняється через їхню власну комісію.
-                      </span>
+                      <QuestionHint title="Як рахується ціна" className="h-4 w-4">
+                        {(platform("ULIT").royaltyMin * 100).toFixed(0)}% після відрахування ПДВ, комісія платформи 30%.
+                      </QuestionHint>
                     )
                   }
                 />
@@ -409,7 +493,6 @@ export default function OutputDataPricePage() {
                   checked={channels.includes("D2D")}
                   disabled={isKdpSelect}
                   onToggle={() => toggleChannel("D2D")}
-                  input={{ value: channelRoyalty.D2D, onChange: (v) => setChannelRoyaltyDirty("D2D", v) }}
                   shopPrice={d2dPrice}
                   conditions={
                     channels.includes("D2D") ? (
@@ -428,22 +511,23 @@ export default function OutputDataPricePage() {
                 <ChannelRow
                   icon={platform("KDP").icon}
                   name="Amazon KDP"
-                  checked={channels.includes("KDP")}
+                  checked={channels.includes("KDP") && !kdpEbookUnsupported}
+                  disabled={kdpEbookUnsupported}
                   onToggle={() => toggleChannel("KDP")}
-                  input={{ value: channelRoyalty.KDP, onChange: (v) => setChannelRoyaltyDirty("KDP", v) }}
-                  shopPrice={kdpPrice}
+                  shopPrice={kdpEbookUnsupported ? "—" : kdpPrice}
                   conditions={
-                    <div className="space-y-1">
-                      {channels.includes("KDP") && <PlacedBadge />}
-                      <p className="text-xs text-gray-500">
-                        Ціна на книгу може бути знижена магазином під час проведення акцій або розпродажу
+                    kdpEbookUnsupported ? (
+                      <p className="text-xs font-medium text-amber-600">
+                        Недоступно для цієї мови — Kindle приймає лише друковані видання.
                       </p>
-                      {kdpEbookUnsupported && (
-                        <p className="text-xs font-medium text-amber-600">
-                          Amazon KDP для цієї мови приймає лише друковані видання — електронна книга на Kindle видана не буде.
+                    ) : (
+                      <div className="space-y-1">
+                        {channels.includes("KDP") && <PlacedBadge />}
+                        <p className="text-xs text-gray-500">
+                          Ціна на книгу може бути знижена магазином під час проведення акцій або розпродажу
                         </p>
-                      )}
-                    </div>
+                      </div>
+                    )
                   }
                 />
                 <ChannelRow
@@ -457,7 +541,7 @@ export default function OutputDataPricePage() {
                     <div className="space-y-1">
                       {channels.includes("GOOGLE") && <PlacedBadge />}
                       <p className="text-xs text-gray-500">
-                        Роялті не регулюється автором. Відрахування залежать від прочитань книги у Google Play Books.
+                        Ціну встановлює магазин. Роялті не регулюється автором.
                       </p>
                     </div>
                   }
@@ -471,16 +555,9 @@ export default function OutputDataPricePage() {
                   conditions={
                     <div className="space-y-1.5">
                       <span className="text-xs text-gray-500">
-                        Ексклюзивність 90 днів: Draft2Digital і Google Play Books будуть заблоковані, скасувати не можна до
-                        кінця терміну.
+                        Недоступно: ексклюзивність 90 днів конфліктує з Draft2Digital і Google Play.
                       </span>
-                      {/* Post-publish strategy switch itself lives in
-                          KdpSelectPanel (self-gated on book.status ===
-                          "PUBLISHED", renders null before that) -- moved
-                          here from its own separate Card at the bottom of
-                          the page so the actual "Зареєструватись" button
-                          sits right next to the row it controls, not in an
-                          unrelated block below both tables. */}
+                      <p className="text-xs text-blue-700">{KDP_SELECT_DISCOUNT_HINT}</p>
                       <KdpSelectPanel bookId={id} bookStatus={book.status ?? ""} />
                     </div>
                   }
@@ -493,62 +570,24 @@ export default function OutputDataPricePage() {
       </Card>
 
       {/* ── Продаж друкованої книги ──────────────────────────────────── */}
-      <Card className={cn("border border-gray-300 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400")}>
+      <Card className={cn("border border-gray-300 p-6 shadow-sm", priceCardRejected && "border-2 border-red-400", printDirty && !priceCardRejected && "border-2 border-amber-400")}>
           <CollapsibleSection
-            title="Продаж друкованої книги"
+            title="Друкована книга"
             description="Безкоштовно для автора. Друк оплачує читач, купуючи книгу в магазині."
+            badge={printDirty ? <ChangedBadge count={1} label="поле → 4 ціни" /> : undefined}
           >
           <div className="space-y-4">
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPrintColorMode("bw")}
-              className={cn(
-                "rounded-md border px-3 py-2 text-[13px] font-medium transition-colors",
-                printColorMode === "bw" ? "border-gray-300 bg-gray-200 text-gray-700" : "border-gray-200 bg-white text-gray-500"
-              )}
-            >
-              Чорно-білий внутрішній блок
-            </button>
-            <button
-              type="button"
-              onClick={() => setPrintColorMode("color")}
-              className={cn(
-                "rounded-md border px-3 py-2 text-[13px] font-medium transition-colors",
-                printColorMode === "color" ? "border-gray-300 bg-gray-200 text-gray-700" : "border-gray-200 bg-white text-gray-500"
-              )}
-            >
-              Кольоровий внутрішній блок
-            </button>
-            <button
-              type="button"
-              onClick={() => setPrintBinding("softcover")}
-              className={cn(
-                "rounded-md border px-3 py-2 text-[13px] font-medium transition-colors",
-                printBinding === "softcover" ? "border-gray-300 bg-gray-200 text-gray-700" : "border-gray-200 bg-white text-gray-500"
-              )}
-            >
-              М&apos;яка обкладинка
-            </button>
-            <button
-              type="button"
-              onClick={() => setPrintBinding("hardcover")}
-              className={cn(
-                "rounded-md border px-3 py-2 text-[13px] font-medium transition-colors",
-                printBinding === "hardcover" ? "border-gray-300 bg-gray-200 text-gray-700" : "border-gray-200 bg-white text-gray-500"
-              )}
-            >
-              Тверда обкладинка
-            </button>
             <span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] font-medium text-gray-600">
-              Формат {formatLabel}
+              Формат: {formatLabel}
             </span>
             {pageCount != null && (
               <span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] font-medium text-gray-600">
                 {pageCount} сторінок
               </span>
             )}
+            <span className="text-xs text-gray-400">Змінюються у «Вихідних даних» / «Рукописі»</span>
           </div>
 
           {!cost ? (
@@ -565,48 +604,40 @@ export default function OutputDataPricePage() {
             <>
               <div className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-3">
                 <div className="space-y-1">
-                  <label
-                    htmlFor={printColorMode === "color" ? "royaltyPrint" : "pricePrintBw"}
-                    className="block text-xs font-medium text-gray-600"
-                  >
-                    {printColorMode === "color" ? "Ваш бажаний гонорар за примірник (ULIT)" : "Пряма ціна за примірник, ч/б (ULIT)"}
-                  </label>
-                  {printColorMode === "color" ? (
-                    <div className="flex items-center gap-1.5">
-                      <Input
-                        id="royaltyPrint"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={royaltyPrint}
-                        onChange={(e) => setRoyaltyPrintDirty(e.target.value)}
-                        placeholder="напр. 50"
-                        className="h-9 w-28 bg-white"
-                      />
-                      <span className="text-xs text-gray-500">грн / примірник, понад собівартість</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <Input
-                        id="pricePrintBw"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={pricePrintBw}
-                        onChange={(e) => setPricePrintBwDirty(e.target.value)}
-                        placeholder="149.99"
-                        className="h-9 w-28 bg-white"
-                      />
-                      <span className="text-xs text-gray-500">грн / примірник (м&apos;яка), пряма ціна</span>
-                    </div>
-                  )}
+                  <Label htmlFor="royaltyPrint" className="block text-xs font-medium text-gray-600">
+                    Ваш гонорар за друкований примірник
+                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      id="royaltyPrint"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={royaltyPrint}
+                      onChange={(e) => setRoyaltyPrintDirty(e.target.value)}
+                      placeholder="напр. 150"
+                      className={cn("h-9 w-28 bg-white", printDirty && "border-amber-400")}
+                    />
+                    <span className="text-xs text-gray-500">грн / примірник, понад собівартість — один для всіх 4 варіантів друку</span>
+                  </div>
                 </div>
-                {ulitPrintPrice !== undefined && (
-                  <p className="text-xs text-gray-500">
-                    Ціна для покупця в ULIT ({printBinding === "softcover" ? "м'яка" : "тверда"} обкладинка, комісія {DEFAULT_PLATFORM_FEE_PERCENT}%):{" "}
-                    <strong className="text-gray-900">{formatUah(ulitPrintPrice)}</strong>
-                  </p>
-                )}
+              </div>
+
+              <p className="text-xs text-gray-500">
+                Ціна для читача = собівартість варіанту + ваш гонорар + комісія 30%.
+              </p>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase text-gray-500">Кольоровий блок</p>
+                  <PriceTile label="М'яка обкладинка" price={printMatrix?.colorSoft} dirty={printDirty} />
+                  <PriceTile label="Тверда обкладинка" price={printMatrix?.colorHard} dirty={printDirty} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase text-gray-500">Ч/Б блок</p>
+                  <PriceTile label="М'яка обкладинка" price={printMatrix?.bwSoft} dirty={printDirty} />
+                  <PriceTile label="Тверда обкладинка" price={printMatrix?.bwHard} dirty={printDirty} />
+                </div>
               </div>
 
               <HorizontalScrollHint className="rounded-lg border">
@@ -614,10 +645,9 @@ export default function OutputDataPricePage() {
                   <TableHeader>
                     <TableRow className="bg-gray-100 hover:bg-gray-100">
                       <TableHead className="w-10" />
-                      <TableHead className="w-[200px] text-xs font-bold text-gray-600">Де буде викладена</TableHead>
-                      <TableHead className="w-[220px] text-xs font-bold text-gray-600">Роялті / ціна (ваша ставка)</TableHead>
-                      <TableHead className="w-[140px] whitespace-nowrap text-xs font-bold text-gray-600">Ціна в магазині</TableHead>
-                      <TableHead className="text-xs font-bold text-gray-600">Умови розміщення</TableHead>
+                      <TableHead className="w-[200px] text-xs font-bold text-gray-600">Магазин</TableHead>
+                      <TableHead className="w-[160px] whitespace-nowrap text-xs font-bold text-gray-600">Ціна для читача</TableHead>
+                      <TableHead className="text-xs font-bold text-gray-600">Умови</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -626,39 +656,26 @@ export default function OutputDataPricePage() {
                       name="ULIT"
                       checked
                       locked
-                      input={{
-                        value: printColorMode === "color" ? royaltyPrint : pricePrintBw,
-                        onChange: printColorMode === "color" ? setRoyaltyPrintDirty : setPricePrintBwDirty,
-                      }}
-                      shopPrice={ulitPrintPrice !== undefined ? formatUah(ulitPrintPrice) : "—"}
+                      shopPrice={ulitPrintFrom !== undefined ? `4 варіанти · від ${formatUah(ulitPrintFrom)}` : "—"}
                       shopPriceBold
-                      conditions={
-                        ulitPrintPrice === undefined ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
-                            <span aria-hidden>○</span>
-                            Ціну ще не встановлено для цього поєднання ({printColorMode === "color" ? "кольоровий" : "ч/б"},{" "}
-                            {printBinding === "softcover" ? "м'яка" : "тверда"}) — вкажіть {printColorMode === "color" ? "гонорар" : "пряму ціну"} вище нуля
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-500">
-                            Собівартість ({printBinding === "softcover" ? "м'яка" : "тверда"}): {printCostBasis?.toFixed(2)} грн + Ваш
-                            гонорар + комісія платформи = ціна для покупця.
-                          </span>
-                        )
-                      }
+                      conditions={<span className="text-xs text-gray-500">Ціни варіантів — у матриці вище.</span>}
                     />
                     <ChannelRow
                       icon={platform("KDP").icon}
                       name="Amazon KDP"
                       checked={channels.includes("KDP")}
                       onToggle={() => toggleChannel("KDP")}
-                      input={{ value: channelRoyalty.KDP_PRINT, onChange: (v) => setChannelRoyaltyDirty("KDP_PRINT", v) }}
-                      shopPrice={kdpPrintPrice}
+                      shopPrice={
+                        <span>
+                          {kdpPrintPrice}{" "}
+                          <span className="text-xs text-amber-600">розраховується автоматично</span>
+                        </span>
+                      }
                       conditions={
                         <div className="space-y-1">
                           {channels.includes("KDP") && <PlacedBadge />}
                           <p className="text-xs text-gray-500">
-                            Книга буде продаватися за технологією «Друк на вимогу». Ціна до знижок у магазині.
+                            Друк на вимогу. Роялті KDP — фіксовано 60% ціни мінус собівартість друку в KDP.
                           </p>
                         </div>
                       }
@@ -672,8 +689,93 @@ export default function OutputDataPricePage() {
           </CollapsibleSection>
       </Card>
 
-      {/* Deliberately NOT inside a Card -- this is the conclusion of both
-          blocks above (per Figma), not a block of its own. */}
+      {/* ── Знижка в ULIT ────────────────────────────────────────────── */}
+      <Card className={cn("border border-gray-300 p-6 shadow-sm", discountDirty && "border-2 border-amber-400")}>
+        <CollapsibleSection
+          title="Знижка в ULIT"
+          description="Знижки у власному магазині ULIT діють одразу, без модерації."
+          badge={discountDirty ? <ChangedBadge count={1} /> : undefined}
+        >
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-end gap-3 rounded-lg bg-gray-50 p-3">
+              <div className="space-y-1">
+                <Label htmlFor="discountPercent" className="block text-xs font-medium text-gray-600">Знижка</Label>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id="discountPercent"
+                    type="number"
+                    step="1"
+                    min={MIN_DISCOUNT_PERCENT}
+                    max={MAX_DISCOUNT_PERCENT}
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercentDirty(e.target.value)}
+                    placeholder="напр. 20"
+                    className={cn("h-9 w-20 bg-white", discountDirty && "border-amber-400")}
+                  />
+                  <span className="text-xs text-gray-500">% ({MIN_DISCOUNT_PERCENT}–{MAX_DISCOUNT_PERCENT})</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="discountStartsAt" className="block text-xs font-medium text-gray-600">Початок (необов&apos;язково)</Label>
+                <Input
+                  id="discountStartsAt"
+                  type="date"
+                  value={discountStartsAt}
+                  onChange={(e) => setDiscountStartsAtDirty(e.target.value)}
+                  className={cn("h-9 bg-white", discountDirty && "border-amber-400")}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="discountEndsAt" className="block text-xs font-medium text-gray-600">До (обов&apos;язково зі знижкою)</Label>
+                <Input
+                  id="discountEndsAt"
+                  type="date"
+                  min={tomorrowDateInputValue()}
+                  value={discountEndsAt}
+                  onChange={(e) => setDiscountEndsAtDirty(e.target.value)}
+                  className={cn("h-9 bg-white", discountDirty && "border-amber-400")}
+                />
+              </div>
+            </div>
+
+            {showDiscountPreview && (
+              <div className="space-y-1.5 rounded-lg border border-green-200 bg-green-50 p-3 text-xs text-green-900">
+                <p className="font-semibold">Приклад з обраною знижкою ({previewPercent}%):</p>
+                {anchor.priceEbook !== undefined && (
+                  <p>
+                    Е-книга: <s className="text-gray-500">{formatUah(anchor.priceEbook)}</s>{" "}
+                    <strong>{formatUah(discountedPrice(anchor.priceEbook, discountPreviewFields))}</strong> — ваш
+                    гонорар {formatUah(royaltyEbookNum ?? 0)} →{" "}
+                    <strong>{formatUah(royaltyFromPrice(discountedPrice(anchor.priceEbook, discountPreviewFields), 0, platform("ULIT").royaltyMin))}</strong>
+                  </p>
+                )}
+                {printMatrix && cost && (
+                  <p>
+                    Друк (кольоровий, м&apos;яка): <s className="text-gray-500">{formatUah(printMatrix.colorSoft)}</s>{" "}
+                    <strong>{formatUah(discountedPrice(printMatrix.colorSoft, discountPreviewFields))}</strong> — ваш
+                    гонорар {formatUah(royaltyPrintNum ?? 0)} →{" "}
+                    <strong>
+                      {formatUah(
+                        royaltyFromPrice(discountedPrice(printMatrix.colorSoft, discountPreviewFields), cost.softcoverCost, platform("ULIT").royaltyMin)
+                      )}
+                    </strong>
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1.5 text-xs text-gray-500">
+              <p className="inline-flex items-center gap-1">
+                <span aria-hidden>ⓘ</span>
+                Знижки діють лише в магазині ULIT і не передаються в Amazon, Draft2Digital, Google Play.
+              </p>
+              <p className="text-blue-700">{KDP_SELECT_DISCOUNT_HINT}</p>
+            </div>
+          </div>
+        </CollapsibleSection>
+      </Card>
+
+      {/* Deliberately NOT inside a Card -- conclusion of the blocks above. */}
       {(channels.includes("ULIT") || externalRows.length > 0) && (
         <div className="space-y-3 px-1">
           <h3 className="text-base font-semibold text-gray-900">Що відбудеться після внесення змін:</h3>
@@ -704,11 +806,36 @@ export default function OutputDataPricePage() {
       )}
 
       {formatsError && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{formatsError}</div>}
-      <SaveActionButton
-        state={formatsSaving ? "saving" : formatsSaved && !formatsDirty ? "saved" : "idle"}
-        idleLabel="Зберегти"
-        onClick={saveFormatsAndDistribution}
-      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-gray-600">
+          {formatsSaved && !formatsDirty && savedAt ? (
+            <span className="text-green-700">Збережено ✓ · {fmtTime(savedAt)} · ULIT: застосовано</span>
+          ) : dirtyBlockCount > 0 ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-amber-600">● Є незбережені зміни у {dirtyBlockCount} {dirtyBlockCount === 1 ? "блоці" : "блоках"}</span>
+              <span>· ULIT: одразу після збереження</span>
+              <QuestionHint className="h-4 w-4">
+                Amazon/D2D/Google Play: оновлення за правилами магазину (Amazon: ebook до 24 год, друк до 5 роб. днів).
+              </QuestionHint>
+            </span>
+          ) : null}
+        </p>
+        <SaveActionButton
+          state={formatsSaving ? "saving" : formatsSaved && !formatsDirty ? "saved" : "idle"}
+          idleLabel="Зберегти зміни"
+          onClick={saveFormatsAndDistribution}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PriceTile({ label, price, dirty }: { label: string; price: number | undefined; dirty: boolean }) {
+  return (
+    <div className={cn("rounded-md border bg-white p-2.5", dirty && "border-amber-400")}>
+      <p className="text-[11px] text-gray-500">{label}</p>
+      <p className="text-sm font-semibold text-gray-900">{price !== undefined ? formatUah(price) : "—"}</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isDiscountActive, discountedPrice, type DiscountFields } from "shared-types";
 import { TabletCoverFrame } from "../books/TabletCoverFrame";
 import { PrintedCoverFrame } from "../books/PrintedCoverFrame";
 import { AddToCartButton } from "./AddToCartButton";
@@ -19,6 +20,9 @@ interface Props {
   pricePrintHardcover?: number | null;
   pricePrintBw?: number | null;
   pricePrintHardcoverBw?: number | null;
+  discountPercent?: number | null;
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
   epubUrl?: string | null;
   fb2Url?: string | null;
   mobiUrl?: string | null;
@@ -50,12 +54,17 @@ export function BookPurchaseWidget({
   pricePrintHardcover,
   pricePrintBw,
   pricePrintHardcoverBw,
+  discountPercent,
+  discountStartsAt,
+  discountEndsAt,
   epubUrl,
   fb2Url,
   mobiUrl,
   format: controlledFormat,
   onFormatChange,
 }: Props) {
+  const discount: DiscountFields = { discountPercent, discountStartsAt, discountEndsAt };
+  const hasActiveDiscount = isDiscountActive(discount);
   const hasEbook = priceEbook != null;
   const hasSoftcover = pricePrint != null || pricePrintBw != null;
   const hasHardcover = pricePrintHardcover != null || pricePrintHardcoverBw != null;
@@ -127,11 +136,12 @@ export function BookPurchaseWidget({
 
         <PriceAndCta
           price={priceEbook!}
+          discount={hasActiveDiscount ? discount : undefined}
           label="Додати в кошик"
           cartProps={{
             bookId,
             format: "EBOOK",
-            price: priceEbook!,
+            price: hasActiveDiscount ? discountedPrice(priceEbook!, discount) : priceEbook!,
             title,
             author,
             coverUrl,
@@ -187,11 +197,12 @@ export function BookPurchaseWidget({
       {price != null && (
         <PriceAndCta
           price={price}
+          discount={hasActiveDiscount ? discount : undefined}
           label="Додати в кошик"
           cartProps={{
             bookId,
             format: cartFormat,
-            price,
+            price: hasActiveDiscount ? discountedPrice(price, discount) : price,
             title,
             author,
             coverUrl,
@@ -246,18 +257,39 @@ function FormatPills({
   );
 }
 
+function shortDate(d: string | Date): string {
+  const date = d instanceof Date ? d : new Date(d);
+  return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function PriceAndCta({
   price,
+  discount,
   label,
   cartProps,
 }: {
   price: number;
+  discount?: DiscountFields;
   label: string;
   cartProps: Omit<React.ComponentProps<typeof AddToCartButton>, "label" | "variant">;
 }) {
+  const final = discount ? discountedPrice(price, discount) : price;
   return (
     <Card className="p-4 shadow-sm space-y-3">
-      <p className="text-2xl font-bold text-gray-900">{price.toFixed(2)} грн</p>
+      {discount ? (
+        <div className="flex items-baseline gap-2">
+          <p className="text-2xl font-bold text-gray-900">{final.toFixed(2)} грн</p>
+          <s className="text-base text-gray-400">{price.toFixed(2)} грн</s>
+          <span className="rounded-sm bg-red-100 px-1.5 py-0.5 text-xs font-semibold text-red-700">
+            −{discount.discountPercent}%
+          </span>
+        </div>
+      ) : (
+        <p className="text-2xl font-bold text-gray-900">{price.toFixed(2)} грн</p>
+      )}
+      {discount?.discountEndsAt && (
+        <p className="text-xs text-gray-500">до {shortDate(discount.discountEndsAt)}</p>
+      )}
       <AddToCartButton {...cartProps} label={label} variant="primary" />
     </Card>
   );

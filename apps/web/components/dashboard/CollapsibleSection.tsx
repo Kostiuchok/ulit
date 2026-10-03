@@ -8,6 +8,10 @@ import { cn } from "@/lib/utils";
 interface Props {
   title: ReactNode;
   description?: ReactNode;
+  // Amber "Змінено · N" marker next to the title -- WF-SPEC's shared
+  // highlight rule for a block with unsaved changes (same border-amber-400
+  // the caller applies to the surrounding Card).
+  badge?: ReactNode;
   // Most blocks start expanded. Explicit opt-in to closed-by-default is for
   // blocks most authors don't need to touch (e.g. "Авторське право /
   // попередня публікація" -- no usage stats yet on how many authors
@@ -18,14 +22,17 @@ interface Props {
   children: ReactNode;
 }
 
-export function CollapsibleSection({ title, description, defaultOpen = true, className, children }: Props) {
+export function CollapsibleSection({ title, description, badge, defaultOpen = true, className, children }: Props) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className={className}>
       <CollapsibleTrigger className="flex w-full items-start justify-between gap-2 text-left">
         <div className="space-y-0.5">
-          {typeof title === "string" ? <h3 className="text-base font-semibold text-gray-900">{title}</h3> : title}
+          <div className="flex items-center gap-2">
+            {typeof title === "string" ? <h3 className="text-base font-semibold text-gray-900">{title}</h3> : title}
+            {badge}
+          </div>
           {description && <p className="text-xs text-gray-500">{description}</p>}
         </div>
         <ChevronDown

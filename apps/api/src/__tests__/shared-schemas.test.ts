@@ -27,6 +27,13 @@ import {
   isSpineTooThinForText,
   MIN_SPINE_TEXT_PAGES,
   resolveExcerptRange,
+  resolveBookPrintFormat,
+  formatPrintFormatLabel,
+  isDiscountActive,
+  discountedPrice,
+  royaltyFromPrice,
+  discountPercentSchema,
+  KDP_PRINT_ROYALTY_RATE,
 } from "shared-types";
 
 // Unlike schemas.test.ts's hand-copied mirrors, these import the REAL
@@ -427,5 +434,97 @@ describe("resolveExcerptRange (F1a)", () => {
 
   it("clamps to the real page count", () => {
     expect(resolveExcerptRange(40, 99, 48)).toEqual({ start: 40, end: 48 });
+  });
+});
+
+describe("resolveBookPrintFormat label (dashboard redesign WF-SPEC bug #2)", () => {
+  it("trusts printFormatKey directly instead of recomparing against a fresh genre guess", () => {
+    // Genre says "Поезія" -> pocket, but the book's REAL stored size is the
+    // standard preset (independent "Розмір книги" selector) -- the old
+    // comparison (`genreFormat.key === book.printFormatKey`) wrongly called
+    // this "Індивідуальний" even though it's exactly the Стандартний preset.
+    const format = resolveBookPrintFormat({
+      genre: "Поезія",
+      printFormatKey: "standard",
+      printWidthMm: 130,
+      printHeightMm: 200,
+    });
+    expect(format.label).toBe("Стандартний");
+    expect(format.key).toBe("standard");
+  });
+
+  it("still finds a matching preset by exact mm even with a stale/missing printFormatKey", () => {
+    const format = resolveBookPrintFormat({
+      genre: null,
+      printFormatKey: null,
+      printWidthMm: 107,
+      printHeightMm: 177,
+    });
+    expect(format.label).toBe("Кишеньковий");
+  });
+
+  it("falls back to Індивідуальний only for dimensions matching no known preset", () => {
+    const format = resolveBookPrintFormat({
+      genre: null,
+      printFormatKey: null,
+      printWidthMm: 123,
+      printHeightMm: 321,
+    });
+    expect(format.label).toBe("Індивідуальний");
+  });
+});
+
+describe("formatPrintFormatLabel", () => {
+  it("renders the canonical 'Label WxH мм' phrase (WF-SPEC acceptance #21)", () => {
+    const format = resolveBookPrintFormat({ genre: null, printFormatKey: "standard", printWidthMm: 130, printHeightMm: 200 });
+    expect(formatPrintFormatLabel(format)).toBe("Стандартний 130×200 мм");
+  });
+});
+
+describe("discounts (\"Знижка в ULIT\", price page)", () => {
+  const future = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString();
+  const past = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+
+  it("is inactive with no percent configured", () => {
+    expect(isDiscountActive({ discountPercent: null, discountEndsAt: future })).toBe(false);
+  });
+
+  it("is inactive once the end date has passed", () => {
+    expect(isDiscountActive({ discountPercent: 20, discountEndsAt: past })).toBe(false);
+  });
+
+  it("is inactive before its (optional) start date", () => {
+    const laterStart = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+    expect(isDiscountActive({ discountPercent: 20, discountStartsAt: laterStart, discountEndsAt: future })).toBe(false);
+  });
+
+  it("is active with a percent, a future end date, and no/past start date", () => {
+    expect(isDiscountActive({ discountPercent: 20, discountEndsAt: future })).toBe(true);
+  });
+
+  it("discountedPrice applies the percent only while active", () => {
+    const discount = { discountPercent: 20, discountEndsAt: future };
+    expect(discountedPrice(100, discount)).toBe(80);
+    expect(discountedPrice(100, { discountPercent: 20, discountEndsAt: past })).toBe(100);
+  });
+
+  it("royaltyFromPrice subtracts the cost basis before applying the rate", () => {
+    // Ebook: no cost basis.
+    expect(royaltyFromPrice(142.86, 0, 0.7)).toBeCloseTo(100, 1);
+    // Print: cost basis subtracted after the rate is applied to price.
+    expect(royaltyFromPrice(374.29, 112, 0.7)).toBeCloseTo(150, 1);
+  });
+
+  it("discountPercentSchema rejects out-of-range values", () => {
+    expect(discountPercentSchema.safeParse(4).success).toBe(false);
+    expect(discountPercentSchema.safeParse(91).success).toBe(false);
+    expect(discountPercentSchema.safeParse(5).success).toBe(true);
+    expect(discountPercentSchema.safeParse(90).success).toBe(true);
+  });
+});
+
+describe("KDP print royalty rate (fixed 60%, not the ebook 35-70% range)", () => {
+  it("is a flat rate distinct from KDP ebook's tiered range", () => {
+    expect(KDP_PRINT_ROYALTY_RATE).toBe(0.6);
   });
 });

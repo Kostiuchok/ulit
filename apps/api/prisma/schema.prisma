@@ -188,20 +188,14 @@ model Book {
   pricePrintHardcover  Decimal?             @db.Decimal(10, 2) // Друк, тверда обкладинка, кольоровий друк
   pricePrintBw         Decimal?             @db.Decimal(10, 2) // Друк, м'яка обкладинка, чорно-білий друк -- дешевше в типографії
   pricePrintHardcoverBw Decimal?            @db.Decimal(10, 2) // Друк, тверда обкладинка, чорно-білий друк
-  // "Ціна та розповсюдження" table redesign (Figma, 2026-09-21) -- per-channel
-  // advisory royalty/price the author can type for each EXTERNAL channel row
-  // (D2D/KDP/GOOGLE ebook, KDP print), independent of the single shared
-  // desiredRoyaltyAmount(Print) above. ULIT itself is NOT a key here -- its
-  // row keeps reading/writing the real priceEbook/pricePrint(Hardcover)(Bw)
-  // columns above, since those are the only prices apps/api's orders.ts
-  // actually charges a buyer; every other channel's number here stays
-  // advisory (same "every channel's suggested price is ADVISORY except
-  // Ulit" reasoning FormatsAndDistribution.tsx already documents), which is
-  // why this is one loosely-shaped JSON map and not N more Decimal columns
-  // -- shape: { [channelKey: string]: { royalty?: number; priceSoftcover?:
-  // number; priceHardcover?: number } }, channelKey one of "D2D" | "KDP" |
-  // "GOOGLE" (ebook) or "KDP_PRINT" (print, distinct key -- KDP does both).
-  channelPricing       Json?
+  // Dashboard redesign (docs/dashboard-ui/WF-SPEC.md v1, "Рішення 03.10"):
+  // ONE royalty for ebook (all channels) and ONE for print (all 4 variants)
+  // -- per-channel advisory royalty/price inputs removed, each channel's
+  // shop price is now derived from desiredRoyaltyAmount(Print) + that
+  // channel's own royalty rate (distributionPlatforms.ts / print-specs.ts),
+  // same as ULIT's own row already worked. The old per-channel JSON map
+  // this replaced (channelPricing) had no other reader -- dropped outright
+  // rather than left dead.
   genre                String?
   printFormatKey       String? // PrintFormatKey (shared-types) -- auto-set from GENRE_TO_PRINT_FORMAT when genre changes, unless author manually overrode printWidthMm/printHeightMm
   printWidthMm         Int? // actual per-book print trim width -- falls back to PRINT_TRIM_SIZE_MM (shared-types) when null
@@ -217,6 +211,14 @@ model Book {
   coverIndependentFromBookData Boolean @default(false) // T-2060 п.8 -- when true, cover text (title/author/bio) is edited independently and does NOT sync back to book data
   desiredRoyaltyAmount Decimal?             @db.Decimal(10, 2) // T-2060 п.11 (=T-2053) -- author's desired net earning per unit (E-BOOK). Per-channel retail price is computed from this + each channel's royalty rate, not stored per-channel
   desiredRoyaltyAmountPrint Decimal?        @db.Decimal(10, 2) // T-2075 -- same idea as desiredRoyaltyAmount, but for the PRINT block: production cost (per-book, from print-cost) is added on top before applying each channel's royalty rate, since print has a real per-unit cost the ebook doesn't
+  // "Знижка в ULIT" (price page, WF-SPEC v1) -- ULIT-only discount, applies
+  // to ebook AND print alike for now (shared-types/discounts.ts's own
+  // comment has the split-later note); never passed to external channels
+  // (D2D/KDP/Google), takes effect immediately without moderation. Checked
+  // at display/charge time (isDiscountActive, shared-types) -- no cron.
+  discountPercent      Int? // 5-90; null/0 = no discount configured
+  discountStartsAt     DateTime? // optional; null = active as soon as discountEndsAt allows
+  discountEndsAt       DateTime? // required for the discount to be considered active at all; null or in the past = inactive
   language             String               @default("uk")
   pageCount            Int?
   printPageCount       Int? // page count of the real print-trim PDF (printPdfUrl) -- distinct from pageCount, which is derived from the online-viewer PDF at Word's own page size; used for print-cost estimates

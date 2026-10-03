@@ -21,6 +21,9 @@ interface BookDetail {
   pricePrintHardcover?: string | null;
   pricePrintBw?: string | null;
   pricePrintHardcoverBw?: string | null;
+  discountPercent?: number | null;
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
   genre?: string | null;
   printWidthMm?: number | null;
   printHeightMm?: number | null;
@@ -208,6 +211,9 @@ export default async function BookPage({ params }: Props) {
                 pricePrintHardcover={book.pricePrintHardcover ? Number(book.pricePrintHardcover) : null}
                 pricePrintBw={book.pricePrintBw ? Number(book.pricePrintBw) : null}
                 pricePrintHardcoverBw={book.pricePrintHardcoverBw ? Number(book.pricePrintHardcoverBw) : null}
+                discountPercent={book.discountPercent}
+                discountStartsAt={book.discountStartsAt}
+                discountEndsAt={book.discountEndsAt}
                 genre={book.genre}
                 printWidthMm={book.printWidthMm}
                 printHeightMm={book.printHeightMm}

@@ -11,7 +11,7 @@ import {
   distributionChannelsSchema,
   bookAuthorSchema,
   priceFieldSchema,
-  channelPricingSchema,
+  discountPercentSchema,
   getRequiredDescriptionMinLength,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
@@ -66,7 +66,9 @@ const BOOK_SELECT = {
   pricePrintHardcover: true,
   pricePrintBw: true,
   pricePrintHardcoverBw: true,
-  channelPricing: true,
+  discountPercent: true,
+  discountStartsAt: true,
+  discountEndsAt: true,
   genre: true,
   printFormatKey: true,
   printWidthMm: true,
@@ -165,7 +167,13 @@ const patchSchema = z.object({
   pricePrintHardcover: priceFieldSchema,
   pricePrintBw: priceFieldSchema,
   pricePrintHardcoverBw: priceFieldSchema,
-  channelPricing: channelPricingSchema.nullable().optional(),
+  // "Знижка в ULIT" (price page) -- cross-field checks (percent requires an
+  // end date, end date must be in the future) happen after the zod parse
+  // below, same pattern as the description-min-length cross-check already
+  // does for distributionChannels.
+  discountPercent: discountPercentSchema.nullable().optional(),
+  discountStartsAt: z.string().datetime().nullable().optional(),
+  discountEndsAt: z.string().datetime().nullable().optional(),
   pageCount: z.number().int().positive().nullable().optional(),
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
   distributionChannels: distributionChannelsSchema.optional(),
@@ -236,6 +244,9 @@ async function assertOwnership(bookId: string, userId: string) {
       d2dStatus: true,
       kdpStatus: true,
       googleStatus: true,
+      discountPercent: true,
+      discountStartsAt: true,
+      discountEndsAt: true,
     },
   });
   if (!book) throw AppError.notFound("Book");
@@ -287,6 +298,35 @@ export async function bookRoutes(app: FastifyInstance) {
           error: `Анотація має містити щонайменше ${requiredMin} символів для обраних платформ розповсюдження (зараз ${effectiveLength})`,
           code: "VALIDATION_ERROR",
         });
+      }
+    }
+
+    // "Знижка в ULIT": a configured percent needs a real, future end date --
+    // same effective-state-merge pattern as the description check above.
+    if (data.discountPercent !== undefined || data.discountEndsAt !== undefined || data.discountStartsAt !== undefined) {
+      const effectivePercent = data.discountPercent !== undefined ? data.discountPercent : existing.discountPercent;
+      const effectiveEndsAt =
+        data.discountEndsAt !== undefined
+          ? (data.discountEndsAt ? new Date(data.discountEndsAt) : null)
+          : existing.discountEndsAt;
+      const effectiveStartsAt =
+        data.discountStartsAt !== undefined
+          ? (data.discountStartsAt ? new Date(data.discountStartsAt) : null)
+          : existing.discountStartsAt;
+      if (effectivePercent != null) {
+        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        if (!effectiveEndsAt || effectiveEndsAt < tomorrow) {
+          return reply.status(400).send({
+            error: "Дата завершення знижки має бути не раніше завтрашнього дня",
+            code: "VALIDATION_ERROR",
+          });
+        }
+        if (effectiveStartsAt && effectiveStartsAt >= effectiveEndsAt) {
+          return reply.status(400).send({
+            error: "Дата початку знижки має бути раніше дати завершення",
+            code: "VALIDATION_ERROR",
+          });
+        }
       }
     }
 
@@ -371,6 +411,12 @@ export async function bookRoutes(app: FastifyInstance) {
         kdpSelectExpiry: data.kdpSelectExpiry !== undefined
           ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
           : undefined,
+        discountStartsAt: data.discountStartsAt !== undefined
+          ? (data.discountStartsAt ? new Date(data.discountStartsAt) : null)
+          : undefined,
+        discountEndsAt: data.discountEndsAt !== undefined
+          ? (data.discountEndsAt ? new Date(data.discountEndsAt) : null)
+          : undefined,
         coAuthors: data.coAuthors !== undefined
           ? (data.coAuthors ?? Prisma.JsonNull)
           : undefined,
@@ -379,9 +425,6 @@ export async function bookRoutes(app: FastifyInstance) {
           : undefined,
         contributors: data.contributors !== undefined
           ? (data.contributors ?? Prisma.JsonNull)
-          : undefined,
-        channelPricing: data.channelPricing !== undefined
-          ? (data.channelPricing ?? Prisma.JsonNull)
           : undefined,
       },
       select: BOOK_SELECT,
