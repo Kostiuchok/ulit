@@ -1,4 +1,4 @@
-> **Чернетка на погодження Анатолієм.** Figma: https://www.figma.com/design/Jv1BqZkdSNnNnkEITh36Bf (фрейми 1:2 Дашборд опубліковано, 2:2 Дашборд є зміни, 3:2 Вихідні дані, 4:2 Меню «⋯», 24:2 Ціна (є зміни), 25:2 Обкладинка, 26:2 Огляд (є зміни)). HTML — референс, будувати на наявних компонентах/токенах apps/web.
+> **Чернетка на погодження Анатолієм.** Figma: https://www.figma.com/design/Jv1BqZkdSNnNnkEITh36Bf (фрейми 1:2 Дашборд опубліковано, 2:2 Дашборд є зміни, 3:2 Вихідні дані, 4:2 Меню «⋯», 24:2 Ціна (є зміни), 25:2 Обкладинка, 26:2 Огляд (є зміни), 40:2 06b Обкладинка (на перевірці), 41:2 06c Обкладинка (зміна недоступна)). HTML — референс, будувати на наявних компонентах/токенах apps/web.
 
 # ULIT — вайрфрейми редизайну дашборду книги (v1)
 
@@ -8,7 +8,7 @@
 - `dashboard.html?state=published|changes|menu` — `/dashboard/books/[id]`
 - `output-data.html?state=dirty|saved` — `/dashboard/books/[id]/output-data`
 - `price.html?state=dirty|saved` — `/dashboard/books/[id]/output-data/price` (05 «Ціна та розповсюдження»)
-- `cover.html` — `/dashboard/books/[id]/output-data/cover` (06 «Обкладинка»)
+- `cover.html?state=uploaded|pending|locked` — `/dashboard/books/[id]/output-data/cover` (06 «Обкладинка»; `pending` — нова обкладинка на перевірці; `locked` — зміна недоступна до 01.01.2027)
 - `review.html?state=published|changes` — `/dashboard/books/[id]/output-data/review` (07 «Огляд перед публікацією»)
 - `&clean=1` — сховати службові WF-перемикачі; `&static=1` — нижня панель не sticky (для full-page скрінів)
 - `WF-SPEC.md` — специфікація; `shots/` — PNG 1280px

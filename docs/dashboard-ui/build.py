@@ -123,13 +123,13 @@ def dashboard():
     <div>
       <div class="flex items-center gap-3"><h1 class="text-[23px] font-bold">Назва книги</h1>
         <span class="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-[12px] font-medium text-green-700 ring-1 ring-green-200">{ic("circle-check","!w-3.5 !h-3.5")}Опубліковано</span></div>
-      <p class="mt-1 text-[13px] text-gray-500">Остання публікація: 03.10.2026 · <span data-state="changes" data-default="published" class="font-medium text-amber-700">є неопубліковані зміни</span><span data-state="published menu" data-default="published">усі зміни опубліковано</span></p>
+      <p class="mt-1 text-[13px] text-gray-500">Остання публікація: 03.10.2026 · <span data-state="changes" data-default="published" class="font-medium text-amber-700">є зміни на модерацію</span><span data-state="published menu" data-default="published">усі зміни опубліковано</span></p>
     </div>
     <div class="relative flex items-center gap-2">
       <a href="output-data.html" class="inline-flex h-9 items-center gap-1.5 rounded-md border border-black bg-white px-3.5 text-[14px] font-medium">{ic("pencil")}Редагувати</a>
       <a data-state="published menu" data-default="published" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-600 px-3.5 text-[14px] font-medium text-white shadow-sm">{ic("external-link")}Сайт книги</a>
       <a data-state="changes" data-default="published" class="inline-flex h-9 items-center gap-1.5 rounded-md border border-black bg-white px-3.5 text-[14px] font-medium">{ic("external-link")}Сайт книги</a>
-      <button data-state="changes" data-default="published" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-600 px-3.5 text-[14px] font-medium text-white shadow-sm">{ic("upload-cloud")}Опублікувати зміни<span class="ml-0.5 rounded-full bg-white/25 px-1.5 text-[11px]">2</span></button>
+      <button data-state="changes" data-default="published" class="inline-flex h-9 items-center gap-1.5 rounded-md bg-green-600 px-3.5 text-[14px] font-medium text-white shadow-sm">{ic("send")}Надіслати на модерацію<span class="ml-0.5 rounded-full bg-white/25 px-1.5 text-[11px]">1</span></button>
       <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white {'' }" aria-label="Більше дій">{ic("more-horizontal")}</button>
       <div data-state="menu" data-default="published" class="absolute right-0 top-11 z-20 w-72 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
         <a class="flex items-center gap-2.5 rounded-md px-3 py-2 text-[14px] hover:bg-gray-50">{ic("link","text-gray-500")}Копіювати посилання на книгу</a>
@@ -143,9 +143,10 @@ def dashboard():
     changes_banner = f'''
   <div data-state="changes" data-default="published" class="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
     {ic("alert-triangle","mt-0.5 shrink-0 text-amber-600")}
-    <div class="text-[14px]"><div class="font-semibold text-amber-900">Є неопубліковані зміни: Вихідні дані, Ціна</div>
-      <div class="mt-0.5 text-amber-800">Після «Опублікувати зміни» книга піде на повторну модерацію. До схвалення в магазинах лишається поточна версія.</div></div>
-    <a class="ml-auto shrink-0 text-[13px] font-medium text-amber-900 underline">Що змінилось?</a>
+    <div class="text-[14px]"><div class="font-semibold text-amber-900">Зміни на модерацію: Вихідні дані</div>
+      <div class="mt-0.5 text-amber-800">Після «Надіслати на модерацію» їх перевірить адміністратор. До схвалення в магазинах лишається поточна версія.</div>
+      <div class="mt-1.5 inline-flex items-center gap-1 text-[13px] text-green-700">{ic("zap","!w-3.5 !h-3.5")}Нові ціни друку вже діють у ULIT — модерація не потрібна.</div></div>
+    <a href="review.html?state=changes" class="ml-auto shrink-0 text-[13px] font-medium text-amber-900 underline">Що змінилось?</a>
   </div>'''
 
     next_step = f'''
@@ -172,12 +173,12 @@ def dashboard():
 
     prices = f'''
       <div class="rounded-xl border border-gray-200 p-4">
-        <div class="flex items-center justify-between"><h2 class="text-[13px] font-semibold uppercase tracking-wide text-gray-500">Ціни</h2>
+        <div class="flex items-center justify-between"><h2 class="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-gray-500">Ціни<span data-state="changes" data-default="published" class="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-green-700 ring-1 ring-green-300">{ic("zap","!w-3 !h-3")}Оновлено · застосовано одразу</span></h2>
           <a class="inline-flex items-center gap-1 text-[13px] font-medium underline">{ic("pencil","!w-3.5 !h-3.5")}Змінити ціну</a></div>
         <div class="mt-2 grid grid-cols-3 gap-2 text-center">
           <div class="rounded-lg bg-gray-50 px-2 py-2"><div class="text-[12px] text-gray-500">Електронна</div><div class="text-[16px] font-semibold">143 грн</div></div>
-          <div class="rounded-lg bg-gray-50 px-2 py-2"><div class="text-[12px] text-gray-500">Друк, м'яка</div><div class="text-[16px] font-semibold">374 грн</div></div>
-          <div class="rounded-lg bg-gray-50 px-2 py-2"><div class="text-[12px] text-gray-500">Друк, тверда</div><div class="text-[16px] font-semibold">517 грн</div></div>
+          <div class="rounded-lg bg-gray-50 px-2 py-2"><div class="text-[12px] text-gray-500">Друк, м'яка</div><div class="text-[16px] font-semibold"><span data-state="published menu" data-default="published">374 грн</span><span data-state="changes" data-default="published" class="text-green-700">389 грн</span></div></div>
+          <div class="rounded-lg bg-gray-50 px-2 py-2"><div class="text-[12px] text-gray-500">Друк, тверда</div><div class="text-[16px] font-semibold"><span data-state="published menu" data-default="published">517 грн</span><span data-state="changes" data-default="published" class="text-green-700">531 грн</span></div></div>
         </div>
       </div>'''
 
@@ -240,7 +241,7 @@ def dashboard():
 <main class="flex-1 px-8 py-6">
   <div class="wf-only mb-4 flex items-center gap-2 text-[12px]"><span class="wf-note">WF · стан:</span>
     <a href="?state=published" class="rounded border px-2 py-0.5">опубліковано</a>
-    <a href="?state=changes" class="rounded border px-2 py-0.5">є неопубліковані зміни</a>
+    <a href="?state=changes" class="rounded border px-2 py-0.5">є зміни на модерацію</a>
     <a href="?state=menu" class="rounded border px-2 py-0.5">меню «⋯»</a></div>
   {header}
   {changes_banner}
@@ -325,7 +326,7 @@ def stepper_bar(active):
 PUBLISHED_BANNER = f'''<div class="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
   {ic("info","mt-0.5 shrink-0 text-blue-600")}
   <div class="text-[14px]"><div class="font-semibold text-blue-900">Книга вже опублікована</div>
-  <div class="mt-0.5 text-blue-900/80">Збережені зміни не потрапляють у магазини одразу. Щоб їх оприлюднити, натисніть «Опублікувати зміни» на дашборді книги — книга піде на повторну модерацію, а до схвалення в магазинах лишиться поточна версія.</div></div>
+  <div class="mt-0.5 text-blue-900/80">Збережені зміни не потрапляють у магазини одразу. Щоб їх оприлюднити, натисніть «Надіслати на модерацію» на дашборді книги — до схвалення в магазинах лишиться поточна версія.</div></div>
   <a href="dashboard.html?state=changes" class="ml-auto shrink-0 whitespace-nowrap text-[13px] font-medium text-blue-900 underline">До дашборду книги</a>
 </div>'''
 
@@ -458,68 +459,112 @@ def money_in(val, hl=None, dis=False):
     return f'<div {box[:-1]} flex h-9 w-28 items-center justify-between rounded-md border bg-white px-3 text-[14px] font-medium">{val}<span class="text-[12px] font-normal text-gray-400">грн</span></div>'
 
 TH = '''<thead><tr class="bg-gray-50 text-left text-[12px] font-semibold uppercase tracking-wide text-gray-500">
-<th class="w-10 py-2.5 pl-4"></th><th class="w-[190px] py-2.5">Магазин</th><th class="w-[150px] py-2.5">Ваш гонорар</th><th class="w-[170px] whitespace-nowrap py-2.5">Ціна для читача</th><th class="py-2.5 pr-4">Умови</th></tr></thead>'''
+<th class="w-10 py-2.5 pl-4"></th><th class="w-[220px] py-2.5">Магазин</th><th class="w-[260px] whitespace-nowrap py-2.5">Ціна для читача</th><th class="py-2.5 pr-4">Умови</th></tr></thead>'''
 
-def row(chk, st, money, price, cond, dis=False, extra_cls=""):
-    return f'''<tr class="border-t border-gray-100 align-middle {"bg-gray-50/60" if dis else ""} {extra_cls}"><td class="py-3 pl-4">{chk}</td><td class="py-3">{st}</td><td class="py-3">{money}</td>
+def row(chk, st, price, cond, dis=False):
+    return f'''<tr class="border-t border-gray-100 align-middle {"bg-gray-50/60" if dis else ""}"><td class="py-3 pl-4">{chk}</td><td class="py-3">{st}</td>
 <td class="py-3 text-[14px] {"text-gray-400" if dis else ""}">{price}</td><td class="py-3 pr-4 text-[13px] {"text-gray-400" if dis else "text-gray-600"}">{cond}</td></tr>'''
+
+def royalty_field(label, val, helper, old=None):
+    """Єдине поле гонорару для групи (е-книга / друк). old → стан dirty з «було → стало»."""
+    hl = "amber" if old else None
+    diff = f'<span data-state="dirty" data-default="dirty" class="text-[12px] text-amber-700">було <span class="line-through">{old}</span> → {val} грн</span>' if old else ""
+    return f'''<div class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-gray-50 px-4 py-3">
+<label class="text-[14px] font-medium">{label}{field_note(hl) if hl else ""}</label>{money_in(val, hl=hl)}{diff}
+<span class="text-[12px] text-gray-500">{helper}</span></div>'''
+
+EXT_TIP = "Amazon/D2D/Google Play: оновлення за правилами магазину (Amazon: ebook до 24 год, друк до 5 роб. днів)"
+# друк: ціна для читача = собівартість варіанту + гонорар + комісія 30%; +10 грн гонорару = +14.29 грн ціни
+PRINT_VARIANTS = [("Кольоровий","м'яка","374.29","388.57"),("Кольоровий","тверда","517.14","531.43"),
+                  ("Ч/Б","м'яка","150.00","164.29"),("Ч/Б","тверда","292.86","307.14")]
+
+def oldnew(old, new, cls="text-amber-700"):
+    return f'<span class="text-[12px] text-gray-400 line-through">{old}</span> <b class="{cls}">{new} грн</b>'
 
 # ---------------------------------------------------------------- 05 PRICE
 def price():
-    ebook = section("Продаж електронної книги", "Ціна для читача рахується з вашого гонорару автоматично.", f'''
-<div class="overflow-hidden rounded-lg border border-gray-200"><table class="w-full">{TH}<tbody>
-{row(CHK_ON, store("ULIT","book-open"), money_in("100"), "<b>142.86 грн</b>", f'<span class="inline-flex items-center gap-1">70% після ПДВ · комісія 30% {tip("Роялті складає 70% від ціни після відрахування ПДВ. Ціна для покупця (комісія 30%): 142.86 грн — саме ця ціна й буде збережена. На інших каналах кінцева ціна відрізняється через їхню власну комісію.")}</span>')}
-{row(CHK_OFF, store("Draft2Digital","globe"), money_in("100"), "166.67 грн", f'<span class="inline-flex items-center gap-1">40+ ритейлерів {tip("40+ ритейлерів: Barnes & Noble, Kobo, Apple Books та інші.")}</span>')}
-{row(CHK_DIS, store("Amazon KDP","shopping-cart", dis=True), money_in("", dis=True), "—", f'<span class="inline-flex items-center gap-1.5 font-medium text-gray-600">{ic("ban","!w-3.5 !h-3.5 text-gray-400")}Недоступно для цієї мови — Kindle приймає лише друковані</span>', dis=True)}
-{row(CHK_OFF, store("Google Play Books","play"), '<span class="text-[13px] text-gray-400">не задається</span>', "—", f'<span class="inline-flex items-center gap-1">Ціну встановлює магазин {tip("Роялті не регулюється автором. Відрахування залежать від прочитань книги у Google Play Books.")}</span>')}
-{row(CHK_DIS, store("Amazon KDP Select","lock", dis=True), money_in("", dis=True), "—", f'<span class="inline-flex items-center gap-1.5 font-medium text-gray-600">{ic("ban","!w-3.5 !h-3.5 text-gray-400")}Недоступно: ексклюзивність 90 днів конфліктує з Draft2Digital і Google Play {tip("Ексклюзивність 90 днів: Draft2Digital і Google Play Books будуть заблоковані, скасувати не можна до кінця терміну.")}</span>', dis=True)}
+    ebook = section("Продаж електронної книги", "Один гонорар для всіх магазинів — ціну для читача в кожному пораховано автоматично.", f'''
+{royalty_field("Ваш гонорар за електронний примірник", "100", "застосовується до всіх магазинів нижче")}
+<div class="mt-3 overflow-hidden rounded-lg border border-gray-200"><table class="w-full">{TH}<tbody>
+{row(CHK_ON, store("ULIT","book-open"), "<b>142.86 грн</b>", f'<span class="inline-flex items-center gap-1">70% після ПДВ · комісія 30% {tip("Роялті складає 70% від ціни після відрахування ПДВ. Ціна для покупця (комісія 30%): 142.86 грн. На інших каналах кінцева ціна відрізняється через їхню власну комісію.")}</span>')}
+{row(CHK_OFF, store("Draft2Digital","globe"), "166.67 грн", f'<span class="inline-flex items-center gap-1">40+ ритейлерів {tip("40+ ритейлерів: Barnes & Noble, Kobo, Apple Books та інші.")}</span>')}
+{row(CHK_DIS, store("Amazon KDP","shopping-cart", dis=True), "—", f'<span class="inline-flex items-center gap-1.5 font-medium text-gray-600">{ic("ban","!w-3.5 !h-3.5 text-gray-400")}Недоступно для цієї мови — Kindle приймає лише друковані</span>', dis=True)}
+{row(CHK_OFF, store("Google Play Books","play"), '<span class="text-gray-400">—</span>', f'<span class="inline-flex items-center gap-1">Ціну встановлює магазин {tip("Роялті не регулюється автором. Відрахування залежать від прочитань книги у Google Play Books.")}</span>')}
+{row(CHK_DIS, store("Amazon KDP Select","lock", dis=True), "—", f'<span class="inline-flex items-center gap-1.5 font-medium text-gray-600">{ic("ban","!w-3.5 !h-3.5 text-gray-400")}Недоступно: ексклюзивність 90 днів конфліктує з Draft2Digital і Google Play {tip("Ексклюзивність 90 днів: Draft2Digital і Google Play Books будуть заблоковані, скасувати не можна до кінця терміну.")}</span><span class="mt-1 flex items-start gap-1 text-[12px] text-blue-800">{ic("tag","mt-0.5 !w-3 !h-3 shrink-0")}<span>Хочете знижки на Amazon? Зареєструйтеся в KDP Select — тоді зможете запускати акції Kindle Countdown Deal (90 днів ексклюзиву електронної книги на Amazon)</span></span>', dis=True)}
 </tbody></table></div>''', sid="blk-ebook")
 
-    def cell(color, cover, price_saved, cur=False, changed=False):
-        sel_cls = "border-2 border-green-600 bg-green-50/40" if cur else "border border-gray-200 bg-white hover:border-gray-400"
-        p = (dirty(f'<span class="text-[12px] text-gray-400 line-through">374.29</span> <b class="text-amber-700">388.57 грн</b>', f'<b>{price_saved} грн</b>') if changed else f'<b>{price_saved} грн</b>')
-        return f'''<a class="block rounded-lg {sel_cls} px-3 py-2"><div class="flex items-center justify-between text-[12px] text-gray-500"><span>{cover}</span>{ic("circle-check","!w-3.5 !h-3.5 text-green-600") if cur else ""}</div><div class="mt-0.5 text-[14px]">{p}</div></a>'''
+    def cell(color, cover, old, new, cur=False):
+        sel_cls = "border-2 border-green-600 bg-green-50/40" if cur else "border border-gray-200 bg-white"
+        p = dirty(oldnew(old, new), f'<b>{new} грн</b>')
+        return f'''<div class="rounded-lg {sel_cls} px-3 py-2"><div class="flex items-center justify-between text-[12px] text-gray-500"><span>{color} · {cover}</span>{ic("circle-check","!w-3.5 !h-3.5 text-green-600") if cur else ""}</div><div class="mt-0.5 text-[14px]">{p}</div></div>'''
+    v = {(c, k): (o, n) for c, k, o, n in PRINT_VARIANTS}
     matrix = f'''<div class="grid grid-cols-[110px_1fr_1fr] items-center gap-2 text-[13px]">
   <div></div><div class="text-[12px] font-semibold uppercase tracking-wide text-gray-500">М'яка обкладинка</div><div class="text-[12px] font-semibold uppercase tracking-wide text-gray-500">Тверда обкладинка</div>
-  <div class="font-medium">Кольоровий блок</div>{cell("c","Кольоровий · м'яка","388.57",cur=True,changed=True)}{cell("c","Кольоровий · тверда","517.14")}
-  <div class="font-medium">Ч/Б блок</div>{cell("bw","Ч/Б · м'яка","150.00")}{cell("bw","Ч/Б · тверда","292.86")}
-</div>'''
+  <div class="font-medium">Кольоровий блок</div>{cell("Кольоровий","м'яка",*v[("Кольоровий","м'яка")],cur=True)}{cell("Кольоровий","тверда",*v[("Кольоровий","тверда")])}
+  <div class="font-medium">Ч/Б блок</div>{cell("Ч/Б","м'яка",*v[("Ч/Б","м'яка")])}{cell("Ч/Б","тверда",*v[("Ч/Б","тверда")])}
+</div>
+<p class="mt-2 flex items-center gap-1 text-[12px] text-gray-500">Ціна для читача = собівартість варіанту + ваш гонорар + комісія 30% {tip("Собівартість: м'яка 112.00 грн, тверда 212.00 грн (кольоровий блок). Позначено варіант, що показується за замовчуванням.")}</p>'''
 
-    royalty_changed = f'''<div>{money_in(dirty("160","160"), hl="amber")}<div data-state="dirty" data-default="dirty" class="mt-1 text-[11px] text-amber-700">було <span class="line-through">150</span> → 160 грн</div></div>'''
     print_tbl = f'''<div class="overflow-hidden rounded-lg border border-gray-200"><table class="w-full">{TH}<tbody>
-{row(CHK_ON, store("ULIT","book-open"), royalty_changed, dirty('<span class="text-[13px] text-gray-400 line-through">374.29</span> <b class="text-amber-700">388.57 грн</b>','<b>388.57 грн</b>'), f'<span class="inline-flex items-center gap-1">Собівартість 112.00 + гонорар + комісія 30% {tip("Собівартість (м’яка): 112.00 грн + Ваш гонорар + комісія платформи = ціна для покупця.")}</span>')}
-{row(CHK_OFF, store("Amazon KDP","shopping-cart"), money_in("200"), "від 445.71 грн", f'<span class="inline-flex items-center gap-1">Друк на вимогу · ціна до знижок {tip("Книга буде продаватися за технологією «Друк на вимогу». Ціна до знижок у магазині.")}</span>')}
+{row(CHK_ON, store("ULIT","book-open"), dirty("4 варіанти · від " + oldnew("150.00","164.29"), "4 варіанти · від <b>164.29 грн</b>"), "Ціни варіантів — у матриці вище")}
+{row(CHK_OFF, store("Amazon KDP","shopping-cart"), f'від 445.71 грн <span class="ml-1 rounded bg-gray-100 px-1.5 py-px text-[11px] text-gray-500">розраховано автоматично</span>' + dirty('<span class="mt-0.5 block text-[11px] text-amber-700">перерахується після збереження</span>'), f'<span class="inline-flex items-center gap-1">Друк на вимогу · ціна до знижок {tip("Книга буде продаватися за технологією «Друк на вимогу». Ціна до знижок у магазині.")}</span>')}
 </tbody></table></div>'''
     printed = section("Друкована книга", "Безкоштовно для автора. Друк оплачує читач, купуючи книгу в магазині.", f'''
 <div class="flex flex-wrap items-center gap-2 text-[13px]"><span class="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-2.5 py-1">{ic("ruler","!w-3.5 !h-3.5 text-gray-500")}Формат: <b class="font-medium">{FORMAT}</b></span><span class="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-2.5 py-1">{ic("file-text","!w-3.5 !h-3.5 text-gray-500")}12 сторінок</span><span class="text-gray-400">· змінюються у «Вихідних даних» / «Рукописі»</span></div>
-<div class="mt-4 text-[13px] font-semibold">Варіанти друку — ціна для читача в ULIT</div>
-<p class="mb-2 text-[12px] text-gray-500">Оберіть варіант, щоб налаштувати гонорар. Позначено поточний.</p>
+<div class="mt-4">{royalty_field("Ваш гонорар за друкований примірник", "160", "один для всіх 4 варіантів друку", old="150")}</div>
+<div class="mt-4 mb-2 text-[13px] font-semibold">Ціна для читача в ULIT за варіантами</div>
 {matrix}
-<div class="mt-5 mb-2 text-[13px] font-semibold">Кольоровий блок · м'яка обкладинка</div>
-{print_tbl}''', hl="amber", badge="Змінено · 1 поле", sid="blk-print")
+<div class="mt-5 mb-2 text-[13px] font-semibold">Магазини</div>
+{print_tbl}''', hl="amber", badge="Змінено · 1 поле → 4 ціни", sid="blk-print")
+
+    discounts = f'''<section class="rounded-xl border border-gray-200 p-5">
+<div class="flex items-start justify-between gap-3"><div><h2 class="text-[16px] font-bold">Знижки в ULIT</h2><p class="mt-0.5 text-[13px] text-gray-500">Знижки у власному магазині ULIT діють одразу, без модерації.</p></div><span class="wf-note">WF: механіка знижок — заглушка</span></div>
+<div class="mt-3 flex items-start gap-2 rounded-lg bg-gray-50 px-3 py-2.5 text-[14px]">{ic("info","mt-0.5 !w-4 !h-4 shrink-0 text-gray-500")}<span>Знижки діють лише в магазині ULIT і не передаються в Amazon, Draft2Digital, Google Play</span></div>
+<div class="mt-2 flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-[13px] text-blue-900 ring-1 ring-blue-100">{ic("tag","mt-0.5 !w-4 !h-4 shrink-0 text-blue-600")}<span>Хочете знижки на Amazon? Зареєструйтеся в KDP Select — тоді зможете запускати акції Kindle Countdown Deal (90 днів ексклюзиву електронної книги на Amazon)</span></div>
+</section>'''
 
     main = f'''{stepper_bar(3)}
 <main class="flex-1 px-8 pb-28 pt-6">
-  {wf_switch("панель збереження", [("dirty","є незбережені зміни (гонорар 150→160)"),("saved","збережено")])}
+  {wf_switch("панель збереження", [("dirty","є незбережені зміни (гонорар за друк 150→160)"),("saved","збережено")])}
   {h1("Ціна та розповсюдження")}
-  <p class="mt-1 text-[13px] text-gray-500">Вкажіть гонорар — ціну для читача буде пораховано автоматично. <span class="wf-note">WF: чи потрібна повторна модерація при зміні ціни опублікованої книги — відкрите питання</span></p>
-  <div class="mt-5 space-y-5">{ebook}{printed}</div>
+  <p class="mt-1 flex items-center gap-1 text-[13px] text-gray-500">Вкажіть гонорар — ціни для читача буде пораховано автоматично. Зміна ціни не потребує модерації. {tip(EXT_TIP)}</p>
+  <div class="mt-5 space-y-5">{ebook}{printed}{discounts}</div>
 </main>'''
     bar = save_bar(
-        dirty_html=f'<span class="h-2 w-2 rounded-full bg-amber-500"></span><a href="#blk-print" class="underline decoration-amber-300 underline-offset-2">Є незбережені зміни у 1 блоці</a><span class="text-gray-300">·</span><span class="text-gray-600" title="ULIT: нова ціна з’явиться одразу після збереження">ULIT: нова ціна — одразу після збереження</span>',
-        saved_html=f'{ic("check")}Збережено ✓ · 12:41',
+        dirty_html=f'<span class="h-2 w-2 rounded-full bg-amber-500"></span><a href="#blk-print" class="underline decoration-amber-300 underline-offset-2">Є незбережені зміни у 1 блоці</a><span class="text-gray-300">·</span><span class="inline-flex items-center gap-1 text-gray-600">ULIT: одразу після збереження {tip(EXT_TIP)}</span>',
+        saved_html=f'{ic("check")}Збережено ✓ · 12:41 · ULIT: застосовано',
         dirty_btns=f'<button class="inline-flex h-10 items-center rounded-md border border-gray-300 bg-white px-3 text-[14px] font-medium">Скасувати</button><button class="inline-flex h-10 items-center gap-1.5 rounded-md bg-green-600 px-5 text-[14px] font-medium text-white shadow-sm">{ic("save")}Зберегти зміни</button>',
         saved_btns=f'<button disabled class="inline-flex h-10 items-center gap-1.5 rounded-md bg-gray-100 px-5 text-[14px] font-medium text-gray-400">{ic("save")}Зберегти зміни</button>')
     return page("ULIT — Ціна та розповсюдження (WF)", "output", main, bar)
 
 # ---------------------------------------------------------------- 06 COVER
 def cover():
-    status = f'''<div class="flex items-center gap-4 rounded-xl border border-green-200 bg-green-50/60 p-5">
+    btn_off = 'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-gray-100 px-4 text-[14px] font-medium text-gray-400 cursor-not-allowed'
+    status = f'''<div data-state="uploaded" data-default="uploaded" class="flex items-center gap-4 rounded-xl border border-green-200 bg-green-50/60 p-5">
   <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-600 text-white">{ic("check","!w-5 !h-5")}</div>
-  <div class="min-w-0 flex-1"><div class="text-[16px] font-bold">Обкладинку завантажено</div>
+  <div class="min-w-0 flex-1"><div class="flex items-center gap-2 text-[16px] font-bold">Обкладинку завантажено<span class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[12px] font-medium text-green-700 ring-1 ring-green-300">{ic("circle-check","!w-3 !h-3")}Зміна доступна</span></div>
     <p class="text-[13px] text-gray-600">Використовується для електронної та друкованої версій · формат {FORMAT}, 12 сторінок</p></div>
   <a class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-gray-300 bg-white px-4 text-[14px] font-medium">{ic("upload")}Замінити файлом</a>
   <a class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-green-600 px-4 text-[14px] font-medium text-white shadow-sm">{ic("pencil")}Редагувати обкладинку</a>
+</div>
+<div data-state="pending" data-default="uploaded" class="flex items-center gap-4 rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">{ic("clock","!w-5 !h-5")}</div>
+  <div class="min-w-0 flex-1"><div class="text-[16px] font-bold">Нову обкладинку завантажено · очікує схвалення</div>
+    <p class="text-[13px] text-gray-600">Ця зміна використовує ліміт «раз на 90 днів»: наступна буде можлива через 90 днів після схвалення.</p></div>
+  <span class="{btn_off}">{ic("upload")}Замінити файлом</span>
+  <span class="{btn_off}">{ic("pencil")}Редагувати обкладинку</span>
+</div>
+<div data-state="locked" data-default="uploaded" class="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-400 text-white">{ic("lock","!w-5 !h-5")}</div>
+  <div class="min-w-0 flex-1"><div class="text-[16px] font-bold">Обкладинку змінено 03.10.2026</div>
+    <p class="text-[13px] text-gray-600">Наступна зміна можлива з 01.01.2027</p></div>
+  <span class="{btn_off}">{ic("upload")}Замінити файлом</span>
+  <span title="Наступна зміна можлива з 01.01.2027" class="{btn_off}">{ic("lock")}Редагувати обкладинку</span>
+</div>'''
+    rules = f'''<div class="rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-[14px]">
+  <div class="flex items-start gap-3">{ic("triangle-alert","mt-0.5 shrink-0 text-amber-600")}
+  <div><div class="font-semibold text-amber-900">Обкладинку опублікованої книги можна змінювати раз на 90 днів</div>
+  <div class="mt-1 text-amber-900/80">ISBN зберігається, якщо не змінюються формат, тип друку, назва чи автор, а кількість сторінок змінюється не більш ніж на 10%. Інакше потрібне нове видання з новим ISBN.</div></div></div>
 </div>'''
     front = f'''<div class="flex h-full flex-col items-center justify-between bg-slate-50 p-3"><div class="pt-1 text-[15px] font-bold">Назва книги</div>
 <div class="flex h-24 w-full items-center justify-center rounded bg-slate-400/50 text-slate-600">{ic("image","!w-6 !h-6")}</div><div class="text-[10px] text-gray-600">e2e</div></div>'''
@@ -560,22 +605,43 @@ def cover():
     <li class="flex items-start gap-2 rounded-md bg-amber-50 px-2 py-1.5 ring-1 ring-amber-200">{ic("triangle-alert","mt-0.5 !w-4 !h-4 shrink-0 text-amber-600")}<span><b class="font-medium">Текст на корінці: немає</b> — для 12 сторінок корінець завузький для тексту. <span class="text-amber-800/80">Нічого робити не потрібно.</span></span></li>
   </ul>
 </div>'''
+    banner = f'''<div data-state="uploaded" data-default="uploaded" class="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+  {ic("info","mt-0.5 shrink-0 text-blue-600")}
+  <div class="text-[14px]"><div class="font-semibold text-blue-900">Книга вже опублікована</div>
+  <div class="mt-0.5 text-blue-900/80">Нову обкладинку перевіряє адміністратор. До схвалення в магазинах лишається поточна.</div></div>
+</div>
+<div data-state="pending" data-default="uploaded" class="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
+  {ic("clock","mt-0.5 shrink-0 text-amber-600")}
+  <div class="text-[14px]"><div class="font-semibold text-amber-900">Нова обкладинка на перевірці — читачі бачать попередню</div>
+  <div class="mt-0.5 text-amber-800">Після схвалення адміністратором вона з'явиться в ULIT; у зовнішніх магазинах — за правилами магазину. Ця зміна використовує ліміт 90 днів.</div></div>
+  <span class="ml-auto shrink-0 rounded-full bg-white px-2 py-0.5 text-[12px] font-medium text-amber-800 ring-1 ring-amber-300">На перевірці</span>
+</div>
+<div data-state="locked" data-default="uploaded" class="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+  {ic("lock","mt-0.5 shrink-0 text-gray-500")}
+  <div class="text-[14px]"><div class="font-semibold text-gray-900">Змінити обкладинку поки не можна</div>
+  <div class="mt-0.5 text-gray-600">Обкладинку змінено 03.10.2026. Наступна зміна можлива з 01.01.2027.</div></div>
+</div>'''
     main = f'''{stepper_bar(2)}
 <main class="flex-1 px-8 pb-10 pt-6">
-  {PUBLISHED_BANNER}
+  {wf_switch("стан", [("uploaded","обкладинку завантажено"),("pending","нова обкладинка на перевірці"),("locked","зміна недоступна (90 днів)")])}
+  {banner}
   <div class="mt-6">{h1("Обкладинка")}</div>
   <div class="mt-4">{status}</div>
+  <div class="mt-3">{rules}</div>
   <div class="mt-5 grid grid-cols-[300px_minmax(0,1fr)] gap-5">{ebook}{printc}</div>
   <div class="mt-5">{checklist}</div>
   <a href="dashboard.html" class="mt-6 inline-flex items-center gap-1.5 text-[14px] text-gray-600">{ic("arrow-left")}До дашборду книги</a>
-</main>'''
+</main>
+{HL_SCRIPT}'''
     return page("ULIT — Обкладинка (WF)", "cover", main)
 
 # ---------------------------------------------------------------- 07 REVIEW
 def review():
-    def card(title, href, body, changed=False, sid="", cls=""):
+    def card(title, href, body, changed=False, sid="", cls="", applied=False):
         attrs = (f'data-hl="changes" data-default="published" data-hl-on="border-2 border-amber-400" data-hl-off="border border-gray-200" class="border border-gray-200' if changed else 'class="border border-gray-200')
-        badge = (f'<span data-state="changes" data-default="published" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-medium text-amber-800 ring-1 ring-amber-300">{ic("pencil","!w-3 !h-3")}Змінено</span>' if changed else "")
+        badge = (f'<span data-state="changes" data-default="published" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-medium text-amber-800 ring-1 ring-amber-300">{ic("pencil","!w-3 !h-3")}Змінено · на модерацію</span>' if changed else "")
+        if applied:  # ціни ULIT: без модерації, діють одразу після збереження
+            badge = f'<span data-state="changes" data-default="published" class="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[12px] font-medium text-green-700 ring-1 ring-green-300">{ic("zap","!w-3 !h-3")}Застосовано одразу</span>'
         return f'''<section{f' id="{sid}"' if sid else ""} {attrs} scroll-mt-20 rounded-xl p-5 {cls}">
 <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2"><h2 class="text-[16px] font-bold">{title}</h2>{badge}</div>
 <a href="{href}" class="inline-flex items-center gap-1 text-[13px] font-medium underline">{ic("pencil","!w-3.5 !h-3.5")}Змінити</a></div>
@@ -588,20 +654,23 @@ def review():
     ms = card("Рукопис", "#", dl([("Рукопис",f'<span class="inline-flex items-center gap-1 text-green-700">{ic("check","!w-3.5 !h-3.5")}Завантажено</span>'),("Кількість сторінок","12 ст.")]))
     cv = card("Обкладинка", "cover.html", f'''<div class="flex items-center gap-3"><div class="flex h-20 w-14 shrink-0 flex-col items-center justify-between rounded border border-gray-200 bg-slate-100 p-1"><span class="text-[6px] font-bold">Назва книги</span><span class="h-8 w-full rounded-sm bg-slate-400/50"></span><span class="text-[5px]">e2e</span></div>
 {dl([("Обкладинка",f'<span class="inline-flex items-center gap-1 text-green-700">{ic("check","!w-3.5 !h-3.5")}Завантажено</span>'),("Друк",FORMAT)])}</div>''')
-    def pr(variant, price, profit, changed=False):
+    def on_off(old, new):  # changes: ~~old~~ new (зелене — уже діє); published: old
+        return (f'<span data-state="changes" data-default="published"><span class="text-[12px] text-gray-400 line-through">{old}</span> <b class="text-green-700">{new} грн</b></span>'
+                f'<span data-state="published" data-default="published">{old} грн</span>')
+    def pr(variant, price, profit, new_price=None, new_profit=None):
+        changed = new_price is not None
         if changed:
-            price = f'<span data-state="changes" data-default="published"><span class="text-[12px] text-gray-400 line-through">374.29</span> <b class="text-amber-700">388.57 грн</b></span><span data-state="published" data-default="published">374.29 грн</span>'
-            profit = f'<span data-state="changes" data-default="published"><span class="text-[12px] text-gray-400 line-through">262.00</span> <b class="text-amber-700">272.00 грн</b></span><span data-state="published" data-default="published">262.00 грн</span>'
+            price, profit = on_off(price, new_price), on_off(profit, new_profit)
         else:
             price, profit = f"{price} грн", f"{profit} грн"
-        return f'<tr class="border-t border-gray-100"><td class="py-2 pl-4">{variant}{chg_dot if changed else ""}</td><td class="py-2">{price}</td><td class="py-2 font-medium">{profit}</td><td class="py-2 pr-4">{store("ULIT","book-open")}</td></tr>'
+        return f'<tr class="border-t border-gray-100"><td class="py-2 pl-4">{variant}</td><td class="py-2">{price}</td><td class="py-2 font-medium">{profit}</td><td class="py-2 pr-4">{store("ULIT","book-open")}</td></tr>'
     prices = card("Ціна та розповсюдження", "price.html", f'''
 <div class="overflow-hidden rounded-lg border border-gray-200"><table class="w-full text-[14px]">
 <thead><tr class="bg-gray-50 text-left text-[12px] font-semibold uppercase tracking-wide text-gray-500"><th class="py-2.5 pl-4">Варіант</th><th class="py-2.5">Ціна для читача</th><th class="py-2.5">Ваш прибуток</th><th class="py-2.5 pr-4">Магазин</th></tr></thead><tbody>
-{pr("Е-книга","142.86","100.00")}{pr("Друк, м'яка (кольор.)","","",changed=True)}{pr("Друк, тверда (кольор.)","517.14","362.00")}{pr("Друк, м'яка (ч/б)","150.00","105.00")}{pr("Друк, тверда (ч/б)","292.86","205.00")}
+{pr("Е-книга","142.86","100.00")}{pr("Друк, м'яка (кольор.)","374.29","262.00","388.57","272.00")}{pr("Друк, тверда (кольор.)","517.14","362.00","531.43","372.00")}{pr("Друк, м'яка (ч/б)","150.00","105.00","164.29","115.00")}{pr("Друк, тверда (ч/б)","292.86","205.00","307.14","215.00")}
 </tbody></table></div>
-<p class="mt-1.5 text-[12px] text-gray-500">Прибуток — за один проданий примірник, після комісії платформи.</p>
-<div class="mt-4 flex items-center gap-2 text-[14px]"><span class="text-gray-500">Магазини:</span>{store("ULIT","book-open")}<a href="price.html" class="ml-1 inline-flex items-center gap-1 text-[13px] font-medium text-green-700 underline">{ic("plus","!w-3.5 !h-3.5")}Додати магазини</a></div>''', changed=True, sid="blk-price", cls="col-span-2")
+<p class="mt-1.5 text-[12px] text-gray-500">Прибуток — за один проданий примірник, після комісії платформи. <span data-state="changes" data-default="published" class="text-green-700">Гонорар за друк 150 → 160 грн уже діє в ULIT — модерація не потрібна.</span></p>
+<div class="mt-4 flex items-center gap-2 text-[14px]"><span class="text-gray-500">Магазини:</span>{store("ULIT","book-open")}<a href="price.html" class="ml-1 inline-flex items-center gap-1 text-[13px] font-medium text-green-700 underline">{ic("plus","!w-3.5 !h-3.5")}Додати магазини</a></div>''', applied=True, sid="blk-price", cls="col-span-2")
     udk_items = ["Анотація (файл 1 для заявки на УДК) — 120–500 символів","Повне ПІБ автора (файл 1 для заявки на УДК)","Обкладинка завантажена","PDF для друку рукопису (файл 2 для заявки на УДК)"]
     udk = f'''<details class="col-span-2 rounded-xl border border-gray-200">
 <summary class="flex cursor-pointer items-center gap-3 p-5"><h2 class="text-[16px] font-bold">Готовність до реєстрації УДК</h2>
@@ -613,13 +682,13 @@ def review():
 <main class="flex-1 px-8 pb-28 pt-6">
   {wf_switch("стан", [("published","опубліковано, змін немає"),("changes","є зміни з останньої публікації")])}
   {h1("Огляд перед публікацією")}
-  <p class="mt-1 text-[13px] text-gray-500">Так дані книги підуть у магазини. Щоб виправити — «Змінити» у потрібному блоці.</p>
+  <p class="mt-1 text-[13px] text-gray-500">Так дані книги підуть у магазини. Щоб виправити — «Змінити» у потрібному блоці. На модерацію йдуть лише зміни змісту (вихідні дані, рукопис, обкладинка); ціни ULIT діють одразу.</p>
   <div class="mt-5 grid grid-cols-2 gap-5">{out}<div class="space-y-5">{ms}{cv}</div>{prices}{udk}</div>
 </main>'''
     bar = save_bar(
-        dirty_html=f'<span class="h-2 w-2 rounded-full bg-amber-500"></span><a href="#blk-out" class="underline decoration-amber-300 underline-offset-2">Змінено 2 блоки з останньої публікації</a><span class="text-gray-300">·</span><span class="text-gray-600">зміни підуть на повторну модерацію</span>',
+        dirty_html=f'<span class="h-2 w-2 rounded-full bg-amber-500"></span><a href="#blk-out" class="underline decoration-amber-300 underline-offset-2">1 блок на модерацію: Вихідні дані</a><span class="text-gray-300">·</span><span class="text-gray-600">ціни ULIT уже застосовано</span>',
         saved_html=f'{ic("circle-check")}Усі зміни опубліковано',
-        dirty_btns=f'<button class="inline-flex h-10 items-center gap-1.5 rounded-md bg-green-600 px-5 text-[14px] font-medium text-white shadow-sm">{ic("upload-cloud")}Опублікувати зміни<span class="ml-0.5 rounded-full bg-white/25 px-1.5 text-[11px]">2</span></button>',
+        dirty_btns=f'<button class="inline-flex h-10 items-center gap-1.5 rounded-md bg-green-600 px-5 text-[14px] font-medium text-white shadow-sm">{ic("send")}Надіслати на модерацію<span class="ml-0.5 rounded-full bg-white/25 px-1.5 text-[11px]">1</span></button>',
         saved_btns="", st_dirty="changes", st_saved="published", default="published")
     return page("ULIT — Огляд перед публікацією (WF)", "output", main, bar)
 
@@ -630,14 +699,16 @@ INDEX = HEAD.format(title="ULIT — вайрфрейми") + f'''
   <p class="mt-2 text-[14px] text-gray-600">HTML — референс; будувати на наявних компонентах/токенах apps/web (shadcn Button, Badge, Card; lucide-іконки).</p>
   <ul class="mt-6 space-y-2 text-[15px]">
     <li><a class="text-green-700 underline" href="dashboard.html?state=published">01 Дашборд — опубліковано</a></li>
-    <li><a class="text-green-700 underline" href="dashboard.html?state=changes">02 Дашборд — є неопубліковані зміни (кроки розгорнуто)</a></li>
+    <li><a class="text-green-700 underline" href="dashboard.html?state=changes">02 Дашборд — є зміни на модерацію (кроки розгорнуто; ціни застосовано)</a></li>
     <li><a class="text-green-700 underline" href="dashboard.html?state=menu">04 Дашборд — відкрите меню «⋯»</a></li>
     <li><a class="text-green-700 underline" href="output-data.html?state=dirty">03 Вихідні дані — є незбережені зміни</a></li>
     <li><a class="text-green-700 underline" href="output-data.html?state=saved">03b Вихідні дані — збережено ✓</a></li>
-    <li><a class="text-green-700 underline" href="price.html?state=dirty">05 Ціна та розповсюдження — є незбережені зміни (гонорар 150→160)</a></li>
+    <li><a class="text-green-700 underline" href="price.html?state=dirty">05 Ціна та розповсюдження — є незбережені зміни (гонорар за друк 150→160)</a></li>
     <li><a class="text-green-700 underline" href="price.html?state=saved">05b Ціна та розповсюдження — збережено ✓</a></li>
-    <li><a class="text-green-700 underline" href="cover.html">06 Обкладинка</a></li>
-    <li><a class="text-green-700 underline" href="review.html?state=changes">07 Огляд перед публікацією — є зміни з останньої публікації</a></li>
+    <li><a class="text-green-700 underline" href="cover.html?state=uploaded">06 Обкладинка</a></li>
+    <li><a class="text-green-700 underline" href="cover.html?state=pending">06b Обкладинка — нова на перевірці</a></li>
+    <li><a class="text-green-700 underline" href="cover.html?state=locked">06c Обкладинка — зміна недоступна до 01.01.2027</a></li>
+    <li><a class="text-green-700 underline" href="review.html?state=changes">07 Огляд перед публікацією — є зміни (Вихідні дані → модерація, ціни застосовано)</a></li>
     <li><a class="text-green-700 underline" href="review.html?state=published">07b Огляд перед публікацією — опубліковано</a></li>
     <li><a class="text-green-700 underline" href="WF-SPEC.md">WF-SPEC.md</a> · <a class="text-green-700 underline" href="shots/">shots/</a></li>
   </ul>
