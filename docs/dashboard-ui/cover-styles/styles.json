@@ -1,0 +1,1323 @@
+[
+  {
+    "id": "classic-1-frame",
+    "group": "Класик",
+    "name": "Класик 1 · Рамка",
+    "figma": "89:9",
+    "layout": {
+      "stack": "vertical",
+      "justify": "space-between",
+      "align": "center",
+      "padding": {
+        "top": 10.0,
+        "right": 14.0,
+        "bottom": 8.12,
+        "left": 14.0
+      },
+      "order": [
+        "author",
+        "titleBlock[ornament, title, rule, subtitle]",
+        "ulit"
+      ],
+      "gaps": {
+        "titleBlock": 2.81
+      }
+    },
+    "text": {
+      "title": {
+        "family": "Playfair Display",
+        "style": "Bold",
+        "size": 6.25,
+        "lineHeight": 1.12,
+        "token": "text-primary",
+        "align": "center"
+      },
+      "author": {
+        "family": "Lora",
+        "style": "Medium",
+        "size": 2.19,
+        "letterSpacing": 0.14,
+        "case": "upper",
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "subtitle": {
+        "family": "Lora",
+        "style": "Italic",
+        "size": 2.66,
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "center"
+      }
+    },
+    "decor": [
+      {
+        "shape": "rect-stroke",
+        "token": "line",
+        "stroke": 1,
+        "x": 4.0,
+        "y": 2.5,
+        "w": 92.0,
+        "h": 95.0
+      },
+      {
+        "shape": "rect-stroke",
+        "token": "accent",
+        "stroke": 2,
+        "x": 6.0,
+        "y": 3.75,
+        "w": 88.0,
+        "h": 92.5
+      },
+      {
+        "shape": "diamond",
+        "token": "accent",
+        "inFlow": true,
+        "w": 3.0,
+        "h": 2.81
+      },
+      {
+        "shape": "rule",
+        "token": "accent",
+        "inFlow": true,
+        "w": 14.0,
+        "h": 0.16
+      }
+    ],
+    "maxTitleLines": 5,
+    "defaultFor": [
+      "Роман (загальний)",
+      "Інше / не вказано"
+    ]
+  },
+  {
+    "id": "classic-2-ornament",
+    "group": "Класик",
+    "name": "Класик 2 · Орнамент",
+    "figma": "89:21",
+    "layout": {
+      "stack": "vertical",
+      "justify": "space-between",
+      "align": "center",
+      "padding": {
+        "top": 9.38,
+        "right": 12.0,
+        "bottom": 8.12,
+        "left": 12.0
+      },
+      "order": [
+        "author",
+        "titleBlock[ornamentRow, title, subtitle]",
+        "ulit"
+      ],
+      "gaps": {
+        "titleBlock": 3.75
+      }
+    },
+    "text": {
+      "title": {
+        "family": "Cormorant Garamond",
+        "style": "Bold",
+        "size": 7.5,
+        "lineHeight": 1.0,
+        "token": "text-primary",
+        "align": "center"
+      },
+      "author": {
+        "family": "Cormorant Garamond",
+        "style": "SemiBold Italic",
+        "size": 3.28,
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "subtitle": {
+        "family": "Lora",
+        "style": "Regular",
+        "size": 1.88,
+        "letterSpacing": 0.22,
+        "case": "upper",
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "center"
+      }
+    },
+    "decor": [
+      {
+        "shape": "star8",
+        "innerRadius": 0.5,
+        "token": "line",
+        "note": "4 corners",
+        "size": 3.5,
+        "positions": [
+          [
+            6.0,
+            3.75
+          ],
+          [
+            90.5,
+            3.75
+          ],
+          [
+            6.0,
+            94.06
+          ],
+          [
+            90.5,
+            94.06
+          ]
+        ]
+      },
+      {
+        "shape": "ornamentRow",
+        "inFlow": true,
+        "items": [
+          [
+            "line",
+            13.0,
+            0.16,
+            "line"
+          ],
+          [
+            "diamond",
+            2.0,
+            1.88,
+            "accent"
+          ],
+          [
+            "star8",
+            11.5,
+            11.5,
+            "accent"
+          ],
+          [
+            "diamond",
+            2.0,
+            1.88,
+            "accent"
+          ],
+          [
+            "line",
+            13.0,
+            0.16,
+            "line"
+          ]
+        ],
+        "gap": 2.5
+      }
+    ],
+    "maxTitleLines": 5,
+    "defaultFor": [
+      "Мемуари / біографія"
+    ]
+  },
+  {
+    "id": "classic-3-band",
+    "group": "Класик",
+    "name": "Класик 3 · Стрічка",
+    "figma": "89:39",
+    "layout": {
+      "stack": "vertical",
+      "justify": "space-between",
+      "align": "center",
+      "padding": {
+        "top": 9.38,
+        "right": 0.0,
+        "bottom": 6.25,
+        "left": 0.0
+      },
+      "order": [
+        "author (side pad 10%)",
+        "band[ruleTop, bandContent[title, subtitle], ruleBottom] full-bleed",
+        "ulit"
+      ],
+      "band": {
+        "fill": "bg-alt",
+        "padding": {
+          "top": 4.69,
+          "right": 10.0,
+          "bottom": 4.69,
+          "left": 10.0
+        },
+        "gap": 1.88,
+        "rules": {
+          "token": "accent",
+          "h": 0.31
+        }
+      }
+    },
+    "text": {
+      "title": {
+        "family": "PT Serif",
+        "style": "Bold Italic",
+        "size": 5.94,
+        "lineHeight": 1.12,
+        "token": "text-primary",
+        "align": "center"
+      },
+      "author": {
+        "family": "PT Serif",
+        "style": "Regular",
+        "size": 2.66,
+        "token": "text-primary",
+        "align": "center"
+      },
+      "subtitle": {
+        "family": "PT Serif",
+        "style": "Regular",
+        "size": 2.34,
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "center"
+      }
+    },
+    "decor": [
+      {
+        "shape": "rect",
+        "token": "accent",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 100.0,
+        "h": 1.56
+      }
+    ],
+    "maxTitleLines": 5,
+    "defaultFor": [
+      "Класика / історичний роман"
+    ],
+    "note": "text inside band sits on bg-alt -> tokens guarantee >=4.5:1"
+  },
+  {
+    "id": "minimal-1-bigtype",
+    "group": "Мінімал",
+    "name": "Мінімал 1 · Великий шрифт",
+    "figma": "90:6",
+    "layout": {
+      "stack": "vertical",
+      "justify": "space-between",
+      "align": "start",
+      "padding": {
+        "top": 6.88,
+        "right": 10.0,
+        "bottom": 5.62,
+        "left": 10.0
+      },
+      "order": [
+        "top[title, subtitle] gap 3.1%",
+        "bottom[authorRow[accentSquare, author], ulit] gap 2.5%"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Unbounded",
+        "style": "Bold",
+        "size": 6.88,
+        "lineHeight": 1.06,
+        "token": "text-primary",
+        "align": "left"
+      },
+      "subtitle": {
+        "family": "Inter",
+        "style": "Regular",
+        "size": 2.66,
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "author": {
+        "family": "Inter",
+        "style": "Semi Bold",
+        "size": 2.66,
+        "token": "text-primary",
+        "align": "left"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "left"
+      }
+    },
+    "decor": [
+      {
+        "shape": "square",
+        "token": "accent",
+        "inFlow": true,
+        "w": 3.5,
+        "h": 2.19
+      }
+    ],
+    "maxTitleLines": 7,
+    "defaultFor": [
+      "Нон-фікшн / бізнес / наукове"
+    ],
+    "note": "best fallback for very long titles"
+  },
+  {
+    "id": "minimal-2-offgrid",
+    "group": "Мінімал",
+    "name": "Мінімал 2 · Зсув",
+    "figma": "90:17",
+    "layout": {
+      "stack": "vertical",
+      "justify": "space-between",
+      "align": "start",
+      "padding": {
+        "top": 6.88,
+        "right": 9.0,
+        "bottom": 6.25,
+        "left": 34.0
+      },
+      "order": [
+        "author",
+        "bottom[title, subtitle, spacer, ulit] gap 2.5%"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Montserrat",
+        "style": "ExtraBold",
+        "size": 5.62,
+        "lineHeight": 1.1,
+        "token": "text-primary",
+        "align": "left"
+      },
+      "author": {
+        "family": "Montserrat",
+        "style": "SemiBold",
+        "size": 2.03,
+        "letterSpacing": 0.18,
+        "case": "upper",
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "subtitle": {
+        "family": "Montserrat",
+        "style": "Regular",
+        "size": 2.34,
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "left"
+      }
+    },
+    "decor": [
+      {
+        "shape": "rect",
+        "token": "accent",
+        "x": 10.0,
+        "y": 0.0,
+        "w": 16.0,
+        "h": 46.88
+      },
+      {
+        "shape": "rect",
+        "token": "line",
+        "x": 17.75,
+        "y": 46.88,
+        "w": 0.5,
+        "h": 53.12
+      }
+    ],
+    "maxTitleLines": 8,
+    "defaultFor": []
+  },
+  {
+    "id": "minimal-3-oneline",
+    "group": "Мінімал",
+    "name": "Мінімал 3 · Одна лінія",
+    "figma": "90:28",
+    "layout": {
+      "stack": "vertical",
+      "justify": "space-between",
+      "align": "center",
+      "padding": {
+        "top": 8.75,
+        "right": 0.0,
+        "bottom": 6.88,
+        "left": 0.0
+      },
+      "order": [
+        "author (side pad 12%)",
+        "middle[title (side pad 12%), line full-bleed, subtitle] gap 4.4%",
+        "ulit"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Raleway",
+        "style": "SemiBold",
+        "size": 5.31,
+        "lineHeight": 1.18,
+        "token": "text-primary",
+        "align": "center"
+      },
+      "author": {
+        "family": "Raleway",
+        "style": "Medium",
+        "size": 2.03,
+        "letterSpacing": 0.28,
+        "case": "upper",
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "subtitle": {
+        "family": "Raleway",
+        "style": "Italic",
+        "size": 2.5,
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "center"
+      }
+    },
+    "decor": [
+      {
+        "shape": "rule",
+        "token": "accent",
+        "inFlow": true,
+        "w": 100,
+        "h": 0.31
+      }
+    ],
+    "maxTitleLines": 6,
+    "defaultFor": []
+  },
+  {
+    "id": "texture-1-glow",
+    "group": "Текстури",
+    "name": "Текстури 1 · Сяйво",
+    "figma": "91:6",
+    "layout": {
+      "stack": "vertical",
+      "justify": "end",
+      "align": "start",
+      "padding": {
+        "top": 6.88,
+        "right": 11.0,
+        "bottom": 6.25,
+        "left": 11.0
+      },
+      "order": [
+        "text[author, title, subtitle, spacer, ulit] gap 2.2%"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Playfair Display",
+        "style": "Bold Italic",
+        "size": 6.56,
+        "lineHeight": 1.08,
+        "token": "text-primary",
+        "align": "left"
+      },
+      "author": {
+        "family": "Lora",
+        "style": "SemiBold",
+        "size": 2.03,
+        "letterSpacing": 0.16,
+        "case": "upper",
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "subtitle": {
+        "family": "Lora",
+        "style": "Regular",
+        "size": 2.5,
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "left"
+      }
+    },
+    "decor": [
+      {
+        "shape": "ellipse",
+        "token": "pattern",
+        "blur": 14.06,
+        "x": -40.0,
+        "y": -23.44,
+        "w": 100.0,
+        "h": 56.25
+      },
+      {
+        "shape": "ellipse",
+        "token": "bg-alt",
+        "blur": 15.62,
+        "x": 15.0,
+        "y": 23.44,
+        "w": 105.0,
+        "h": 46.88
+      },
+      {
+        "shape": "ellipse",
+        "token": "accent",
+        "opacity": 0.9,
+        "blur": 12.5,
+        "x": 47.5,
+        "y": -18.75,
+        "w": 75.0,
+        "h": 46.88
+      }
+    ],
+    "svgHint": "render blobs as <ellipse> with feGaussianBlur stdDeviation≈blur/2 (or CSS filter: blur)",
+    "maxTitleLines": 5,
+    "defaultFor": [
+      "Фантастика / фентезі"
+    ],
+    "note": "accent blob stays in top-right 30%; text zone only over bg/bg-alt haze"
+  },
+  {
+    "id": "texture-2-duotone",
+    "group": "Текстури",
+    "name": "Текстури 2 · Дуотон",
+    "figma": "91:18",
+    "layout": {
+      "stack": "vertical",
+      "justify": "end",
+      "align": "start",
+      "padding": {
+        "top": 0.0,
+        "right": 0.0,
+        "bottom": 0.0,
+        "left": 0.0
+      },
+      "order": [
+        "textPlate[author, title, subtitle, spacer, ulit] fill=bg, padding 5.6%/10%, full width, grows upward"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Rubik",
+        "style": "Bold",
+        "size": 5.62,
+        "lineHeight": 1.1,
+        "token": "text-primary",
+        "align": "left"
+      },
+      "author": {
+        "family": "Rubik",
+        "style": "Medium",
+        "size": 2.19,
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "subtitle": {
+        "family": "Rubik",
+        "style": "Regular",
+        "size": 2.34,
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "left"
+      }
+    },
+    "decor": [
+      {
+        "shape": "rect",
+        "token": "bg-alt",
+        "x": 0.0,
+        "y": 0.0,
+        "w": 100.0,
+        "h": 62.5
+      },
+      {
+        "shape": "rect",
+        "token": "pattern",
+        "x": 0.0,
+        "y": 36.88,
+        "w": 57.5,
+        "h": 25.62
+      },
+      {
+        "shape": "ellipse",
+        "token": "accent",
+        "x": 37.5,
+        "y": 10.94,
+        "w": 72.5,
+        "h": 45.31
+      },
+      {
+        "shape": "ellipse",
+        "token": "bg",
+        "x": 59.0,
+        "y": 24.38,
+        "w": 29.5,
+        "h": 18.44
+      },
+      {
+        "shape": "rect",
+        "token": "line",
+        "x": 8.0,
+        "y": 6.25,
+        "w": 37.5,
+        "h": 0.47
+      },
+      {
+        "shape": "rect",
+        "token": "line",
+        "x": 8.0,
+        "y": 8.44,
+        "w": 27.5,
+        "h": 0.47
+      },
+      {
+        "shape": "rect",
+        "token": "line",
+        "x": 8.0,
+        "y": 10.62,
+        "w": 17.5,
+        "h": 0.47
+      }
+    ],
+    "maxTitleLines": 6,
+    "defaultFor": [
+      "Психологія / саморозвиток"
+    ]
+  },
+  {
+    "id": "texture-3-softcircles",
+    "group": "Текстури",
+    "name": "Текстури 3 · М'які кола",
+    "figma": "91:34",
+    "layout": {
+      "stack": "vertical",
+      "justify": "start",
+      "align": "start",
+      "padding": {
+        "top": 6.88,
+        "right": 11.0,
+        "bottom": 6.25,
+        "left": 11.0
+      },
+      "order": [
+        "text[ulit, spacer, author, title, subtitle] gap 2.2%"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Comfortaa",
+        "style": "Bold",
+        "size": 5.0,
+        "lineHeight": 1.14,
+        "token": "text-primary",
+        "align": "left"
+      },
+      "author": {
+        "family": "Comfortaa",
+        "style": "Bold",
+        "size": 2.19,
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "subtitle": {
+        "family": "Comfortaa",
+        "style": "Regular",
+        "size": 2.5,
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "left"
+      }
+    },
+    "decor": [
+      {
+        "shape": "ellipse",
+        "token": "bg-alt",
+        "opacity": 0.9,
+        "x": 32.5,
+        "y": 72.19,
+        "w": 85.0,
+        "h": 53.12
+      },
+      {
+        "shape": "ellipse",
+        "token": "pattern",
+        "opacity": 0.85,
+        "x": -20.0,
+        "y": 81.25,
+        "w": 65.0,
+        "h": 40.62
+      },
+      {
+        "shape": "ellipse",
+        "token": "accent",
+        "x": 70.5,
+        "y": 71.25,
+        "w": 24.0,
+        "h": 15.0
+      },
+      {
+        "shape": "ellipse-stroke",
+        "token": "accent",
+        "stroke": 1.5,
+        "x": 7.5,
+        "y": 72.81,
+        "w": 47.5,
+        "h": 29.69
+      },
+      {
+        "shape": "ellipse",
+        "token": "accent",
+        "x": 21.5,
+        "y": 93.12,
+        "w": 5.0,
+        "h": 3.12
+      }
+    ],
+    "maxTitleLines": 6,
+    "defaultFor": [
+      "Підліткова (YA)"
+    ],
+    "note": "text block must end above 71% of height (decor starts at 71.3%)"
+  },
+  {
+    "id": "pattern-1-geometry",
+    "group": "Патерн",
+    "name": "Патерн 1 · Геометрія",
+    "figma": "92:6",
+    "layout": {
+      "stack": "vertical",
+      "justify": "center",
+      "align": "center",
+      "padding": {
+        "top": 6.25,
+        "right": 9.0,
+        "bottom": 6.25,
+        "left": 9.0
+      },
+      "order": [
+        "plate[author, title, rule, subtitle, spacer, ulit] fill=surface stroke=accent 3px, padding 5%/7.5%, gap 1.9%"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Montserrat",
+        "style": "Bold",
+        "size": 4.84,
+        "lineHeight": 1.12,
+        "token": "text-on-surface",
+        "align": "left"
+      },
+      "author": {
+        "family": "Montserrat",
+        "style": "SemiBold",
+        "size": 1.88,
+        "letterSpacing": 0.16,
+        "case": "upper",
+        "token": "text-on-surface",
+        "align": "left"
+      },
+      "subtitle": {
+        "family": "Montserrat",
+        "style": "Regular",
+        "size": 2.34,
+        "token": "text-on-surface",
+        "align": "left"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-on-surface",
+        "align": "left"
+      }
+    },
+    "decor": [
+      {
+        "shape": "svg-repeat",
+        "token": "pattern",
+        "tile": {
+          "step": 10.0,
+          "motif": "circle r=6 on even (i+j), diamond r=7 on odd",
+          "origin": [
+            5.0,
+            3.12
+          ]
+        },
+        "x": 0.0,
+        "y": 0.0,
+        "w": 100.0,
+        "h": 100.0
+      },
+      {
+        "shape": "rule",
+        "token": "accent",
+        "inFlow": true,
+        "w": 10.0,
+        "h": 0.47
+      }
+    ],
+    "maxTitleLines": 7,
+    "defaultFor": [
+      "Дитяча"
+    ]
+  },
+  {
+    "id": "pattern-2-vyshyvanka",
+    "group": "Патерн",
+    "name": "Патерн 2 · Вишиванка",
+    "figma": "92:18",
+    "layout": {
+      "stack": "vertical",
+      "justify": "space-between",
+      "align": "center",
+      "padding": {
+        "top": 21.25,
+        "right": 11.0,
+        "bottom": 20.62,
+        "left": 11.0
+      },
+      "order": [
+        "author",
+        "titleBlock[title, subtitle] gap 2.2%",
+        "ulit"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Yeseva One",
+        "style": "Regular",
+        "size": 5.31,
+        "lineHeight": 1.12,
+        "token": "text-primary",
+        "align": "center"
+      },
+      "author": {
+        "family": "Lora",
+        "style": "Italic",
+        "size": 2.66,
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "subtitle": {
+        "family": "Lora",
+        "style": "Regular",
+        "size": 1.88,
+        "letterSpacing": 0.22,
+        "case": "upper",
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "center"
+      }
+    },
+    "decor": [
+      {
+        "shape": "cross-stitch-band",
+        "tokens": {
+          "A": "accent",
+          "B": "line"
+        },
+        "cell": 1.0,
+        "bands": [
+          {
+            "x": 0.0,
+            "y": 3.75,
+            "w": 100.0,
+            "h": 13.12
+          },
+          {
+            "x": 0.0,
+            "y": 83.12,
+            "w": 100.0,
+            "h": 13.12
+          }
+        ],
+        "motif": "17x17 cells, c=8, d=|dx|+|dy|: A if d==8 | (d==5 & (dx==0|dy==0)) | (d==6 & (dx==1|dy==1)); B if d<=2 | (d==4 & dx==dy); repeat every 18 cells, centred; B small vertical cross between motifs; B dotted border rows (every 2nd cell) at row 0 and row 20"
+      }
+    ],
+    "maxTitleLines": 6,
+    "defaultFor": [
+      "Етно / фольклор / краєзнавство"
+    ]
+  },
+  {
+    "id": "pattern-3-stripes",
+    "group": "Патерн",
+    "name": "Патерн 3 · Смуги",
+    "figma": "92:34",
+    "layout": {
+      "stack": "vertical",
+      "justify": "center",
+      "align": "center",
+      "padding": {
+        "top": 0.0,
+        "right": 0.0,
+        "bottom": 0.0,
+        "left": 0.0
+      },
+      "order": [
+        "plate[edgeTop accent 6px, content[author, title, subtitle, ulit] padding 5.3%/10% gap 2.2%, edgeBottom accent 6px] fill=bg full width"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Oswald",
+        "style": "Bold",
+        "size": 6.88,
+        "lineHeight": 1.08,
+        "case": "upper",
+        "token": "text-primary",
+        "align": "center"
+      },
+      "author": {
+        "family": "Oswald",
+        "style": "Regular",
+        "size": 2.5,
+        "letterSpacing": 0.12,
+        "case": "upper",
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "subtitle": {
+        "family": "Inter",
+        "style": "Regular",
+        "size": 2.34,
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "center"
+      }
+    },
+    "decor": [
+      {
+        "shape": "svg-stripes",
+        "token": "pattern",
+        "angle": 45,
+        "stripe": 3.25,
+        "period": 7.5,
+        "x": 0.0,
+        "y": 0.0,
+        "w": 100.0,
+        "h": 100.0
+      }
+    ],
+    "maxTitleLines": 6,
+    "defaultFor": [
+      "Публіцистика / есеїстика"
+    ]
+  },
+  {
+    "id": "photo-1-flowers",
+    "group": "Фото",
+    "name": "Фото 1 · Квіти",
+    "figma": "99:637",
+    "layout": {
+      "stack": "vertical",
+      "justify": "end",
+      "align": "center",
+      "padding": {
+        "top": 0.0,
+        "right": 0.0,
+        "bottom": 0.0,
+        "left": 0.0
+      },
+      "order": [
+        "textZone[fade h=20.3% gradient bg-0 -> bg (top->bottom), textPlate fill=bg padding 0.6%/11%/6.25%/11% gap 1.9% [author, title, rule, subtitle, spacer, ulit]] full width, grows upward"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Cormorant Garamond",
+        "style": "Bold Italic",
+        "size": 7.19,
+        "lineHeight": 1.0,
+        "token": "text-primary",
+        "align": "center"
+      },
+      "author": {
+        "family": "Lora",
+        "style": "Medium",
+        "size": 2.03,
+        "letterSpacing": 0.18,
+        "case": "upper",
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "subtitle": {
+        "family": "Lora",
+        "style": "Italic",
+        "size": 2.5,
+        "token": "text-secondary",
+        "align": "center"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "center"
+      }
+    },
+    "photo": {
+      "layers": [
+        {
+          "layer": "photo",
+          "slot": "image",
+          "fit": "cover",
+          "focal": [
+            0.5,
+            0.3
+          ],
+          "filters": {
+            "saturation": -1.0,
+            "contrast": 0.15,
+            "shadows": 0.1
+          },
+          "css": "filter: grayscale(1) contrast(1.15)",
+          "default": "photos/13-kvity_unsplash-RSI5x8B8DH4.jpg",
+          "swappable": true,
+          "note": "in product the author can later swap the photo from a curated library for this style (commercial-use licences only)"
+        },
+        {
+          "layer": "tint",
+          "shape": "rect",
+          "token": "bg",
+          "blend": "color",
+          "opacity": "photo-tint",
+          "x": 0.0,
+          "y": 0.0,
+          "w": 100.0,
+          "h": 100.0,
+          "css": "mix-blend-mode: color; opacity: var(--cover-photo-tint)"
+        },
+        {
+          "layer": "wash",
+          "shape": "rect",
+          "token": "bg",
+          "blend": "normal",
+          "opacity": "photo-wash",
+          "x": 0.0,
+          "y": 0.0,
+          "w": 100.0,
+          "h": 100.0
+        }
+      ],
+      "source": {
+        "provider": "Unsplash",
+        "id": "RSI5x8B8DH4",
+        "title": "White flowers bloom with a dark, moody background",
+        "author": "wu yi (@takeshi2)",
+        "url": "https://unsplash.com/photos/white-flowers-bloom-with-a-dark-moody-background-RSI5x8B8DH4",
+        "license": "Unsplash License — free for commercial use, no attribution required; no selling unaltered copies / no competing service",
+        "licenseUrl": "https://unsplash.com/license"
+      },
+      "textPlates": "text only on solid bg plate (fade is decorative, text starts below it); contrast = token pairs text-primary/bg, text-secondary/bg >= 4.5"
+    },
+    "decor": [
+      {
+        "shape": "gradient",
+        "tokens": [
+          "bg-0",
+          "bg"
+        ],
+        "inFlow": true,
+        "w": 100,
+        "h": 20.31
+      },
+      {
+        "shape": "rule",
+        "token": "accent",
+        "inFlow": true,
+        "w": 10.0,
+        "h": 0.31
+      }
+    ],
+    "maxTitleLines": 4,
+    "defaultFor": [
+      "Поезія",
+      "Романтика / любовний роман"
+    ],
+    "note": "photo visible in top ~40-60%; plate grows upward with long text"
+  },
+  {
+    "id": "photo-2-city",
+    "group": "Фото",
+    "name": "Фото 2 · Місто",
+    "figma": "99:652",
+    "layout": {
+      "stack": "vertical",
+      "justify": "space-between",
+      "align": "start",
+      "padding": {
+        "top": 0.0,
+        "right": 0.0,
+        "bottom": 0.0,
+        "left": 0.0
+      },
+      "order": [
+        "topBar fill=bg padding 3.1%/8%/2.8%/8% [author]",
+        "bottomPlate fill=bg [edge accent h=0.8%, content padding 4.1%/8%/4.7%/8% gap 1.9% [title, subtitle, spacer, ulit]] full width, grows upward"
+      ]
+    },
+    "text": {
+      "title": {
+        "family": "Russo One",
+        "style": "Regular",
+        "size": 5.31,
+        "lineHeight": 1.12,
+        "token": "text-primary",
+        "align": "left"
+      },
+      "author": {
+        "family": "Inter",
+        "style": "Semi Bold",
+        "size": 2.03,
+        "letterSpacing": 0.16,
+        "case": "upper",
+        "token": "text-primary",
+        "align": "left"
+      },
+      "subtitle": {
+        "family": "Inter",
+        "style": "Regular",
+        "size": 2.34,
+        "token": "text-secondary",
+        "align": "left"
+      },
+      "ulit": {
+        "family": "Unbounded",
+        "style": "SemiBold",
+        "size": 1.41,
+        "letterSpacing": 0.3,
+        "token": "text-secondary",
+        "align": "left"
+      }
+    },
+    "photo": {
+      "layers": [
+        {
+          "layer": "photo",
+          "slot": "image",
+          "fit": "cover",
+          "focal": [
+            0.5,
+            0.5
+          ],
+          "filters": {
+            "saturation": -1.0,
+            "contrast": 0.15,
+            "shadows": 0.1
+          },
+          "css": "filter: grayscale(1) contrast(1.15)",
+          "default": "photos/14-misto_pexels-32122883.jpg",
+          "swappable": true,
+          "note": "in product the author can later swap the photo from a curated library for this style (commercial-use licences only)"
+        },
+        {
+          "layer": "tint",
+          "shape": "rect",
+          "token": "bg",
+          "blend": "color",
+          "opacity": "photo-tint",
+          "x": 0.0,
+          "y": 0.0,
+          "w": 100.0,
+          "h": 100.0,
+          "css": "mix-blend-mode: color; opacity: var(--cover-photo-tint)"
+        },
+        {
+          "layer": "wash",
+          "shape": "rect",
+          "token": "bg",
+          "blend": "normal",
+          "opacity": "photo-wash",
+          "x": 0.0,
+          "y": 0.0,
+          "w": 100.0,
+          "h": 100.0
+        }
+      ],
+      "source": {
+        "provider": "Pexels",
+        "id": "32122883",
+        "title": "Urban Street View During Twilight in Skyscraper Cityscape",
+        "author": "Dmitry Alexandrovich",
+        "url": "https://www.pexels.com/photo/urban-street-view-during-twilight-in-skyscraper-cityscape-32122883/",
+        "license": "Pexels License — free for commercial use, no attribution required; no selling unaltered copies",
+        "licenseUrl": "https://www.pexels.com/license/"
+      },
+      "textPlates": "author on solid bg top bar, title/subtitle/ulit on solid bg bottom plate; contrast = token pairs >= 4.5"
+    },
+    "decor": [
+      {
+        "shape": "rect",
+        "token": "accent",
+        "inFlow": true,
+        "w": 100,
+        "h": 0.78
+      }
+    ],
+    "maxTitleLines": 5,
+    "defaultFor": [
+      "Сучасна проза",
+      "Трилер / детектив"
+    ]
+  }
+]
