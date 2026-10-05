@@ -87,19 +87,18 @@ test.describe("Authenticated author flows", () => {
     await expect(page.getByRole("heading", { name: /мої книги/i })).toBeVisible();
   });
 
-  test("author can start book wizard and fill step 1 (metadata)", async ({ page }) => {
+  test("book wizard opens on step 1 with its required fields", async ({ page }) => {
     await login(page);
     await page.goto("/dashboard/books/new");
-    await expect(page.getByRole("heading", { name: /публікація/i })).toBeVisible();
-
-    await page.getByLabel(/назва/i).fill("E2E Test Book");
-    await page.getByLabel(/опис/i).fill("Книга для автоматизованого тестування.");
-
-    const nextBtn = page.getByRole("button", { name: /далі/i });
-    await expect(nextBtn).toBeEnabled();
-    await nextBtn.click();
-
-    await expect(page.getByText(/крок 2/i)).toBeVisible({ timeout: 5_000 });
+    // Renders only -- it must NOT submit: step 1's button creates a real
+    // book, and this test would leave a new draft behind on every deploy.
+    // (The old version looked for a "Публікація" heading and an "Опис"
+    // field that the wizard no longer has.) Creating a draft through the
+    // wizard is covered once, in output-data.spec.ts, which reuses its book.
+    await expect(page.getByRole("heading", { name: "Нова книга" })).toBeVisible();
+    await expect(page.getByLabel(/назва книги/i)).toBeVisible();
+    await expect(page.getByLabel(/анотація/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /зберегти і перейти на наступний крок/i })).toBeVisible();
   });
 
   test("author can access settings page", async ({ page }) => {
