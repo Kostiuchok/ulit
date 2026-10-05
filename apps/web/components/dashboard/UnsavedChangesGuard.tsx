@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface Props {
   // There are edits on this page that leaving it would lose.
@@ -109,25 +109,34 @@ export function UnsavedChangesGuard({ active, onSave, saveDisabled, isStillUnsav
 
   return (
     <Dialog open={pendingHref !== null} onOpenChange={(open) => !open && !saving && setPendingHref(null)}>
-      <DialogContent className="sm:max-w-xl">
+      {/* Buttons are stacked, full width: three of them side by side did not
+          fit the dialog (and dragged the text out of it too) on narrower
+          screens -- a column cannot overflow at any width. */}
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md">
         <DialogTitle className="text-base font-semibold text-gray-900">Є незбережені зміни</DialogTitle>
-        <DialogDescription className="text-sm text-gray-600">
+        <DialogDescription className="min-w-0 break-words text-sm text-gray-600">
           Якщо перейти на іншу сторінку зараз, зміни на цій сторінці буде втрачено.
           {onSave && saveDisabled && " Зберегти поки не можна — заповніть обов'язкові поля, підсвічені помаранчевим."}
         </DialogDescription>
-        <DialogFooter className="flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:space-x-0">
-          <Button type="button" variant="outline" onClick={() => setPendingHref(null)} disabled={saving}>
-            Залишитись
-          </Button>
-          <Button type="button" variant="outline" onClick={leave} disabled={saving} className="text-red-600 hover:text-red-700">
-            Вийти без збереження
-          </Button>
+        <div className="flex min-w-0 flex-col gap-2">
           {onSave && (
-            <Button type="button" onClick={saveAndLeave} disabled={saving || !!saveDisabled}>
+            <Button type="button" className="w-full" onClick={saveAndLeave} disabled={saving || !!saveDisabled}>
               {saving ? "Збереження…" : "Зберегти й перейти"}
             </Button>
           )}
-        </DialogFooter>
+          <Button type="button" variant="outline" className="w-full" onClick={() => setPendingHref(null)} disabled={saving}>
+            Залишитись на сторінці
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-red-600 hover:text-red-700"
+            onClick={leave}
+            disabled={saving}
+          >
+            Вийти без збереження
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

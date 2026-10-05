@@ -442,7 +442,15 @@ function OutputDataPriceForm({
     savedAt: formatsSaved && !formatsDirty ? savedAt : null,
     onSave: saveFormatsAndDistribution,
     statusNote:
-      formatsSaved && !formatsDirty && savedAt ? (
+      // A failed save must be visible right next to the button -- the red
+      // box at the very bottom of this long page is usually off-screen
+      // (found live: the server rejected the store list for a too-short
+      // annotation and the page just stayed "unsaved" with no visible reason).
+      formatsError ? (
+        <span className="max-w-xl text-sm text-red-600" role="alert">
+          ⚠ Не збережено: {formatsError}
+        </span>
+      ) : formatsSaved && !formatsDirty && savedAt ? (
         <span className="text-sm text-green-700">Збережено ✓ · {fmtTime(savedAt)} · ULIT: застосовано</span>
       ) : dirtyBlockCount > 0 ? (
         <span className="inline-flex items-center gap-1.5 text-sm">
