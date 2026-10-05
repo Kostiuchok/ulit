@@ -1,4 +1,5 @@
 import JsBarcode from "jsbarcode";
+import qrcode from "qrcode-generator";
 import { deriveCoverTheme, isSpineTooThinForText, type CoverTheme } from "shared-types";
 import { computeCoverLayout } from "@/lib/coverLayout";
 import { fontString, renderDoc, type Node, type RenderResult } from "./engine";
@@ -108,6 +109,22 @@ export interface BackCoverData {
   authorPhoto?: CanvasImageSource | null;
   otherCovers?: CanvasImageSource[];
   isbn?: string | null;
+  // Public page of the book (ulit .../books/<slug>) -- rendered as a QR code.
+  bookUrl?: string | null;
+}
+
+// Dark modules of a QR code for `text` (error correction M, smallest
+// version that fits), or null if it can't be encoded.
+function qrMatrix(text: string): boolean[][] | null {
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(text);
+    qr.make();
+    const n = qr.getModuleCount();
+    return Array.from({ length: n }, (_, r) => Array.from({ length: n }, (_, c) => qr.isDark(r, c)));
+  } catch {
+    return null;
+  }
 }
 
 function barcodeCanvas(isbn: string): HTMLCanvasElement | null {
@@ -170,28 +187,40 @@ export function drawBack(ctx: CanvasRenderingContext2D, W: number, H: number, th
   }
 
   const barcode = data.isbn ? barcodeCanvas(data.isbn) : null;
-  const bottomRow: Node[] = [
-    {
-      t: "text",
-      text: "ULIT",
-      spec: { family: "Unbounded", weight: 600, size: 1.6, letterSpacing: 0.3, token: "textSecondary", align: "left" },
-    },
-  ];
+  const qr = data.bookUrl ? qrMatrix(data.bookUrl) : null;
   const bottom: Node[] = [];
-  if (barcode) {
-    // Bottom-right, on its own white plate -- a scanner needs black on white
-    // whatever the theme colour is.
+  if (barcode || qr) {
+    // QR bottom-left, ISBN barcode bottom-right -- each on its own white
+    // plate: a scanner needs dark-on-white whatever the theme colour is.
     bottom.push({
       t: "custom",
       w: 80,
       h: 9,
       draw: (c, x, y, w, h) => {
-        const bw = (h * barcode.width) / barcode.height;
-        c.drawImage(barcode, x + w - bw, y, bw, h);
+        if (qr) {
+          const quiet = 2;
+          const cell = h / (qr.length + quiet * 2);
+          c.fillStyle = "#ffffff";
+          c.fillRect(x, y, h, h);
+          c.fillStyle = "#000000";
+          qr.forEach((row, r) =>
+            row.forEach((dark, col) => {
+              if (dark) c.fillRect(x + (col + quiet) * cell, y + (r + quiet) * cell, cell + 0.5, cell + 0.5);
+            })
+          );
+        }
+        if (barcode) {
+          const bw = (h * barcode.width) / barcode.height;
+          c.drawImage(barcode, x + w - bw, y, bw, h);
+        }
       },
     });
   }
-  bottom.push(...bottomRow);
+  bottom.push({
+    t: "text",
+    text: "ULIT",
+    spec: { family: "Unbounded", weight: 600, size: 1.6, letterSpacing: 0.3, token: "textSecondary", align: "left" },
+  });
 
   renderDoc(ctx, W, H, theme, {
     decor: [

@@ -32,6 +32,7 @@ import { DEFAULT_COVER_BASE_COLOR, coverBaseColorPattern, deriveCoverTheme, form
 
 export interface AutoCoverBook {
   status?: string | null;
+  slug?: string | null;
   title?: string | null;
   subtitle?: string | null;
   description?: string | null;
@@ -162,6 +163,7 @@ export function AutoCoverPicker({ bookId, book, trimMm, pageCount, onApplied, on
         authorPhoto,
         otherCovers,
         isbn: book.isbn,
+        bookUrl: book.slug ? `${window.location.origin}/books/${book.slug}` : null,
       });
     })();
     return () => {

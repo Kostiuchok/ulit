@@ -30,6 +30,7 @@ import {
 
 interface CoverBook {
   status?: string | null;
+  slug?: string | null;
   title?: string | null;
   subtitle?: string | null;
   description?: string | null;
