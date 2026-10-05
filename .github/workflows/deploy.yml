@@ -28,3 +28,39 @@ jobs:
       - name: Deploy via SSH
         run: ssh -i ~/.ssh/deploy_key -p 22 root@${{ vars.SSH_HOST }} "bash /opt/knyha-platform/infra/scripts/deploy.sh"
         timeout-minutes: 20
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    # After the deploy, against the code that is now live. A red result here
+    # means the live site misbehaves -- it does not undo the deploy.
+    needs: deploy
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # workflow_run checks out the default branch; pin to what was deployed.
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          BASE_URL: ${{ secrets.E2E_BASE_URL || 'https://ulit.render.ua' }}
+          # Authenticated-flow tests skip themselves when these are unset --
+          # see e2e/auth-publish.spec.ts for why a fresh registration can't
+          # be used (email verification is required before login).
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}

@@ -61,7 +61,20 @@ test.describe("Authenticated author flows", () => {
     await page.getByLabel(/email/i).fill(FIXTURE_EMAIL!);
     await page.getByLabel(/пароль/i).fill(FIXTURE_PASSWORD!);
     await page.getByRole("button", { name: "Увійти", exact: true }).click();
-    await page.waitForURL("**/dashboard/**", { timeout: 15_000 });
+    // Login lands on exactly "/dashboard" (login/page.tsx: router.push("/dashboard")).
+    // The old glob "**/dashboard/**" needs a path segment AFTER /dashboard/, so
+    // it never matched and every authenticated test timed out right here --
+    // regardless of whether the credentials were right.
+    const landed = page.waitForURL(//dashboard(/|$|?)/, { timeout: 15_000 });
+    // A rejected login must say so, not look like a slow redirect.
+    const rejected = page
+      .getByText(/невірний email або пароль|email не підтверджено/i)
+      .waitFor({ timeout: 15_000 })
+      .then(() => {
+        throw new Error("Login rejected for E2E_TEST_EMAIL -- check the E2E_TEST_EMAIL / E2E_TEST_PASSWORD secrets and that the account's email is verified");
+      });
+    await Promise.race([landed, rejected]);
+    rejected.catch(() => undefined);
   }
 
   test("registered user can log in", async ({ page }) => {
