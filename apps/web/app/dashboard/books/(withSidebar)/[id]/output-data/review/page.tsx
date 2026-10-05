@@ -1,16 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
 import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
+import { useOutputDataSaveBar } from "@/components/dashboard/OutputDataSaveBar";
+import { getChangesSummary } from "@/components/books/RepublishButton";
 import { Card } from "@/components/ui/card";
 import { useBook } from "@/hooks/useBook";
+import { useApi } from "@/hooks/useApi";
 import { DISTRIBUTION_PLATFORMS } from "@/lib/distributionPlatforms";
 import { SECTION_LABELS } from "@/lib/outputDataSections";
 import { cn } from "@/lib/utils";
 import {
-  PRINT_FORMATS,
   resolveBookPrintFormat,
   isPublishStepComplete,
   isPublishFieldComplete,
@@ -47,7 +51,15 @@ interface ReviewBook {
   pricePrintHardcover?: number | string | null;
   pricePrintBw?: number | string | null;
   pricePrintHardcoverBw?: number | string | null;
+  desiredRoyaltyAmount?: number | string | null;
+  desiredRoyaltyAmountPrint?: number | string | null;
   distributionChannels?: string[] | null;
+  docxUpdatedAt?: string | null;
+  publishedAt?: string | null;
+  republishRequestedAt?: string | null;
+  pendingTitle?: string | null;
+  pendingDescription?: string | null;
+  pendingGenre?: string | null;
 }
 
 interface IsbnChecklistItem {
@@ -96,7 +108,7 @@ function IsbnReadinessChecklist({ book, bookId }: { book: ReviewBook | null; boo
     {
       label: "Повне ПІБ автора (файл 1 для заявки на УДК)",
       done: hasAuthorName,
-      hint: !hasAuthorName ? "Додайте прізвище та ім'я автора на вкладці «Інформація»" : undefined,
+      hint: !hasAuthorName ? "Додайте прізвище та ім'я автора на вкладці «Вихідні дані»" : undefined,
     },
     { label: "Обкладинка завантажена", done: !!book?.coverUrl },
     {
@@ -107,18 +119,14 @@ function IsbnReadinessChecklist({ book, bookId }: { book: ReviewBook | null; boo
       linkLabel: "Відкрити «Передперегляд книги» (згенерує його) →",
     },
   ];
+  const doneCount = items.filter((it) => it.done).length;
 
   return (
     <Card className="p-5 text-sm">
       <CollapsibleSection
-        title="Готовність до реєстрації УДК"
-        description={
-          <>
-            Перевірка інформації, яку потрібно надати Книжковій палаті для заявки на УДК + авторський знак —
-            детальніше в <code className="text-xs">docs/isbn-udc-requirements.md</code>. ISBN сюди не входить —
-            видавець призначає його сам, зі свого блоку номерів.
-          </>
-        }
+        title={`Готовність до реєстрації УДК · ${doneCount} з ${items.length}`}
+        description="Перевірка інформації, яку потрібно надати Книжковій палаті для заявки на УДК + авторський знак. ISBN сюди не входить — видавець призначає його сам, зі свого блоку номерів."
+        defaultOpen={doneCount < items.length}
       >
       <div className="space-y-3">
       <ul className="space-y-1.5">
@@ -158,6 +166,47 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Read-only summary card for one output-data section -- WF-SPEC "07 Огляд"
+// п.1: each card links back to the page it summarizes via "Змінити", and
+// gets an amber border + "Змінено · на модерацію" tag while this section
+// has an unresolved content change pending moderation (changedBlocks is the
+// SAME list the dashboard's header button/banner use, via
+// getChangesSummary() -- one source of truth for "what's pending").
+function SectionCard({
+  title,
+  editHref,
+  changed,
+  children,
+}: {
+  title: string;
+  editHref: string;
+  changed: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className={cn("p-5 shadow-none", changed ? "border-2 border-amber-400 bg-amber-50/30" : "bg-gray-50")}>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-2">
+          {changed && (
+            <Badge className="rounded-full border-amber-300 bg-amber-100 px-2 py-0.5 text-[0.6875rem] font-medium text-amber-800 hover:bg-amber-100">
+              Змінено · на модерацію
+            </Badge>
+          )}
+          <Link href={editHref} className="text-xs font-medium text-gray-600 underline hover:no-underline">
+            Змінити
+          </Link>
+        </div>
+      </div>
+      <div className="space-y-2 text-sm">{children}</div>
+    </Card>
+  );
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 export default function OutputDataReviewPage() {
   const { id } = useParams<{ id: string }>();
   const { book, loading } = useBook<ReviewBook>(id);
@@ -165,6 +214,15 @@ export default function OutputDataReviewPage() {
   if (loading) {
     return <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />;
   }
+
+  return <OutputDataReviewForm key={id} book={book} bookId={id} />;
+}
+
+function OutputDataReviewForm({ book, bookId: id }: { book: ReviewBook | null; bookId: string }) {
+  const { apiFetch } = useApi();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [republishRequestedAt, setRepublishRequestedAt] = useState(book?.republishRequestedAt ?? null);
 
   const infoSectionDone = isPublishStepComplete("info", book ?? {});
   const fileSectionDone = isPublishStepComplete("file", book ?? {});
@@ -175,73 +233,148 @@ export default function OutputDataReviewPage() {
   // Persisted format, matches price/page.tsx's own derivation.
   const displayFormat = resolveBookPrintFormat(book ?? {});
 
+  const isPublished = book?.status === "PUBLISHED" || book?.status === "UNPUBLISHED";
+  const { hasChanges, blocks: changedBlocks } = getChangesSummary({
+    docxUpdatedAt: book?.docxUpdatedAt,
+    publishedAt: book?.publishedAt,
+    pendingTitle: book?.pendingTitle,
+    pendingDescription: book?.pendingDescription,
+    pendingGenre: book?.pendingGenre,
+  });
+  const infoChanged = changedBlocks.includes("Вихідні дані");
+  const manuscriptChanged = changedBlocks.includes("Рукопис");
+  const isPending = !!republishRequestedAt;
+
+  async function submitForModeration() {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const { book: updated } = await apiFetch<{ book: { republishRequestedAt: string } }>(
+        `/api/books/${id}/republish`,
+        { method: "POST", body: JSON.stringify({}) }
+      );
+      setRepublishRequestedAt(updated.republishRequestedAt);
+    } catch (e: any) {
+      setSubmitError(e.message || "Помилка надсилання змін");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // WF-SPEC "07 Огляд" п.5/6 -- CTA only for a published book with
+  // unresolved content changes; "✓ Усі зміни опубліковано" once nothing's
+  // pending, "⏳ На модерації" while a submitted request is still in flight.
+  // An unpublished book already has PublishButton/output-data's own submit
+  // flow elsewhere -- this page's bar stays silent for it (no CTA here).
+  useOutputDataSaveBar(
+    !isPublished
+      ? { dirty: false }
+      : isPending
+        ? { dirty: false, statusNote: <span className="text-sm font-medium text-amber-700">⏳ Зміни на модерації</span> }
+        : hasChanges
+          ? {
+              dirty: true,
+              saving: submitting,
+              onSave: submitForModeration,
+              saveLabel: `Надіслати на модерацію (${changedBlocks.length})`,
+              statusNote: submitError ? <span className="text-sm text-red-600">{submitError}</span> : undefined,
+            }
+          : { dirty: false, statusNote: <span className="text-sm font-medium text-green-700">✓ Усі зміни опубліковано</span> }
+  );
+
+  // WF-SPEC п.3 -- ULIT завжди активний (locked-канал), навіть якщо
+  // book.distributionChannels (лише зовнішні магазини) його не містить.
+  const channelKeys = Array.from(new Set(["ULIT", ...(book?.distributionChannels ?? [])]));
+  const channelNames = channelKeys
+    .map((k) => DISTRIBUTION_PLATFORMS.find((p) => p.key === k)?.name ?? k)
+    .filter(Boolean);
+
+  // WF-SPEC п.2 -- одна таблиця Варіант/Ціна/Прибуток/Магазин. Прибуток у
+  // ULIT = саме той гонорар, який автор встановив на "Ціні" (не діапазон
+  // по зовнішніх платформах -- той розрахунок лишається на самій "Ціні").
+  const priceRows = [
+    { label: "Е-книга", price: book?.priceEbook, profit: book?.desiredRoyaltyAmount },
+    { label: "Друк, м'яка (кольор.)", price: book?.pricePrint, profit: book?.desiredRoyaltyAmountPrint },
+    { label: "Друк, тверда (кольор.)", price: book?.pricePrintHardcover, profit: book?.desiredRoyaltyAmountPrint },
+    { label: "Друк, м'яка (ч/б)", price: book?.pricePrintBw, profit: book?.desiredRoyaltyAmountPrint },
+    { label: "Друк, тверда (ч/б)", price: book?.pricePrintHardcoverBw, profit: book?.desiredRoyaltyAmountPrint },
+  ].filter((r) => r.price);
+
   return (
     <div className="space-y-3">
       <OutputDataSectionHeading label={SECTION_LABELS.review} done={readyToPublish} />
-      <div className="space-y-6">
-        <Card className="bg-gray-50 p-5 space-y-3 text-sm shadow-none">
+      <div className="space-y-4">
+        <SectionCard title="Вихідні дані" editHref={`/dashboard/books/${id}/output-data`} changed={infoChanged}>
           <Row label="Назва" value={book?.title || "—"} />
-          {book?.isbn && <Row label="ISBN" value={book.isbn} />}
           <Row label="Жанр" value={book?.genre || "—"} />
           <Row label="Розмір книги" value={`${displayFormat.label} (${displayFormat.widthMm}×${displayFormat.heightMm}мм)`} />
           <Row
             label="Кількість сторінок"
             value={book?.printPageCount ?? book?.pageCount ? `${book?.printPageCount ?? book?.pageCount} ст.` : "—"}
           />
-          <Row label="Рукопис" value={book?.originalDocxUrl ? "Завантажено" : "Не завантажено"} />
+          {book?.isbn && <Row label="ISBN" value={book.isbn} />}
+        </SectionCard>
+
+        <SectionCard title="Рукопис" editHref={`/dashboard/books/${id}/output-data/file`} changed={manuscriptChanged}>
+          <Row label="Файл" value={book?.originalDocxUrl ? "Завантажено" : "Не завантажено"} />
+        </SectionCard>
+
+        <SectionCard title="Обкладинка" editHref={`/dashboard/books/${id}/output-data/cover`} changed={false}>
           <Row label="Обкладинка" value={book?.coverUrl ? "Завантажено" : "Не завантажено"} />
-          <Row label="Е-книга" value={book?.priceEbook ? `${Number(book.priceEbook).toFixed(2)} грн` : "Не продається"} />
-          <Row label="Друк, м'яка (кольор.)" value={book?.pricePrint ? `${Number(book.pricePrint).toFixed(2)} грн` : "Не продається"} />
-          <Row label="Друк, тверда (кольор.)" value={book?.pricePrintHardcover ? `${Number(book.pricePrintHardcover).toFixed(2)} грн` : "Не продається"} />
-          <Row label="Друк, м'яка (ч/б)" value={book?.pricePrintBw ? `${Number(book.pricePrintBw).toFixed(2)} грн` : "Не продається"} />
-          <Row label="Друк, тверда (ч/б)" value={book?.pricePrintHardcoverBw ? `${Number(book.pricePrintHardcoverBw).toFixed(2)} грн` : "Не продається"} />
-          <Row label="Платформи" value={book?.distributionChannels?.length ? `${book.distributionChannels.length} обрано` : "Не обрано"} />
-        </Card>
+        </SectionCard>
+
+        <SectionCard title="Ціна та розповсюдження" editHref={`/dashboard/books/${id}/output-data/price`} changed={false}>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500">Платформи: {channelKeys.length} обрано</span>
+            <Link
+              href={`/dashboard/books/${id}/output-data/price`}
+              className="text-xs font-medium text-gray-600 underline hover:no-underline"
+            >
+              Додати магазини
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {channelNames.map((name) => (
+              <Badge key={name} variant="outline" className="rounded-full border-gray-300 bg-white px-2 py-0.5 text-xs font-medium text-gray-700">
+                {name}
+              </Badge>
+            ))}
+          </div>
+          {isPublished && (
+            <Badge className="rounded-full border-green-300 bg-green-50 px-2 py-0.5 text-[0.6875rem] font-medium text-green-700 hover:bg-green-50">
+              Застосовано одразу
+            </Badge>
+          )}
+        </SectionCard>
+
+        {priceRows.length > 0 && (
+          <Card className="overflow-hidden p-0 shadow-none">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <th className="px-4 py-2.5">Варіант</th>
+                  <th className="px-4 py-2.5">Ціна для читача</th>
+                  <th className="px-4 py-2.5">Ваш прибуток</th>
+                  <th className="px-4 py-2.5">Магазин</th>
+                </tr>
+              </thead>
+              <tbody>
+                {priceRows.map((r) => (
+                  <tr key={r.label} className="border-b last:border-0">
+                    <td className="px-4 py-2.5 font-medium text-gray-900">{r.label}</td>
+                    <td className="px-4 py-2.5">{round2(Number(r.price)).toFixed(2)} грн</td>
+                    <td className="px-4 py-2.5">{r.profit ? `${round2(Number(r.profit)).toFixed(2)} грн` : "—"}</td>
+                    <td className="px-4 py-2.5 text-gray-500">ULIT</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
 
         {book?.pricePrint || book?.pricePrintHardcover || book?.pricePrintBw || book?.pricePrintHardcoverBw ? (
           <IsbnReadinessChecklist book={book} bookId={id} />
         ) : null}
-
-        {!!book?.distributionChannels?.length && (
-          <Card className="p-5 text-sm">
-          <CollapsibleSection
-            title="Орієнтовний прибуток по каналах"
-            description="Сума за один проданий примірник, за вирахуванням комісії платформи. Ціна вказана за книжку — це вартість до відрахування цих комісій."
-          >
-          <div className="space-y-4">
-            {[
-              { label: "Е-книга", price: book?.priceEbook },
-              { label: "Друк, м'яка (кольор.)", price: book?.pricePrint },
-              { label: "Друк, тверда (кольор.)", price: book?.pricePrintHardcover },
-              { label: "Друк, м'яка (ч/б)", price: book?.pricePrintBw },
-              { label: "Друк, тверда (ч/б)", price: book?.pricePrintHardcoverBw },
-            ]
-              .filter((f) => f.price)
-              .map((f) => {
-                const price = Number(f.price);
-                return (
-                  <div key={f.label} className="space-y-1.5">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                      {f.label} — {price.toFixed(2)} грн
-                    </p>
-                    <div className="space-y-1 pl-1">
-                      {book!.distributionChannels!.map((key) => {
-                        const platform = DISTRIBUTION_PLATFORMS.find((p) => p.key === key);
-                        if (!platform) return null;
-                        const min = price * platform.royaltyMin;
-                        const max = price * platform.royaltyMax;
-                        const value =
-                          min === max ? `${min.toFixed(2)} грн` : `${min.toFixed(2)}–${max.toFixed(2)} грн`;
-                        return <Row key={key} label={platform.name} value={value} />;
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-          </CollapsibleSection>
-          </Card>
-        )}
       </div>
     </div>
   );
