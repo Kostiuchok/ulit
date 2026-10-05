@@ -33,6 +33,16 @@ import {
 import { Button } from "../ui/button";
 import { SaveActionButton } from "../ui/SaveActionButton";
 import { UnsavedChangesGuard } from "../dashboard/UnsavedChangesGuard";
+import { buildEditorStyle, type EditorStyleBuild } from "@/lib/autoCover/editorStyle";
+import {
+  COVER_STYLES,
+  DEFAULT_COVER_STYLE_ID,
+  coverStyleForGenre,
+  coverStyleLabel,
+  findCoverStyle,
+} from "@/lib/autoCover/styles";
+import { clip as clipCoverText, drawFront, loadCoverFonts, loadImage, prepareCoverAssets } from "@/lib/autoCover/render";
+import { DEFAULT_COVER_BASE_COLOR, coverBaseColorPattern, deriveCoverTheme } from "shared-types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
@@ -81,7 +91,74 @@ const SAFE_MARGIN = 24;
 // Standard system fonts only — rendered by the viewer's own browser/OS (like
 // any CSS font-family), never embedded/redistributed as a file, so this
 // carries no font-licensing risk. All have solid Cyrillic coverage.
-const FONTS = ["Georgia", "Arial", "Helvetica", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New"];
+const FONTS = [
+  "Georgia",
+  "Arial",
+  "Helvetica",
+  "Times New Roman",
+  "Verdana",
+  "Trebuchet MS",
+  "Courier New",
+  // The ready-made styles' own fonts (Google Fonts, loaded with the styles).
+  "Playfair Display",
+  "Lora",
+  "Cormorant Garamond",
+  "PT Serif",
+  "Unbounded",
+  "Inter",
+  "Montserrat",
+  "Raleway",
+  "Rubik",
+  "Comfortaa",
+  "Oswald",
+];
+
+// Same starting colours as the style picker on the "Обкладинка" page.
+const STYLE_PRESET_COLORS = ["#1F3A5F", "#7A1F2B", "#2F5D46", "#E8D9B5", "#5B2A86", "#111111", "#D94F70", "#F2C14E"];
+
+// A cover style chosen for this book: which of the 14, and its one colour.
+interface StyleSelection {
+  id: string;
+  baseColor: string;
+}
+
+// A linked text as the style shows it: shortened / upper-cased the way the
+// template does (data.clip / data.upper come from lib/autoCover/editorStyle).
+function shapeLinkedText(o: any, value: string): string {
+  let text = value;
+  if (o?.data?.clip && text.length > o.data.clip) text = clipCoverText(text, o.data.clip);
+  if (o?.data?.upper) text = text.toUpperCase();
+  return text;
+}
+
+// One style drawn small, with this book's own title and author -- the strip
+// under the canvas.
+function StyleThumb({
+  width,
+  height,
+  draw,
+  deps,
+}: {
+  width: number;
+  height: number;
+  draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+  deps: unknown[];
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(width * dpr);
+    c.height = Math.round(height * dpr);
+    const context = c.getContext("2d");
+    if (!context) return;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw(context, width, height);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height, ...deps]);
+  return <canvas ref={ref} style={{ width, height }} className="block rounded-sm" />;
+}
 const FONT_SIZE_MIN = 6;
 const FONT_SIZE_MAX = 300;
 const clampFontSize = (v: number) => Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, Math.round(v)));
@@ -524,7 +601,7 @@ export const PATTERNS: { id: string; label: string; build: PatternBuilder }[] = 
 // combination can be present simultaneously. normalizeBackgroundStack pins
 // whichever of these exist to indices 0..n-1 in this order, leaving every
 // other object's relative order above them untouched.
-const BACKGROUND_LAYER_ORDER = ["accent", "pattern", "bg-image", "photo-slot", "existing-cover"] as const;
+const BACKGROUND_LAYER_ORDER = ["accent", "style-bg", "pattern", "bg-image", "photo-slot", "existing-cover"] as const;
 
 function normalizeBackgroundStack(canvas: fabric.Canvas) {
   const objs = canvas.getObjects();
@@ -586,6 +663,7 @@ const LAYER_LABELS: Record<string, string> = {
   "bg-image": "Фонове зображення",
   accent: "Фон",
   "existing-cover": "Збережена обкладинка",
+  "style-bg": "Фон стилю",
   barcode: "Штрихкод ISBN",
   qr: "QR-код",
   "author-photo": "Фото автора",
@@ -594,7 +672,7 @@ const LAYER_LABELS: Record<string, string> = {
 
 // Text layers that mirror «Вихідні дані» until the author unlinks them.
 const LINKED_TEXT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "text-blurb", "text-bio"]);
-const BG_LAYER_ROLES = new Set(["accent", "pattern", "bg-image", "photo-slot", "existing-cover"]);
+const BG_LAYER_ROLES = new Set(["accent", "style-bg", "pattern", "bg-image", "photo-slot", "existing-cover"]);
 
 const BACK_TOGGLES: { role: string; label: string; linked?: boolean }[] = [
   { role: "text-blurb", label: "Анотація", linked: true },
@@ -888,7 +966,8 @@ function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
       o.data?.role !== "accent" &&
       o.data?.role !== "bg-image" &&
       o.data?.role !== "photo-slot" &&
-      o.data?.role !== "existing-cover"
+      o.data?.role !== "existing-cover" &&
+      o.data?.role !== "style-bg"
   );
   const isFront = (o: any) => {
     const role = o.data?.role;
@@ -1072,6 +1151,35 @@ function applyExistingCover(canvas: fabric.Canvas, layout: CoverLayout, urls: Ex
   }
 }
 
+// The painted half of a ready-made style (lib/autoCover/editorStyle.ts):
+// background, decor, plates, the style's own photo -- everything on the
+// cover that is not an editable text or picture. It is a canvas element
+// drawn at export resolution, so it is deliberately kept OUT of every JSON
+// (excludeFromExport): not in the undo history, not in the saved design.
+// It is cheap to paint again, and is re-added after anything that rebuilds
+// the canvas from JSON.
+function setStyleBackground(canvas: fabric.Canvas, layout: CoverLayout, build: EditorStyleBuild) {
+  canvas
+    .getObjects()
+    .filter((o: any) => o.data?.role === "style-bg")
+    .forEach((o) => canvas.remove(o));
+  const img = new fabric.Image(build.background as unknown as HTMLImageElement, {
+    originX: "left",
+    originY: "top",
+    left: -layout.bleed,
+    top: -layout.bleed,
+    scaleX: 1 / build.resolution,
+    scaleY: 1 / build.resolution,
+    selectable: false,
+    evented: false,
+    excludeFromExport: true,
+    objectCaching: false,
+    data: { role: "style-bg" },
+  });
+  canvas.add(img);
+  normalizeBackgroundStack(canvas);
+}
+
 // Same idea as applyBackground, for the "photo-slot" illustration layer.
 function applyIllustration(canvas: fabric.Canvas, layout: CoverLayout, ill: IllustrationDesign | null) {
   if (!ill?.imageUrl) return;
@@ -1113,7 +1221,21 @@ interface Props {
   // cover" mode on the print formats.
   existingBackCoverUrl?: string | null;
   existingSpineUrl?: string | null;
-  savedDesign?: { front: any[]; backSpine: any[]; background: BackgroundDesign; illustration?: IllustrationDesign } | null;
+  savedDesign?: {
+    front: any[];
+    backSpine: any[];
+    background: BackgroundDesign;
+    illustration?: IllustrationDesign;
+    // Set when the design is built on one of the 14 ready-made styles.
+    style?: StyleSelection | null;
+  } | null;
+  // The style last looked at in the picker (Book.autoCoverStyleId /
+  // autoCoverBaseColor) and the book's genre -- only used to choose a
+  // starting style for a book that has no cover at all yet.
+  coverStyleHint?: { id?: string | null; baseColor?: string | null } | null;
+  genre?: string | null;
+  // "Прізвище Ім'я По батькові" for the back cover's "Про автора".
+  backAuthorName?: string | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   // T-2060 п.8 -- "незалежно від даних книги" (Ridero pattern). Default true
   // (synced) when the caller doesn't pass it, matching the DB default for
@@ -1153,6 +1275,9 @@ export default function CoverDesignerCanvas({
   existingCoverUrl,
   existingBackCoverUrl,
   existingSpineUrl,
+  coverStyleHint,
+  genre,
+  backAuthorName,
   bookUrl,
   authorPhotoUrl,
   otherBookCovers = [],
@@ -1220,7 +1345,45 @@ export default function CoverDesignerCanvas({
   // (see applyExistingCover). Ends the moment the author builds a new cover
   // here: a template, an own file, one of their saved templates.
   const hasSavedDesign = !!savedDesign && (savedDesign.front.length > 0 || savedDesign.backSpine.length > 0);
-  const [existingMode, setExistingMode] = useState(() => !hasSavedDesign && !!existingCoverUrl);
+  // Which ready-made style the canvas is built on (null: none -- a legacy
+  // editor design, an uploaded file, a saved "my template").
+  //   saved design with a style      -> that style
+  //   saved design without one       -> none (legacy design, shown as saved)
+  //   no design, cover from a style  -> that style, built fresh
+  //   no design, some other cover    -> none ("existing cover" mode below)
+  //   no cover at all                -> a starting style, by genre
+  const [styleSel, setStyleSel] = useState<StyleSelection | null>(() => {
+    const saved = savedDesign?.style;
+    if (saved?.id) return { id: findCoverStyle(saved.id).id, baseColor: saved.baseColor };
+    if (hasSavedDesign || existingCoverUrl) return null;
+    const hintColor = coverStyleHint?.baseColor;
+    return {
+      id: findCoverStyle(coverStyleHint?.id ?? coverStyleForGenre(genre) ?? DEFAULT_COVER_STYLE_ID).id,
+      baseColor: hintColor && coverBaseColorPattern.test(hintColor) ? hintColor : DEFAULT_COVER_BASE_COLOR,
+    };
+  });
+  const styleRef = useRef(styleSel);
+  styleRef.current = styleSel;
+  const styleBuildRef = useRef<EditorStyleBuild | null>(null);
+  const [styleAssetsReady, setStyleAssetsReady] = useState(false);
+  const [applyingStyle, setApplyingStyle] = useState(false);
+  // Fonts, the styles' own photos and the back cover's pictures -- loaded
+  // once; a style can only be laid out after they are in.
+  const styleAssetsRef = useRef<{
+    photos: Record<string, CanvasImageSource | null>;
+    authorPhoto: HTMLImageElement | null;
+    otherCovers: { url: string; img: HTMLImageElement }[];
+  } | null>(null);
+  // Filled in further down, once the functions exist -- effects declared
+  // before them reach them through these.
+  const buildStyleNowRef = useRef<(layout: CoverLayout, sel: StyleSelection) => EditorStyleBuild>(() => {
+    throw new Error("style assets not loaded");
+  });
+  const applyStyleFreshRef = useRef<(sel: StyleSelection) => Promise<void>>(async () => {});
+  const rebuildStyleBackgroundRef = useRef<() => Promise<void>>(async () => {});
+  const restoreStyleBackgroundRef = useRef<() => void>(() => {});
+  const leaveStyleModeRef = useRef<() => void>(() => {});
+  const [existingMode, setExistingMode] = useState(() => !hasSavedDesign && !savedDesign?.style && !!existingCoverUrl);
   const existingModeRef = useRef(existingMode);
   existingModeRef.current = existingMode;
   const existingUrlsRef = useRef<ExistingCoverUrls>({});
@@ -1314,6 +1477,170 @@ export default function CoverDesignerCanvas({
       }
     });
   }, []);
+
+  // ── Ready-made styles as editable layers ─────────────────────────────────
+  const loadStyleAssets = async () => {
+    if (styleAssetsRef.current) return styleAssetsRef.current;
+    const sample = `${bookTitle} ${bookAuthor} ${subtitle ?? ""} ${description ?? ""} ${authorBio ?? ""} ${backAuthorName ?? ""} Про книгу Про автора Інші книги автора на ULIT`;
+    await loadCoverFonts(sample);
+    // Fabric caches glyph widths per font name; anything it measured before
+    // the web fonts arrived was measured in a fallback font.
+    (fabric.util as any).clearFabricFontCache?.();
+    const photoEntries = await Promise.all(
+      COVER_STYLES.filter((s) => s.photo).map(async (s) => [s.id, await prepareCoverAssets(s, sample)] as const)
+    );
+    const authorPhoto = authorPhotoUrl ? await loadImage(authorPhotoUrl, true) : null;
+    const others = await Promise.all(
+      otherBookCovers.slice(0, 3).map(async (url) => ({ url, img: await loadImage(url, true) }))
+    );
+    styleAssetsRef.current = {
+      photos: Object.fromEntries(photoEntries),
+      authorPhoto,
+      otherCovers: others.filter((o): o is { url: string; img: HTMLImageElement } => !!o.img),
+    };
+    setStyleAssetsReady(true);
+    return styleAssetsRef.current;
+  };
+
+  const styleTexts = { title: bookTitle?.trim() || "Назва книги", author: bookAuthor, subtitle };
+
+  const buildStyleNow = (layout: CoverLayout, sel: StyleSelection): EditorStyleBuild => {
+    const assets = styleAssetsRef.current;
+    if (!assets) throw new Error("style assets not loaded");
+    return buildEditorStyle({
+      layout,
+      styleId: sel.id,
+      baseColor: sel.baseColor,
+      texts: styleTexts,
+      back: {
+        description,
+        authorName: backAuthorName?.trim() || bookAuthor,
+        authorBio,
+        authorPhoto: assets.authorPhoto,
+        otherCovers: assets.otherCovers.map((o) => o.img),
+        isbn,
+        bookUrl,
+      },
+      authorPhotoUrl: assets.authorPhoto ? authorPhotoUrl : null,
+      otherCoverUrls: assets.otherCovers.map((o) => o.url),
+      pageCount: pageCount ?? null,
+      photo: assets.photos[sel.id] ?? null,
+      resolution: geometry.exportScale,
+    });
+  };
+  buildStyleNowRef.current = buildStyleNow;
+
+  // Paints the style's background again for the current layout, leaving
+  // every object on the canvas as it is (reopening a saved design, a colour
+  // change).
+  const rebuildStyleBackground = async () => {
+    const sel = styleRef.current;
+    if (!sel) return;
+    await loadStyleAssets();
+    const canvas = canvasRef.current;
+    if (!canvas || isCanvasDisposed(canvas) || styleRef.current !== sel) return;
+    const build = buildStyleNow(ctx.layout, sel);
+    styleBuildRef.current = build;
+    const wasPaused = pauseHistoryRef.current;
+    pauseHistoryRef.current = true;
+    setStyleBackground(canvas, ctx.layout, build);
+    pauseHistoryRef.current = wasPaused;
+    canvas.requestRenderAll();
+  };
+  rebuildStyleBackgroundRef.current = rebuildStyleBackground;
+
+  // After undo/redo rebuilt the canvas from JSON: the background is not in
+  // that JSON, so put the current one back.
+  restoreStyleBackgroundRef.current = () => {
+    const canvas = canvasRef.current;
+    const build = styleBuildRef.current;
+    if (!canvas || !styleRef.current || !build) return;
+    setStyleBackground(canvas, ctx.layout, build);
+  };
+
+  leaveStyleModeRef.current = () => {
+    if (!styleRef.current) return;
+    styleRef.current = null;
+    styleBuildRef.current = null;
+    setStyleSel(null);
+    const canvas = canvasRef.current;
+    canvas
+      ?.getObjects()
+      .filter((o: any) => o.data?.role === "style-bg")
+      .forEach((o) => canvas.remove(o));
+  };
+
+  // Builds a style from scratch: its background plus every text and picture
+  // as a fresh layer. Replaces whatever is on the canvas.
+  const applyStyleFresh = async (sel: StyleSelection) => {
+    setApplyingStyle(true);
+    try {
+      await loadStyleAssets();
+      const canvas = canvasRef.current;
+      if (!canvas || isCanvasDisposed(canvas)) return;
+      const build = buildStyleNow(ctx.layout, sel);
+      pauseHistoryRef.current = true;
+      await new Promise<void>((resolve) =>
+        canvas.loadFromJSON(JSON.stringify({ objects: build.objects }), () => resolve())
+      );
+      if (canvasRef.current !== canvas || isCanvasDisposed(canvas)) return;
+      styleBuildRef.current = build;
+      backgroundRef.current = { color: build.themeBg };
+      illustrationRef.current = null;
+      setBgImageUrl(null);
+      // The other format's panels are rebuilt from this style when the author
+      // switches to it.
+      frontStateRef.current = null;
+      backSpineStateRef.current = null;
+      applyBackground(canvas, ctx.layout, backgroundRef.current, build.themeBg);
+      setStyleBackground(canvas, ctx.layout, build);
+      canvas.renderAll();
+      pauseHistoryRef.current = false;
+      // A different style is a different cover: undo does not cross it (the
+      // background of the previous style is gone).
+      historyRef.current = [];
+      historyIndexRef.current = -1;
+      saveSnapshot();
+    } finally {
+      pauseHistoryRef.current = false;
+      setApplyingStyle(false);
+    }
+  };
+  applyStyleFreshRef.current = applyStyleFresh;
+
+  const pickStyle = async (id: string) => {
+    const sel: StyleSelection = { id: findCoverStyle(id).id, baseColor: styleRef.current?.baseColor ?? DEFAULT_COVER_BASE_COLOR };
+    leaveExistingMode();
+    styleRef.current = sel;
+    setStyleSel(sel);
+    await applyStyleFresh(sel);
+  };
+
+  // One colour drives the whole theme: texts still wearing a theme colour
+  // follow it, texts the author recoloured by hand keep their colour.
+  const changeStyleColor = (color: string) => {
+    const current = styleRef.current;
+    const canvas = canvasRef.current;
+    if (!current || !canvas || !coverBaseColorPattern.test(color) || color.toLowerCase() === current.baseColor.toLowerCase()) return;
+    const from = deriveCoverTheme(current.baseColor) as unknown as Record<string, unknown>;
+    const to = deriveCoverTheme(color) as unknown as Record<string, unknown>;
+    canvas.getObjects().forEach((o: any) => {
+      if (o.type !== "textbox" || typeof o.fill !== "string") return;
+      const token = Object.keys(from).find((k) => typeof from[k] === "string" && (from[k] as string).toLowerCase() === o.fill.toLowerCase());
+      if (token && typeof to[token] === "string") o.set({ fill: to[token] });
+    });
+    const sel = { id: current.id, baseColor: color };
+    styleRef.current = sel;
+    setStyleSel(sel);
+    const accent = canvas.getObjects().find((o: any) => o.data?.role === "accent") as any;
+    accent?.set({ fill: to.bg as string });
+    backgroundRef.current = { color: to.bg as string };
+    void rebuildStyleBackground().then(() => {
+      historyRef.current = [];
+      historyIndexRef.current = -1;
+      saveSnapshot();
+    });
+  };
 
   // Init canvas once
   useEffect(() => {
@@ -1450,13 +1777,26 @@ export default function CoverDesignerCanvas({
         // (clearContext on a null context) as an uncaught client-side
         // exception -- bail out if this callback is stale.
         if (canvasRef.current !== canvas) return;
-        extendEdgeObjectsIntoBleed(canvas, ctx.layout);
+        if (!styleRef.current) extendEdgeObjectsIntoBleed(canvas, ctx.layout);
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
         applyIllustration(canvas, ctx.layout, illustrationRef.current);
+        if (styleRef.current) void rebuildStyleBackgroundRef.current();
         canvas.renderAll();
         historyRef.current = [];
         historyIndexRef.current = -1;
         saveSnapshot();
+        queueMicrotask(() => {
+          coverReadyRef.current = true;
+        });
+      });
+    } else if (styleRef.current) {
+      // A ready-made style, built fresh into layers (fonts and pictures load
+      // first, so the canvas shows the plain theme colour for a moment).
+      const theme = deriveCoverTheme(styleRef.current.baseColor);
+      backgroundRef.current = { color: theme.bg };
+      applyBackground(canvas, ctx.layout, backgroundRef.current, theme.bg);
+      canvas.renderAll();
+      void applyStyleFreshRef.current(styleRef.current).then(() => {
         queueMicrotask(() => {
           coverReadyRef.current = true;
         });
@@ -1526,6 +1866,14 @@ export default function CoverDesignerCanvas({
 
     applyCanvasGeometry(canvas, ctx.layout);
 
+    if (formatChanged && styleRef.current && !styleAssetsRef.current) {
+      // The style's fonts/pictures are still loading: nothing sensible can be
+      // re-laid out yet -- build the style fresh for the new format instead.
+      prevFormatRef.current = format;
+      void applyStyleFreshRef.current(styleRef.current);
+      return;
+    }
+
     if (formatChanged) {
       // Switching the format only re-lays the SAME design out on another
       // canvas -- the rebuild below (and the images it reloads afterwards)
@@ -1536,7 +1884,14 @@ export default function CoverDesignerCanvas({
       pauseHistoryRef.current = true;
 
       const needFresh = !frontStateRef.current || (!!ctx.layout.back && !backSpineStateRef.current);
-      const fresh = needFresh ? buildFreshPanelObjects(ctx, template, ctx.layout) : null;
+      // On a ready-made style the missing panel comes from that style (its
+      // own back cover and spine), not from an editor template.
+      const styleBuild = styleRef.current && styleAssetsRef.current ? buildStyleNowRef.current(ctx.layout, styleRef.current) : null;
+      const fresh = needFresh
+        ? styleBuild
+          ? splitObjectsByPanel(styleBuild.objects as any[], ctx.layout)
+          : buildFreshPanelObjects(ctx, template, ctx.layout)
+        : null;
 
       const frontRelative = frontStateRef.current ?? fresh!.front;
       const frontObjs = repositionFrontObjects(frontRelative, ctx.layout.front);
@@ -1549,6 +1904,10 @@ export default function CoverDesignerCanvas({
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
         applyIllustration(canvas, ctx.layout, illustrationRef.current);
         if (existingModeRef.current) applyExistingCover(canvas, ctx.layout, existingUrlsRef.current);
+        if (styleBuild) {
+          styleBuildRef.current = styleBuild;
+          setStyleBackground(canvas, ctx.layout, styleBuild);
+        }
         canvas.renderAll();
         pauseHistoryRef.current = false;
         historyRef.current = [];
@@ -1608,8 +1967,10 @@ export default function CoverDesignerCanvas({
     canvas.getObjects().forEach((o: any) => {
       const role = o.data?.role;
       const next = roleToText[role];
-      if (next !== undefined && !o.data?.unlinked && o.text !== next) {
-        o.set({ text: next });
+      if (next === undefined || o.data?.unlinked) return;
+      const shaped = shapeLinkedText(o, next);
+      if (o.text !== shaped) {
+        o.set({ text: shaped });
         changed = true;
       }
     });
@@ -1628,6 +1989,7 @@ export default function CoverDesignerCanvas({
     pauseHistoryRef.current = true;
     canvas.loadFromJSON(json, () => {
       if (canvasRef.current !== canvas) return; // T-2067 -- stale callback after unmount
+      restoreStyleBackgroundRef.current();
       canvas.renderAll();
       pauseHistoryRef.current = false;
       setCanUndo(historyIndexRef.current > 0);
@@ -1643,6 +2005,7 @@ export default function CoverDesignerCanvas({
     pauseHistoryRef.current = true;
     canvas.loadFromJSON(json, () => {
       if (canvasRef.current !== canvas) return; // T-2067 -- stale callback after unmount
+      restoreStyleBackgroundRef.current();
       canvas.renderAll();
       pauseHistoryRef.current = false;
       setCanUndo(true);
@@ -1656,6 +2019,7 @@ export default function CoverDesignerCanvas({
       if (!canvas) return;
       setTemplateId(tpl.id);
       leaveExistingMode();
+      leaveStyleModeRef.current();
       tpl.apply(canvas, ctx);
       extendEdgeObjectsIntoBleed(canvas, ctx.layout);
       canvas.renderAll();
@@ -2161,6 +2525,7 @@ export default function CoverDesignerCanvas({
           const canvas = canvasRef.current;
           if (!canvas) return;
           leaveExistingMode();
+          leaveStyleModeRef.current();
           canvas.clear();
           fabric.Image.fromURL(dataUrl, (fabricImg) => {
             if (isCanvasDisposed(canvas)) return;
@@ -2295,14 +2660,20 @@ export default function CoverDesignerCanvas({
       // design is stored empty and the next open shows the saved cover.
       const coverDesign = existingModeRef.current
         ? { front: [], backSpine: [], background: { color: backgroundRef.current?.color ?? "#ffffff" } }
-        : captureDesignState(canvas, ctx.layout, backSpineStateRef.current);
+        : { ...captureDesignState(canvas, ctx.layout, backSpineStateRef.current), style: styleRef.current ?? null };
       await fetch(`/api/books/${bookId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ coverDesign }),
+        body: JSON.stringify({
+          coverDesign,
+          // Keeps the picker on the "Обкладинка" page on the same style.
+          ...(styleRef.current
+            ? { autoCoverStyleId: styleRef.current.id, autoCoverBaseColor: styleRef.current.baseColor }
+            : {}),
+        }),
       });
 
       onSaved(patch);
@@ -2372,6 +2743,7 @@ export default function CoverDesignerCanvas({
     (design: CoverTemplateEntry["design"]) => {
       const canvas = canvasRef.current;
       if (!canvas) return Promise.resolve();
+      leaveStyleModeRef.current();
       frontStateRef.current = design.front;
       backSpineStateRef.current = design.backSpine;
       backgroundRef.current = design.background;
@@ -2438,7 +2810,20 @@ export default function CoverDesignerCanvas({
       let label = role ? LAYER_LABELS[role] : undefined;
       if (!label) {
         if (!selectable) return; // decorative, role-less (logo, ISBN caption)
-        label = o.type === "textbox" ? "Текст" : o.type === "image" ? "Зображення" : "Елемент";
+        // Texts of a ready-made style that have no editor role of their own.
+        const part: string | undefined = o.data?.part;
+        label =
+          part === "brand"
+            ? "Напис ULIT"
+            : part === "heading"
+              ? `Заголовок «${String(o.text ?? "").trim()}»`
+              : part === "author-name"
+                ? "Ім'я автора"
+                : o.type === "textbox"
+                  ? "Текст"
+                  : o.type === "image"
+                    ? "Зображення"
+                    : "Елемент";
       }
       let group = "";
       if (spine) {
@@ -2499,7 +2884,8 @@ export default function CoverDesignerCanvas({
       "text-blurb": description || "",
     };
     if (obj.isEditing) obj.exitEditing();
-    obj.set({ text: bookText[obj.data?.role] ?? obj.text });
+    const original = bookText[obj.data?.role];
+    obj.set({ text: original !== undefined ? shapeLinkedText(obj, original) : obj.text });
     canvas.requestRenderAll();
     setUnlinkPrompt(null);
   }, [unlinkPrompt, bookTitle, bookAuthor, subtitle, authorBio, description]);
@@ -2632,7 +3018,7 @@ export default function CoverDesignerCanvas({
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
           <span className="font-semibold">Це ваша збережена обкладинка.</span> Її текст і зображення вже злиті в одну
           картинку, тому окремо не редагуються: можна додати поверх фігуру чи блок задньої сторони. Щоб зібрати
-          обкладинку з окремих елементів — оберіть шаблон на вкладці «Дизайн» (поточну обкладинку буде замінено лише
+          обкладинку з окремих елементів — оберіть стиль у стрічці під полотном (поточну обкладинку буде замінено лише
           після «Зберегти»).
         </div>
       )}
@@ -2789,6 +3175,70 @@ export default function CoverDesignerCanvas({
                 корінці — від {MIN_SPINE_TEXT_PAGES} сторінок
               </span>
             )}
+          </div>
+          {/* The whole library of ready-made styles, right under the canvas
+              (Figma 47:2): the author can change their mind about the style
+              here and go on editing it at once. Each thumbnail is that style
+              drawn with THIS book's title and author. */}
+          <div className="w-full max-w-3xl space-y-2 border-t border-gray-100 pt-3">
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-900">
+                {styleSel ? coverStyleLabel(findCoverStyle(styleSel.id)) : "Готові стилі"}
+              </p>
+              <p className="text-xs text-gray-500">
+                {styleSel
+                  ? `${COVER_STYLES.findIndex((s) => s.id === styleSel.id) + 1} з ${COVER_STYLES.length}`
+                  : "Оберіть стиль — обкладинку буде зібрано з нього; збережеться лише після «Зберегти»"}
+                {applyingStyle && " · застосовується…"}
+              </p>
+              {styleSel && genre && coverStyleForGenre(genre) === styleSel.id && (
+                <span className="mt-1 inline-block rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[0.6875rem] text-gray-600">
+                  ✦ Підібрано за жанром «{genre}»
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2 overflow-x-auto px-1 pb-1">
+              {COVER_STYLES.map((s) => {
+                const thumbW = 52;
+                const thumbH = Math.round((thumbW * geometry.displayH) / geometry.displayW);
+                const selected = styleSel?.id === s.id;
+                const color = styleSel?.baseColor ?? DEFAULT_COVER_BASE_COLOR;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    disabled={applyingStyle}
+                    onClick={() => void pickStyle(s.id)}
+                    title={coverStyleLabel(s)}
+                    className="flex shrink-0 flex-col items-center gap-1 disabled:opacity-60"
+                  >
+                    <span
+                      className={cn(
+                        "block overflow-hidden rounded border-2",
+                        selected ? "border-green-600 ring-2 ring-green-200" : "border-transparent hover:border-gray-300"
+                      )}
+                      style={{ width: thumbW + 4, height: thumbH + 4 }}
+                    >
+                      {styleAssetsReady ? (
+                        <StyleThumb
+                          width={thumbW}
+                          height={thumbH}
+                          deps={[s.id, color, styleTexts.title, styleTexts.author, styleTexts.subtitle]}
+                          draw={(c, w, h) =>
+                            drawFront(c, w, h, s, deriveCoverTheme(color), styleTexts, styleAssetsRef.current?.photos[s.id] ?? null)
+                          }
+                        />
+                      ) : (
+                        <span className="block h-full w-full animate-pulse bg-gray-200" />
+                      )}
+                    </span>
+                    <span className={cn("max-w-[64px] truncate text-[0.625rem]", selected ? "font-semibold text-gray-900" : "text-gray-500")}>
+                      {s.variant}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         {format !== "ebook" &&
           pageCount != null &&
@@ -3222,85 +3672,44 @@ export default function CoverDesignerCanvas({
 
           {panelTab === "design" && (
             <div className="space-y-5">
-              {/* The 14 auto-cover templates live on the cover page, not in
-                  this editor -- without a way back to them from here the
-                  author concluded they were gone. Unpublished books only,
-                  same rule as that page's own picker. */}
-              {!isPublished && (
-                <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link href={`/dashboard/books/${bookId}/output-data/cover?pick=1`}>
-                    Готові шаблони обкладинок (14) →
-                  </Link>
-                </Button>
+              {/* One library of styles for the whole product: the strip under
+                  the canvas. This tab keeps what changes the chosen style. */}
+              {styleSel && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Колір теми</p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {STYLE_PRESET_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => changeStyleColor(c)}
+                        aria-label={`Колір теми ${c}`}
+                        className={cn(
+                          "h-6 w-6 rounded-full border",
+                          styleSel.baseColor.toLowerCase() === c.toLowerCase() ? "border-2 border-gray-900" : "border-gray-300"
+                        )}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                    <label className="ml-1 inline-flex cursor-pointer items-center gap-1 text-xs text-gray-600">
+                      <input
+                        type="color"
+                        value={styleSel.baseColor}
+                        onChange={(e) => changeStyleColor(e.target.value)}
+                        className="h-6 w-7 cursor-pointer rounded border border-gray-300 bg-white p-0"
+                      />
+                      Свій
+                    </label>
+                  </div>
+                  <p className="text-[0.6875rem] leading-snug text-gray-400">
+                    Один колір задає всю тему стилю: фон, акценти й кольори тексту підбираються так, щоб текст лишався
+                    читабельним.
+                  </p>
+                </div>
               )}
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Шаблони редактора</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Ілюстрація та фон</p>
         {(
           <div className="space-y-4">
-            {(() => {
-              const prevTpl = TEMPLATES[(templateIndex - 1 + TEMPLATES.length) % TEMPLATES.length];
-              const nextTpl = TEMPLATES[(templateIndex + 1) % TEMPLATES.length];
-              return (
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => applyTemplate(prevTpl)}
-                    className="text-gray-400 hover:text-gray-900"
-                    aria-label="Попередній шаблон"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyTemplate(prevTpl)}
-                    className="flex flex-col items-center gap-1 opacity-40 transition-opacity hover:opacity-70"
-                    aria-label={`Попередній: ${prevTpl.label}`}
-                  >
-                    <div className={cn("h-16 w-11 rounded border border-gray-300", prevTpl.thumbnail)} />
-                  </button>
-                  <div className="flex flex-col items-center gap-1">
-                    <div className={cn("h-24 w-16 rounded border-2 border-primary", template.thumbnail)} />
-                    <span className="text-xs font-medium text-gray-700">{template.label}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => applyTemplate(nextTpl)}
-                    className="flex flex-col items-center gap-1 opacity-40 transition-opacity hover:opacity-70"
-                    aria-label={`Наступний: ${nextTpl.label}`}
-                  >
-                    <div className={cn("h-16 w-11 rounded border border-gray-300", nextTpl.thumbnail)} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyTemplate(nextTpl)}
-                    className="text-gray-400 hover:text-gray-900"
-                    aria-label="Наступний шаблон"
-                  >
-                    ›
-                  </button>
-                </div>
-              );
-            })()}
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => setShowAllTemplates((v) => !v)}
-            >
-              {showAllTemplates ? "✕ Приховати список" : "▦ Список усіх макетів"}
-            </Button>
-            {showAllTemplates && (
-              <CoverTemplatesModal
-                templates={TEMPLATES}
-                selectedId={template.id}
-                onSelect={(tpl) => {
-                  applyTemplate(tpl);
-                  setShowAllTemplates(false);
-                }}
-                onClose={() => setShowAllTemplates(false)}
-              />
-            )}
-
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
             <Button size="sm" className="w-full" onClick={() => fileInputRef.current?.click()} loading={uploading}>
               Завантажити ілюстрацію
@@ -3353,7 +3762,10 @@ export default function CoverDesignerCanvas({
               </div>
             )}
 
-            <div className="space-y-1.5">
+            {/* On a ready-made style the background colour IS the theme
+                colour (above) -- a second, unrelated colour control here
+                would only paint a rectangle hidden under the style. */}
+            <div className={cn("space-y-1.5", styleSel && "hidden")}>
               <p className="text-xs text-gray-500">Колір фону</p>
               <div className="flex flex-wrap gap-1.5">
                 {bgImageUrl && (
@@ -3573,7 +3985,9 @@ export default function CoverDesignerCanvas({
               <DropdownMenuItem disabled={savingTemplate} onClick={saveAsTemplate}>
                 Зберегти як шаблон
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => applyTemplate(template)}>Скинути до шаблону</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => (styleSel ? void pickStyle(styleSel.id) : applyTemplate(template))}>
+                {styleSel ? "Скинути до стилю" : "Скинути до шаблону"}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <SaveActionButton

@@ -27,7 +27,16 @@ export interface TextSpec {
 }
 
 export type Node =
-  | { t: "text"; text: string; spec: TextSpec; padX?: number; isTitle?: boolean }
+  | {
+      t: "text";
+      text: string;
+      spec: TextSpec;
+      padX?: number;
+      isTitle?: boolean;
+      // What this text IS ("title", "author", "subtitle", "brand", "blurb"...)
+      // -- lets the cover editor turn it into the matching editable layer.
+      role?: string;
+    }
   | { t: "shape"; shape: "rule" | "diamond" | "star8" | "square"; w: number; h: number; token: Tok; bleed?: boolean }
   | { t: "row"; gap: number; children: Node[] }
   | {
@@ -42,8 +51,14 @@ export type Node =
     }
   | { t: "spacer"; h: number }
   | { t: "gradient"; h: number; bleed?: boolean }
-  | { t: "image"; img: CanvasImageSource; w: number; ratio: number; round?: boolean }
-  | { t: "custom"; w: number; h: number; draw: (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => void };
+  | { t: "image"; img: CanvasImageSource; w: number; ratio: number; round?: boolean; tag?: string }
+  | {
+      t: "custom";
+      w: number;
+      h: number;
+      draw: (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => void;
+      tag?: string;
+    };
 
 export type Decor =
   | { shape: "rect"; token: Tok; x: number; y: number; w: number; h: number; opacity?: number }
@@ -76,6 +91,49 @@ export interface RenderResult {
   overflow: boolean;
 }
 
+// ── "Leaves" for the cover editor ──────────────────────────────────────────
+// The editor shows a template as LAYERS: its texts and pictures become
+// editable objects, everything else (background, decor, plates, ornaments)
+// stays one painted picture underneath. Both come from this same layout
+// pass, so the editor's cover is the picker's cover: `collect` receives where
+// every leaf landed, `skipLeaves` paints the picture without them.
+export interface PlacedText {
+  kind: "text";
+  role?: string;
+  // As laid out: upper-cased if the spec says so.
+  text: string;
+  // The node's own text, before upper-casing.
+  source: string;
+  // How many lines the engine wrapped it into.
+  lines: number;
+  // The box the text is wrapped and aligned in.
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  px: number;
+  lineHeight: number;
+  letterSpacing: number; // em
+  align: Align;
+  color: string;
+  spec: TextSpec;
+}
+export interface PlacedBox {
+  kind: "image" | "custom";
+  tag?: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  round?: boolean;
+}
+export type Placed = PlacedText | PlacedBox;
+
+export interface RenderOptions {
+  collect?: Placed[];
+  skipLeaves?: boolean;
+}
+
 // Print bleed around a panel, in px, per side (a panel of the wrap only
 // bleeds on its OUTER edges -- none at a spine fold). The layout itself is
 // always computed for the W x H trim box; bleed only lets whatever reaches a
@@ -94,6 +152,7 @@ interface Env {
   H: number;
   bleed: Bleed;
   theme: CoverTheme;
+  opts: RenderOptions;
   titleLines: number;
   // Auto-fit factor applied to every text size (1 = as designed).
   scale: number;
@@ -282,9 +341,31 @@ function drawTextLines(
 function draw(env: Env, node: Node, m: Measured, x: number, y: number, availW: number, align: Align) {
   const { ctx, W, H, theme } = env;
   switch (node.t) {
-    case "text":
-      drawTextLines(env, node, m, x, y, availW, node.spec.align ?? align);
+    case "text": {
+      const textAlign = node.spec.align ?? align;
+      if (env.opts.collect) {
+        const padX = ((node.padX ?? 0) / 100) * W;
+        env.opts.collect.push({
+          kind: "text",
+          role: node.role ?? (node.isTitle ? "title" : undefined),
+          text: node.spec.upper ? node.text.toUpperCase() : node.text,
+          source: node.text,
+          lines: m.lines?.length ?? 1,
+          x: x + padX,
+          y,
+          w: Math.max(10, availW - padX * 2),
+          h: m.h,
+          px: m.px!,
+          lineHeight: node.spec.lineHeight ?? 1.25,
+          letterSpacing: node.spec.letterSpacing ?? 0,
+          align: textAlign,
+          color: theme[node.spec.token],
+          spec: node.spec,
+        });
+      }
+      if (!env.opts.skipLeaves) drawTextLines(env, node, m, x, y, availW, textAlign);
       return;
+    }
     case "shape": {
       const sx = node.bleed ? 0 : align === "center" ? x + (availW - m.w) / 2 : x;
       ctx.fillStyle = theme[node.token];
@@ -310,6 +391,8 @@ function draw(env: Env, node: Node, m: Measured, x: number, y: number, availW: n
     }
     case "image": {
       const ix = align === "center" ? x + (availW - m.w) / 2 : x;
+      env.opts.collect?.push({ kind: "image", tag: node.tag, x: ix, y, w: m.w, h: m.h, round: node.round });
+      if (env.opts.skipLeaves) return;
       ctx.save();
       if (node.round) {
         ctx.beginPath();
@@ -326,6 +409,8 @@ function draw(env: Env, node: Node, m: Measured, x: number, y: number, availW: n
     }
     case "custom": {
       const cx = align === "center" ? x + (availW - m.w) / 2 : x;
+      env.opts.collect?.push({ kind: "custom", tag: node.tag, x: cx, y, w: m.w, h: m.h });
+      if (env.opts.skipLeaves) return;
       node.draw(ctx, cx, y, m.w, m.h);
       return;
     }
@@ -560,9 +645,10 @@ export function renderDoc(
   H: number,
   theme: CoverTheme,
   doc: CoverDoc,
-  bleed: Bleed = NO_BLEED
+  bleed: Bleed = NO_BLEED,
+  opts: RenderOptions = {}
 ): RenderResult {
-  const env: Env = { ctx, W, H, bleed, theme, titleLines: 0, scale: 1 };
+  const env: Env = { ctx, W, H, bleed, theme, opts, titleLines: 0, scale: 1 };
   ctx.save();
   ctx.beginPath();
   ctx.rect(-bleed.l, -bleed.t, W + bleed.l + bleed.r, H + bleed.t + bleed.b);

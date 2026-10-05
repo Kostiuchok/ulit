@@ -235,7 +235,15 @@ export function AutoCoverPicker({ bookId, book, trimMm, pageCount, onApplied, on
       await upload(wrap, "upload-cover-wrap").catch(() => undefined);
       await apiFetch(`/api/books/${bookId}`, {
         method: "PATCH",
-        body: JSON.stringify({ autoCoverStyleId: styleId, autoCoverBaseColor: baseColor }),
+        body: JSON.stringify({
+          autoCoverStyleId: styleId,
+          autoCoverBaseColor: baseColor,
+          // Marks the saved cover as "this style": the cover editor then
+          // opens on the very same style, taken apart into editable layers
+          // (an empty design + style = build it fresh). upload-cover above
+          // dropped any older editor design, so this is written after it.
+          coverDesign: { front: [], backSpine: [], background: { color: theme.bg }, style: { id: styleId, baseColor } },
+        }),
       });
       window.dispatchEvent(new Event("ulit:books-changed"));
       await onApplied();

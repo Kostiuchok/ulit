@@ -2,7 +2,7 @@ import JsBarcode from "jsbarcode";
 import qrcode from "qrcode-generator";
 import { deriveCoverTheme, isSpineTooThinForText, COVER_BLEED_MM, type CoverTheme } from "shared-types";
 import { computeCoverLayout } from "@/lib/coverLayout";
-import { fontString, renderDoc, NO_BLEED, type Bleed, type Node, type RenderResult } from "./engine";
+import { fontString, renderDoc, NO_BLEED, type Bleed, type Node, type RenderOptions, type RenderResult } from "./engine";
 import { COVER_FONT_CSS_URL, COVER_FONT_FACES, findCoverStyle, type CoverStyle, type CoverTexts } from "./styles";
 
 // ── Fonts ────────────────────────────────────────────────────────────────
@@ -97,9 +97,10 @@ export function drawFront(
   theme: CoverTheme,
   texts: CoverTexts,
   photo: CanvasImageSource | null,
-  bleed: Bleed = NO_BLEED
+  bleed: Bleed = NO_BLEED,
+  opts: RenderOptions = {}
 ): RenderResult {
-  return renderDoc(ctx, W, H, theme, style.build(texts, photo), bleed);
+  return renderDoc(ctx, W, H, theme, style.build(texts, photo), bleed, opts);
 }
 
 // ── Back ("Промо автора") ────────────────────────────────────────────────
@@ -140,7 +141,11 @@ function barcodeCanvas(isbn: string): HTMLCanvasElement | null {
   }
 }
 
-function clip(text: string, max: number): string {
+// How much of the annotation / biography the back cover carries.
+export const BACK_BLURB_MAX = 420;
+export const BACK_BIO_MAX = 360;
+
+export function clip(text: string, max: number): string {
   const t = text.trim().replace(/\s+/g, " ");
   if (t.length <= max) return t;
   const cut = t.slice(0, max);
@@ -155,42 +160,46 @@ export function drawBack(
   H: number,
   theme: CoverTheme,
   data: BackCoverData,
-  bleed: Bleed = NO_BLEED
+  bleed: Bleed = NO_BLEED,
+  opts: RenderOptions = {}
 ) {
   const heading = (text: string): Node => ({
     t: "text",
+    role: "heading",
     text,
     spec: { family: "Montserrat", weight: 600, size: 1.6, letterSpacing: 0.18, upper: true, token: "accent", align: "left" },
   });
-  const body = (text: string): Node => ({
+  const body = (text: string, role: string): Node => ({
     t: "text",
+    role,
     text,
     spec: { family: "Lora", weight: 400, size: 1.95, lineHeight: 1.45, token: "textPrimary", align: "left" },
   });
 
   const top: Node[] = [];
   if (data.description?.trim()) {
-    top.push(heading("Про книгу"), body(clip(data.description, 420)), { t: "spacer", h: 2.2 });
+    top.push(heading("Про книгу"), body(clip(data.description, BACK_BLURB_MAX), "blurb"), { t: "spacer", h: 2.2 });
   }
   if (data.authorBio?.trim() || data.authorPhoto) {
     top.push(heading("Про автора"));
     const name: Node = {
       t: "text",
+      role: "author-name",
       text: data.authorName,
       spec: { family: "Montserrat", weight: 700, size: 2.1, token: "textPrimary", align: "left" },
     };
     top.push(
       data.authorPhoto
-        ? { t: "row", gap: 3, children: [{ t: "image", img: data.authorPhoto, w: 14, ratio: 1, round: true }, name] }
+        ? { t: "row", gap: 3, children: [{ t: "image", img: data.authorPhoto, w: 14, ratio: 1, round: true, tag: "author-photo" }, name] }
         : name
     );
-    if (data.authorBio?.trim()) top.push(body(clip(data.authorBio, 360)));
+    if (data.authorBio?.trim()) top.push(body(clip(data.authorBio, BACK_BIO_MAX), "bio"));
   }
   if (data.otherCovers?.length) {
     top.push({ t: "spacer", h: 2.2 }, heading("Інші книги автора на ULIT"), {
       t: "row",
       gap: 3,
-      children: data.otherCovers.slice(0, 3).map((img): Node => ({ t: "image", img, w: 13, ratio: 1.5 })),
+      children: data.otherCovers.slice(0, 3).map((img): Node => ({ t: "image", img, w: 13, ratio: 1.5, tag: "other-book" })),
     });
   }
 
@@ -202,6 +211,7 @@ export function drawBack(
     // plate: a scanner needs dark-on-white whatever the theme colour is.
     bottom.push({
       t: "custom",
+      tag: "codes",
       w: 80,
       h: 9,
       draw: (c, x, y, w, h) => {
@@ -226,6 +236,7 @@ export function drawBack(
   }
   bottom.push({
     t: "text",
+    role: "brand",
     text: "ULIT",
     spec: { family: "Unbounded", weight: 600, size: 1.6, letterSpacing: 0.3, token: "textSecondary", align: "left" },
   });
@@ -242,10 +253,18 @@ export function drawBack(
       { t: "stack", gap: 1.6, children: top },
       { t: "stack", gap: 2, children: bottom },
     ],
-  }, bleed);
+  }, bleed, opts);
 }
 
 // ── Spine ────────────────────────────────────────────────────────────────
+// The spine's label as it was fitted (shortened with an ellipsis if needed).
+export interface SpineLabel {
+  text: string;
+  px: number;
+}
+
+// Returns the fitted label when the spine carries text. `labelOnly`: paint
+// the spine without the label (the cover editor draws it as its own layer).
 export function drawSpine(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -253,8 +272,9 @@ export function drawSpine(
   theme: CoverTheme,
   texts: CoverTexts,
   showText: boolean,
-  bleed: Bleed = NO_BLEED
-) {
+  bleed: Bleed = NO_BLEED,
+  labelOnly = false
+): SpineLabel | null {
   ctx.save();
   // The spine only bleeds at the head and the foot.
   ctx.fillStyle = theme.bg;
@@ -274,9 +294,12 @@ export function drawSpine(
     for (let n = full.length - 1; n > 8 && ctx.measureText(label).width > H * 0.84; n -= 1) {
       label = `${full.slice(0, n).trimEnd()}…`;
     }
-    ctx.fillText(label, 0, 0);
+    if (!labelOnly) ctx.fillText(label, 0, 0);
+    ctx.restore();
+    return { text: label, px };
   }
   ctx.restore();
+  return null;
 }
 
 // ── Composite helpers ────────────────────────────────────────────────────

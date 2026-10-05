@@ -227,6 +227,13 @@ const patchSchema = z.object({
           layoutFrontX: z.number().optional(),
         })
         .optional(),
+      // The ready-made cover style this design is built on (one of the 14,
+      // plus its single theme colour). The editor repaints that style's
+      // background from these two values instead of storing the picture.
+      style: z
+        .object({ id: z.string().max(60), baseColor: z.string().regex(coverBaseColorPattern) })
+        .nullable()
+        .optional(),
     })
     .optional(),
 });

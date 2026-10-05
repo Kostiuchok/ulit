@@ -26,7 +26,15 @@ interface Props {
   existingCoverUrl?: string | null;
   existingBackCoverUrl?: string | null;
   existingSpineUrl?: string | null;
-  savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
+  savedDesign?: {
+    front: any[];
+    backSpine: any[];
+    background: { color: string; imageUrl?: string };
+    style?: { id: string; baseColor: string } | null;
+  } | null;
+  coverStyleHint?: { id?: string | null; baseColor?: string | null } | null;
+  genre?: string | null;
+  backAuthorName?: string | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   syncFromBookData?: boolean;
   bookUrl?: string | null;

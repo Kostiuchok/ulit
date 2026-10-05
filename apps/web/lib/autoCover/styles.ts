@@ -28,20 +28,27 @@ const ulit = (token: Tok, align: Align): Node => ({
   t: "text",
   text: "ULIT",
   spec: { family: "Unbounded", weight: 600, size: 1.41, letterSpacing: 0.3, token, align, lineHeight: 1.2 },
+  role: "brand",
 });
 
-const txt = (text: string, spec: TextSpec, extra?: { padX?: number; isTitle?: boolean }): Node => ({
+const txt = (text: string, spec: TextSpec, extra?: { padX?: number; isTitle?: boolean; role?: string }): Node => ({
   t: "text",
   text,
   spec,
   ...extra,
 });
 
-const title = (t: CoverTexts, spec: TextSpec, padX?: number): Node => txt(t.title, spec, { padX, isTitle: true });
+const title = (t: CoverTexts, spec: TextSpec, padX?: number): Node =>
+  txt(t.title, spec, { padX, isTitle: true, role: "title" });
+
+// The author line -- tagged, so the cover editor knows which text layer
+// follows the book's author.
+const author = (t: CoverTexts, spec: TextSpec, extra?: { padX?: number }): Node =>
+  txt(t.author, spec, { ...extra, role: "author" });
 
 // Nodes for an optional subtitle -- empty when the book has none.
 const sub = (t: CoverTexts, spec: TextSpec, padX?: number): Node[] =>
-  t.subtitle?.trim() ? [txt(t.subtitle.trim(), spec, { padX })] : [];
+  t.subtitle?.trim() ? [txt(t.subtitle.trim(), spec, { padX, role: "subtitle" })] : [];
 
 export const COVER_STYLES: CoverStyle[] = [
   {
@@ -58,7 +65,7 @@ export const COVER_STYLES: CoverStyle[] = [
       align: "center",
       maxTitleLines: 5,
       children: [
-        txt(t.author, { family: "Lora", weight: 500, size: 2.19, letterSpacing: 0.14, upper: true, token: "textSecondary", align: "center" }),
+        author(t, { family: "Lora", weight: 500, size: 2.19, letterSpacing: 0.14, upper: true, token: "textSecondary", align: "center" }),
         {
           t: "stack",
           gap: 2.81,
@@ -85,7 +92,7 @@ export const COVER_STYLES: CoverStyle[] = [
       align: "center",
       maxTitleLines: 5,
       children: [
-        txt(t.author, { family: "Cormorant Garamond", weight: 600, italic: true, size: 3.28, token: "textSecondary", align: "center" }),
+        author(t, { family: "Cormorant Garamond", weight: 600, italic: true, size: 3.28, token: "textSecondary", align: "center" }),
         {
           t: "stack",
           gap: 3.75,
@@ -121,7 +128,7 @@ export const COVER_STYLES: CoverStyle[] = [
       align: "center",
       maxTitleLines: 5,
       children: [
-        txt(t.author, { family: "PT Serif", weight: 400, size: 2.66, token: "textPrimary", align: "center" }, { padX: 10 }),
+        author(t, { family: "PT Serif", weight: 400, size: 2.66, token: "textPrimary", align: "center" }, { padX: 10 }),
         {
           t: "stack",
           gap: 0,
@@ -175,7 +182,7 @@ export const COVER_STYLES: CoverStyle[] = [
               gap: 2.5,
               children: [
                 { t: "shape", shape: "square", w: 3.5, h: 2.19, token: "accent" },
-                txt(t.author, { family: "Inter", weight: 600, size: 2.66, token: "textPrimary", align: "left" }),
+                author(t, { family: "Inter", weight: 600, size: 2.66, token: "textPrimary", align: "left" }),
               ],
             },
             ulit("textSecondary", "left"),
@@ -198,7 +205,7 @@ export const COVER_STYLES: CoverStyle[] = [
       align: "left",
       maxTitleLines: 8,
       children: [
-        txt(t.author, { family: "Montserrat", weight: 600, size: 2.03, letterSpacing: 0.18, upper: true, token: "textSecondary", align: "left" }),
+        author(t, { family: "Montserrat", weight: 600, size: 2.03, letterSpacing: 0.18, upper: true, token: "textSecondary", align: "left" }),
         {
           t: "stack",
           gap: 2.5,
@@ -223,7 +230,7 @@ export const COVER_STYLES: CoverStyle[] = [
       align: "center",
       maxTitleLines: 6,
       children: [
-        txt(t.author, { family: "Raleway", weight: 500, size: 2.03, letterSpacing: 0.28, upper: true, token: "textSecondary", align: "center" }, { padX: 12 }),
+        author(t, { family: "Raleway", weight: 500, size: 2.03, letterSpacing: 0.28, upper: true, token: "textSecondary", align: "center" }, { padX: 12 }),
         {
           t: "stack",
           gap: 4.4,
@@ -258,7 +265,7 @@ export const COVER_STYLES: CoverStyle[] = [
           t: "stack",
           gap: 2.2,
           children: [
-            txt(t.author, { family: "Lora", weight: 600, size: 2.03, letterSpacing: 0.16, upper: true, token: "textSecondary", align: "left" }),
+            author(t, { family: "Lora", weight: 600, size: 2.03, letterSpacing: 0.16, upper: true, token: "textSecondary", align: "left" }),
             title(t, { family: "Playfair Display", weight: 700, italic: true, size: 6.56, lineHeight: 1.08, token: "textPrimary", align: "left" }),
             ...sub(t, { family: "Lora", weight: 400, size: 2.5, token: "textSecondary", align: "left" }),
             { t: "spacer", h: 1.5 },
@@ -293,7 +300,7 @@ export const COVER_STYLES: CoverStyle[] = [
           fill: "bg",
           pad: [5.6, 10, 5.6, 10],
           children: [
-            txt(t.author, { family: "Rubik", weight: 500, size: 2.19, token: "textSecondary", align: "left" }),
+            author(t, { family: "Rubik", weight: 500, size: 2.19, token: "textSecondary", align: "left" }),
             title(t, { family: "Rubik", weight: 700, size: 5.62, lineHeight: 1.1, token: "textPrimary", align: "left" }),
             ...sub(t, { family: "Rubik", weight: 400, size: 2.34, token: "textSecondary", align: "left" }),
             { t: "spacer", h: 1.5 },
@@ -327,7 +334,7 @@ export const COVER_STYLES: CoverStyle[] = [
           children: [
             ulit("textSecondary", "left"),
             { t: "spacer", h: 4 },
-            txt(t.author, { family: "Comfortaa", weight: 700, size: 2.19, token: "textSecondary", align: "left" }),
+            author(t, { family: "Comfortaa", weight: 700, size: 2.19, token: "textSecondary", align: "left" }),
             title(t, { family: "Comfortaa", weight: 700, size: 5, lineHeight: 1.14, token: "textPrimary", align: "left" }),
             ...sub(t, { family: "Comfortaa", weight: 400, size: 2.5, token: "textSecondary", align: "left" }),
           ],
@@ -353,7 +360,7 @@ export const COVER_STYLES: CoverStyle[] = [
           stroke: { token: "accent", px: 3 },
           pad: [5, 7.5, 5, 7.5],
           children: [
-            txt(t.author, { family: "Montserrat", weight: 600, size: 1.88, letterSpacing: 0.16, upper: true, token: "textOnSurface", align: "left" }),
+            author(t, { family: "Montserrat", weight: 600, size: 1.88, letterSpacing: 0.16, upper: true, token: "textOnSurface", align: "left" }),
             title(t, { family: "Montserrat", weight: 700, size: 4.84, lineHeight: 1.12, token: "textOnSurface", align: "left" }),
             { t: "shape", shape: "rule", w: 10, h: 0.47, token: "accent" },
             ...sub(t, { family: "Montserrat", weight: 400, size: 2.34, token: "textOnSurface", align: "left" }),
@@ -375,7 +382,7 @@ export const COVER_STYLES: CoverStyle[] = [
       align: "center",
       maxTitleLines: 6,
       children: [
-        txt(t.author, { family: "Lora", weight: 400, italic: true, size: 2.66, token: "textSecondary", align: "center" }),
+        author(t, { family: "Lora", weight: 400, italic: true, size: 2.66, token: "textSecondary", align: "center" }),
         {
           t: "stack",
           gap: 2.2,
@@ -414,7 +421,7 @@ export const COVER_STYLES: CoverStyle[] = [
               pad: [5.3, 10, 5.3, 10],
               align: "center",
               children: [
-                txt(t.author, { family: "Oswald", weight: 400, size: 2.5, letterSpacing: 0.12, upper: true, token: "textSecondary", align: "center" }),
+                author(t, { family: "Oswald", weight: 400, size: 2.5, letterSpacing: 0.12, upper: true, token: "textSecondary", align: "center" }),
                 title(t, { family: "Oswald", weight: 700, size: 6.88, lineHeight: 1.08, upper: true, token: "textPrimary", align: "center" }),
                 ...sub(t, { family: "Inter", weight: 400, size: 2.34, token: "textSecondary", align: "center" }),
                 ulit("textSecondary", "center"),
@@ -449,7 +456,7 @@ export const COVER_STYLES: CoverStyle[] = [
           pad: [0.6, 11, 6.25, 11],
           align: "center",
           children: [
-            txt(t.author, { family: "Lora", weight: 500, size: 2.03, letterSpacing: 0.18, upper: true, token: "textSecondary", align: "center" }),
+            author(t, { family: "Lora", weight: 500, size: 2.03, letterSpacing: 0.18, upper: true, token: "textSecondary", align: "center" }),
             title(t, { family: "Cormorant Garamond", weight: 700, italic: true, size: 7.19, lineHeight: 1.0, token: "textPrimary", align: "center" }),
             { t: "shape", shape: "rule", w: 10, h: 0.31, token: "accent" },
             ...sub(t, { family: "Lora", weight: 400, italic: true, size: 2.5, token: "textSecondary", align: "center" }),
@@ -480,7 +487,7 @@ export const COVER_STYLES: CoverStyle[] = [
           bleed: true,
           pad: [3.1, 8, 2.8, 8],
           children: [
-            txt(t.author, { family: "Inter", weight: 600, size: 2.03, letterSpacing: 0.16, upper: true, token: "textPrimary", align: "left" }),
+            author(t, { family: "Inter", weight: 600, size: 2.03, letterSpacing: 0.16, upper: true, token: "textPrimary", align: "left" }),
           ],
         },
         {

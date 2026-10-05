@@ -10,10 +10,15 @@ import { useApi } from "@/hooks/useApi";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { getAllRejectionLines } from "@/lib/rejectedBlocks";
-import { resolveBookPrintFormat, coverLockedUntil } from "shared-types";
+import { resolveBookPrintFormat, coverLockedUntil, formatAuthorFullName } from "shared-types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+function coverAuthorLine(book: { bookAuthors?: { lastName?: string; firstName?: string }[] | null } | null | undefined): string {
+  const a = (book?.bookAuthors ?? []).find((x) => x?.lastName?.trim() && x?.firstName?.trim());
+  return a ? `${a.firstName} ${a.lastName}`.trim() : "";
+}
 
 interface BookInfo {
   id: string;
@@ -31,7 +36,14 @@ interface BookInfo {
   coverUrl?: string | null;
   backCoverUrl?: string | null;
   spineUrl?: string | null;
-  coverDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
+  coverDesign?: {
+    front: any[];
+    backSpine: any[];
+    background: { color: string; imageUrl?: string };
+    style?: { id: string; baseColor: string } | null;
+  } | null;
+  autoCoverStyleId?: string | null;
+  autoCoverBaseColor?: string | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[] | null;
   pageCount?: number | null;
   printPageCount?: number | null;
@@ -261,7 +273,12 @@ export default function CoverPage() {
           <CoverDesigner
             bookId={id}
             bookTitle={book?.title ?? "Назва книги"}
-            bookAuthor={session?.user?.name ?? "Автор"}
+            // Same author line the style picker uses ("Ім'я Прізвище" of the
+            // book's first author), so a style looks the same in both places.
+            bookAuthor={coverAuthorLine(book) || session?.user?.name || "Автор"}
+            backAuthorName={formatAuthorFullName(book?.bookAuthors)}
+            coverStyleHint={{ id: book?.autoCoverStyleId, baseColor: book?.autoCoverBaseColor }}
+            genre={book?.genre}
             subtitle={book?.subtitle}
             description={book?.description}
             authorBio={book?.authorBio}
