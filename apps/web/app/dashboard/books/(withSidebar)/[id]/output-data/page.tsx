@@ -600,6 +600,7 @@ function OutputDataInfoForm({
 
   useOutputDataSaveBar({
     dirty: infoDirty,
+    unsaved: infoDirty,
     saving: infoForm.formState.isSubmitting,
     savedAt: infoSaved && !infoDirty ? infoSavedAt : null,
     errorCount: infoErrorCount,

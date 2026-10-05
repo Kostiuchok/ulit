@@ -1,10 +1,11 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowUp, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SaveActionButton } from "@/components/ui/SaveActionButton";
+import { UnsavedChangesGuard } from "@/components/dashboard/UnsavedChangesGuard";
 import { cn } from "@/lib/utils";
 
 // WF-SPEC "Спільне для 03, 05-07": one shared sticky save bar at the bottom
@@ -23,7 +24,12 @@ export interface OutputDataSaveBarState {
   // Anchor (e.g. "#blk-copyright") "Перейти до першого"/error pill scrolls
   // to -- plain hash scroll, no router involved, so it works mid-form.
   firstErrorHref?: string;
-  onSave?: () => void;
+  onSave?: () => void | Promise<unknown>;
+  // The page holds form edits that navigating away would lose -- arms the
+  // "Є незбережені зміни" leave dialog (UnsavedChangesGuard). Separate from
+  // `dirty` on purpose: "Огляд" uses dirty for "there are changes to send to
+  // moderation", which are already saved and must not block navigation.
+  unsaved?: boolean;
   saveLabel?: string;
   savingLabel?: string;
   disabledTitle?: string;
@@ -87,8 +93,17 @@ function fmtTime(d: Date) {
 export function OutputDataSaveBar({ bookId }: { bookId: string }) {
   const state = useContext(StateCtx);
   const hasErrors = !!state?.errorCount && state.errorCount > 0;
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   return (
+    <>
+    <UnsavedChangesGuard
+      active={!!state?.unsaved && !state.saving}
+      onSave={state?.onSave}
+      saveDisabled={hasErrors || !!state?.saveDisabled}
+      isStillUnsaved={() => !!stateRef.current?.unsaved}
+    />
     <div className="sticky bottom-0 z-20 -mx-8 border-t border-gray-200 bg-white/95 px-8 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] backdrop-blur">
       <div className="flex items-center gap-4">
         <Button asChild variant="ghost" className="h-auto gap-1.5 px-0 text-sm text-gray-600 hover:bg-transparent hover:text-black">
@@ -160,5 +175,6 @@ export function OutputDataSaveBar({ bookId }: { bookId: string }) {
         )}
       </div>
     </div>
+    </>
   );
 }

@@ -32,6 +32,7 @@ import {
 } from "shared-types";
 import { Button } from "../ui/button";
 import { SaveActionButton } from "../ui/SaveActionButton";
+import { UnsavedChangesGuard } from "../dashboard/UnsavedChangesGuard";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
@@ -2517,6 +2518,10 @@ export default function CoverDesignerCanvas({
       onPointerDownCapture={() => (userTouchedRef.current = true)}
       onKeyDownCapture={() => (userTouchedRef.current = true)}
     >
+      {/* No "save and leave" here on purpose: saving a published book's
+          cover sends it to moderation and starts the 90-day lock -- not
+          something to trigger from a leave dialog. */}
+      <UnsavedChangesGuard active={coverDirty && !saving} />
       <div className="flex flex-col gap-4 xl:flex-row">
         {/* ── Шари (WF-SPEC 08 п.3) ─────────────────────────────────────── */}
         <div className="w-full shrink-0 space-y-2 xl:w-[220px]">

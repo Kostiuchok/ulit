@@ -437,6 +437,7 @@ function OutputDataPriceForm({
   // count + ULIT-vs-external-timing note) instead of the bar's generic text.
   useOutputDataSaveBar({
     dirty: formatsDirty,
+    unsaved: formatsDirty,
     saving: formatsSaving,
     savedAt: formatsSaved && !formatsDirty ? savedAt : null,
     onSave: saveFormatsAndDistribution,
