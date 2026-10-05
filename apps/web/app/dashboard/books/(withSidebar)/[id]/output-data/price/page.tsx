@@ -39,7 +39,7 @@ import {
   MIN_DISCOUNT_PERCENT,
   MAX_DISCOUNT_PERCENT,
   KDP_PRINT_ROYALTY_RATE,
-  getRequiredDescriptionMinLength,
+  getStoreAnnotationIssues,
 } from "shared-types";
 
 interface PriceBook {
@@ -389,12 +389,15 @@ function OutputDataPriceForm({
   // so the store that causes it is flagged right in its row, and Save is
   // held back with the reason, instead of a half-applied save and an error
   // the author has to hunt for (reported live).
+  // Same shared rule the server rejects with (getStoreAnnotationIssues).
   const annotationLen = (book.description ?? "").trim().length;
-  const annotationRequiredMin = getRequiredDescriptionMinLength(channels);
-  const annotationTooShort = annotationLen > 0 && annotationLen < annotationRequiredMin;
+  const annotationIssues = getStoreAnnotationIssues(book.description, channels);
+  const annotationTooShort = annotationIssues.length > 0;
+  const annotationRequiredMin = Math.max(0, ...annotationIssues.map((i) => i.requiredMin));
   const annotationHint = (channel: string) => {
-    const min = getRequiredDescriptionMinLength([channel]);
-    if (!channels.includes(channel) || annotationLen === 0 || annotationLen >= min) return null;
+    const issue = annotationIssues.find((i) => i.channel === channel);
+    if (!issue) return null;
+    const min = issue.requiredMin;
     return (
       <p className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
         ⚠ Цей магазин вимагає анотацію від {min} символів (зараз {annotationLen}).{" "}

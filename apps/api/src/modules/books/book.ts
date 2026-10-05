@@ -12,7 +12,7 @@ import {
   bookAuthorSchema,
   priceFieldSchema,
   discountPercentSchema,
-  getRequiredDescriptionMinLength,
+  storeAnnotationErrorMessage,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
   coverBaseColorPattern,
@@ -301,13 +301,9 @@ export async function bookRoutes(app: FastifyInstance) {
     if (data.description !== undefined || data.distributionChannels !== undefined) {
       const effectiveDescription = data.description !== undefined ? data.description : existing.description;
       const effectiveChannels = data.distributionChannels !== undefined ? data.distributionChannels : existing.distributionChannels;
-      const requiredMin = getRequiredDescriptionMinLength(effectiveChannels);
-      const effectiveLength = (effectiveDescription ?? "").trim().length;
-      if (effectiveLength > 0 && effectiveLength < requiredMin) {
-        return reply.status(400).send({
-          error: `Анотація має містити щонайменше ${requiredMin} символів для обраних платформ розповсюдження (зараз ${effectiveLength})`,
-          code: "VALIDATION_ERROR",
-        });
+      const annotationError = storeAnnotationErrorMessage(effectiveDescription, effectiveChannels);
+      if (annotationError) {
+        return reply.status(400).send({ error: annotationError, code: "ANNOTATION_TOO_SHORT_FOR_STORES", field: "description" });
       }
     }
 

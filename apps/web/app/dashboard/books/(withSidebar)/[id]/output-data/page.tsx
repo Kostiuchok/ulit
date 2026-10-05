@@ -30,6 +30,7 @@ import {
   isPublishStepComplete,
   DESCRIPTION_MIN_LENGTH,
   getRequiredDescriptionMinLength,
+  getOutputDataInfoIssues,
   DESCRIPTION_MAX_LENGTH,
   AGE_RATINGS,
   ageRatingSchema,
@@ -310,9 +311,7 @@ function OutputDataInfoForm({
   const genreValue = infoForm.watch("genre") ?? "";
   const ageRatingValue = infoForm.watch("ageRating") ?? "";
   const languageValue = infoForm.watch("language") ?? "";
-  const genreMissing = !genreValue;
-  const ageRatingMissing = !ageRatingValue;
-  const languageMissing = !languageValue;
+
   // Amber ring for "required but currently empty" -- deliberately distinct
   // from the red border used elsewhere on this page for "a moderator
   // rejected this exact field" (*Rejected below), so the two reasons stay
@@ -535,7 +534,6 @@ function OutputDataInfoForm({
   // here would flash amber for a value that's about to be saved anyway.
   const authorDraftFilled = !!(newAuthor.lastName.trim() && newAuthor.firstName.trim());
   const hasAnyAuthor = bookAuthors.some((a) => a.lastName?.trim() && a.firstName?.trim()) || authorDraftFilled;
-  const authorBioMissing = !authorBio.trim();
   const unresolvedRejectionLines = getUnresolvedRejectionLines(book);
   const unresolvedCategory = (cat: (typeof unresolvedRejectionLines)[number]["category"]) =>
     unresolvedRejectionLines.some((l) => l.category === cat);
@@ -557,15 +555,29 @@ function OutputDataInfoForm({
   // does NOT include *Rejected (moderator flagged this field) -- a rejected
   // field still HAS a value, editing and re-saving it is exactly how an
   // author resolves a rejection, so rejection state must never block Save.
-  const infoIncomplete =
-    !titleValue.trim() ||
-    descValue.trim().length < getRequiredDescriptionMinLength(book.distributionChannels) ||
-    descValue.trim().length > DESCRIPTION_MAX_LENGTH ||
-    genreMissing ||
-    ageRatingMissing ||
-    languageMissing ||
-    !hasAnyAuthor ||
-    authorBioMissing;
+  // ONE source for "what is wrong with this form right now": the shared
+  // rules (shared-types getOutputDataInfoIssues), fed the LIVE values. The
+  // rings, the hint under each field and Save's disabled state all read this
+  // same object, so Save can never be disabled without a highlighted field
+  // that says why (FORMS-REFACTOR-PLAN.md, правило 5).
+  const infoIssues = getOutputDataInfoIssues({
+    title: titleValue,
+    description: descValue,
+    genre: genreValue,
+    printFormatKey: infoForm.watch("printFormatKey"),
+    language: languageValue,
+    ageRating: ageRatingValue,
+    // A name still sitting in the "add author" inputs counts -- onSubmitInfo
+    // folds it in on save (see hasAnyAuthor above).
+    bookAuthors: hasAnyAuthor ? [{ lastName: "x", firstName: "x" }] : [],
+    authorBio,
+    distributionChannels: book.distributionChannels,
+  });
+  const genreMissing = !!infoIssues.genre;
+  const ageRatingMissing = !!infoIssues.ageRating;
+  const languageMissing = !!infoIssues.language;
+  const authorBioMissing = !!infoIssues.authorBio;
+  const infoIncomplete = Object.keys(infoIssues).length > 0;
   const infoDirty = infoForm.formState.isDirty || extraDirty;
   // Per-block "what did I change" -- same amber rule as the Ціна page.
   // dirtyFields is read during render on purpose: RHF only tracks the
@@ -588,17 +600,14 @@ function OutputDataInfoForm({
   // Required text fields get the same amber "fill this in" ring as the
   // selects -- Save is disabled while they're invalid, and its tooltip
   // points at "the fields highlighted in amber".
-  const titleMissing = !titleValue.trim();
-  const descLen = descValue.trim().length;
+  const titleMissing = !!infoIssues.title;
   // The stores the author enabled on "Ціна" can demand a longer annotation
   // than ULIT's own 120 (Amazon KDP 250, Google Play 150) -- the server
   // rejects the save otherwise ("Анотація має містити щонайменше 250
   // символів для обраних платформ"), so the field must show THAT minimum,
   // not just the baseline (reported live: 188 characters, no highlight).
   const descRequiredMin = getRequiredDescriptionMinLength(book.distributionChannels);
-  const descStoresRaiseMin = descRequiredMin > DESCRIPTION_MIN_LENGTH;
-  const descTooShort = descLen < descRequiredMin;
-  const descTooLong = descLen > DESCRIPTION_MAX_LENGTH;
+  const descInvalid = !!infoIssues.description;
   const infoErrorCount = Object.keys(infoForm.formState.errors).length;
   const infoFirstErrorHref =
     infoForm.formState.errors.title || infoForm.formState.errors.description
@@ -676,7 +685,7 @@ function OutputDataInfoForm({
                   )}
                 />
                 {titleMissing && !infoForm.formState.errors.title && (
-                  <p className="text-xs text-amber-600">Вкажіть назву книги</p>
+                  <p className="text-xs text-amber-600">{infoIssues.title}</p>
                 )}
                 {infoForm.formState.errors.title && (
                   <p className="text-sm text-red-500">{infoForm.formState.errors.title.message}</p>
@@ -694,7 +703,7 @@ function OutputDataInfoForm({
                   <span
                     className={cn(
                       "text-xs font-medium",
-                      descValue.length > 0 && (descTooShort || descTooLong)
+                      descValue.length > 0 && descInvalid
                         ? "text-red-500"
                         : "text-gray-400"
                     )}
@@ -710,23 +719,15 @@ function OutputDataInfoForm({
                     "resize-none",
                     infoForm.formState.errors.description || descriptionRejected
                       ? "border-red-400 focus-visible:ring-red-300"
-                      : (descTooShort || descTooLong) && missingRing
+                      : descInvalid && missingRing
                   )}
                   placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
                 />
                 {infoForm.formState.errors.description && (
                   <p className="text-sm text-red-500">{infoForm.formState.errors.description.message}</p>
                 )}
-                {!infoForm.formState.errors.description && (descTooShort || descTooLong) && (
-                  <p className="text-xs text-amber-600">
-                    {descLen === 0
-                      ? `Додайте анотацію — щонайменше ${descRequiredMin} символів`
-                      : descTooShort
-                        ? descStoresRaiseMin
-                          ? `Ще ${descRequiredMin - descLen} симв.: обрані магазини вимагають щонайменше ${descRequiredMin} (зараз ${descLen}). Доповніть анотацію або вимкніть магазин на вкладці «Ціна та розповсюдження».`
-                          : `Ще ${descRequiredMin - descLen} симв. до мінімуму (${descRequiredMin})`
-                        : `Забагато: скоротіть на ${descLen - DESCRIPTION_MAX_LENGTH} симв. (максимум ${DESCRIPTION_MAX_LENGTH})`}
-                  </p>
+                {!infoForm.formState.errors.description && descInvalid && (
+                  <p className="text-xs text-amber-600">{infoIssues.description}</p>
                 )}
 
                 {/* WF-SPEC "03 Вихідні дані" п.5 -- шкала прогресу з позначками
@@ -832,6 +833,7 @@ function OutputDataInfoForm({
                     </Select>
                   )}
                 />
+                {!genreRejected && infoIssues.genre && <p className="text-xs text-amber-600">{infoIssues.genre}</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -886,6 +888,7 @@ function OutputDataInfoForm({
                     </Select>
                   )}
                 />
+                {!languageRejected && infoIssues.language && <p className="text-xs text-amber-600">{infoIssues.language}</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -904,6 +907,7 @@ function OutputDataInfoForm({
                     </Select>
                   )}
                 />
+                {infoIssues.ageRating && <p className="text-xs text-amber-600">{infoIssues.ageRating}</p>}
               </div>
             </div>
           </div>
@@ -1033,6 +1037,7 @@ function OutputDataInfoForm({
                   placeholder="Наприклад: Валентина Островська народилась у…"
                   className={cn("resize-none", authorBioMissing && missingRing)}
                 />
+                {infoIssues.authorBio && <p className="text-xs text-amber-600">{infoIssues.authorBio}</p>}
               </div>
 
               {newAuthorError && <p className="text-xs text-red-500">{newAuthorError}</p>}

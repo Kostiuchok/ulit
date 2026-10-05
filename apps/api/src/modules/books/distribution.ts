@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { distributionChannelsSchema, getRequiredDescriptionMinLength } from "shared-types";
+import { distributionChannelsSchema, storeAnnotationErrorMessage } from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
@@ -110,15 +110,8 @@ export async function distributionRoutes(app: FastifyInstance) {
       // own stricter annotation-length preference (KDP 250+, Google 150+)
       // needs to be checked against the book's current description, not just
       // book.ts's PATCH.
-      const descriptionLength = (book.description ?? "").trim().length;
-      const requiredMin = getRequiredDescriptionMinLength(distributionChannels);
-      if (descriptionLength > 0 && descriptionLength < requiredMin) {
-        throw new AppError(
-          `Анотація має містити щонайменше ${requiredMin} символів для обраних платформ розповсюдження (зараз ${descriptionLength})`,
-          400,
-          "VALIDATION_ERROR"
-        );
-      }
+      const annotationError = storeAnnotationErrorMessage(book.description, distributionChannels);
+      if (annotationError) throw new AppError(annotationError, 400, "ANNOTATION_TOO_SHORT_FOR_STORES");
 
       if (kdpActive && distributionStrategy === "WIDE") {
         throw new AppError(

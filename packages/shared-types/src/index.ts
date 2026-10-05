@@ -605,6 +605,136 @@ export function getRequiredDescriptionMinLength(channels: readonly string[] | nu
   return min;
 }
 
+// ─── "Вихідні дані" field rules: ONE place (FORMS-REFACTOR-PLAN.md, етап 1) ───
+//
+// Every answer to "is this field OK, and if not, what do we tell the author"
+// lives here. The server (book.ts PATCH, distribution.ts) rejects with these
+// messages; the pages highlight with these same results. Before this, each
+// side had its own copy of the conditions and they drifted: the server
+// rejected a 188-character annotation for a book sold on Amazon KDP (needs
+// 250) while the page, knowing only the 120 baseline, highlighted nothing.
+
+const CHANNEL_DISPLAY_NAME: Record<DistributionChannel, string> = {
+  ULIT: "ULIT",
+  D2D: "Draft2Digital",
+  KDP: "Amazon KDP",
+  GOOGLE: "Google Play Books",
+};
+
+export interface StoreAnnotationIssue {
+  channel: DistributionChannel;
+  channelName: string;
+  requiredMin: number;
+}
+
+// Which of the enabled stores need a longer annotation than the book has.
+// An EMPTY annotation is not reported here -- that is the plain "annotation
+// is required" rule (getDescriptionIssue below), not a store-specific one.
+export function getStoreAnnotationIssues(
+  description: string | null | undefined,
+  channels: readonly string[] | null | undefined
+): StoreAnnotationIssue[] {
+  const length = (description ?? "").trim().length;
+  if (length === 0) return [];
+  const issues: StoreAnnotationIssue[] = [];
+  for (const channel of channels ?? []) {
+    const requiredMin = CHANNEL_DESCRIPTION_MIN_LENGTH[channel as DistributionChannel];
+    if (requiredMin && requiredMin > DESCRIPTION_MIN_LENGTH && length < requiredMin) {
+      issues.push({ channel: channel as DistributionChannel, channelName: CHANNEL_DISPLAY_NAME[channel as DistributionChannel], requiredMin });
+    }
+  }
+  return issues;
+}
+
+// The server's rejection text for the case above -- also what a page shows
+// when it has to explain the same thing before the round trip.
+export function storeAnnotationErrorMessage(
+  description: string | null | undefined,
+  channels: readonly string[] | null | undefined
+): string | null {
+  const issues = getStoreAnnotationIssues(description, channels);
+  if (issues.length === 0) return null;
+  const length = (description ?? "").trim().length;
+  const requiredMin = Math.max(...issues.map((i) => i.requiredMin));
+  const names = issues.map((i) => i.channelName).join(", ");
+  return `Анотація має містити щонайменше ${requiredMin} символів для обраних магазинів (${names}) — зараз ${length}`;
+}
+
+// Why the annotation is not acceptable right now, or null when it is.
+export function getDescriptionIssue(
+  description: string | null | undefined,
+  channels: readonly string[] | null | undefined
+): string | null {
+  const length = (description ?? "").trim().length;
+  const requiredMin = getRequiredDescriptionMinLength(channels);
+  if (length === 0) return `Додайте анотацію — щонайменше ${requiredMin} символів`;
+  if (length > DESCRIPTION_MAX_LENGTH) {
+    return `Забагато: скоротіть на ${length - DESCRIPTION_MAX_LENGTH} симв. (максимум ${DESCRIPTION_MAX_LENGTH})`;
+  }
+  if (length < DESCRIPTION_MIN_LENGTH) {
+    return `Ще ${DESCRIPTION_MIN_LENGTH - length} симв. до мінімуму (${DESCRIPTION_MIN_LENGTH})`;
+  }
+  const stores = getStoreAnnotationIssues(description, channels);
+  if (stores.length > 0) {
+    const names = stores.map((s) => s.channelName).join(", ");
+    return `Ще ${requiredMin - length} симв.: ${names} вимагає щонайменше ${requiredMin} (зараз ${length}). Доповніть анотацію або вимкніть цей магазин на вкладці «Ціна та розповсюдження».`;
+  }
+  return null;
+}
+
+export type OutputDataInfoField =
+  | "title"
+  | "description"
+  | "genre"
+  | "printFormatKey"
+  | "language"
+  | "ageRating"
+  | "bookAuthors"
+  | "authorBio";
+
+export interface OutputDataInfoDraft extends PublishStepBook {
+  distributionChannels?: readonly string[] | null;
+}
+
+const INFO_FIELD_MESSAGE: Record<Exclude<OutputDataInfoField, "description">, string> = {
+  title: "Вкажіть назву книги",
+  genre: "Оберіть жанр",
+  printFormatKey: "Оберіть розмір книги",
+  language: "Оберіть мову книги",
+  ageRating: "Оберіть вікові обмеження",
+  bookAuthors: "Додайте автора — прізвище та ім'я",
+  authorBio: "Додайте біографію автора",
+};
+
+// Everything that currently stops the "Вихідні дані" form from being saved,
+// one entry per field, in the order the form shows them. The form highlights
+// exactly these fields with exactly these texts and disables Save exactly
+// when this is non-empty -- so a disabled Save always has a visible reason.
+// Presence rules come from PUBLISH_FIELD_CHECKS (the pre-publish gate), so
+// "can be saved" and "counts as filled in" cannot disagree either.
+export function getOutputDataInfoIssues(draft: OutputDataInfoDraft): Partial<Record<OutputDataInfoField, string>> {
+  const issues: Partial<Record<OutputDataInfoField, string>> = {};
+  const order: OutputDataInfoField[] = [
+    "title",
+    "description",
+    "genre",
+    "printFormatKey",
+    "language",
+    "ageRating",
+    "bookAuthors",
+    "authorBio",
+  ];
+  for (const field of order) {
+    if (field === "description") {
+      const issue = getDescriptionIssue(draft.description, draft.distributionChannels);
+      if (issue) issues.description = issue;
+      continue;
+    }
+    if (!isPublishFieldComplete(field, draft)) issues[field] = INFO_FIELD_MESSAGE[field];
+  }
+  return issues;
+}
+
 // ─── Book field schemas (Zod) ─────────────────────────────────────────────────
 
 // Single source for a handful of Book-field rules that were independently
