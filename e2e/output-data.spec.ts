@@ -113,6 +113,43 @@ test.describe("Вихідні дані: підсвічування, «Зміне
     await expect(page.getByText("Є незбережені зміни", { exact: true })).toBeVisible();
   });
 
+  test("«змінено» — це різниця зі збереженим: повернув значення — позначка зникла", async ({ page }) => {
+    await openOutputData(page);
+
+    await page.locator("#subtitle").fill("тимчасово");
+    await expect(page.getByText("Є незбережені зміни", { exact: true })).toBeVisible();
+    await page.locator("#subtitle").fill("");
+    await expect(page.getByText("Є незбережені зміни", { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/^Змінено ·/)).toHaveCount(0);
+
+    // Biography lives outside the form library -- same rule must hold there.
+    const bio = page.locator("#authorBio");
+    const original = await bio.inputValue();
+    await bio.fill(`${original} правка`);
+    await expect(page.getByText(/^Змінено · 1 блок$/)).toBeVisible();
+    await bio.fill(original);
+    await expect(page.getByText(/^Змінено ·/)).toHaveCount(0);
+
+    // With everything back as saved, leaving needs no confirmation.
+    await topTab(page, "/price").click();
+    await page.waitForURL(/\/output-data\/price$/, { timeout: 15_000 });
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("«Ціна»: зміна гонорару вмикає незбережене, повернення — вимикає", async ({ page }) => {
+    await openOutputData(page);
+    await topTab(page, "/price").click();
+    await page.waitForURL(/\/output-data\/price$/, { timeout: 15_000 });
+
+    const royalty = page.getByPlaceholder("напр. 100");
+    await expect(royalty).toBeVisible({ timeout: 15_000 });
+    const original = await royalty.inputValue();
+    await royalty.fill("77");
+    await expect(page.getByText(/Є незбережені зміни у 1 блоці/)).toBeVisible();
+    await royalty.fill(original);
+    await expect(page.getByText(/Є незбережені зміни/)).toHaveCount(0);
+  });
+
   test("вихід із незбереженими змінами питає; «Залишитись» зберігає правки, «Вийти» переходить", async ({ page }) => {
     await openOutputData(page);
     await page.locator("#subtitle").fill("не збережено");

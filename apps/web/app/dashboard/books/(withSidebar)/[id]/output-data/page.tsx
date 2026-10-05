@@ -194,19 +194,7 @@ function OutputDataInfoForm({
 
   const [infoSaved, setInfoSaved] = useState(false);
   const [infoSavedAt, setInfoSavedAt] = useState<Date | null>(null);
-  // Fields outside react-hook-form (authors, bio, contributors, the "claim
-  // an existing ISBN" inputs) — tracked per BLOCK, so the block that actually
-  // has unsaved edits gets the amber "Змінено" highlight, not just the
-  // bottom bar.
   type ExtraBlock = "authors" | "contributors" | "copyright";
-  const [extraDirtyBlocks, setExtraDirtyBlocks] = useState<Record<ExtraBlock, boolean>>({
-    authors: false,
-    contributors: false,
-    copyright: false,
-  });
-  const markExtraDirty = (block: ExtraBlock) =>
-    setExtraDirtyBlocks((prev) => (prev[block] ? prev : { ...prev, [block]: true }));
-  const extraDirty = extraDirtyBlocks.authors || extraDirtyBlocks.contributors || extraDirtyBlocks.copyright;
   // Which sensitive fields (if any) the last save actually staged as
   // pending instead of publishing live -- drives the "✓ Збережено" note
   // right where the save happened, matching what RepublishButton shows on
@@ -265,6 +253,9 @@ function OutputDataInfoForm({
     }
     if (!book.authorBio && userProfile.bio) {
       setAuthorBio(userProfile.bio);
+      // Pre-filling from the account profile is not the author's edit --
+      // it must not light up "Змінено" or arm the leave dialog.
+      rebaselineExtra();
     }
   }, [book, userProfile]);
 
@@ -276,6 +267,36 @@ function OutputDataInfoForm({
   const [claimIsbnValue, setClaimIsbnValue] = useState("");
   const [claimIsbnAttested, setClaimIsbnAttested] = useState(false);
   const [claimIsbnError, setClaimIsbnError] = useState("");
+
+  // "Змінено" for everything that lives outside react-hook-form (authors,
+  // biography, contributors, the "claim an existing ISBN" inputs) is NOT a
+  // flag someone has to remember to raise -- it is a comparison of what is
+  // on screen with what was last saved (FORMS-REFACTOR-PLAN.md, правило 2).
+  // So adding an author and removing them again leaves the block clean, and
+  // a new input added to one of these blocks is tracked without any extra
+  // code. The baseline moves only when the saved state does: after a
+  // successful save, and after the one-off pre-fill from the profile.
+  const extraSnapshot = () => ({
+    authors: JSON.stringify(bookAuthors) + "|" + authorBio,
+    contributors: JSON.stringify(contributors),
+    copyright: claimIsbnValue + "|" + claimIsbnAttested,
+  });
+  const [extraBaseline, setExtraBaseline] = useState(extraSnapshot);
+  const [extraBaselineTick, setExtraBaselineTick] = useState(0);
+  const rebaselineExtra = () => setExtraBaselineTick((n) => n + 1);
+  const extraSnapshotRef = useRef(extraSnapshot);
+  extraSnapshotRef.current = extraSnapshot;
+  useEffect(() => {
+    // Runs after the render that carries the just-saved values.
+    if (extraBaselineTick > 0) setExtraBaseline(extraSnapshotRef.current());
+  }, [extraBaselineTick]);
+  const extraNow = extraSnapshot();
+  const extraDirtyBlocks: Record<ExtraBlock, boolean> = {
+    authors: extraNow.authors !== extraBaseline.authors,
+    contributors: extraNow.contributors !== extraBaseline.contributors,
+    copyright: extraNow.copyright !== extraBaseline.copyright,
+  };
+  const extraDirty = extraDirtyBlocks.authors || extraDirtyBlocks.contributors || extraDirtyBlocks.copyright;
 
   // `book` is real data on this component's very first render (see
   // OutputDataInfoPage above) -- defaultValues are correct from the start,
@@ -356,7 +377,6 @@ function OutputDataInfoForm({
       return;
     }
     setBookAuthors((prev) => [...prev, result.data]);
-    markExtraDirty("authors");
     setInfoSaved(false);
     setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
   }
@@ -381,7 +401,6 @@ function OutputDataInfoForm({
 
   function removeBookAuthor(index: number) {
     setBookAuthors((prev) => prev.filter((_, i) => i !== index));
-    markExtraDirty("authors");
     setInfoSaved(false);
   }
 
@@ -389,13 +408,11 @@ function OutputDataInfoForm({
     if (!newContributor.role.trim() || !newContributor.name.trim()) return;
     setContributors((prev) => [...prev, { role: newContributor.role.trim(), name: newContributor.name.trim() }]);
     setNewContributor({ role: "", name: "" });
-    markExtraDirty("contributors");
     setInfoSaved(false);
   }
 
   function removeContributor(index: number) {
     setContributors((prev) => prev.filter((_, i) => i !== index));
-    markExtraDirty("contributors");
     setInfoSaved(false);
   }
 
@@ -489,7 +506,8 @@ function OutputDataInfoForm({
       );
       setInfoSaved(true);
       setInfoSavedAt(new Date());
-      setExtraDirtyBlocks({ authors: false, contributors: false, copyright: false });
+      // What is on screen now IS the saved state.
+      rebaselineExtra();
       infoForm.reset(data);
       // output-data/layout.tsx's top nav pills (✓/○ badges) come from their
       // OWN separate useBook(id) instance, not this page's -- without this,
@@ -1030,7 +1048,6 @@ function OutputDataInfoForm({
                   value={authorBio}
                   onChange={(e) => {
                     setAuthorBio(e.target.value);
-                    markExtraDirty("authors");
                     setInfoSaved(false);
                   }}
                   rows={3}
@@ -1158,7 +1175,6 @@ function OutputDataInfoForm({
                     value={claimIsbnValue}
                     onChange={(e) => {
                       setClaimIsbnValue(e.target.value);
-                      markExtraDirty("copyright");
                       setInfoSaved(false);
                     }}
                     placeholder="978-5-4474-2357-5"
@@ -1173,7 +1189,6 @@ function OutputDataInfoForm({
                       checked={claimIsbnAttested}
                       onCheckedChange={(v) => {
                         setClaimIsbnAttested(v === true);
-                        markExtraDirty("copyright");
                         setInfoSaved(false);
                       }}
                       className="mt-0.5"

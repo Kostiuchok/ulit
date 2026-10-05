@@ -219,23 +219,25 @@ function OutputDataPriceForm({
   const [formatsSaving, setFormatsSaving] = useState(false);
   const [formatsSaved, setFormatsSaved] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
-  const [formatsDirty, setFormatsDirty] = useState(false);
   const [formatsError, setFormatsError] = useState("");
 
-  // Snapshot of the hydrated/last-saved values -- drives the per-block
-  // amber highlighting (WF-SPEC: a block's own border, not a single
-  // page-wide flag) independently of `formatsDirty` (which only gates the
-  // Save button).
+  // Snapshot of the hydrated/last-saved values. EVERYTHING "is there
+  // something to save" derives from comparing the form with it -- the
+  // per-block amber highlighting and the page-wide `formatsDirty` alike
+  // (FORMS-REFACTOR-PLAN.md, правило 2). `formatsDirty` used to be a flag
+  // raised by hand on every change: undoing a change left it up, so Save and
+  // the leave dialog stayed armed with nothing actually different.
   const originalRef = useRef<{
     royaltyEbook: string;
     royaltyPrint: string;
     discountPercent: string;
     discountStartsAt: string;
     discountEndsAt: string;
+    channels: string;
   } | null>(null);
+  const channelsKey = (list: string[]) => [...list].sort().join(",");
 
   function markFormatsDirty() {
-    setFormatsDirty(true);
     setFormatsSaved(false);
   }
 
@@ -248,8 +250,11 @@ function OutputDataPriceForm({
   useEffect(() => {
     if (!book || bookHydratedRef.current) return;
     bookHydratedRef.current = true;
-    setChannels(Array.isArray(book.distributionChannels) && book.distributionChannels.length > 0 ? book.distributionChannels : ["ULIT"]);
+    const hydratedChannels =
+      Array.isArray(book.distributionChannels) && book.distributionChannels.length > 0 ? book.distributionChannels : ["ULIT"];
+    setChannels(hydratedChannels);
     const hydrated = {
+      channels: channelsKey(hydratedChannels),
       royaltyEbook: book.desiredRoyaltyAmount ? String(Number(book.desiredRoyaltyAmount)) : "",
       royaltyPrint: book.desiredRoyaltyAmountPrint ? String(Number(book.desiredRoyaltyAmountPrint)) : "",
       discountPercent: book.discountPercent != null ? String(book.discountPercent) : "",
@@ -347,9 +352,15 @@ function OutputDataPriceForm({
         }),
       });
       setBook(updated);
-      originalRef.current = { royaltyEbook, royaltyPrint, discountPercent, discountStartsAt, discountEndsAt };
+      originalRef.current = {
+        royaltyEbook,
+        royaltyPrint,
+        discountPercent,
+        discountStartsAt,
+        discountEndsAt,
+        channels: channelsKey(channels),
+      };
       setFormatsSaved(true);
-      setFormatsDirty(false);
       setSavedAt(new Date());
       window.dispatchEvent(new Event("ulit:books-changed"));
     } catch (e: any) {
@@ -383,7 +394,9 @@ function OutputDataPriceForm({
       discountStartsAt !== ebookOriginal.discountStartsAt ||
       discountEndsAt !== ebookOriginal.discountEndsAt
     : false;
-  const dirtyBlockCount = [ebookDirty, printDirty, discountDirty].filter(Boolean).length;
+  const channelsDirty = ebookOriginal ? channelsKey(channels) !== ebookOriginal.channels : false;
+  const dirtyBlockCount = [ebookDirty, printDirty, discountDirty, channelsDirty].filter(Boolean).length;
+  const formatsDirty = dirtyBlockCount > 0;
 
   // Some stores need a longer annotation than ULIT itself (Amazon KDP 250,
   // Google Play 150). The server refuses to save the store list otherwise --
