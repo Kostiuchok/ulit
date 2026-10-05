@@ -16,6 +16,7 @@ import { QuestionHint } from "@/components/books/QuestionHint";
 import { Badge } from "@/components/ui/badge";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { useOutputDataSaveBar } from "@/components/dashboard/OutputDataSaveBar";
+import { ChangedBadge } from "@/components/dashboard/ChangedBadge";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -173,17 +174,6 @@ function PlacedBadge() {
   return (
     <Badge variant="secondary" className="rounded-sm bg-gray-200 px-2 py-1 text-[11px] font-semibold uppercase text-gray-700">
       Буде розміщена у магазині
-    </Badge>
-  );
-}
-
-// Amber border + "Змінено · N" badge on a block with unsaved changes --
-// same visual rule WF-SPEC uses across 03/05/06/07 (amber-400 border,
-// "Змінено · N" badge).
-function ChangedBadge({ count, label = "поле" }: { count: number; label?: string }) {
-  return (
-    <Badge className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">
-      Змінено · {count} {count === 1 ? label : label === "поле" ? "поля" : label}
     </Badge>
   );
 }

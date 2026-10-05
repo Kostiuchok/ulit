@@ -30,6 +30,12 @@ interface Props {
   bookStatus: string;
   distributionChannels: string[];
   creation: CreationInfo;
+  // The four "Вихідні дані" sections as the shared readiness checks see
+  // them (isPublishStepComplete, shared-types) -- the same answer the
+  // output-data tabs, the sidebar dot and the backend's pre-publish gate
+  // give. This card used to keep its own looser idea of "filled in" (title +
+  // genre was enough for a green ✓ on "Основну інформацію заповнено").
+  readiness: { info: boolean; file: boolean; cover: boolean; price: boolean };
 }
 
 function fmt(date: string) {
@@ -79,15 +85,16 @@ export function BookStepsCard({
   bookStatus,
   distributionChannels,
   creation,
+  readiness,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
 
-  const hasBasicInfo = !!(creation.title && creation.genre);
-  const hasManuscript = !!creation.originalDocxUrl;
+  const hasBasicInfo = readiness.info;
+  const hasManuscript = readiness.file;
   const manuscriptDate = creation.manuscriptEditedAt ?? creation.manuscriptImportedAt;
-  const hasPrice = !!(creation.priceEbook || creation.pricePrint || creation.pricePrintHardcover);
+  const hasPrice = readiness.price;
   const hasPrintPrice = !!(creation.pricePrint || creation.pricePrintHardcover);
-  const hasCover = !!creation.coverUrl;
+  const hasCover = readiness.cover;
   const hasDistribution = distributionChannels.length > 0;
   const outputDataFilled = hasBasicInfo && hasPrice;
   const isSubmitted = bookStatus !== "DRAFT" && bookStatus !== "PROCESSING";

@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
 import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import { useOutputDataSaveBar } from "@/components/dashboard/OutputDataSaveBar";
+import { ChangedBadge } from "@/components/dashboard/ChangedBadge";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
@@ -190,8 +191,19 @@ function OutputDataInfoForm({
 
   const [infoSaved, setInfoSaved] = useState(false);
   const [infoSavedAt, setInfoSavedAt] = useState<Date | null>(null);
-  // Fields outside react-hook-form (authors, bio, contributors) — T2.1 dirty.
-  const [extraDirty, setExtraDirty] = useState(false);
+  // Fields outside react-hook-form (authors, bio, contributors, the "claim
+  // an existing ISBN" inputs) — tracked per BLOCK, so the block that actually
+  // has unsaved edits gets the amber "Змінено" highlight, not just the
+  // bottom bar.
+  type ExtraBlock = "authors" | "contributors" | "copyright";
+  const [extraDirtyBlocks, setExtraDirtyBlocks] = useState<Record<ExtraBlock, boolean>>({
+    authors: false,
+    contributors: false,
+    copyright: false,
+  });
+  const markExtraDirty = (block: ExtraBlock) =>
+    setExtraDirtyBlocks((prev) => (prev[block] ? prev : { ...prev, [block]: true }));
+  const extraDirty = extraDirtyBlocks.authors || extraDirtyBlocks.contributors || extraDirtyBlocks.copyright;
   // Which sensitive fields (if any) the last save actually staged as
   // pending instead of publishing live -- drives the "✓ Збережено" note
   // right where the save happened, matching what RepublishButton shows on
@@ -343,7 +355,7 @@ function OutputDataInfoForm({
       return;
     }
     setBookAuthors((prev) => [...prev, result.data]);
-    setExtraDirty(true);
+    markExtraDirty("authors");
     setInfoSaved(false);
     setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
   }
@@ -368,7 +380,7 @@ function OutputDataInfoForm({
 
   function removeBookAuthor(index: number) {
     setBookAuthors((prev) => prev.filter((_, i) => i !== index));
-    setExtraDirty(true);
+    markExtraDirty("authors");
     setInfoSaved(false);
   }
 
@@ -376,13 +388,13 @@ function OutputDataInfoForm({
     if (!newContributor.role.trim() || !newContributor.name.trim()) return;
     setContributors((prev) => [...prev, { role: newContributor.role.trim(), name: newContributor.name.trim() }]);
     setNewContributor({ role: "", name: "" });
-    setExtraDirty(true);
+    markExtraDirty("contributors");
     setInfoSaved(false);
   }
 
   function removeContributor(index: number) {
     setContributors((prev) => prev.filter((_, i) => i !== index));
-    setExtraDirty(true);
+    markExtraDirty("contributors");
     setInfoSaved(false);
   }
 
@@ -476,7 +488,7 @@ function OutputDataInfoForm({
       );
       setInfoSaved(true);
       setInfoSavedAt(new Date());
-      setExtraDirty(false);
+      setExtraDirtyBlocks({ authors: false, contributors: false, copyright: false });
       infoForm.reset(data);
       // output-data/layout.tsx's top nav pills (✓/○ badges) come from their
       // OWN separate useBook(id) instance, not this page's -- without this,
@@ -553,6 +565,31 @@ function OutputDataInfoForm({
     !hasAnyAuthor ||
     authorBioMissing;
   const infoDirty = infoForm.formState.isDirty || extraDirty;
+  // Per-block "what did I change" -- same amber rule as the Ціна page.
+  // dirtyFields is read during render on purpose: RHF only tracks the
+  // formState pieces a render actually touches.
+  const dirtyFields = infoForm.formState.dirtyFields as Record<string, unknown>;
+  const countDirty = (names: string[]) => names.filter((n) => dirtyFields[n]).length;
+  const mainDirtyCount = countDirty([
+    "title",
+    "subtitle",
+    "description",
+    "genre",
+    "printFormatKey",
+    "language",
+    "ageRating",
+    "aiGenerated",
+    "aiGeneratedNote",
+  ]);
+  const copyrightDirtyCount =
+    countDirty(["copyrightYear", "copyrightHolder", "priorPublicationCertificate"]) + (extraDirtyBlocks.copyright ? 1 : 0);
+  // Required text fields get the same amber "fill this in" ring as the
+  // selects -- Save is disabled while they're invalid, and its tooltip
+  // points at "the fields highlighted in amber".
+  const titleMissing = !titleValue.trim();
+  const descLen = descValue.trim().length;
+  const descTooShort = descLen < DESCRIPTION_MIN_LENGTH;
+  const descTooLong = descLen > DESCRIPTION_MAX_LENGTH;
   const infoErrorCount = Object.keys(infoForm.formState.errors).length;
   const infoFirstErrorHref =
     infoForm.formState.errors.title || infoForm.formState.errors.description
@@ -599,7 +636,18 @@ function OutputDataInfoForm({
           {/* Назва/Підзаголовок/Анотація зліва (усі поля самого тексту
               книги, стовпчиком) — жанр/розмір/мова/вік справа: коротші
               вибіркові поля в одному стовпчику. */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div
+            className={cn(
+              "relative grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-lg",
+              // outline, not border: no layout shift when the highlight appears
+              mainDirtyCount > 0 && "outline outline-2 outline-offset-8 outline-amber-400"
+            )}
+          >
+            {mainDirtyCount > 0 && (
+              <span className="absolute -top-5 right-2 z-[1]">
+                <ChangedBadge count={mainDirtyCount} />
+              </span>
+            )}
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -611,8 +659,15 @@ function OutputDataInfoForm({
                 <Input
                   id="title"
                   {...infoForm.register("title")}
-                  className={cn(infoForm.formState.errors.title || titleRejected ? "border-red-400 focus-visible:ring-red-300" : "")}
+                  className={cn(
+                    infoForm.formState.errors.title || titleRejected
+                      ? "border-red-400 focus-visible:ring-red-300"
+                      : titleMissing && missingRing
+                  )}
                 />
+                {titleMissing && !infoForm.formState.errors.title && (
+                  <p className="text-xs text-amber-600">Вкажіть назву книги</p>
+                )}
                 {infoForm.formState.errors.title && (
                   <p className="text-sm text-red-500">{infoForm.formState.errors.title.message}</p>
                 )}
@@ -643,12 +698,23 @@ function OutputDataInfoForm({
                   rows={9}
                   className={cn(
                     "resize-none",
-                    (infoForm.formState.errors.description || descriptionRejected) && "border-red-400 focus-visible:ring-red-300"
+                    infoForm.formState.errors.description || descriptionRejected
+                      ? "border-red-400 focus-visible:ring-red-300"
+                      : (descTooShort || descTooLong) && missingRing
                   )}
                   placeholder={`Розкажіть читачам про вашу книгу… (від ${DESCRIPTION_MIN_LENGTH} до ${DESCRIPTION_MAX_LENGTH} символів)`}
                 />
                 {infoForm.formState.errors.description && (
                   <p className="text-sm text-red-500">{infoForm.formState.errors.description.message}</p>
+                )}
+                {!infoForm.formState.errors.description && (descTooShort || descTooLong) && (
+                  <p className="text-xs text-amber-600">
+                    {descLen === 0
+                      ? `Додайте анотацію — щонайменше ${DESCRIPTION_MIN_LENGTH} символів`
+                      : descTooShort
+                        ? `Ще ${DESCRIPTION_MIN_LENGTH - descLen} симв. до мінімуму (${DESCRIPTION_MIN_LENGTH})`
+                        : `Забагато: скоротіть на ${descLen - DESCRIPTION_MAX_LENGTH} симв. (максимум ${DESCRIPTION_MAX_LENGTH})`}
+                  </p>
                 )}
 
                 {/* WF-SPEC "03 Вихідні дані" п.5 -- шкала прогресу з позначками
@@ -834,10 +900,13 @@ function OutputDataInfoForm({
           <div
             className={cn(
               "rounded-lg border p-3",
-              authorRejected ? "border-2 border-red-400" : !hasAnyAuthor && "border-2 border-amber-400"
+              authorRejected
+                ? "border-2 border-red-400"
+                : (!hasAnyAuthor || extraDirtyBlocks.authors) && "border-2 border-amber-400"
             )}
           >
             <CollapsibleSection
+              badge={extraDirtyBlocks.authors ? <ChangedBadge count={1} label="блок" /> : undefined}
               title={<h3 className="text-base font-semibold text-gray-900">Автори книги <span className="text-red-500">*</span></h3>}
               description="Якщо авторів декілька — кожен додає власне прізвище/ім'я і, за бажанням, своє фото."
             >
@@ -945,7 +1014,7 @@ function OutputDataInfoForm({
                   value={authorBio}
                   onChange={(e) => {
                     setAuthorBio(e.target.value);
-                    setExtraDirty(true);
+                    markExtraDirty("authors");
                     setInfoSaved(false);
                   }}
                   rows={3}
@@ -961,8 +1030,12 @@ function OutputDataInfoForm({
           </div>
 
             {/* T-2060 п.5 — окрема сутність, не змішана з авторами */}
-            <div className="rounded-lg border p-3">
-              <CollapsibleSection title="Над книгою працювали" description="Редактор, ілюстратор, дизайнер обкладинки тощо.">
+            <div className={cn("rounded-lg border p-3", extraDirtyBlocks.contributors && "border-2 border-amber-400")}>
+              <CollapsibleSection
+                title="Над книгою працювали"
+                description="Редактор, ілюстратор, дизайнер обкладинки тощо."
+                badge={extraDirtyBlocks.contributors ? <ChangedBadge count={1} label="блок" /> : undefined}
+              >
               <div className="space-y-2">
               {contributors.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
@@ -1008,8 +1081,12 @@ function OutputDataInfoForm({
               usage stats yet on how many authors actually have prior-
               publication data to fill in here, so it defaults closed until
               there's data to justify opening it by default. */}
-          <div id="blk-copyright" className="scroll-mt-20 rounded-lg border p-3">
+          <div
+            id="blk-copyright"
+            className={cn("scroll-mt-20 rounded-lg border p-3", copyrightDirtyCount > 0 && "border-2 border-amber-400")}
+          >
             <CollapsibleSection
+              badge={copyrightDirtyCount > 0 ? <ChangedBadge count={copyrightDirtyCount} /> : undefined}
               title="Авторське право / попередня публікація"
               description="Заповнюйте, лише якщо книга вже виходила раніше на іншій платформі — до приєднання до ULIT."
               defaultOpen={false}
@@ -1064,7 +1141,7 @@ function OutputDataInfoForm({
                     value={claimIsbnValue}
                     onChange={(e) => {
                       setClaimIsbnValue(e.target.value);
-                      setExtraDirty(true);
+                      markExtraDirty("copyright");
                       setInfoSaved(false);
                     }}
                     placeholder="978-5-4474-2357-5"
@@ -1079,7 +1156,7 @@ function OutputDataInfoForm({
                       checked={claimIsbnAttested}
                       onCheckedChange={(v) => {
                         setClaimIsbnAttested(v === true);
-                        setExtraDirty(true);
+                        markExtraDirty("copyright");
                         setInfoSaved(false);
                       }}
                       className="mt-0.5"

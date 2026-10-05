@@ -17,6 +17,7 @@ import { useApi } from "@/hooks/useApi";
 import { getAllRejectionLines } from "@/lib/rejectedBlocks";
 import { getBookStatusLabel } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
+import { isPublishStepComplete, type PublishStepBook } from "shared-types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -438,6 +439,12 @@ export function BookDashboard() {
               coverUrl: book.coverUrl,
               printPdfUrl: book.printPdfUrl,
               udcCode: book.udcCode,
+            }}
+            readiness={{
+              info: isPublishStepComplete("info", book as PublishStepBook),
+              file: isPublishStepComplete("file", book as PublishStepBook),
+              cover: isPublishStepComplete("cover", book as PublishStepBook),
+              price: isPublishStepComplete("price", book as PublishStepBook),
             }}
           />
         )}
