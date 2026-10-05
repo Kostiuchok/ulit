@@ -22,6 +22,7 @@ interface BookInfo {
   status?: string | null;
   coverApprovedAt?: string | null;
   pendingCoverUrl?: string | null;
+  bookAuthors?: { lastName: string; firstName: string; photoUrl?: string }[] | null;
   subtitle?: string | null;
   description?: string | null;
   isbn?: string | null;
@@ -61,12 +62,25 @@ export default function CoverPage() {
   const [format, setFormat] = useState<CoverFormat>("ebook");
   const [saved, setSaved] = useState(false);
   const [coverNoticeDismissed, setCoverNoticeDismissed] = useState(false);
+  const [otherBookCovers, setOtherBookCovers] = useState<string[]>([]);
 
   useEffect(() => {
     if (!token) return;
     apiFetch<{ book: BookInfo }>(`/api/books/${id}`)
       .then(({ book }) => setBook(book))
       .finally(() => setLoading(false));
+    // Back cover's optional "Інші книги автора на ULIT" block -- the
+    // author's other PUBLISHED books that have a cover, at most three.
+    apiFetch<{ books: { id: string; status: string; coverThumbUrl?: string | null; coverUrl?: string | null }[] }>("/api/books")
+      .then(({ books }) =>
+        setOtherBookCovers(
+          books
+            .filter((b) => b.id !== id && b.status === "PUBLISHED" && (b.coverUrl || b.coverThumbUrl))
+            .slice(0, 3)
+            .map((b) => (b.coverUrl || b.coverThumbUrl) as string)
+        )
+      )
+      .catch(() => {});
   }, [token, id]);
 
   const trimFormat = resolveBookPrintFormat(book ?? {});
@@ -258,6 +272,8 @@ export default function CoverPage() {
             coverImageLibrary={book?.coverImageLibrary ?? []}
             syncFromBookData={!book?.coverIndependentFromBookData}
             bookUrl={bookUrl}
+            authorPhotoUrl={(book?.bookAuthors ?? []).find((a) => a?.photoUrl?.trim())?.photoUrl ?? null}
+            otherBookCovers={otherBookCovers}
             isPublished={isPublished}
             lockedUntilLabel={lockedUntilLabel}
             onSaved={handleSaved}

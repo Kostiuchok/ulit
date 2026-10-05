@@ -585,6 +585,8 @@ const LAYER_LABELS: Record<string, string> = {
   accent: "Фон",
   barcode: "Штрихкод ISBN",
   qr: "QR-код",
+  "author-photo": "Фото автора",
+  "other-book": "Інша книга автора",
 };
 
 // Text layers that mirror «Вихідні дані» until the author unlinks them.
@@ -594,6 +596,8 @@ const BG_LAYER_ROLES = new Set(["accent", "pattern", "bg-image", "photo-slot"]);
 const BACK_TOGGLES: { role: string; label: string; linked?: boolean }[] = [
   { role: "text-blurb", label: "Анотація", linked: true },
   { role: "text-bio", label: "Біографія автора", linked: true },
+  { role: "author-photo", label: "Фото автора" },
+  { role: "other-book", label: "Інші книги автора на ULIT" },
   { role: "qr", label: "QR-код на сторінку книги" },
 ];
 
@@ -791,7 +795,7 @@ function isInFrontRange(left: number | undefined, layout: CoverLayout): boolean 
 // same as "bg-image", excluded from this front/backSpine split entirely
 // rather than bucketed as a front object.
 const FRONT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "band"]);
-const BACK_SPINE_ROLES = new Set(["text-blurb", "text-bio", "text-spine", "barcode", "qr"]);
+const BACK_SPINE_ROLES = new Set(["text-blurb", "text-bio", "text-spine", "barcode", "qr", "author-photo", "other-book"]);
 
 // Splits a flat array of Fabric object JSON descriptors (background/
 // illustration objects already excluded by the caller) into front vs
@@ -980,6 +984,11 @@ interface Props {
   syncFromBookData?: boolean;
   // Public page of the book -- the optional QR code on the back cover.
   bookUrl?: string | null;
+  // Optional "Промо автора" blocks for the back cover (WF-SPEC 08 п.10):
+  // the first author's photo and up to three of their other published
+  // books' covers. Absent data = the toggle is simply unavailable.
+  authorPhotoUrl?: string | null;
+  otherBookCovers?: string[];
   // Saving a PUBLISHED book's cover stages it for admin approval (cover.ts)
   // and starts the 90-day re-change lock; the bottom bar says so up front.
   isPublished?: boolean;
@@ -1005,6 +1014,8 @@ export default function CoverDesignerCanvas({
   coverImageLibrary = [],
   syncFromBookData = true,
   bookUrl,
+  authorPhotoUrl,
+  otherBookCovers = [],
   isPublished = false,
   lockedUntilLabel,
   onSaved,
@@ -2275,7 +2286,64 @@ export default function CoverDesignerCanvas({
       const back = ctx.layout.back;
       if (!canvas || !back) return;
       const existing: any = canvas.getObjects().find((o: any) => o.data?.role === role);
-      if (role === "qr") {
+      // crossOrigin matters: an image drawn without it taints the canvas and
+      // the PNG export on save would throw. A host that doesn't allow it
+      // simply fails to load here instead of breaking the save later.
+      const addImage = (url: string, place: (img: fabric.Image) => void, onFail?: () => void) =>
+        fabric.Image.fromURL(
+          url,
+          (img) => {
+            if (isCanvasDisposed(canvas)) return;
+            if (!img || !img.width || !img.height) {
+              onFail?.();
+              return;
+            }
+            place(img);
+            canvas.add(img);
+            canvas.requestRenderAll();
+          },
+          { crossOrigin: "anonymous" }
+        );
+      if (role === "author-photo") {
+        if (existing) {
+          canvas.remove(existing);
+        } else if (authorPhotoUrl) {
+          addImage(
+            authorPhotoUrl,
+            (img) => {
+              const size = 64;
+              const side = Math.min(img.width!, img.height!);
+              img.set({
+                left: back.x + SAFE_MARGIN,
+                top: back.y + back.h * 0.56,
+                scaleX: size / side,
+                scaleY: size / side,
+                clipPath: new fabric.Circle({ radius: side / 2, originX: "center", originY: "center" }),
+                data: { role: "author-photo" },
+              });
+            },
+            () => setSaveError("Фото автора не вдалося додати — сервер із фото не дозволяє його використання. Завантажте фото у «Вихідних даних».")
+          );
+        }
+      } else if (role === "other-book") {
+        const all = canvas.getObjects().filter((o: any) => o.data?.role === "other-book");
+        if (all.length > 0) {
+          all.forEach((o) => canvas.remove(o));
+        } else {
+          const w = 46;
+          otherBookCovers.slice(0, 3).forEach((url, i) =>
+            addImage(url, (img) => {
+              img.set({
+                left: back.x + SAFE_MARGIN + i * (w + 8),
+                top: back.y + back.h * 0.72,
+                scaleX: w / img.width!,
+                scaleY: w / img.width!,
+                data: { role: "other-book" },
+              });
+            })
+          );
+        }
+      } else if (role === "qr") {
         if (existing) {
           canvas.remove(existing);
         } else if (bookUrl) {
@@ -2308,7 +2376,7 @@ export default function CoverDesignerCanvas({
       setLayersVersion((v) => v + 1);
       saveSnapshot();
     },
-    [ctx.layout.back, bookUrl, saveSnapshot]
+    [ctx.layout.back, bookUrl, authorPhotoUrl, otherBookCovers, saveSnapshot]
   );
 
   const spineMm =
@@ -2860,11 +2928,19 @@ export default function CoverDesignerCanvas({
                       <input
                         type="checkbox"
                         checked={backBlockShown(t.role)}
-                        disabled={t.role === "qr" && !bookUrl}
+                        disabled={
+                          (t.role === "qr" && !bookUrl) ||
+                          (t.role === "author-photo" && !authorPhotoUrl) ||
+                          (t.role === "other-book" && otherBookCovers.length === 0)
+                        }
                         onChange={() => toggleBackBlock(t.role)}
                       />
                       {t.label}
                       {t.linked && syncFromBookData && <span title="Береться з «Вихідних даних»">🔗</span>}
+                      {t.role === "author-photo" && !authorPhotoUrl && <span className="text-gray-400">— немає фото</span>}
+                      {t.role === "other-book" && otherBookCovers.length === 0 && (
+                        <span className="text-gray-400">— немає інших книг</span>
+                      )}
                     </label>
                   ))}
                   <p className="text-[0.6875rem] leading-snug text-gray-400">

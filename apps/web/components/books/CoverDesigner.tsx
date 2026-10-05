@@ -28,6 +28,8 @@ interface Props {
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   syncFromBookData?: boolean;
   bookUrl?: string | null;
+  authorPhotoUrl?: string | null;
+  otherBookCovers?: string[];
   isPublished?: boolean;
   lockedUntilLabel?: string | null;
   onSaved: (patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) => void;
