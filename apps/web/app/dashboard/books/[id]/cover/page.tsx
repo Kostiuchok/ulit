@@ -10,15 +10,18 @@ import { useApi } from "@/hooks/useApi";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { getAllRejectionLines } from "@/lib/rejectedBlocks";
-import { resolveBookPrintFormat } from "shared-types";
+import { resolveBookPrintFormat, coverLockedUntil } from "shared-types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BookInfo {
   id: string;
   title: string;
+  slug?: string | null;
+  status?: string | null;
+  coverApprovedAt?: string | null;
+  pendingCoverUrl?: string | null;
   subtitle?: string | null;
   description?: string | null;
   isbn?: string | null;
@@ -58,7 +61,6 @@ export default function CoverPage() {
   const [format, setFormat] = useState<CoverFormat>("ebook");
   const [saved, setSaved] = useState(false);
   const [coverNoticeDismissed, setCoverNoticeDismissed] = useState(false);
-  const [independentSaving, setIndependentSaving] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -68,6 +70,13 @@ export default function CoverPage() {
   }, [token, id]);
 
   const trimFormat = resolveBookPrintFormat(book ?? {});
+  // WF-SPEC 08 п.13 -- a published book's cover goes through admin approval
+  // and is then locked for 90 days (Phase 3 backend); the editor's bottom
+  // bar says so before the author spends time on changes that can't be saved.
+  const isPublished = book?.status === "PUBLISHED";
+  const lockedUntil = isPublished ? coverLockedUntil(book?.coverApprovedAt ?? null) : null;
+  const lockedUntilLabel = lockedUntil ? lockedUntil.toLocaleDateString("uk-UA") : null;
+  const bookUrl = book?.slug && typeof window !== "undefined" ? `${window.location.origin}/books/${book.slug}` : null;
   // Resolved via the same snapshot-diff every other rejection-aware page
   // uses (rejectedBlocks.ts) -- for a book rejected via the admin's
   // structured reasons, "resolved" means the cover CHANGED since rejection,
@@ -79,23 +88,6 @@ export default function CoverPage() {
   const coverRejected = coverLines.length > 0;
   const coverResolved = coverRejected && coverLines.every((l) => l.resolved);
   const coverNoteLines = coverLines;
-
-  async function toggleIndependent(next: boolean) {
-    setBook((b) => (b ? { ...b, coverIndependentFromBookData: next } : b));
-    setIndependentSaving(true);
-    try {
-      await apiFetch(`/api/books/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ coverIndependentFromBookData: next }),
-      });
-    } catch {
-      // Revert on failure -- avoids the UI silently claiming a state the
-      // server never persisted.
-      setBook((b) => (b ? { ...b, coverIndependentFromBookData: !next } : b));
-    } finally {
-      setIndependentSaving(false);
-    }
-  }
 
   function handleSaved(patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) {
     // No separate "locally fixed" flag needed anymore -- coverResolved above
@@ -184,6 +176,12 @@ export default function CoverPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
+        {isPublished && book?.pendingCoverUrl && (
+          <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+            Нова обкладинка вже на перевірці — читачі бачать попередню. Нове збереження замінить ту, що чекає на схвалення.
+          </div>
+        )}
+
         {saved && (
           <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-700">
             ✓ Обкладинку збережено
@@ -238,18 +236,6 @@ export default function CoverPage() {
           <span className="font-semibold text-gray-900">{trimFormat.widthMm}×{trimFormat.heightMm}мм</span>
         </p>
 
-        <label className="mb-3 flex items-center gap-2 text-sm text-gray-600">
-          <Checkbox
-            checked={!!book?.coverIndependentFromBookData}
-            onCheckedChange={(v) => toggleIndependent(v === true)}
-            disabled={independentSaving}
-          />
-          Редагувати текст на обкладинці незалежно від даних книги
-          <span className="text-xs text-gray-400">
-            (якщо вимкнено — назва/анотація/біографія на обкладинці автоматично оновлюються слідом за «Вихідні дані», ім&apos;я автора — за профілем)
-          </span>
-        </label>
-
         <Card
           className={cn(
             "p-6 shadow-sm transition-shadow",
@@ -271,16 +257,15 @@ export default function CoverPage() {
             savedDesign={book?.coverDesign}
             coverImageLibrary={book?.coverImageLibrary ?? []}
             syncFromBookData={!book?.coverIndependentFromBookData}
+            bookUrl={bookUrl}
+            isPublished={isPublished}
+            lockedUntilLabel={lockedUntilLabel}
             onSaved={handleSaved}
             onLibraryChange={handleLibraryChange}
             token={token}
           />
         </Card>
 
-        <p className="mt-3 text-xs text-gray-400 text-center">
-          Обкладинка буде збережена у форматі PNG {Math.round((trimFormat.widthMm / 25.4) * 300)}×
-          {Math.round((trimFormat.heightMm / 25.4) * 300)} px (300 DPI) на панель
-        </p>
       </div>
     </div>
   );

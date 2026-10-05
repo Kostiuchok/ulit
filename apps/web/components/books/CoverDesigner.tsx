@@ -27,6 +27,9 @@ interface Props {
   savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   syncFromBookData?: boolean;
+  bookUrl?: string | null;
+  isPublished?: boolean;
+  lockedUntilLabel?: string | null;
   onSaved: (patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) => void;
   onLibraryChange?: (library: { url: string; uploadedAt: string; kind?: "slot" | "background" }[]) => void;
   token?: string;

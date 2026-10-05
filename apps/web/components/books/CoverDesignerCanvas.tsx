@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { fabric } from "fabric";
 import JsBarcode from "jsbarcode";
+import qrcode from "qrcode-generator";
+import Link from "next/link";
 import {
   Bold,
   Italic,
@@ -22,11 +24,14 @@ import {
 import {
   PRINT_TRIM_SIZE_MM,
   MIN_SPINE_TEXT_PAGES,
+  COVER_SAFE_ZONE_MIN_MM,
+  COVER_SAFE_ZONE_MAX_MM,
   isSpineTooThinForText,
   spineThicknessMm,
 } from "shared-types";
 import { Button } from "../ui/button";
 import { SaveActionButton } from "../ui/SaveActionButton";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
 import { CoverTemplatesModal } from "./CoverTemplatesModal";
@@ -568,6 +573,40 @@ const TEXT_ROLE_LABELS: Record<string, string> = {
   "text-spine": "Корінець",
 };
 
+// Layers panel (WF-SPEC 08 п.3): how each canvas object is named there.
+const LAYER_LABELS: Record<string, string> = {
+  ...TEXT_ROLE_LABELS,
+  "text-spine": "Текст корінця",
+  "photo-slot": "Ілюстрація",
+  shape: "Прямокутник",
+  band: "Плашка шаблону",
+  pattern: "Патерн",
+  "bg-image": "Фонове зображення",
+  accent: "Фон",
+  barcode: "Штрихкод ISBN",
+  qr: "QR-код",
+};
+
+// Text layers that mirror «Вихідні дані» until the author unlinks them.
+const LINKED_TEXT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "text-blurb", "text-bio"]);
+const BG_LAYER_ROLES = new Set(["accent", "pattern", "bg-image", "photo-slot"]);
+
+const BACK_TOGGLES: { role: string; label: string; linked?: boolean }[] = [
+  { role: "text-blurb", label: "Анотація", linked: true },
+  { role: "text-bio", label: "Біографія автора", linked: true },
+  { role: "qr", label: "QR-код на сторінку книги" },
+];
+
+interface LayerRow {
+  key: string;
+  obj: fabric.Object;
+  label: string;
+  selectable: boolean;
+  hidden: boolean;
+  covered: boolean;
+  linked: boolean;
+}
+
 function isShapeObject(o: any): boolean {
   const role = o?.data?.role;
   return role === "shape" || role === "band";
@@ -752,7 +791,7 @@ function isInFrontRange(left: number | undefined, layout: CoverLayout): boolean 
 // same as "bg-image", excluded from this front/backSpine split entirely
 // rather than bucketed as a front object.
 const FRONT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "band"]);
-const BACK_SPINE_ROLES = new Set(["text-blurb", "text-bio", "text-spine", "barcode"]);
+const BACK_SPINE_ROLES = new Set(["text-blurb", "text-bio", "text-spine", "barcode", "qr"]);
 
 // Splits a flat array of Fabric object JSON descriptors (background/
 // illustration objects already excluded by the caller) into front vs
@@ -939,6 +978,13 @@ interface Props {
   // (synced) when the caller doesn't pass it, matching the DB default for
   // Book.coverIndependentFromBookData (false = synced).
   syncFromBookData?: boolean;
+  // Public page of the book -- the optional QR code on the back cover.
+  bookUrl?: string | null;
+  // Saving a PUBLISHED book's cover stages it for admin approval (cover.ts)
+  // and starts the 90-day re-change lock; the bottom bar says so up front.
+  isPublished?: boolean;
+  // Set while that lock is active -- saving is disabled until this date.
+  lockedUntilLabel?: string | null;
   onSaved: (patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string }) => void;
   onLibraryChange?: (library: { url: string; uploadedAt: string; kind?: "slot" | "background" }[]) => void;
   token?: string;
@@ -958,6 +1004,9 @@ export default function CoverDesignerCanvas({
   savedDesign,
   coverImageLibrary = [],
   syncFromBookData = true,
+  bookUrl,
+  isPublished = false,
+  lockedUntilLabel,
   onSaved,
   onLibraryChange,
   token,
@@ -1014,7 +1063,10 @@ export default function CoverDesignerCanvas({
 
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [activeTab, setActiveTab] = useState<"templates" | "own" | "mine">("templates");
+  const [panelTab, setPanelTab] = useState<"selected" | "design">("design");
+  const [layersVersion, setLayersVersion] = useState(0);
+  const [unlinkPrompt, setUnlinkPrompt] = useState<fabric.Object | null>(null);
+  const isLinkedTextRef = useRef<(o: any) => boolean>(() => false);
   const [myTemplates, setMyTemplates] = useState<CoverTemplateEntry[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -1080,6 +1132,7 @@ export default function CoverDesignerCanvas({
       setCoveredTexts(
         findCoveredTexts(canvas).map((o: any) => TEXT_ROLE_LABELS[o.data?.role] ?? "Текст")
       );
+      setLayersVersion((v) => v + 1);
       const json = JSON.stringify(canvas.toJSON(["data"]));
       historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
       historyRef.current.push(json);
@@ -1134,6 +1187,16 @@ export default function CoverDesignerCanvas({
     canvas.on("object:added", saveSnapshot);
     canvas.on("object:removed", saveSnapshot);
     canvas.on("object:modified", saveSnapshot);
+    // Layers panel: saveSnapshot is paused during loads (template apply,
+    // format switch, undo), so the list gets its own unconditional refresh.
+    const bumpLayers = () => setLayersVersion((v) => v + 1);
+    canvas.on("object:added", bumpLayers);
+    canvas.on("object:removed", bumpLayers);
+    // Typing into a text that mirrors «Вихідні дані» asks whether to unlink
+    // it (WF-SPEC 08 п.6) instead of silently diverging.
+    canvas.on("text:changed", (e: any) => {
+      if (e.target && isLinkedTextRef.current(e.target)) setUnlinkPrompt(e.target);
+    });
     // Selecting something else while mid-crop would strand the image
     // unclipped with a stray outline rect -- snap crop mode closed first.
     const exitCropIfSelectingElsewhere = (next: fabric.Object | null) => {
@@ -1143,11 +1206,13 @@ export default function CoverDesignerCanvas({
       const next = e.selected?.[0] ?? null;
       exitCropIfSelectingElsewhere(next);
       setActiveObj(next);
+      if (next) setPanelTab("selected");
     });
     canvas.on("selection:updated", (e) => {
       const next = e.selected?.[0] ?? null;
       exitCropIfSelectingElsewhere(next);
       setActiveObj(next);
+      if (next) setPanelTab("selected");
     });
     canvas.on("selection:cleared", () => {
       exitCropIfSelectingElsewhere(null);
@@ -1350,7 +1415,7 @@ export default function CoverDesignerCanvas({
     canvas.getObjects().forEach((o: any) => {
       const role = o.data?.role;
       const next = roleToText[role];
-      if (next !== undefined && o.text !== next) {
+      if (next !== undefined && !o.data?.unlinked && o.text !== next) {
         o.set({ text: next });
         changed = true;
       }
@@ -2029,11 +2094,8 @@ export default function CoverDesignerCanvas({
   }, [token]);
 
   useEffect(() => {
-    if (activeTab === "mine" && myTemplates.length === 0 && !loadingTemplates) {
-      loadMyTemplates();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+    loadMyTemplates();
+  }, [loadMyTemplates]);
 
   const saveAsTemplate = useCallback(async () => {
     const canvas = canvasRef.current;
@@ -2101,10 +2163,227 @@ export default function CoverDesignerCanvas({
     [token]
   );
 
+  // ── Layers panel / selection (WF-SPEC 08 п.3-6) ──────────────────────────
+  const isLinkedText = useCallback(
+    (o: any): boolean => !!o && syncFromBookData && LINKED_TEXT_ROLES.has(o.data?.role) && !o.data?.unlinked,
+    [syncFromBookData]
+  );
+  isLinkedTextRef.current = isLinkedText;
+
+  const selectLayer = useCallback((obj: fabric.Object) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.setActiveObject(obj);
+    canvas.requestRenderAll();
+    setActiveObj(obj);
+    setPanelTab("selected");
+  }, []);
+
+  // Rebuilt whenever the canvas changes (layersVersion is bumped by the
+  // object:added/removed/modified listeners) -- top of the list is the top
+  // of the z-order.
+  const layerGroups = useMemo(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return [] as { title: string; rows: LayerRow[] }[];
+    const covered = new Set(findCoveredTexts(canvas));
+    const spine = ctx.layout.spine;
+    const rows: (LayerRow & { group: string })[] = [];
+    canvas.getObjects().forEach((o: any, i) => {
+      const role: string | undefined = o.data?.role;
+      if (role === "crop-outline") return;
+      const selectable = o.selectable !== false && o.evented !== false;
+      let label = role ? LAYER_LABELS[role] : undefined;
+      if (!label) {
+        if (!selectable) return; // decorative, role-less (logo, ISBN caption)
+        label = o.type === "textbox" ? "Текст" : o.type === "image" ? "Зображення" : "Елемент";
+      }
+      let group = "";
+      if (spine) {
+        const cx = o.getCenterPoint().x;
+        if (role && BG_LAYER_ROLES.has(role)) group = "Фон та ілюстрація";
+        else if (role === "text-spine") group = "Корінець";
+        else if (cx < spine.x) group = "Задня сторона";
+        else if (cx > spine.x + spine.w) group = "Лицева сторона";
+        else group = "Корінець";
+      }
+      rows.push({
+        key: `${i}-${role ?? o.type}`,
+        obj: o,
+        label,
+        selectable,
+        hidden: o.visible === false,
+        covered: covered.has(o),
+        linked: isLinkedText(o),
+        group,
+      });
+    });
+    rows.reverse();
+    if (!spine) return [{ title: "", rows }];
+    return ["Лицева сторона", "Корінець", "Задня сторона", "Фон та ілюстрація"]
+      .map((title) => ({ title, rows: rows.filter((r) => r.group === title) }))
+      .filter((g) => g.rows.length > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layersVersion, activeObj, ctx.layout, isLinkedText]);
+
+  const selectedRole: string | undefined = (activeObj as any)?.data?.role;
+  const selectedLabel = activeObj
+    ? `${(selectedRole && LAYER_LABELS[selectedRole]) || (activeObj.type === "textbox" ? "Текст" : "Елемент")}${
+        activeObj.type === "textbox" ? " · текст" : ""
+      }`
+    : "";
+
+  // "Відв'язати від Вихідних даних?" -- replaces the old book-wide
+  // "редагувати незалежно" checkbox with a per-layer decision made at the
+  // moment the author actually edits a linked text.
+  const confirmUnlink = useCallback(() => {
+    const obj: any = unlinkPrompt;
+    if (!obj) return;
+    obj.set("data", { ...(obj.data ?? {}), unlinked: true });
+    setUnlinkPrompt(null);
+    setLayersVersion((v) => v + 1);
+    saveSnapshot();
+  }, [unlinkPrompt, saveSnapshot]);
+
+  const revertLinkedText = useCallback(() => {
+    const canvas = canvasRef.current;
+    const obj: any = unlinkPrompt;
+    if (!canvas || !obj) return;
+    const bookText: Record<string, string> = {
+      "text-title": bookTitle,
+      "text-author": bookAuthor,
+      "text-subtitle": subtitle || "",
+      "text-bio": authorBio || "",
+      "text-blurb": description || "",
+    };
+    if (obj.isEditing) obj.exitEditing();
+    obj.set({ text: bookText[obj.data?.role] ?? obj.text });
+    canvas.requestRenderAll();
+    setUnlinkPrompt(null);
+  }, [unlinkPrompt, bookTitle, bookAuthor, subtitle, authorBio, description]);
+
+  // "Задня сторона: що показувати" -- annotation/bio are toggled via
+  // `visible` (an invisible object is skipped by both render and export);
+  // the QR code is added/removed as its own image layer.
+  const backBlockShown = (role: string): boolean => {
+    const obj: any = canvasRef.current?.getObjects().find((o: any) => o.data?.role === role);
+    return !!obj && obj.visible !== false;
+  };
+
+  const toggleBackBlock = useCallback(
+    (role: string) => {
+      const canvas = canvasRef.current;
+      const back = ctx.layout.back;
+      if (!canvas || !back) return;
+      const existing: any = canvas.getObjects().find((o: any) => o.data?.role === role);
+      if (role === "qr") {
+        if (existing) {
+          canvas.remove(existing);
+        } else if (bookUrl) {
+          try {
+            const qr = qrcode(0, "M");
+            qr.addData(bookUrl);
+            qr.make();
+            fabric.Image.fromURL(qr.createDataURL(6, 12), (img) => {
+              if (isCanvasDisposed(canvas)) return;
+              const size = 56;
+              img.set({
+                left: back.x + back.w - SAFE_MARGIN - size,
+                top: back.y + back.h - SAFE_MARGIN - size,
+                scaleX: size / (img.width || size),
+                scaleY: size / (img.height || size),
+                data: { role: "qr" },
+              });
+              canvas.add(img);
+              canvas.requestRenderAll();
+            });
+          } catch {
+            // A URL too long for a QR code simply doesn't get one.
+          }
+        }
+      } else if (existing) {
+        existing.set({ visible: existing.visible === false });
+        if (canvas.getActiveObject() === existing && existing.visible === false) canvas.discardActiveObject();
+      }
+      canvas.requestRenderAll();
+      setLayersVersion((v) => v + 1);
+      saveSnapshot();
+    },
+    [ctx.layout.back, bookUrl, saveSnapshot]
+  );
+
+  const spineMm =
+    format === "ebook" ? 0 : spineThicknessMm(pageCount && pageCount > 0 ? pageCount : 150, format === "hardcover");
+  const exportPx = {
+    w: Math.round((effectiveTrimMm.widthMm / 25.4) * EXPORT_DPI),
+    h: Math.round((effectiveTrimMm.heightMm / 25.4) * EXPORT_DPI),
+  };
+
   return (
-    <div className="flex flex-col gap-4 lg:flex-row">
-      {/* Canvas */}
-      <div className="flex flex-1 min-w-0 flex-col items-center gap-3">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 xl:flex-row">
+        {/* ── Шари (WF-SPEC 08 п.3) ─────────────────────────────────────── */}
+        <div className="w-full shrink-0 space-y-2 xl:w-[220px]">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Шари</p>
+            <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={addRectangle}>
+              + Фігура
+            </Button>
+          </div>
+          <div className="max-h-[28rem] space-y-2 overflow-y-auto rounded-lg border bg-gray-50 p-1.5">
+            {layerGroups.length === 0 && <p className="p-2 text-xs text-gray-400">Завантаження…</p>}
+            {layerGroups.map((group) => (
+              <div key={group.title || "all"}>
+                {group.title && (
+                  <p className="px-1.5 pb-0.5 pt-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-gray-400">
+                    {group.title}
+                  </p>
+                )}
+                {group.rows.map((row) => (
+                  <button
+                    key={row.key}
+                    type="button"
+                    disabled={!row.selectable}
+                    onClick={() => selectLayer(row.obj)}
+                    title={row.selectable ? row.label : `${row.label} — не редагується напряму`}
+                    className={cn(
+                      "flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left text-xs",
+                      row.obj === activeObj
+                        ? "bg-blue-100 font-medium text-blue-900"
+                        : row.covered
+                          ? "bg-amber-100 text-amber-900"
+                          : row.selectable
+                            ? "text-gray-700 hover:bg-white"
+                            : "cursor-default text-gray-400"
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{row.label}</span>
+                    {row.hidden && <span className="shrink-0 text-[0.625rem] text-gray-400">приховано</span>}
+                    {row.covered && <span className="shrink-0" title="Фігура перекриває цей текст">⚠</span>}
+                    {row.linked && (
+                      <span className="shrink-0" title="Пов'язано з «Вихідними даними» — оновлюється автоматично">
+                        🔗
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+          <p className="text-[0.6875rem] leading-snug text-gray-400">
+            Зверху — шари, що лежать над іншими. 🔗 — текст береться з «Вихідних даних».
+          </p>
+        </div>
+
+        {/* ── Полотно ───────────────────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-3">
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 text-xs font-medium",
+              activeObj ? "bg-blue-600 text-white" : "text-gray-400"
+            )}
+          >
+            {activeObj ? selectedLabel : "Клікніть елемент, щоб змінити його"}
+          </span>
         <div ref={canvasHostRef} className="w-full max-w-full">
           <div
             className="mx-auto rounded-lg border-2 border-gray-200 shadow-md"
@@ -2131,14 +2410,29 @@ export default function CoverDesignerCanvas({
                 export (fabric's excludeFromExport is respected by toJSON but
                 not by toDataURL, so a canvas object here would need explicit
                 removal before every render). */}
-            {format === "hardcover" && ctx.layout.spine && ctx.layout.spine.w > 0 && (
+            {[ctx.layout.front, ctx.layout.back].map(
+              (p, i) =>
+                p && (
+                  <div
+                    key={i}
+                    className="pointer-events-none absolute border border-dashed border-blue-500/60"
+                    style={{
+                      left: p.x + SAFE_MARGIN,
+                      top: p.y + SAFE_MARGIN,
+                      width: p.w - SAFE_MARGIN * 2,
+                      height: p.h - SAFE_MARGIN * 2,
+                    }}
+                  />
+                )
+            )}
+            {ctx.layout.spine && ctx.layout.spine.w > 0 && (
               <>
                 <div
-                  className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-pink-500/70"
+                  className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-orange-500/80"
                   style={{ left: ctx.layout.spine.x }}
                 />
                 <div
-                  className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-pink-500/70"
+                  className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-orange-500/80"
                   style={{ left: ctx.layout.spine.x + ctx.layout.spine.w }}
                 />
               </>
@@ -2146,7 +2440,19 @@ export default function CoverDesignerCanvas({
           </div>
           </div>
         </div>
-        <p className="text-xs text-gray-400">Клікніть на назву, підзаголовок, автора чи анотацію, щоб редагувати текст прямо на обкладинці</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[0.6875rem] text-gray-500">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-0 w-5 border-t-2 border-dashed border-blue-500" />
+              безпечна зона {COVER_SAFE_ZONE_MIN_MM}–{COVER_SAFE_ZONE_MAX_MM} мм — текст тримайте всередині
+            </span>
+            {format !== "ebook" && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-0 w-5 border-t-2 border-dashed border-orange-500" />
+                корінець {spineMm.toFixed(1)} мм{format === "hardcover" ? " (тверда палітурка)" : ""} · текст на
+                корінці — від {MIN_SPINE_TEXT_PAGES} сторінок
+              </span>
+            )}
+          </div>
         {format !== "ebook" &&
           pageCount != null &&
           pageCount > 0 &&
@@ -2161,7 +2467,6 @@ export default function CoverDesignerCanvas({
               книгу все одно можна — лишити корінець без тексту.
             </p>
           )}
-
         {coveredTexts.length > 0 && (
           <div
             role="status"
@@ -2175,111 +2480,62 @@ export default function CoverDesignerCanvas({
             </Button>
           </div>
         )}
-
-        {activeObj && (
-          <div className="flex w-full max-w-xs items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => alignSelected("left")}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="До безпечної зони ліворуч"
-            >
-              <AlignHorizontalJustifyStart size={15} />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => alignSelected("center")}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="По центру сторінки"
-            >
-              <AlignHorizontalJustifyCenter size={15} />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => alignSelected("right")}
-              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
-              title="До безпечної зони праворуч"
-            >
-              <AlignHorizontalJustifyEnd size={15} />
-            </Button>
-            <div className="mx-1 h-5 w-px bg-gray-300" />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => changeLayer("front")}
-              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
-              title="На передній план"
-            >
-              ⤒
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => changeLayer("forward")}
-              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
-              title="Перемістити вище"
-            >
-              ↑
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => changeLayer("backward")}
-              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
-              title="Перемістити нижче"
-            >
-              ↓
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => changeLayer("back")}
-              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
-              title="На задній план"
-            >
-              ⤓
-            </Button>
-          </div>
-        )}
-
-        <div className="flex w-full max-w-xs gap-2">
-          <Button variant="outline" size="sm" onClick={undoCanvas} disabled={!canUndo} className="flex-1" title="Скасувати (Ctrl+Z)">
-            ↩ Undo
-          </Button>
-          <Button variant="outline" size="sm" onClick={redoCanvas} disabled={!canRedo} className="flex-1" title="Повторити (Ctrl+Y)">
-            ↪ Redo
-          </Button>
         </div>
-        <SaveActionButton
-          state={saving ? "saving" : coverSaved && !coverDirty ? "saved" : "idle"}
-          idleLabel="Зберегти обкладинку"
-          onClick={saveToBook}
-          className="w-full max-w-xs"
-        />
-        <Button
-          variant="outline"
-          onClick={saveAsTemplate}
-          loading={savingTemplate}
-          className="w-full max-w-xs"
-          title="Зберегти поточний дизайн, щоб застосувати його до інших своїх книжок"
-        >
-          Зберегти як шаблон
-        </Button>
-        {saveError && <p className="text-sm text-red-500">{saveError}</p>}
-      </div>
 
-      {/* Right panel */}
-      <div className="w-full space-y-4 lg:w-[300px] lg:shrink-0">
+        {/* ── Права панель: «Вибране» / «Дизайн» (WF-SPEC 08 п.2) ────────── */}
+        <div className="w-full space-y-3 xl:w-[340px] xl:shrink-0">
+          <div className="flex gap-1 rounded-lg border bg-gray-50 p-1">
+            {(["selected", "design"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setPanelTab(tab)}
+                className={cn(
+                  "flex-1 rounded-md py-1.5 text-xs font-medium transition-colors",
+                  panelTab === tab ? "bg-white text-gray-900 shadow" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                {tab === "selected" ? "Вибране" : "Дизайн"}
+              </button>
+            ))}
+          </div>
+
+          {panelTab === "selected" && (
+            <div className="space-y-3">
+              {!activeObj && !croppingSlot && (
+                <p className="rounded-lg border border-dashed p-4 text-center text-xs text-gray-400">
+                  Клікніть елемент на обкладинці або в списку шарів, щоб змінити його.
+                </p>
+              )}
+
+              {activeObj && (
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-gray-900">{selectedLabel}</p>
+                  {isLinkedText(activeObj) && (
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[0.6875rem] font-medium text-blue-700 ring-1 ring-blue-200">
+                      🔗 Вихідні дані
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {activeObj && unlinkPrompt === activeObj && (
+                <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <p className="font-semibold">Відв&apos;язати від Вихідних даних?</p>
+                  <p>Цей текст на обкладинці перестане оновлюватися разом із «Вихідними даними».</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" className="h-7 text-xs" onClick={confirmUnlink}>
+                      Відв&apos;язати й змінити
+                    </Button>
+                    <Button asChild type="button" variant="outline" size="sm" className="h-7 text-xs">
+                      <Link href={`/dashboard/books/${bookId}/output-data`} onClick={revertLinkedText}>
+                        Змінити у «Вихідних даних»
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
         {activeObj?.type === "textbox" && (
           <div className="space-y-2 rounded-lg border bg-gray-50 p-2">
             <p className="text-xs font-medium text-gray-500">Текст</p>
@@ -2515,75 +2771,114 @@ export default function CoverDesignerCanvas({
           </Button>
         )}
 
-        <Button variant="outline" size="sm" className="w-full" onClick={addRectangle}>
-          + Додати фігуру
-        </Button>
-
-        <div className="flex gap-1 rounded-lg border p-1 bg-gray-50">
-          {(["templates", "mine", "own"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "flex-1 rounded-md py-1.5 text-xs font-medium transition-colors",
-                activeTab === tab ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
-              )}
+              {activeObj && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-gray-500">Вирівняти на обкладинці · порядок шарів</p>
+        {activeObj && (
+          <div className="flex w-full items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => alignSelected("left")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="До безпечної зони ліворуч"
             >
-              {tab === "templates" ? "Шаблони" : tab === "mine" ? "Мої шаблони" : "Своя обкладинка"}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === "mine" && (
-          <div className="space-y-3">
-            <p className="text-xs text-gray-500">
-              Дизайни, які ви зберегли з кнопки «Зберегти як шаблон» — застосуйте до цієї книжки в один клік.
-            </p>
-            {loadingTemplates ? (
-              <p className="text-xs text-gray-400">Завантаження…</p>
-            ) : myTemplates.length === 0 ? (
-              <p className="text-xs text-gray-400">Поки немає збережених шаблонів.</p>
-            ) : (
-              <div className="space-y-2">
-                {myTemplates.map((tpl) => (
-                  <div key={tpl.id} className="flex items-center justify-between gap-2 rounded-lg border p-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-gray-900">{tpl.name}</p>
-                      <p className="text-[11px] text-gray-400">
-                        {new Date(tpl.createdAt).toLocaleDateString("uk-UA")}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        loading={applyingTemplateId === tpl.id}
-                        onClick={async () => {
-                          setApplyingTemplateId(tpl.id);
-                          await applyStoredDesign(tpl.design);
-                          setApplyingTemplateId(null);
-                        }}
-                      >
-                        Застосувати
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => deleteTemplate(tpl.id)}
-                        className="px-1.5 text-gray-400 hover:text-red-600"
-                        aria-label="Видалити шаблон"
-                        title="Видалити шаблон"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              <AlignHorizontalJustifyStart size={15} />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => alignSelected("center")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="По центру сторінки"
+            >
+              <AlignHorizontalJustifyCenter size={15} />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => alignSelected("right")}
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-white hover:text-gray-900"
+              title="До безпечної зони праворуч"
+            >
+              <AlignHorizontalJustifyEnd size={15} />
+            </Button>
+            <div className="mx-1 h-5 w-px bg-gray-300" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => changeLayer("front")}
+              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
+              title="На передній план"
+            >
+              ⤒
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => changeLayer("forward")}
+              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
+              title="Перемістити вище"
+            >
+              ↑
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => changeLayer("backward")}
+              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
+              title="Перемістити нижче"
+            >
+              ↓
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => changeLayer("back")}
+              className="flex h-7 w-7 items-center justify-center rounded text-sm text-gray-600 hover:bg-white hover:text-gray-900"
+              title="На задній план"
+            >
+              ⤓
+            </Button>
           </div>
         )}
+                </div>
+              )}
 
-        {activeTab === "templates" && (
+              {format !== "ebook" && (
+                <div className="space-y-1.5 rounded-lg border bg-gray-50 p-2">
+                  <p className="text-xs font-medium text-gray-500">Задня сторона: що показувати</p>
+                  {BACK_TOGGLES.map((t) => (
+                    <label key={t.role} className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={backBlockShown(t.role)}
+                        disabled={t.role === "qr" && !bookUrl}
+                        onChange={() => toggleBackBlock(t.role)}
+                      />
+                      {t.label}
+                      {t.linked && syncFromBookData && <span title="Береться з «Вихідних даних»">🔗</span>}
+                    </label>
+                  ))}
+                  <p className="text-[0.6875rem] leading-snug text-gray-400">
+                    Порожній блок (без анотації чи біографії у «Вихідних даних») на обкладинку не потрапляє.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {panelTab === "design" && (
+            <div className="space-y-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Шаблони</p>
+        {(
           <div className="space-y-4">
             {(() => {
               const prevTpl = TEMPLATES[(templateIndex - 1 + TEMPLATES.length) % TEMPLATES.length];
@@ -2796,8 +3091,59 @@ export default function CoverDesignerCanvas({
             </div>
           </div>
         )}
-
-        {activeTab === "own" && (
+              {myTemplates.length > 0 && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Мої шаблони</p>
+              )}
+        {myTemplates.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">
+              Дизайни, які ви зберегли з кнопки «Зберегти як шаблон» — застосуйте до цієї книжки в один клік.
+            </p>
+            {loadingTemplates ? (
+              <p className="text-xs text-gray-400">Завантаження…</p>
+            ) : myTemplates.length === 0 ? (
+              <p className="text-xs text-gray-400">Поки немає збережених шаблонів.</p>
+            ) : (
+              <div className="space-y-2">
+                {myTemplates.map((tpl) => (
+                  <div key={tpl.id} className="flex items-center justify-between gap-2 rounded-lg border p-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900">{tpl.name}</p>
+                      <p className="text-[11px] text-gray-400">
+                        {new Date(tpl.createdAt).toLocaleDateString("uk-UA")}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={applyingTemplateId === tpl.id}
+                        onClick={async () => {
+                          setApplyingTemplateId(tpl.id);
+                          await applyStoredDesign(tpl.design);
+                          setApplyingTemplateId(null);
+                        }}
+                      >
+                        Застосувати
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => deleteTemplate(tpl.id)}
+                        className="px-1.5 text-gray-400 hover:text-red-600"
+                        aria-label="Видалити шаблон"
+                        title="Видалити шаблон"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Своя обкладинка</p>
+        {(
           <div className="space-y-3">
             <p className="text-xs text-gray-500">
               Завантажте готову обкладинку цілком — вона замінить усе на канві. Мінімум {geometry.ownCoverMinW}×{geometry.ownCoverMinH}px (150 DPI),
@@ -2813,13 +3159,75 @@ export default function CoverDesignerCanvas({
               <p className="text-sm text-gray-600">Перетягніть зображення або натисніть для вибору</p>
               <p className="text-xs text-gray-400 mt-1">JPG, PNG</p>
             </button>
-            {ownCoverDims && !ownCoverError && (
-              <p className="text-xs text-green-600">✓ {ownCoverDims.w}×{ownCoverDims.h}px — застосовано на канву</p>
+            {/* WF-SPEC 08 п.8 -- three verdicts: red = below the minimum
+                (rejected above), amber = usable but under the 300 DPI print
+                target, green = fine. */}
+            {ownCoverDims && !ownCoverError && (ownCoverDims.w < exportPx.w || ownCoverDims.h < exportPx.h) && (
+              <p className="text-xs text-amber-600">
+                ⚠ {ownCoverDims.w}×{ownCoverDims.h}px — застосовано, але для друку може бути нечітко (бажано від{" "}
+                {exportPx.w}×{exportPx.h}px)
+              </p>
+            )}
+            {ownCoverDims && !ownCoverError && ownCoverDims.w >= exportPx.w && ownCoverDims.h >= exportPx.h && (
+              <p className="text-xs text-green-600">✓ {ownCoverDims.w}×{ownCoverDims.h}px — підходить, застосовано</p>
             )}
             {ownCoverError && <p className="text-xs text-red-500">{ownCoverError}</p>}
 
           </div>
         )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Нижня панель: одна головна дія (WF-SPEC 08 п.13) ─────────────── */}
+      <div className="sticky bottom-0 z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-3 rounded-b-xl border-t border-gray-200 bg-white/95 px-6 py-3 backdrop-blur">
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="sm" onClick={undoCanvas} disabled={!canUndo} title="Скасувати (Ctrl+Z)">
+            ↩ Undo
+          </Button>
+          <Button variant="outline" size="sm" onClick={redoCanvas} disabled={!canRedo} title="Повторити (Ctrl+Y)">
+            ↪ Redo
+          </Button>
+        </div>
+        <span className="text-xs text-gray-400">
+          Збережеться як PNG {exportPx.w}×{exportPx.h} px (300 DPI)
+        </span>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+          {saveError && <span className="text-xs text-red-500">{saveError}</span>}
+          {lockedUntilLabel ? (
+            <span className="text-xs text-gray-500">🔒 Наступна зміна обкладинки можлива з {lockedUntilLabel}</span>
+          ) : (
+            <>
+              {coverDirty && <span className="text-xs text-amber-700">● Є незбережені зміни</span>}
+              {isPublished && (
+                <span className="text-xs text-gray-500">
+                  Книга опублікована: піде на затвердження · використовує ліміт 90 днів
+                </span>
+              )}
+            </>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Більше дій" className="h-9 w-9">
+                ⋯
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem disabled={savingTemplate} onClick={saveAsTemplate}>
+                Зберегти як шаблон
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => applyTemplate(template)}>Скинути до шаблону</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <SaveActionButton
+            state={saving ? "saving" : coverSaved && !coverDirty ? "saved" : "idle"}
+            idleLabel="Зберегти"
+            onClick={saveToBook}
+            disabled={!!lockedUntilLabel}
+            title={lockedUntilLabel ? `Наступна зміна можлива з ${lockedUntilLabel}` : undefined}
+          />
+        </div>
       </div>
     </div>
   );
