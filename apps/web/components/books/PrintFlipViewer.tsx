@@ -54,6 +54,7 @@ type FlipLeaf =
 export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCoverUrl, trimMm, grayscale = false }: Props) {
   const effectiveTrim = trimMm && trimMm.widthMm > 0 && trimMm.heightMm > 0 ? trimMm : PRINT_TRIM_SIZE_MM;
   const hostRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
   const [isPortrait, setIsPortrait] = useState(false);
   const [pageW, setPageW] = useState(DISPLAY_W);
   const pageH = Math.round(pageW * (effectiveTrim.heightMm / effectiveTrim.widthMm));
@@ -61,16 +62,34 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
   const bookRef = useRef<{ pageFlip: () => { flipPrev: () => void; flipNext: () => void; flip: (i: number) => void } } | null>(null);
   const [current, setCurrent] = useState(0);
 
+  // Width-only sizing (the original version of this effect) left height
+  // unconstrained: pageH is DERIVED from pageW via the book's real trim
+  // ratio (above), so a wide-enough `avail` width could produce a spread
+  // taller than the viewport -- on a tablet in landscape, where this host
+  // has no vertical scroll room of its own (parent is `min-h-0 flex-1`
+  // under a fixed-height page), the book simply overflowed the bottom of
+  // the screen (live tablet report, 2026-10-05). Both orientations now also
+  // cap pageW by the height actually available, derived from the same
+  // ratio, and take whichever constraint (width or height) is tighter.
+  const ratio = effectiveTrim.heightMm / effectiveTrim.widthMm; // pageH per 1px of pageW
   useEffect(() => {
     const apply = () => {
       const portrait = window.matchMedia("(orientation: portrait)").matches;
       setIsPortrait(portrait);
       const host = hostRef.current;
-      const avail = host ? host.clientWidth - 24 : window.innerWidth - 48;
+      const availW = host ? host.clientWidth - 24 : window.innerWidth - 48;
+      // py-6 (24px top + 24px bottom) + gap-4 (16px) between the controls
+      // row and the book itself -- the host's own non-book vertical chrome.
+      const chromeH = (controlsRef.current?.offsetHeight ?? 40) + 48 + 16;
+      const availH = Math.max(0, (host ? host.clientHeight : window.innerHeight) - chromeH);
       if (portrait) {
-        setPageW(Math.min(DISPLAY_W, Math.max(200, avail)));
+        const byWidth = Math.min(DISPLAY_W, Math.max(200, availW));
+        const byHeight = Math.max(200, Math.floor(availH / ratio));
+        setPageW(Math.min(byWidth, byHeight));
       } else {
-        setPageW(Math.min(DISPLAY_W, Math.max(180, Math.floor(avail / 2))));
+        const byWidth = Math.min(DISPLAY_W, Math.max(180, Math.floor(availW / 2)));
+        const byHeight = Math.max(180, Math.floor(availH / ratio));
+        setPageW(Math.min(byWidth, byHeight));
       }
     };
     apply();
@@ -81,7 +100,7 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
       mq.removeEventListener("change", apply);
       window.removeEventListener("resize", apply);
     };
-  }, []);
+  }, [ratio]);
   // The page-number input is its own typed draft, not bound straight to
   // `current` -- an onChange wired directly to goTo() flipped the book after
   // the very first keystroke (typing "12" flips to page 1, then to page 2),
@@ -168,7 +187,7 @@ export function PrintFlipViewer({ printPdfUrl, printPageCount, coverUrl, backCov
 
   return (
     <div ref={hostRef} className="flex h-full flex-col items-center gap-4 overflow-y-auto bg-gray-100 py-6">
-      <div className="flex items-center gap-3">
+      <div ref={controlsRef} className="flex items-center gap-3">
         <button
           type="button"
           onClick={goPrev}
