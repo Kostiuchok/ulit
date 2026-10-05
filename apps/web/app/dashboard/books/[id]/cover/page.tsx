@@ -156,8 +156,12 @@ export default function CoverPage() {
             до реєстрації УДК" on "Вихідні дані"); once generated, it just
             confirms that's done. Tooltip still names the actual PDF file,
             not the button's own action label. */}
+        {/* WF-SPEC 08 п.1 / критерій 22 -- outline: the editor's one primary
+            action is "Зберегти обкладинку". Still visibly required via the
+            amber pill below, just no longer a second competing primary. */}
         <Button
           asChild
+          variant="outline"
           className="ml-auto shrink-0 whitespace-nowrap"
           title={
             book?.printPdfUrl
@@ -169,7 +173,7 @@ export default function CoverPage() {
             <FileText size={15} />
             Передперегляд книги
             {book?.printPdfUrl ? (
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] leading-none">✓</span>
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] leading-none text-green-700">✓</span>
             ) : (
               <span className="shrink-0 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-amber-950">
                 обов&apos;язково

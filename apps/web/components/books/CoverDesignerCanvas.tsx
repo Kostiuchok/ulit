@@ -263,7 +263,9 @@ function drawBackAndSpine(canvas: fabric.Canvas, ctx: TemplateCtx, style: { font
   if (layout.back) {
     const back = layout.back;
     const blurbTop = back.y + 30;
-    const blurbObj = new fabric.Textbox(ctx.description || "Анотація до книги…", {
+    // No placeholder copy -- an empty annotation is an empty (invisible)
+    // textbox, never filler text that could end up on a printed cover.
+    const blurbObj = new fabric.Textbox(ctx.description || "", {
       left: back.x + 24,
       top: blurbTop,
       fontSize: 12,
@@ -556,6 +558,45 @@ function backgroundFloorIndex(canvas: fabric.Canvas): number {
   return floor;
 }
 
+
+const TEXT_ROLE_LABELS: Record<string, string> = {
+  "text-title": "Назва книги",
+  "text-subtitle": "Підзаголовок",
+  "text-author": "Автор",
+  "text-blurb": "Анотація",
+  "text-bio": "Біографія",
+  "text-spine": "Корінець",
+};
+
+function isShapeObject(o: any): boolean {
+  const role = o?.data?.role;
+  return role === "shape" || role === "band";
+}
+
+// A shape counts as hiding what's under it only when it's actually opaque.
+function isOpaqueShape(o: any): boolean {
+  return isShapeObject(o) && (o.opacity ?? 1) >= 0.99 && !!o.fill && o.fill !== "transparent";
+}
+
+// WF-SPEC 08 п.12 -- text layers that have a shape stacked ABOVE them and
+// overlapping them. Template shapes always start under the text (see
+// drawFrontText / addRectangle), so this only happens after the author
+// explicitly reorders layers, or in a design saved before that rule.
+function findCoveredTexts(canvas: fabric.Canvas): fabric.Object[] {
+  const objs = canvas.getObjects();
+  const covered: fabric.Object[] = [];
+  objs.forEach((o: any, i) => {
+    if (o.type !== "textbox" || !o.text?.trim() || o.visible === false) return;
+    for (let j = i + 1; j < objs.length; j += 1) {
+      const above: any = objs[j];
+      if (isShapeObject(above) && above.visible !== false && o.intersectsWithObject(above)) {
+        covered.push(o);
+        return;
+      }
+    }
+  });
+  return covered;
+}
 
 interface BgImageTransform {
   left: number;
@@ -998,6 +1039,7 @@ export default function CoverDesignerCanvas({
   const [ownCoverDims, setOwnCoverDims] = useState<{ w: number; h: number } | null>(null);
   const [activeObj, setActiveObj] = useState<fabric.Object | null>(null);
   const [croppingSlot, setCroppingSlot] = useState(false);
+  const [coveredTexts, setCoveredTexts] = useState<string[]>([]);
 
   const ctx: TemplateCtx = useMemo(
     () => ({
@@ -1035,6 +1077,9 @@ export default function CoverDesignerCanvas({
       snapshotScheduledRef.current = false;
       const canvas = canvasRef.current;
       if (!canvas || pauseHistoryRef.current) return;
+      setCoveredTexts(
+        findCoveredTexts(canvas).map((o: any) => TEXT_ROLE_LABELS[o.data?.role] ?? "Текст")
+      );
       const json = JSON.stringify(canvas.toJSON(["data"]));
       historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
       historyRef.current.push(json);
@@ -1062,6 +1107,29 @@ export default function CoverDesignerCanvas({
       preserveObjectStacking: true,
     });
     canvasRef.current = canvas;
+
+    // WF-SPEC 08 п.4 -- clicking where text is VISIBLE selects the text. A
+    // see-through shape stacked above a text layer used to swallow the click
+    // (live bug: template rectangle selected instead of the title under it).
+    // An opaque shape above text still wins -- that text genuinely isn't
+    // visible there (and the overlap warning below offers the one-click fix).
+    const defaultFindTarget = canvas.findTarget.bind(canvas);
+    (canvas as any).findTarget = (e: any, skipGroup: boolean) => {
+      const target: any = defaultFindTarget(e, skipGroup);
+      if (!target || !isShapeObject(target) || isOpaqueShape(target)) return target;
+      // Don't hijack a drag on the shape's own resize/rotate handles.
+      if (canvas.getActiveObject() === target && target.__corner) return target;
+      const pointer = canvas.getPointer(e, true);
+      const objs = canvas.getObjects();
+      for (let i = objs.indexOf(target) - 1; i >= 0; i -= 1) {
+        const o: any = objs[i];
+        if (isOpaqueShape(o) && o.containsPoint(pointer)) break;
+        if (o.type === "textbox" && o.selectable !== false && o.visible !== false && o.text?.trim() && o.containsPoint(pointer)) {
+          return o;
+        }
+      }
+      return target;
+    };
 
     canvas.on("object:added", saveSnapshot);
     canvas.on("object:removed", saveSnapshot);
@@ -1276,7 +1344,7 @@ export default function CoverDesignerCanvas({
       "text-author": bookAuthor,
       "text-subtitle": subtitle || "",
       "text-bio": authorBio || "",
-      "text-blurb": description || "Анотація до книги…",
+      "text-blurb": description || "",
     };
     let changed = false;
     canvas.getObjects().forEach((o: any) => {
@@ -1426,6 +1494,10 @@ export default function CoverDesignerCanvas({
       data: { role: "shape" },
     });
     canvas.add(rect);
+    // Under every text layer by default (WF-SPEC 08 п.11) -- a new shape
+    // must never bury the title; the author can still raise it explicitly.
+    const lowestText = canvas.getObjects().findIndex((o) => o.type === "textbox");
+    if (lowestText >= 0) canvas.moveTo(rect, Math.max(backgroundFloorIndex(canvas), lowestText));
     canvas.setActiveObject(rect);
     canvas.renderAll();
     setActiveObj(rect);
@@ -1650,6 +1722,14 @@ export default function CoverDesignerCanvas({
     },
     [panelForObject, saveSnapshot]
   );
+
+  const raiseCoveredTexts = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    findCoveredTexts(canvas).forEach((o) => canvas.bringToFront(o));
+    canvas.requestRenderAll();
+    saveSnapshot();
+  }, [saveSnapshot]);
 
   const changeLayer = useCallback(
     (action: "front" | "back" | "forward" | "backward") => {
@@ -2081,6 +2161,20 @@ export default function CoverDesignerCanvas({
               книгу все одно можна — лишити корінець без тексту.
             </p>
           )}
+
+        {coveredTexts.length > 0 && (
+          <div
+            role="status"
+            className="flex w-full max-w-lg flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+          >
+            <span className="flex-1">
+              Фігура перекриває текст {coveredTexts.map((t) => `«${t}»`).join(", ")}
+            </span>
+            <Button type="button" variant="outline" size="sm" className="h-7 shrink-0 text-xs" onClick={raiseCoveredTexts}>
+              Перенести текст наверх
+            </Button>
+          </div>
+        )}
 
         {activeObj && (
           <div className="flex w-full max-w-xs items-center justify-center gap-1 rounded-lg border bg-gray-50 p-1">
@@ -2724,18 +2818,6 @@ export default function CoverDesignerCanvas({
             )}
             {ownCoverError && <p className="text-xs text-red-500">{ownCoverError}</p>}
 
-            <div className="rounded-lg border p-3 space-y-2">
-              <p className="text-xs font-semibold text-gray-700">Редагувати офлайн у Photoshop</p>
-              <p className="text-xs text-gray-400">
-                PSD-шаблони з полями обрізу (bleed) та safe zone для поліграфії. Готуються — з’являться найближчим часом.
-              </p>
-              <Button size="sm" variant="outline" disabled className="w-full text-xs cursor-not-allowed">
-                Завантажити PSD-шаблон (м’яка обкладинка)
-              </Button>
-              <Button size="sm" variant="outline" disabled className="w-full text-xs cursor-not-allowed">
-                Завантажити PSD-шаблон (тверда обкладинка)
-              </Button>
-            </div>
           </div>
         )}
       </div>
