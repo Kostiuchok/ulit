@@ -23,6 +23,8 @@ const ANNOTATION =
   "Автоматична чернетка для перевірки форм кабінету автора. Створюється тестом після кожного деплою і видаляється наприкінці того самого запуску.";
 
 test.describe("Вихідні дані: підсвічування, «Змінено», вихід зі сторінки", () => {
+  // Never two of these at once: they share one draft and must not race to create it.
+  test.describe.configure({ mode: "default" });
   test.skip(!FIXTURE_EMAIL || !FIXTURE_PASSWORD, "requires E2E_TEST_EMAIL/E2E_TEST_PASSWORD");
 
 
@@ -34,12 +36,31 @@ test.describe("Вихідні дані: підсвічування, «Зміне
     await page.waitForURL(/\/dashboard(\/|$|\?)/, { timeout: 15_000 });
   }
 
-  // Finds the permanent draft, creating it on the very first run.
+  // The fixture account's books, straight from the API. NOT read off the
+  // rendered list: that list fills in asynchronously, and the first version
+  // of this helper looked at it too early, saw "no such book" every time and
+  // created a new draft in every single test (four identical drafts per
+  // deploy landed in the admin's list before it was caught).
+  async function findDraftId(page: Page): Promise<string | null> {
+    return page.evaluate(async (title) => {
+      const session = await fetch("/api/auth/session").then((r) => r.json());
+      const token = session?.user?.apiToken;
+      if (!token) throw new Error("no api token in session");
+      const res = await fetch("/api/books", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`GET /api/books -> ${res.status}`);
+      const { books } = await res.json();
+      const match = (books as { id: string; title: string; createdAt: string }[])
+        .filter((b) => b.title === title)
+        .sort((x, y) => String(x.createdAt ?? "").localeCompare(String(y.createdAt ?? "")))[0];
+      return match?.id ?? null;
+    }, TITLE);
+  }
+
+  // Finds the permanent draft, creating it only if the API says there is none.
   async function ensureDraft(page: Page): Promise<string> {
-    const link = () => page.locator('a[href^="/dashboard/books/"]', { hasText: TITLE }).first();
     await page.goto("/dashboard/books");
-    await expect(page.getByRole("heading", { name: /мої книги/i })).toBeVisible({ timeout: 15_000 });
-    if ((await link().count()) === 0) {
+    let id = await findDraftId(page);
+    if (!id) {
       await page.goto("/dashboard/books/new");
       await page.getByLabel(/назва книги/i).fill(TITLE);
       await page.getByLabel(/анотація/i).fill(ANNOTATION);
@@ -47,12 +68,10 @@ test.describe("Вихідні дані: підсвічування, «Зміне
       await page.getByRole("option", { name: "0+", exact: true }).click();
       await page.getByRole("button", { name: /зберегти і перейти на наступний крок/i }).click();
       await expect(page.getByText(/завантажити рукопис/i)).toBeVisible({ timeout: 20_000 });
-      await page.goto("/dashboard/books");
+      id = await findDraftId(page);
     }
-    await expect(link()).toBeVisible({ timeout: 15_000 });
-    const id = (await link().getAttribute("href"))?.split("/")[3] ?? "";
-    expect(id, "id of the fixture draft").not.toBe("");
-    return id;
+    expect(id, "id of the fixture draft").toBeTruthy();
+    return id!;
   }
 
   async function openOutputData(page: Page) {
