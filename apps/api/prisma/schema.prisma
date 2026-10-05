@@ -202,6 +202,13 @@ model Book {
   pendingCoverUrl      String?
   pendingBackCoverUrl  String?
   pendingSpineUrl      String?
+  // The whole print wrap (back | spine | front) WITH real bleed, exported by
+  // the cover editor together with the three panels above. Null whenever
+  // the current cover did not come from the editor (auto-cover, uploaded
+  // file) -- upload-cover clears it -- and the print-house download then
+  // falls back to a mirrored bleed (lib/coverPrintWrap.ts).
+  coverWrapUrl         String?
+  pendingCoverWrapUrl  String?
   pendingCoverThumbUrl String?
   // Set to the republish-approve timestamp whenever a staged cover change
   // (above) gets applied -- WF-SPEC "раз на 90 днів": the author can't

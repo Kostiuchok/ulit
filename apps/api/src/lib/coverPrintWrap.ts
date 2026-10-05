@@ -90,10 +90,36 @@ export async function buildCoverPrintWrap(input: CoverPrintWrapInput): Promise<C
   };
 }
 
+// The cover editor exports the wrap itself, bleed included (real artwork,
+// not a mirror). It only needs normalising to the exact print size: the
+// editor works in screen pixels, so its export can be a pixel or two off.
+export async function finalizeEditorPrintWrap(input: {
+  wrap: Buffer;
+  spine: Buffer;
+  trimMm: { widthMm: number; heightMm: number };
+  bleedMm?: number;
+}): Promise<CoverPrintWrapResult> {
+  const bleedPx = mmToPx(input.bleedMm ?? COVER_BLEED_MM);
+  const panelW = mmToPx(input.trimMm.widthMm);
+  const panelH = mmToPx(input.trimMm.heightMm);
+  const spineMeta = await sharp(input.spine).metadata();
+  const spineRatio = spineMeta.width && spineMeta.height ? spineMeta.width / spineMeta.height : 0;
+  const spineW = Math.max(1, Math.round(spineRatio * panelH));
+  const widthPx = panelW * 2 + spineW + bleedPx * 2;
+  const heightPx = panelH + bleedPx * 2;
+  const buffer = await sharp(input.wrap)
+    .flatten({ background: "#ffffff" })
+    .resize({ width: widthPx, height: heightPx, fit: "fill" })
+    .withMetadata({ density: PRINT_WRAP_DPI })
+    .png()
+    .toBuffer();
+  return { buffer, widthPx, heightPx, bleedPx, spineMm: (spineW / PRINT_WRAP_DPI) * 25.4 };
+}
+
 // Stored cover URLs are public URLs (publicUrl(), optionally with a ?v=
 // cache-buster); the object key is the `public/covers*/<file>` tail.
 export function coverObjectNameFromUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  const match = url.split("?")[0].match(/public\/covers(?:-back|-spine)?\/[^/]+$/);
+  const match = url.split("?")[0].match(/public\/covers(?:-back|-spine|-wrap)?\/[^/]+$/);
   return match ? match[0] : null;
 }

@@ -107,10 +107,10 @@ export interface Template {
 
 function addAccentBg(canvas: fabric.Canvas, layout: CoverLayout, color: string) {
   const bg = new fabric.Rect({
-    left: 0,
-    top: 0,
-    width: layout.totalW,
-    height: layout.totalH,
+    left: -layout.bleed,
+    top: -layout.bleed,
+    width: layout.totalW + layout.bleed * 2,
+    height: layout.totalH + layout.bleed * 2,
     fill: color,
     selectable: false,
     evented: false,
@@ -737,7 +737,10 @@ function applyFullWrapImage(
   fitMode: "cover" | "height",
   transform?: BgImageTransform
 ) {
-  const box = { x: 0, y: 0, w: layout.totalW, h: layout.totalH };
+  // The image must reach the edge of the BLEED, not of the trim -- that is
+  // what makes the bleed real artwork rather than blank paper.
+  const box = bleedBox(layout);
+  if (transform) transform = growTransformIntoBleed(transform, layout);
   const opts = url.startsWith("data:") ? undefined : { crossOrigin: "anonymous" as const };
   fabric.Image.fromURL(
     url,
@@ -745,6 +748,7 @@ function applyFullWrapImage(
       if (isCanvasDisposed(canvas)) return;
       const iw = img.width ?? box.w;
       const ih = img.height ?? box.h;
+      if (transform) transform = growTransformIntoBleed(transform, layout, { w: iw, h: ih });
       const fitScale = fitMode === "height" ? box.h / ih : Math.max(box.w / iw, box.h / ih);
       img.set({
         originX: "left",
@@ -767,6 +771,78 @@ function applyFullWrapImage(
     },
     opts
   );
+}
+
+// The whole printable area: trim size plus bleed on every outer edge.
+function bleedBox(layout: CoverLayout) {
+  return {
+    x: -layout.bleed,
+    y: -layout.bleed,
+    w: layout.totalW + layout.bleed * 2,
+    h: layout.totalH + layout.bleed * 2,
+  };
+}
+
+// Canvas size and the viewport shift that puts trim coordinate (0,0) at
+// (bleed, bleed) on screen -- object coordinates themselves never change.
+function applyCanvasGeometry(canvas: fabric.Canvas, layout: CoverLayout) {
+  canvas.setWidth(Math.ceil(layout.totalW + layout.bleed * 2));
+  canvas.setHeight(Math.ceil(layout.totalH + layout.bleed * 2));
+  canvas.setViewportTransform([1, 0, 0, 1, layout.bleed, layout.bleed]);
+}
+
+// A pan/zoom saved before bleed existed (or in the e-book layout, which has
+// none) fills the trim box exactly and would leave the bleed zone empty.
+// Scale it up about the centre of the cover just enough to reach the bleed
+// edge -- under 2%, and only on the axes it already filled.
+function growTransformIntoBleed(t: BgImageTransform, layout: CoverLayout, size?: { w: number; h: number }): BgImageTransform {
+  if (!layout.bleed || !size) return t;
+  const eps = 1;
+  const right = t.left + size.w * t.scaleX;
+  const bottom = t.top + size.h * t.scaleY;
+  const fillsX = t.left <= eps && right >= layout.totalW - eps;
+  const fillsY = t.top <= eps && bottom >= layout.totalH - eps;
+  const shortX = fillsX && (t.left > -layout.bleed || right < layout.totalW + layout.bleed);
+  const shortY = fillsY && (t.top > -layout.bleed || bottom < layout.totalH + layout.bleed);
+  if (!shortX && !shortY) return t;
+  const k = Math.max(
+    shortX ? (layout.totalW + layout.bleed * 2) / layout.totalW : 1,
+    shortY ? (layout.totalH + layout.bleed * 2) / layout.totalH : 1
+  );
+  const cx = layout.totalW / 2;
+  const cy = layout.totalH / 2;
+  return { left: cx + (t.left - cx) * k, top: cy + (t.top - cy) * k, scaleX: t.scaleX * k, scaleY: t.scaleY * k };
+}
+
+// Template bands, patterns and author-drawn shapes that end exactly on an
+// outer trim edge are stretched to the bleed edge -- otherwise the bleed
+// behind them would show the plain background colour, and a slightly off
+// cut would leave a sliver of it. Idempotent: an object already past the
+// trim edge no longer "ends on" it. Text is never touched.
+const BLEED_STRETCH_ROLES = new Set(["band", "pattern", "shape"]);
+function extendEdgeObjectsIntoBleed(canvas: fabric.Canvas | fabric.StaticCanvas, layout: CoverLayout) {
+  const B = layout.bleed;
+  if (!B) return;
+  const eps = 1;
+  canvas.getObjects().forEach((o: any) => {
+    if (!BLEED_STRETCH_ROLES.has(o.data?.role) || (o.angle ?? 0) % 360 !== 0) return;
+    const r = o.getBoundingRect(true, true);
+    if (r.width < 1 || r.height < 1) return;
+    let l = r.left;
+    let t = r.top;
+    let rt = r.left + r.width;
+    let b = r.top + r.height;
+    if (Math.abs(l) <= eps) l = -B;
+    if (Math.abs(t) <= eps) t = -B;
+    if (Math.abs(rt - layout.totalW) <= eps) rt = layout.totalW + B;
+    if (Math.abs(b - layout.totalH) <= eps) b = layout.totalH + B;
+    if (l === r.left && t === r.top && rt === r.left + r.width && b === r.top + r.height) return;
+    o.set({ scaleX: (o.scaleX ?? 1) * ((rt - l) / r.width), scaleY: (o.scaleY ?? 1) * ((b - t) / r.height) });
+    o.setCoords();
+    const r2 = o.getBoundingRect(true, true);
+    o.set({ left: (o.left ?? 0) + (l - r2.left), top: (o.top ?? 0) + (t - r2.top) });
+    o.setCoords();
+  });
 }
 
 function applyBackgroundImage(canvas: fabric.Canvas, layout: CoverLayout, url: string, transform?: BgImageTransform) {
@@ -1176,6 +1252,7 @@ export default function CoverDesignerCanvas({
       height: ctx.layout.totalH,
       preserveObjectStacking: true,
     });
+    applyCanvasGeometry(canvas, ctx.layout);
     canvasRef.current = canvas;
 
     // WF-SPEC 08 п.4 -- clicking where text is VISIBLE selects the text. A
@@ -1297,6 +1374,7 @@ export default function CoverDesignerCanvas({
         // (clearContext on a null context) as an uncaught client-side
         // exception -- bail out if this callback is stale.
         if (canvasRef.current !== canvas) return;
+        extendEdgeObjectsIntoBleed(canvas, ctx.layout);
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
         applyIllustration(canvas, ctx.layout, illustrationRef.current);
         canvas.renderAll();
@@ -1309,6 +1387,7 @@ export default function CoverDesignerCanvas({
       });
     } else {
       template.apply(canvas, ctx);
+      extendEdgeObjectsIntoBleed(canvas, ctx.layout);
       canvas.renderAll();
       historyRef.current = [];
       historyIndexRef.current = -1;
@@ -1355,8 +1434,7 @@ export default function CoverDesignerCanvas({
       illustrationRef.current = captureIllustration(currentObjects, leavingLayout);
     }
 
-    canvas.setWidth(ctx.layout.totalW);
-    canvas.setHeight(ctx.layout.totalH);
+    applyCanvasGeometry(canvas, ctx.layout);
 
     if (formatChanged) {
       pauseHistoryRef.current = true;
@@ -1371,6 +1449,7 @@ export default function CoverDesignerCanvas({
       canvas.loadFromJSON(JSON.stringify({ objects: [...frontObjs, ...backSpineObjs] }), () => {
         // T-2067 -- same stale-callback-after-unmount race as the init effect above.
         if (canvasRef.current !== canvas) return;
+        extendEdgeObjectsIntoBleed(canvas, ctx.layout);
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
         applyIllustration(canvas, ctx.layout, illustrationRef.current);
         canvas.renderAll();
@@ -1395,13 +1474,13 @@ export default function CoverDesignerCanvas({
     if (!host) return;
     const apply = () => {
       const w = host.clientWidth;
-      setCanvasScale(w > 0 ? Math.min(1, w / ctx.layout.totalW) : 1);
+      setCanvasScale(w > 0 ? Math.min(1, w / (ctx.layout.totalW + ctx.layout.bleed * 2)) : 1);
     };
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(host);
     return () => ro.disconnect();
-  }, [ctx.layout.totalW]);
+  }, [ctx.layout.totalW, ctx.layout.bleed]);
 
   useEffect(() => {
     canvasRef.current?.calcOffset();
@@ -1480,6 +1559,7 @@ export default function CoverDesignerCanvas({
       if (!canvas) return;
       setTemplateId(tpl.id);
       tpl.apply(canvas, ctx);
+      extendEdgeObjectsIntoBleed(canvas, ctx.layout);
       canvas.renderAll();
       const accent = canvas.getObjects().find((o: any) => o.data?.role === "accent") as any;
       backgroundRef.current = { color: (accent?.fill as string) ?? "#1a1a2e" };
@@ -1619,6 +1699,7 @@ export default function CoverDesignerCanvas({
       clearGuides();
       const c = fCanvas.contextTop as CanvasRenderingContext2D;
       c.save();
+      c.translate(fCanvas.viewportTransform[4], fCanvas.viewportTransform[5]);
       c.strokeStyle = "#ff3d9a";
       c.lineWidth = 1;
       c.setLineDash([4, 4]);
@@ -1678,6 +1759,7 @@ export default function CoverDesignerCanvas({
       const { left, top, width, height } = boundsForHover(obj);
       const c = fCanvas.contextTop as CanvasRenderingContext2D;
       c.save();
+      c.translate(fCanvas.viewportTransform[4], fCanvas.viewportTransform[5]);
       c.strokeStyle = "#00c2ff";
       c.lineWidth = 2;
       c.setLineDash([]);
@@ -1882,7 +1964,9 @@ export default function CoverDesignerCanvas({
     const pattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
     const group = pattern.build(ctx.layout.front);
     replacePatternObject(canvas, group);
-  }, [ctx.layout.front]);
+    extendEdgeObjectsIntoBleed(canvas, ctx.layout);
+    canvas.renderAll();
+  }, [ctx.layout]);
 
   const uploadAndApplyImage = useCallback(
     async (file: File, target: "slot" | "background" = "slot") => {
@@ -1982,12 +2066,13 @@ export default function CoverDesignerCanvas({
           fabric.Image.fromURL(dataUrl, (fabricImg) => {
             if (isCanvasDisposed(canvas)) return;
             const front = ctx.layout.front;
-            const scaleX = ctx.layout.totalW / (fabricImg.width ?? ctx.layout.totalW);
-            const scaleY = ctx.layout.totalH / (fabricImg.height ?? ctx.layout.totalH);
+            const full = bleedBox(ctx.layout);
+            const scaleX = full.w / (fabricImg.width ?? full.w);
+            const scaleY = full.h / (fabricImg.height ?? full.h);
             const scale = Math.max(scaleX, scaleY);
             fabricImg.set({
-              left: 0,
-              top: 0,
+              left: full.x,
+              top: full.y,
               scaleX: scale,
               scaleY: scale,
               selectable: false,
@@ -2008,7 +2093,7 @@ export default function CoverDesignerCanvas({
   // ── Export & save ────────────────────────────────────────────────────────
 
   const uploadPanel = useCallback(
-    async (dataUrl: string, endpoint: string, field: "coverUrl" | "backCoverUrl" | "spineUrl") => {
+    async (dataUrl: string, endpoint: string, field: "coverUrl" | "backCoverUrl" | "spineUrl" | "coverWrapUrl") => {
       const blob = await (await fetch(dataUrl)).blob();
       const form = new FormData();
       form.append("file", blob, `${field}.png`);
@@ -2033,13 +2118,16 @@ export default function CoverDesignerCanvas({
     setSaveError("");
     try {
       const { front, back, spine } = ctx.layout;
+      // toDataURL crops in canvas pixels, which sit one bleed to the right
+      // of / below the trim coordinates the panels are expressed in.
+      const B = ctx.layout.bleed;
       const patch: { coverUrl?: string; backCoverUrl?: string; spineUrl?: string } = {};
 
       const frontDataUrl = canvas.toDataURL({
         format: "png",
         multiplier: geometry.exportScale,
-        left: front.x,
-        top: front.y,
+        left: front.x + B,
+        top: front.y + B,
         width: front.w,
         height: front.h,
       });
@@ -2049,8 +2137,8 @@ export default function CoverDesignerCanvas({
         const backDataUrl = canvas.toDataURL({
           format: "png",
           multiplier: geometry.exportScale,
-          left: back.x,
-          top: back.y,
+          left: back.x + B,
+          top: back.y + B,
           width: back.w,
           height: back.h,
         });
@@ -2064,12 +2152,34 @@ export default function CoverDesignerCanvas({
         const spineDataUrl = canvas.toDataURL({
           format: "png",
           multiplier: geometry.exportScale,
-          left: spine.x,
-          top: spine.y,
+          left: spine.x + B,
+          top: spine.y + B,
           width: spine.w,
           height: spine.h,
         });
         patch.spineUrl = await uploadPanel(spineDataUrl, "upload-spine", "spineUrl");
+      }
+
+      // The print-house file: the whole canvas -- back | spine | front WITH
+      // the bleed around it, real artwork all the way to the edge. Uploaded
+      // last on purpose: upload-cover (above) drops any earlier wrap, so a
+      // wrap on the server always belongs to the panels saved with it.
+      // Its failure must not undo a cover that is already saved -- the
+      // print-house download then falls back to a mirrored bleed, and the
+      // author is told to save again.
+      let wrapFailed = false;
+      if (back && spine) {
+        try {
+          let wrapDataUrl = canvas.toDataURL({ format: "png", multiplier: geometry.exportScale });
+          // A photo-heavy wrap can run to tens of MB as PNG; past ~18 MB
+          // send a near-lossless JPEG instead of risking the upload.
+          if (wrapDataUrl.length * 0.75 > 18 * 1024 * 1024) {
+            wrapDataUrl = canvas.toDataURL({ format: "jpeg", quality: 0.96, multiplier: geometry.exportScale });
+          }
+          await uploadPanel(wrapDataUrl, "upload-cover-wrap", "coverWrapUrl");
+        } catch {
+          wrapFailed = true;
+        }
       }
 
       const coverDesign = captureDesignState(canvas, ctx.layout, backSpineStateRef.current);
@@ -2085,6 +2195,9 @@ export default function CoverDesignerCanvas({
       onSaved(patch);
       setCoverDirty(false);
       setCoverSaved(true);
+      if (wrapFailed) {
+        setSaveError("Обкладинку збережено, але файл для друкарні з вильотами не завантажився — збережіть ще раз.");
+      }
     } catch (e: any) {
       setSaveError(e.message || "Помилка збереження обкладинки");
     } finally {
@@ -2466,20 +2579,35 @@ export default function CoverDesignerCanvas({
           <div
             className="mx-auto rounded-lg border-2 border-gray-200 shadow-md"
             style={{
-              width: ctx.layout.totalW * canvasScale,
-              height: ctx.layout.totalH * canvasScale,
+              width: (ctx.layout.totalW + ctx.layout.bleed * 2) * canvasScale,
+              height: (ctx.layout.totalH + ctx.layout.bleed * 2) * canvasScale,
               overflow: "hidden",
             }}
           >
           <div
             className="relative origin-top-left"
             style={{
-              width: ctx.layout.totalW,
-              height: ctx.layout.totalH,
+              width: ctx.layout.totalW + ctx.layout.bleed * 2,
+              height: ctx.layout.totalH + ctx.layout.bleed * 2,
               transform: `scale(${canvasScale})`,
             }}
           >
             <canvas ref={canvasEl} />
+            {/* Trim line: everything outside it is bleed and gets cut off.
+                The box-shadow veils the bleed zone so it reads as "outside
+                the book" while the artwork under it stays visible. */}
+            {ctx.layout.bleed > 0 && (
+              <div
+                className="pointer-events-none absolute border border-dashed border-rose-600"
+                style={{
+                  left: ctx.layout.bleed,
+                  top: ctx.layout.bleed,
+                  width: ctx.layout.totalW,
+                  height: ctx.layout.totalH,
+                  boxShadow: `0 0 0 ${Math.ceil(ctx.layout.bleed) + 1}px rgba(255,255,255,0.45)`,
+                }}
+              />
+            )}
             {/* Non-printing guides marking the spine (торець книжки) fold lines,
                 so the author can judge its real thickness and whether text fits
                 there -- a plain DOM overlay rather than fabric objects, so it
@@ -2495,8 +2623,8 @@ export default function CoverDesignerCanvas({
                     key={i}
                     className="pointer-events-none absolute border border-dashed border-blue-500/60"
                     style={{
-                      left: p.x + SAFE_MARGIN,
-                      top: p.y + SAFE_MARGIN,
+                      left: p.x + SAFE_MARGIN + ctx.layout.bleed,
+                      top: p.y + SAFE_MARGIN + ctx.layout.bleed,
                       width: p.w - SAFE_MARGIN * 2,
                       height: p.h - SAFE_MARGIN * 2,
                     }}
@@ -2507,11 +2635,11 @@ export default function CoverDesignerCanvas({
               <>
                 <div
                   className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-orange-500/80"
-                  style={{ left: ctx.layout.spine.x }}
+                  style={{ left: ctx.layout.spine.x + ctx.layout.bleed }}
                 />
                 <div
                   className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-orange-500/80"
-                  style={{ left: ctx.layout.spine.x + ctx.layout.spine.w }}
+                  style={{ left: ctx.layout.spine.x + ctx.layout.spine.w + ctx.layout.bleed }}
                 />
               </>
             )}
@@ -2525,8 +2653,8 @@ export default function CoverDesignerCanvas({
             </span>
             {format !== "ebook" && (
               <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-3 w-5 border-2 border-gray-300" />
-                край полотна — лінія обрізу · вильоти {COVER_BLEED_MM} мм додаються у файлі для друкарні
+                <span className="inline-block h-0 w-5 border-t-2 border-dashed border-rose-600" />
+                лінія обрізу · за нею вильот {COVER_BLEED_MM} мм — фон і зображення доводьте до краю полотна
               </span>
             )}
             {format !== "ebook" && (

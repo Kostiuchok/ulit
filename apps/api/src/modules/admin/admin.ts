@@ -28,7 +28,7 @@ import { queuePublishedEmail, queueRejectedEmail, scheduleKdpExpiryWarning } fro
 import { enqueueConversionJobs } from "../../services/publishing.service";
 import { withAvatarVersion } from "../../lib/coverVersion";
 import { isIsbnReady } from "./book-chamber";
-import { buildCoverPrintWrap, coverObjectNameFromUrl } from "../../lib/coverPrintWrap";
+import { buildCoverPrintWrap, finalizeEditorPrintWrap, coverObjectNameFromUrl } from "../../lib/coverPrintWrap";
 
 const KDP_SELECT_DAYS = 90;
 const WARN_BEFORE_DAYS = 7;
@@ -133,6 +133,7 @@ const BOOK_ADMIN_SELECT = {
   pendingCoverUrl: true,
   pendingBackCoverUrl: true,
   pendingSpineUrl: true,
+  pendingCoverWrapUrl: true,
   pendingCoverThumbUrl: true,
   coverApprovedAt: true,
   unpublishedAt: true,
@@ -667,6 +668,7 @@ export async function adminRoutes(app: FastifyInstance) {
           pendingCoverUrl: true,
           pendingBackCoverUrl: true,
           pendingSpineUrl: true,
+          pendingCoverWrapUrl: true,
           pendingCoverThumbUrl: true,
           bookAuthors: true,
           printFormatKey: true,
@@ -736,6 +738,10 @@ export async function adminRoutes(app: FastifyInstance) {
           backCoverUrl: book.pendingBackCoverUrl != null ? book.pendingBackCoverUrl : undefined,
           spineUrl: book.pendingSpineUrl != null ? book.pendingSpineUrl : undefined,
           coverThumbUrl: book.pendingCoverThumbUrl != null ? book.pendingCoverThumbUrl : undefined,
+          // Follows the front cover, null included: a staged cover that did
+          // not come from the editor has no wrap, and the old one is stale.
+          coverWrapUrl: book.pendingCoverUrl != null ? book.pendingCoverWrapUrl : undefined,
+          pendingCoverWrapUrl: null,
           coverUpdatedAt: hasPendingCover ? new Date() : undefined,
           coverApprovedAt: hasPendingCover ? new Date() : undefined,
           pendingCoverUrl: null,
@@ -843,6 +849,7 @@ export async function adminRoutes(app: FastifyInstance) {
           coverUrl: true,
           backCoverUrl: true,
           spineUrl: true,
+          coverWrapUrl: true,
           genre: true,
           printFormatKey: true,
           printWidthMm: true,
@@ -879,14 +886,24 @@ export async function adminRoutes(app: FastifyInstance) {
       }
 
       const format = resolveBookPrintFormat(book);
-      const wrap = await buildCoverPrintWrap({
-        front: panels[0],
-        back: panels[1],
-        spine: panels[2],
-        trimMm: { widthMm: format.widthMm, heightMm: format.heightMm },
-        bleedMm: COVER_BLEED_MM,
-      });
+      const trimMm = { widthMm: format.widthMm, heightMm: format.heightMm };
 
+      // Real bleed when the cover was saved from the editor; a mirrored one
+      // for every other cover source (and for covers saved before the
+      // editor exported a wrap).
+      const wrapName = coverObjectNameFromUrl(book.coverWrapUrl);
+      const editorWrap = wrapName ? await read(wrapName).catch(() => null) : null;
+      const wrap = editorWrap
+        ? await finalizeEditorPrintWrap({ wrap: editorWrap, spine: panels[2], trimMm, bleedMm: COVER_BLEED_MM })
+        : await buildCoverPrintWrap({
+            front: panels[0],
+            back: panels[1],
+            spine: panels[2],
+            trimMm,
+            bleedMm: COVER_BLEED_MM,
+          });
+
+      reply.header("X-Cover-Bleed", editorWrap ? "real" : "mirror");
       reply.header("Content-Type", "image/png");
       reply.header("Content-Disposition", "attachment");
       return reply.send(wrap.buffer);

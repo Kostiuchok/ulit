@@ -4,15 +4,15 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { uploadFile, publicUrl, IMMUTABLE_CACHE_CONTROL } from "../../services/storage.service";
-import { toCoverThumbnail } from "../../lib/coverThumbnail";
 import { coverLockedUntil } from "shared-types";
 
-const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
+// The full print wrap at 300 DPI is several times a single panel.
+const MAX_SIZE = 45 * 1024 * 1024; // 45 MB
 const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp"];
 
-export async function uploadCoverRoute(app: FastifyInstance) {
+export async function uploadCoverWrapRoute(app: FastifyInstance) {
   app.post(
-    "/api/books/:id/upload-cover",
+    "/api/books/:id/upload-cover-wrap",
     { preHandler: authenticate },
     async (request, reply) => {
       const { id } = request.params as { id: string };
@@ -24,6 +24,9 @@ export async function uploadCoverRoute(app: FastifyInstance) {
       if (!book) throw AppError.notFound("Book");
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
 
+      // The cover editor's print-house export: back | spine | front with
+      // real bleed around it (see Book.coverWrapUrl). Same 90-day lock and
+      // the same staging as the three panels it is saved together with.
       const isPublished = book.status === "PUBLISHED";
       if (isPublished) {
         const lockedUntil = coverLockedUntil(book.coverApprovedAt);
@@ -47,45 +50,25 @@ export async function uploadCoverRoute(app: FastifyInstance) {
       let totalSize = 0;
       for await (const chunk of data.file) {
         totalSize += chunk.length;
-        if (totalSize > MAX_SIZE) throw new AppError("File exceeds 20 MB", 400, "FILE_TOO_LARGE");
+        if (totalSize > MAX_SIZE) throw new AppError("File exceeds 45 MB", 400, "FILE_TOO_LARGE");
         chunks.push(chunk);
       }
 
       const buffer = Buffer.concat(chunks);
       const ext = data.mimetype === "image/png" ? "png" : data.mimetype === "image/webp" ? "webp" : "jpg";
-      // Staged for a PUBLISHED book: write to a DIFFERENT object path so the
-      // live file at the plain path (what readers' already-cached pages and
-      // the storefront keep pointing at) is never touched until admin
-      // approval applies pendingCoverUrl -> coverUrl (admin.ts). No rename
-      // needed at that point -- the "-pending" URL just becomes permanent.
-      const objectName = isPublished ? `public/covers/${id}-pending.${ext}` : `public/covers/${id}.${ext}`;
+      const objectName = isPublished ? `public/covers-wrap/${id}-pending.${ext}` : `public/covers-wrap/${id}.${ext}`;
 
       await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype, {
         cacheControl: IMMUTABLE_CACHE_CONTROL,
       });
-      const coverUrl = publicUrl(objectName);
-
-      // Small WebP sidecar for AuthorBooksSidebar/MyBooksList -- the full
-      // export above stays untouched (same bytes/resolution as before, so
-      // nothing that relies on it -- cover print spread, admin's per-book
-      // cover download for distribution, the store page -- changes).
-      const thumbBuffer = await toCoverThumbnail(buffer);
-      const thumbObjectName = isPublished ? `public/covers-thumb/${id}-pending.webp` : `public/covers-thumb/${id}.webp`;
-      await uploadFile(thumbObjectName, Readable.from(thumbBuffer), thumbBuffer.length, "image/webp", {
-        cacheControl: IMMUTABLE_CACHE_CONTROL,
-      });
-      const coverThumbUrl = publicUrl(thumbObjectName);
+      const coverWrapUrl = publicUrl(objectName);
 
       await prisma.book.update({
         where: { id },
-        data: isPublished
-          ? // A new front cover invalidates any earlier print wrap; the
-            // editor re-uploads its own right after (upload-cover-wrap).
-            { pendingCoverUrl: coverUrl, pendingCoverThumbUrl: coverThumbUrl, pendingCoverWrapUrl: null }
-          : { coverUrl, coverThumbUrl, coverUpdatedAt: new Date(), coverWrapUrl: null },
+        data: isPublished ? { pendingCoverWrapUrl: coverWrapUrl } : { coverWrapUrl },
         select: { id: true },
       });
-      return reply.send({ coverUrl, coverThumbUrl, pending: isPublished });
+      return reply.send({ coverWrapUrl, pending: isPublished });
     }
   );
 }

@@ -663,6 +663,11 @@ export default function AdminBooksPage() {
         const text = await res.text().catch(() => "");
         throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ""}`);
       }
+      if (res.headers.get("x-cover-bleed") === "mirror") {
+        toast.info(
+          "Вильоти в цьому файлі дзеркальні: обкладинку не збережено з редактора. Справжні вильоти з'являться після збереження в редакторі обкладинки."
+        );
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import { COVER_BLEED_MM } from "shared-types";
-import { buildCoverPrintWrap, coverObjectNameFromUrl, PRINT_WRAP_DPI } from "../lib/coverPrintWrap";
+import {
+  buildCoverPrintWrap,
+  finalizeEditorPrintWrap,
+  coverObjectNameFromUrl,
+  PRINT_WRAP_DPI,
+} from "../lib/coverPrintWrap";
 
 const solid = (width: number, height: number, background: string) =>
   sharp({ create: { width, height, channels: 3, background } }).png().toBuffer();
@@ -69,6 +74,25 @@ describe("buildCoverPrintWrap", () => {
   });
 });
 
+describe("finalizeEditorPrintWrap", () => {
+  it("normalises the editor's own wrap to the exact print size without adding a mirror", async () => {
+    const trimMm = { widthMm: 148, heightMm: 210 };
+    // Editor export: slightly off-size, artwork (red) right to the edge.
+    const wrap = await solid(3741, 2513, "#ff0000");
+    const spine = await solid(35, 497, "#00ff00");
+    const out = await finalizeEditorPrintWrap({ wrap, spine, trimMm });
+    const meta = await sharp(out.buffer).metadata();
+
+    const panelH = px(210);
+    const spineW = Math.round((35 / 497) * panelH);
+    expect(meta.width).toBe(px(148) * 2 + spineW + px(1.5) * 2);
+    expect(meta.height).toBe(panelH + px(1.5) * 2);
+    expect(meta.density).toBe(PRINT_WRAP_DPI);
+    expect(await pixel(out.buffer, 0, 0)).toEqual([255, 0, 0]);
+    expect(await pixel(out.buffer, meta.width! - 1, meta.height! - 1)).toEqual([255, 0, 0]);
+  });
+});
+
 describe("coverObjectNameFromUrl", () => {
   it("extracts the storage key from a public cover URL", () => {
     expect(coverObjectNameFromUrl("https://ulit.render.ua/storage/public/covers/abc.png?v=17")).toBe(
@@ -77,6 +101,7 @@ describe("coverObjectNameFromUrl", () => {
     expect(coverObjectNameFromUrl("http://minio:9000/knyha-books/public/covers-back/abc.jpg")).toBe(
       "public/covers-back/abc.jpg"
     );
+    expect(coverObjectNameFromUrl("https://x/storage/public/covers-wrap/abc.png")).toBe("public/covers-wrap/abc.png");
     expect(coverObjectNameFromUrl("https://x/storage/public/covers-spine/abc-pending.png")).toBe(
       "public/covers-spine/abc-pending.png"
     );
