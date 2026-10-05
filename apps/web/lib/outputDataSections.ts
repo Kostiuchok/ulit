@@ -4,7 +4,9 @@
 // importable) and again inline in rejectedBlocks.ts; now a real shared
 // module both import from.
 export const SECTION_LABELS = {
-  info: "Інформація",
+  // WF-SPEC "03 Вихідні дані" п.1 -- одна назва в сайдбарі/степері/H1
+  // (раніше тут і на самій сторінці було "Інформація").
+  info: "Вихідні дані",
   file: "Рукопис",
   cover: "Обкладинка",
   price: "Ціна та розповсюдження",

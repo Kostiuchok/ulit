@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -18,12 +18,21 @@ interface Props {
   // actually fill it in, so it starts collapsed until there's data to
   // justify defaulting it open).
   defaultOpen?: boolean;
+  // One-way nudge, not a fully controlled prop: a validation error inside a
+  // collapsed section (e.g. "Авторське право" starts closed) needs to force
+  // it open so "Перейти до першого" doesn't scroll to hidden content. Every
+  // other caller omits this and keeps the plain uncontrolled toggle below.
+  forceOpen?: boolean;
   className?: string;
   children: ReactNode;
 }
 
-export function CollapsibleSection({ title, description, badge, defaultOpen = true, className, children }: Props) {
+export function CollapsibleSection({ title, description, badge, defaultOpen = true, forceOpen, className, children }: Props) {
   const [open, setOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className={className}>

@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { OutputDataTabs } from "@/components/dashboard/OutputDataTabs";
+import { OutputDataSaveBar, OutputDataSaveBarProvider } from "@/components/dashboard/OutputDataSaveBar";
 import { useBook } from "@/hooks/useBook";
 import { getUnresolvedRejectionLines, type OutputDataSectionKey as RejectionTargetKey } from "@/lib/rejectedBlocks";
 import { isPublishStepComplete } from "shared-types";
-import { Button } from "@/components/ui/button";
 
 // Trimmed to exactly what this layout needs: PublishStepBook's fields (for
 // the nav's ✓/○ badges) + RejectionFieldState's fields (for the banner) +
@@ -101,8 +101,9 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
   const isDraftStatus = !book?.status || book.status === "DRAFT" || book.status === "UNPUBLISHED";
 
   return (
-    <div className="px-8 pb-8">
-      <div className="space-y-6">
+    <OutputDataSaveBarProvider>
+    <div className="flex min-h-full flex-col px-8">
+      <div className="flex-1 space-y-6 pb-8">
         {/* Sticky title+nav, same as before the route split -- only this
             block is sticky, not the rejection banner or the page content
             below it. `-mx-8`/`px-8` bleeds the white background to the edges
@@ -156,13 +157,10 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
         )}
 
         {children}
-
-        <div className="pb-2 text-center">
-          <Button asChild variant="outline">
-            <Link href={`/dashboard/books/${id}`}>До дашборду книги</Link>
-          </Button>
-        </div>
       </div>
+
+      <OutputDataSaveBar bookId={id} />
     </div>
+    </OutputDataSaveBarProvider>
   );
 }

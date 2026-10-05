@@ -5,8 +5,9 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SaveActionButton } from "@/components/ui/SaveActionButton";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
 import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
+import { useOutputDataSaveBar } from "@/components/dashboard/OutputDataSaveBar";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
 import { getUnresolvedRejectionLines } from "@/lib/rejectedBlocks";
@@ -71,6 +73,9 @@ const infoSchema = z.object({
   copyrightYear: z.string().max(4).optional(),
   copyrightHolder: z.string().max(255).optional(),
   priorPublicationCertificate: z.string().max(100).optional(),
+}).refine((data) => !data.copyrightYear?.trim() || !!data.copyrightHolder?.trim(), {
+  message: "Обов'язкове поле, якщо вказано рік",
+  path: ["copyrightHolder"],
 });
 type InfoForm = z.infer<typeof infoSchema>;
 
@@ -184,6 +189,7 @@ function OutputDataInfoForm({
   const { apiFetch, apiUpload, token } = useApi();
 
   const [infoSaved, setInfoSaved] = useState(false);
+  const [infoSavedAt, setInfoSavedAt] = useState<Date | null>(null);
   // Fields outside react-hook-form (authors, bio, contributors) — T2.1 dirty.
   const [extraDirty, setExtraDirty] = useState(false);
   // Which sensitive fields (if any) the last save actually staged as
@@ -254,7 +260,6 @@ function OutputDataInfoForm({
   // through infoForm.
   const [claimIsbnValue, setClaimIsbnValue] = useState("");
   const [claimIsbnAttested, setClaimIsbnAttested] = useState(false);
-  const [claimIsbnSaving, setClaimIsbnSaving] = useState(false);
   const [claimIsbnError, setClaimIsbnError] = useState("");
 
   // `book` is real data on this component's very first render (see
@@ -452,6 +457,16 @@ function OutputDataInfoForm({
       }
       if (draftAuthor.length > 0) setNewAuthor({ lastName: "", firstName: "", middleName: "", photoUrl: "" });
       if (draftContributor.length > 0) setNewContributor({ role: "", name: "" });
+      // WF-SPEC "03 Вихідні дані" п.3 -- ISBN зберігається разом з формою,
+      // не окремою кнопкою; claimIsbn() has its own endpoint/validation
+      // (claim-isbn differs from the generic book PATCH above), so it's
+      // still a second request, just fired from the same "Зберегти зміни"
+      // click instead of a dedicated "Зберегти ISBN" button. Best-effort:
+      // a failure here surfaces via claimIsbnError next to that field
+      // without rolling back the info save that already succeeded.
+      if (claimIsbnValue.trim() && claimIsbnAttested && !updated.isbn) {
+        await claimIsbn();
+      }
       setJustStagedFields(
         [
           updated.pendingTitle != null && "назву",
@@ -460,6 +475,7 @@ function OutputDataInfoForm({
         ].filter(Boolean) as string[]
       );
       setInfoSaved(true);
+      setInfoSavedAt(new Date());
       setExtraDirty(false);
       infoForm.reset(data);
       // output-data/layout.tsx's top nav pills (✓/○ badges) come from their
@@ -476,7 +492,6 @@ function OutputDataInfoForm({
     const isbn = claimIsbnValue.trim();
     if (!isbn || !claimIsbnAttested) return;
     setClaimIsbnError("");
-    setClaimIsbnSaving(true);
     try {
       const { book: updated } = await apiFetch<{ book: InfoBook }>(`/api/books/${id}/claim-isbn`, {
         method: "PATCH",
@@ -486,8 +501,6 @@ function OutputDataInfoForm({
       setClaimIsbnValue("");
     } catch (e: any) {
       setClaimIsbnError(e.message || "Не вдалося зберегти ISBN");
-    } finally {
-      setClaimIsbnSaving(false);
     }
   }
 
@@ -540,16 +553,48 @@ function OutputDataInfoForm({
     !hasAnyAuthor ||
     authorBioMissing;
   const infoDirty = infoForm.formState.isDirty || extraDirty;
-  const infoSaveState = infoForm.formState.isSubmitting
-    ? "saving"
-    : infoSaved && !infoDirty
-      ? "saved"
-      : "idle";
+  const infoErrorCount = Object.keys(infoForm.formState.errors).length;
+  const infoFirstErrorHref =
+    infoForm.formState.errors.title || infoForm.formState.errors.description
+      ? "#blk-main"
+      : infoForm.formState.errors.copyrightHolder
+        ? "#blk-copyright"
+        : undefined;
+
+  useOutputDataSaveBar({
+    dirty: infoDirty,
+    saving: infoForm.formState.isSubmitting,
+    savedAt: infoSaved && !infoDirty ? infoSavedAt : null,
+    errorCount: infoErrorCount,
+    firstErrorHref: infoFirstErrorHref,
+    onSave: () => infoForm.handleSubmit(onSubmitInfo)(),
+    saveDisabled: infoIncomplete,
+    disabledTitle: infoErrorCount > 0
+      ? undefined
+      : "Заповніть усі обов'язкові поля (позначені *, підсвічені помаранчевим)",
+  });
 
   return (
     <div className="space-y-3">
+      {/* WF-SPEC "03 Вихідні дані" п.2 -- опублікованій книзі нагадуємо, що
+          збережені зміни не йдуть у магазини одразу (на відміну від ціни). */}
+      {book.status === "PUBLISHED" && (
+        <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <Info size={18} className="mt-0.5 shrink-0 text-blue-600" />
+          <div className="text-sm">
+            <div className="font-semibold text-blue-900">Книга вже опублікована</div>
+            <div className="mt-0.5 text-blue-900/80">
+              Збережені зміни не потрапляють у магазини одразу. Щоб їх оприлюднити, натисніть «Надіслати на
+              модерацію» на дашборді книги — до схвалення в магазинах лишиться поточна версія.
+            </div>
+          </div>
+          <Link href={`/dashboard/books/${id}`} className="ml-auto shrink-0 whitespace-nowrap text-xs font-medium text-blue-900 underline">
+            До дашборду книги
+          </Link>
+        </div>
+      )}
       <OutputDataSectionHeading label={SECTION_LABELS.info} done={infoSectionDone && !infoCardRejected} />
-      <Card className={cn("p-6 shadow-sm", infoCardRejected && "border-2 border-red-400")}>
+      <Card id="blk-main" className={cn("scroll-mt-20 p-6 shadow-sm", infoCardRejected && "border-2 border-red-400")}>
         <form onSubmit={infoForm.handleSubmit(onSubmitInfo)} className="space-y-5">
           {/* Назва/Підзаголовок/Анотація зліва (усі поля самого тексту
               книги, стовпчиком) — жанр/розмір/мова/вік справа: коротші
@@ -605,6 +650,39 @@ function OutputDataInfoForm({
                 {infoForm.formState.errors.description && (
                   <p className="text-sm text-red-500">{infoForm.formState.errors.description.message}</p>
                 )}
+
+                {/* WF-SPEC "03 Вихідні дані" п.5 -- шкала прогресу з позначками
+                    кожного магазину; досягнуті стають зеленими наживо, поки
+                    автор друкує. */}
+                <div className="pt-1">
+                  <div className="relative h-1.5 rounded-full bg-gray-100">
+                    <div
+                      className="h-1.5 rounded-full bg-green-500 transition-all"
+                      style={{ width: `${Math.min(100, (descValue.length / DESCRIPTION_MAX_LENGTH) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="relative h-7">
+                    {DESCRIPTION_PLATFORM_TARGETS.map((p) => {
+                      const reached = descValue.length >= p.minChars;
+                      return (
+                        <div
+                          key={p.key}
+                          className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
+                          style={{ left: `${(p.minChars / DESCRIPTION_MAX_LENGTH) * 100}%` }}
+                        >
+                          <span className={cn("h-3 w-0.5", reached ? "bg-green-600" : "bg-gray-300")} />
+                          <span className={cn("mt-0.5 whitespace-nowrap text-[0.6875rem] font-medium", reached ? "text-green-700" : "text-gray-400")}>
+                            {p.minChars}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    <div className="absolute right-0 top-0 flex flex-col items-end">
+                      <span className="h-3 w-0.5 bg-gray-300" />
+                      <span className="mt-0.5 text-[0.6875rem] text-gray-500">{DESCRIPTION_MAX_LENGTH} макс.</span>
+                    </div>
+                  </div>
+                </div>
                 <div className="flex items-center justify-end gap-1.5">
                   {DESCRIPTION_PLATFORM_TARGETS.map((p) => {
                     const reached = descValue.length >= p.minChars;
@@ -623,6 +701,36 @@ function OutputDataInfoForm({
                     );
                   })}
                 </div>
+                <p className="text-xs text-gray-400">Позначки — мінімальна довжина для кожного магазину. Зелені — вимогу виконано.</p>
+              </div>
+
+              {/* WF-SPEC п.6 -- "Декларації" одразу під анотацією, не в кінці
+                  форми (раніше був тут же, але нижче "Авторського права"). */}
+              <div className="space-y-2 rounded-lg border bg-gray-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Декларації</p>
+              <Label className="flex items-start gap-2 font-normal text-sm text-gray-700">
+                <Controller
+                  control={infoForm.control}
+                  name="aiGenerated"
+                  render={({ field }) => (
+                    <Checkbox checked={field.value ?? false} onCheckedChange={(v) => field.onChange(v === true)} className="mt-0.5" />
+                  )}
+                />
+                <span>
+                  Текст (або обкладинку) частково/повністю створено за допомогою ШІ
+                  <span className="block text-xs text-gray-500">
+                    Деякі магазини (Amazon KDP, Google Play) вимагають позначати такий контент.
+                  </span>
+                </span>
+              </Label>
+              {aiGeneratedValue && (
+                <Textarea
+                  {...infoForm.register("aiGeneratedNote")}
+                  rows={2}
+                  placeholder="Уточніть, що саме створено за допомогою ШІ (необов'язково)"
+                  className="text-xs resize-none"
+                />
+              )}
               </div>
             </div>
 
@@ -900,11 +1008,12 @@ function OutputDataInfoForm({
               usage stats yet on how many authors actually have prior-
               publication data to fill in here, so it defaults closed until
               there's data to justify opening it by default. */}
-          <div className="rounded-lg border p-3">
+          <div id="blk-copyright" className="scroll-mt-20 rounded-lg border p-3">
             <CollapsibleSection
               title="Авторське право / попередня публікація"
               description="Заповнюйте, лише якщо книга вже виходила раніше на іншій платформі — до приєднання до ULIT."
               defaultOpen={false}
+              forceOpen={!!infoForm.formState.errors.copyrightHolder}
             >
             <div className="space-y-3">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[100px_1fr]">
@@ -918,8 +1027,13 @@ function OutputDataInfoForm({
                   id="copyrightHolder"
                   {...infoForm.register("copyrightHolder")}
                   placeholder="Наприклад: Валентина Островська"
-                  className="h-9 text-sm"
+                  className={cn("h-9 text-sm", infoForm.formState.errors.copyrightHolder && "border-red-400 focus-visible:ring-red-300")}
                 />
+                {infoForm.formState.errors.copyrightHolder && (
+                  <p className="flex items-center gap-1 text-xs font-medium text-red-600">
+                    ⚠ {infoForm.formState.errors.copyrightHolder.message}
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-1.5">
@@ -945,34 +1059,29 @@ function OutputDataInfoForm({
                 </p>
               ) : (
                 <>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="claimIsbn"
-                      value={claimIsbnValue}
-                      onChange={(e) => setClaimIsbnValue(e.target.value)}
-                      placeholder="978-5-4474-2357-5"
-                      className="h-9 flex-1 text-sm"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 shrink-0"
-                      loading={claimIsbnSaving}
-                      disabled={!claimIsbnAttested || !claimIsbnValue.trim()}
-                      onClick={claimIsbn}
-                    >
-                      Зберегти ISBN
-                    </Button>
-                  </div>
+                  <Input
+                    id="claimIsbn"
+                    value={claimIsbnValue}
+                    onChange={(e) => {
+                      setClaimIsbnValue(e.target.value);
+                      setExtraDirty(true);
+                      setInfoSaved(false);
+                    }}
+                    placeholder="978-5-4474-2357-5"
+                    className="h-9 text-sm"
+                  />
                   <p className="text-xs text-gray-400">
                     Лише якщо книга вже мала власний ISBN до ULIT — стане ISBN цієї книги, реєстрація в
-                    Книжковій палаті через ULIT більше не знадобиться.
+                    Книжковій палаті через ULIT більше не знадобиться. Зберігається разом з усією формою.
                   </p>
                   <Label className="flex items-start gap-2 font-normal text-xs text-gray-500">
                     <Checkbox
                       checked={claimIsbnAttested}
-                      onCheckedChange={(v) => setClaimIsbnAttested(v === true)}
+                      onCheckedChange={(v) => {
+                        setClaimIsbnAttested(v === true);
+                        setExtraDirty(true);
+                        setInfoSaved(false);
+                      }}
                       className="mt-0.5"
                     />
                     Підтверджую, що цей ISBN дійсно раніше офіційно присвоєно саме цій книзі, і я несу
@@ -984,27 +1093,6 @@ function OutputDataInfoForm({
             </div>
             </div>
             </CollapsibleSection>
-          </div>
-
-          <div className="space-y-2 rounded-lg border p-3">
-            <Label className="flex items-center gap-2 font-normal text-sm text-gray-700">
-              <Controller
-                control={infoForm.control}
-                name="aiGenerated"
-                render={({ field }) => (
-                  <Checkbox checked={field.value ?? false} onCheckedChange={(v) => field.onChange(v === true)} />
-                )}
-              />
-              Текст (або обкладинку) частково/повністю створено за допомогою ШІ
-            </Label>
-            {aiGeneratedValue && (
-              <Textarea
-                {...infoForm.register("aiGeneratedNote")}
-                rows={2}
-                placeholder="Уточніть, що саме створено за допомогою ШІ (необов'язково)"
-                className="text-xs resize-none"
-              />
-            )}
           </div>
 
           {infoError && (
@@ -1052,13 +1140,6 @@ function OutputDataInfoForm({
             </div>
           )}
 
-          <SaveActionButton
-            type="submit"
-            state={infoSaveState}
-            idleLabel="Зберегти зміни"
-            disabled={infoIncomplete}
-            title={infoIncomplete ? "Заповніть усі обов'язкові поля (позначені *, підсвічені помаранчевим)" : undefined}
-          />
         </form>
       </Card>
     </div>

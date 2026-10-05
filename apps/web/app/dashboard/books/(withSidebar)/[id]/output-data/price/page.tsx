@@ -14,8 +14,8 @@ import {
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import { QuestionHint } from "@/components/books/QuestionHint";
 import { Badge } from "@/components/ui/badge";
-import { SaveActionButton } from "@/components/ui/SaveActionButton";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
+import { useOutputDataSaveBar } from "@/components/dashboard/OutputDataSaveBar";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -190,8 +190,31 @@ function ChangedBadge({ count, label = "поле" }: { count: number; label?: st
 
 export default function OutputDataPricePage() {
   const { id } = useParams<{ id: string }>();
-  const { apiFetch, token } = useApi();
   const { book, setBook, loading } = useBook<PriceBook>(id);
+
+  // Same split as output-data/page.tsx's OutputDataInfoForm: useOutputDataSaveBar
+  // (and every other hook below) must run unconditionally on every render of
+  // the component it lives in -- the previous single-component version called
+  // it AFTER an early "still loading" return, which is a real rules-of-hooks
+  // violation (hook count differs between the loading and loaded render).
+  // Mounting the form only once `book` exists sidesteps that at the root.
+  if (loading || !book) {
+    return <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />;
+  }
+
+  return <OutputDataPriceForm key={id} book={book} bookId={id} setBook={setBook} />;
+}
+
+function OutputDataPriceForm({
+  book,
+  bookId: id,
+  setBook,
+}: {
+  book: PriceBook;
+  bookId: string;
+  setBook: (book: PriceBook) => void;
+}) {
+  const { apiFetch, token } = useApi();
 
   const [printCost, setPrintCost] = useState<PrintCost | null>(null);
   const [channels, setChannels] = useState<string[]>(["ULIT"]);
@@ -342,10 +365,6 @@ export default function OutputDataPricePage() {
     }
   }
 
-  if (loading || !book) {
-    return <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />;
-  }
-
   const fileSectionDone = isPublishStepComplete("file", book);
   const priceSectionDone = isPublishStepComplete("price", book);
   const unresolvedRejectionLines = getUnresolvedRejectionLines(book);
@@ -420,6 +439,32 @@ export default function OutputDataPricePage() {
   const previewPercent = discountPercent.trim() !== "" ? Number(discountPercent) : null;
   const discountPreviewFields = { discountPercent: previewPercent, discountStartsAt: null, discountEndsAt: new Date(8.64e15) };
   const showDiscountPreview = previewPercent != null && previewPercent >= MIN_DISCOUNT_PERCENT && previewPercent <= MAX_DISCOUNT_PERCENT;
+
+  // WF-SPEC "Спільне для 03, 05-07" -- shared sticky save bar (moved here
+  // from this page's own inline button/status row, confirmed with Анатолій
+  // 2026-10-05; save/validation logic in saveFormatsAndDistribution is
+  // untouched). statusNote keeps this page's own richer message (block
+  // count + ULIT-vs-external-timing note) instead of the bar's generic text.
+  useOutputDataSaveBar({
+    dirty: formatsDirty,
+    saving: formatsSaving,
+    savedAt: formatsSaved && !formatsDirty ? savedAt : null,
+    onSave: saveFormatsAndDistribution,
+    statusNote:
+      formatsSaved && !formatsDirty && savedAt ? (
+        <span className="text-sm text-green-700">Збережено ✓ · {fmtTime(savedAt)} · ULIT: застосовано</span>
+      ) : dirtyBlockCount > 0 ? (
+        <span className="inline-flex items-center gap-1.5 text-sm">
+          <span className="text-amber-600">
+            ● Є незбережені зміни у {dirtyBlockCount} {dirtyBlockCount === 1 ? "блоці" : "блоках"}
+          </span>
+          <span>· ULIT: одразу після збереження</span>
+          <QuestionHint className="h-4 w-4">
+            Amazon/D2D/Google Play: оновлення за правилами магазину (Amazon: ebook до 24 год, друк до 5 роб. днів).
+          </QuestionHint>
+        </span>
+      ) : null,
+  });
 
   return (
     <div className="space-y-3">
@@ -806,27 +851,6 @@ export default function OutputDataPricePage() {
       )}
 
       {formatsError && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{formatsError}</div>}
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">
-          {formatsSaved && !formatsDirty && savedAt ? (
-            <span className="text-green-700">Збережено ✓ · {fmtTime(savedAt)} · ULIT: застосовано</span>
-          ) : dirtyBlockCount > 0 ? (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="text-amber-600">● Є незбережені зміни у {dirtyBlockCount} {dirtyBlockCount === 1 ? "блоці" : "блоках"}</span>
-              <span>· ULIT: одразу після збереження</span>
-              <QuestionHint className="h-4 w-4">
-                Amazon/D2D/Google Play: оновлення за правилами магазину (Amazon: ebook до 24 год, друк до 5 роб. днів).
-              </QuestionHint>
-            </span>
-          ) : null}
-        </p>
-        <SaveActionButton
-          state={formatsSaving ? "saving" : formatsSaved && !formatsDirty ? "saved" : "idle"}
-          idleLabel="Зберегти зміни"
-          onClick={saveFormatsAndDistribution}
-        />
-      </div>
     </div>
   );
 }
