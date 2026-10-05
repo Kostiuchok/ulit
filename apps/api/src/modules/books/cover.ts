@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { Prisma } from "@prisma/client";
 import { Readable } from "stream";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
@@ -76,13 +77,21 @@ export async function uploadCoverRoute(app: FastifyInstance) {
       });
       const coverThumbUrl = publicUrl(thumbObjectName);
 
+      // The cover editor uploads with ?source=editor and stores its design
+      // (Book.coverDesign) right after. Every other caller -- auto-cover,
+      // "Замінити файлом" -- replaces the cover with something the stored
+      // design no longer describes, so that design is dropped; otherwise the
+      // editor would reopen on an old layout unrelated to the real cover.
+      const fromEditor = (request.query as { source?: string } | undefined)?.source === "editor";
+      const dropDesign = fromEditor ? {} : { coverDesign: Prisma.JsonNull };
+
       await prisma.book.update({
         where: { id },
         data: isPublished
           ? // A new front cover invalidates any earlier print wrap; the
             // editor re-uploads its own right after (upload-cover-wrap).
-            { pendingCoverUrl: coverUrl, pendingCoverThumbUrl: coverThumbUrl, pendingCoverWrapUrl: null }
-          : { coverUrl, coverThumbUrl, coverUpdatedAt: new Date(), coverWrapUrl: null },
+            { pendingCoverUrl: coverUrl, pendingCoverThumbUrl: coverThumbUrl, pendingCoverWrapUrl: null, ...dropDesign }
+          : { coverUrl, coverThumbUrl, coverUpdatedAt: new Date(), coverWrapUrl: null, ...dropDesign },
         select: { id: true },
       });
       return reply.send({ coverUrl, coverThumbUrl, pending: isPublished });

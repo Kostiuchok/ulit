@@ -24,6 +24,8 @@ interface Props {
   trimMm?: { widthMm: number; heightMm: number } | null;
   format: CoverFormat;
   existingCoverUrl?: string | null;
+  existingBackCoverUrl?: string | null;
+  existingSpineUrl?: string | null;
   savedDesign?: { front: any[]; backSpine: any[]; background: { color: string; imageUrl?: string } } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   syncFromBookData?: boolean;

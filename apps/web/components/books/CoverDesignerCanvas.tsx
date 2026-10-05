@@ -524,7 +524,7 @@ export const PATTERNS: { id: string; label: string; build: PatternBuilder }[] = 
 // combination can be present simultaneously. normalizeBackgroundStack pins
 // whichever of these exist to indices 0..n-1 in this order, leaving every
 // other object's relative order above them untouched.
-const BACKGROUND_LAYER_ORDER = ["accent", "pattern", "bg-image", "photo-slot"] as const;
+const BACKGROUND_LAYER_ORDER = ["accent", "pattern", "bg-image", "photo-slot", "existing-cover"] as const;
 
 function normalizeBackgroundStack(canvas: fabric.Canvas) {
   const objs = canvas.getObjects();
@@ -585,6 +585,7 @@ const LAYER_LABELS: Record<string, string> = {
   pattern: "Патерн",
   "bg-image": "Фонове зображення",
   accent: "Фон",
+  "existing-cover": "Збережена обкладинка",
   barcode: "Штрихкод ISBN",
   qr: "QR-код",
   "author-photo": "Фото автора",
@@ -593,7 +594,7 @@ const LAYER_LABELS: Record<string, string> = {
 
 // Text layers that mirror «Вихідні дані» until the author unlinks them.
 const LINKED_TEXT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "text-blurb", "text-bio"]);
-const BG_LAYER_ROLES = new Set(["accent", "pattern", "bg-image", "photo-slot"]);
+const BG_LAYER_ROLES = new Set(["accent", "pattern", "bg-image", "photo-slot", "existing-cover"]);
 
 const BACK_TOGGLES: { role: string; label: string; linked?: boolean }[] = [
   { role: "text-blurb", label: "Анотація", linked: true },
@@ -883,7 +884,11 @@ const BACK_SPINE_ROLES = new Set(["text-blurb", "text-bio", "text-spine", "barco
 // front.x back on restore.
 function splitObjectsByPanel(objects: any[], layout: CoverLayout) {
   const nonBg = objects.filter(
-    (o) => o.data?.role !== "accent" && o.data?.role !== "bg-image" && o.data?.role !== "photo-slot"
+    (o) =>
+      o.data?.role !== "accent" &&
+      o.data?.role !== "bg-image" &&
+      o.data?.role !== "photo-slot" &&
+      o.data?.role !== "existing-cover"
   );
   const isFront = (o: any) => {
     const role = o.data?.role;
@@ -1017,6 +1022,56 @@ function applyBackground(canvas: fabric.Canvas, layout: CoverLayout, bg: Backgro
   }
 }
 
+// "Existing cover" mode: the book already has a cover that did NOT come
+// from an editable design saved in this editor (an auto-cover, an uploaded
+// file) -- so there is nothing to rebuild it from. Instead of opening on a
+// default template that looks nothing like the author's real cover (reported
+// live: "я бачу її ніби нову"), the saved panel images themselves are laid
+// on the canvas as a locked base layer. Same life cycle as the other
+// background layers: never part of the front/back+spine split, re-applied
+// after every rebuild.
+interface ExistingCoverUrls {
+  front?: string | null;
+  back?: string | null;
+  spine?: string | null;
+}
+
+function applyExistingCover(canvas: fabric.Canvas, layout: CoverLayout, urls: ExistingCoverUrls) {
+  canvas
+    .getObjects()
+    .filter((o: any) => o.data?.role === "existing-cover")
+    .forEach((o) => canvas.remove(o));
+  const panels: [string | null | undefined, PanelRect | undefined][] = [
+    [urls.front, layout.front],
+    [urls.back, layout.back],
+    [urls.spine, layout.spine],
+  ];
+  for (const [url, rect] of panels) {
+    if (!url || !rect) continue;
+    fabric.Image.fromURL(
+      url,
+      (img) => {
+        if (isCanvasDisposed(canvas) || !img.width || !img.height) return;
+        img.set({
+          originX: "left",
+          originY: "top",
+          left: rect.x,
+          top: rect.y,
+          scaleX: rect.w / img.width,
+          scaleY: rect.h / img.height,
+          selectable: false,
+          evented: false,
+          data: { role: "existing-cover" },
+        });
+        canvas.add(img);
+        normalizeBackgroundStack(canvas);
+        canvas.renderAll();
+      },
+      { crossOrigin: "anonymous" }
+    );
+  }
+}
+
 // Same idea as applyBackground, for the "photo-slot" illustration layer.
 function applyIllustration(canvas: fabric.Canvas, layout: CoverLayout, ill: IllustrationDesign | null) {
   if (!ill?.imageUrl) return;
@@ -1054,6 +1109,10 @@ interface Props {
   trimMm?: { widthMm: number; heightMm: number } | null;
   format: CoverFormat;
   existingCoverUrl?: string | null;
+  // Back and spine of that same saved cover -- shown with it in "existing
+  // cover" mode on the print formats.
+  existingBackCoverUrl?: string | null;
+  existingSpineUrl?: string | null;
   savedDesign?: { front: any[]; backSpine: any[]; background: BackgroundDesign; illustration?: IllustrationDesign } | null;
   coverImageLibrary?: { url: string; uploadedAt: string; kind?: "slot" | "background" }[];
   // T-2060 п.8 -- "незалежно від даних книги" (Ridero pattern). Default true
@@ -1091,6 +1150,9 @@ export default function CoverDesignerCanvas({
   savedDesign,
   coverImageLibrary = [],
   syncFromBookData = true,
+  existingCoverUrl,
+  existingBackCoverUrl,
+  existingSpineUrl,
   bookUrl,
   authorPhotoUrl,
   otherBookCovers = [],
@@ -1154,6 +1216,19 @@ export default function CoverDesignerCanvas({
   const [canRedo, setCanRedo] = useState(false);
   const [panelTab, setPanelTab] = useState<"selected" | "design">("design");
   const [layersVersion, setLayersVersion] = useState(0);
+  // True while the canvas shows the book's saved cover images as its base
+  // (see applyExistingCover). Ends the moment the author builds a new cover
+  // here: a template, an own file, one of their saved templates.
+  const hasSavedDesign = !!savedDesign && (savedDesign.front.length > 0 || savedDesign.backSpine.length > 0);
+  const [existingMode, setExistingMode] = useState(() => !hasSavedDesign && !!existingCoverUrl);
+  const existingModeRef = useRef(existingMode);
+  existingModeRef.current = existingMode;
+  const existingUrlsRef = useRef<ExistingCoverUrls>({});
+  existingUrlsRef.current = { front: existingCoverUrl, back: existingBackCoverUrl, spine: existingSpineUrl };
+  const leaveExistingMode = useCallback(() => {
+    existingModeRef.current = false;
+    setExistingMode(false);
+  }, []);
   const [unlinkPrompt, setUnlinkPrompt] = useState<fabric.Object | null>(null);
   const isLinkedTextRef = useRef<(o: any) => boolean>(() => false);
   const [myTemplates, setMyTemplates] = useState<CoverTemplateEntry[]>([]);
@@ -1386,6 +1461,20 @@ export default function CoverDesignerCanvas({
           coverReadyRef.current = true;
         });
       });
+    } else if (existingModeRef.current) {
+      // No editable design, but a real saved cover: show THAT.
+      frontStateRef.current = [];
+      backSpineStateRef.current = [];
+      backgroundRef.current = { color: "#ffffff" };
+      applyBackground(canvas, ctx.layout, backgroundRef.current, "#ffffff");
+      applyExistingCover(canvas, ctx.layout, existingUrlsRef.current);
+      canvas.renderAll();
+      historyRef.current = [];
+      historyIndexRef.current = -1;
+      saveSnapshot();
+      queueMicrotask(() => {
+        coverReadyRef.current = true;
+      });
     } else {
       template.apply(canvas, ctx);
       extendEdgeObjectsIntoBleed(canvas, ctx.layout);
@@ -1459,6 +1548,7 @@ export default function CoverDesignerCanvas({
         extendEdgeObjectsIntoBleed(canvas, ctx.layout);
         applyBackground(canvas, ctx.layout, backgroundRef.current, "#1a1a2e");
         applyIllustration(canvas, ctx.layout, illustrationRef.current);
+        if (existingModeRef.current) applyExistingCover(canvas, ctx.layout, existingUrlsRef.current);
         canvas.renderAll();
         pauseHistoryRef.current = false;
         historyRef.current = [];
@@ -1565,13 +1655,14 @@ export default function CoverDesignerCanvas({
       const canvas = canvasRef.current;
       if (!canvas) return;
       setTemplateId(tpl.id);
+      leaveExistingMode();
       tpl.apply(canvas, ctx);
       extendEdgeObjectsIntoBleed(canvas, ctx.layout);
       canvas.renderAll();
       const accent = canvas.getObjects().find((o: any) => o.data?.role === "accent") as any;
       backgroundRef.current = { color: (accent?.fill as string) ?? "#1a1a2e" };
     },
-    [ctx]
+    [ctx, leaveExistingMode]
   );
 
   const updateSelected = useCallback((patch: Record<string, unknown>) => {
@@ -2069,6 +2160,7 @@ export default function CoverDesignerCanvas({
           }
           const canvas = canvasRef.current;
           if (!canvas) return;
+          leaveExistingMode();
           canvas.clear();
           fabric.Image.fromURL(dataUrl, (fabricImg) => {
             if (isCanvasDisposed(canvas)) return;
@@ -2138,7 +2230,11 @@ export default function CoverDesignerCanvas({
         width: front.w,
         height: front.h,
       });
-      patch.coverUrl = await uploadPanel(frontDataUrl, "upload-cover", "coverUrl");
+      // ?source=editor: tells the server this cover comes WITH an editable
+      // design (saved below). Any other upload-cover caller (auto-cover,
+      // "Замінити файлом") makes the server drop the stored design, so the
+      // editor never reopens on a design that no longer matches the cover.
+      patch.coverUrl = await uploadPanel(frontDataUrl, "upload-cover?source=editor", "coverUrl");
 
       if (back) {
         const backDataUrl = canvas.toDataURL({
@@ -2175,7 +2271,10 @@ export default function CoverDesignerCanvas({
       // print-house download then falls back to a mirrored bleed, and the
       // author is told to save again.
       let wrapFailed = false;
-      if (back && spine) {
+      // In "existing cover" mode the base images end at the trim edge, so
+      // the canvas bleed is blank -- no wrap is uploaded and the print-house
+      // download mirrors the edge instead.
+      if (back && spine && !existingModeRef.current) {
         try {
           let wrapDataUrl = canvas.toDataURL({ format: "png", multiplier: geometry.exportScale });
           // A photo-heavy wrap can run to tens of MB as PNG; past ~18 MB
@@ -2189,7 +2288,14 @@ export default function CoverDesignerCanvas({
         }
       }
 
-      const coverDesign = captureDesignState(canvas, ctx.layout, backSpineStateRef.current);
+      // "Existing cover" mode saves a FLATTENED cover: whatever was added
+      // on top is now baked into the panel images just uploaded. Storing
+      // those objects as a design too would draw them a second time over
+      // the (already containing them) images on the next open -- so the
+      // design is stored empty and the next open shows the saved cover.
+      const coverDesign = existingModeRef.current
+        ? { front: [], backSpine: [], background: { color: backgroundRef.current?.color ?? "#ffffff" } }
+        : captureDesignState(canvas, ctx.layout, backSpineStateRef.current);
       await fetch(`/api/books/${bookId}`, {
         method: "PATCH",
         headers: {
@@ -2522,6 +2628,14 @@ export default function CoverDesignerCanvas({
           cover sends it to moderation and starts the 90-day lock -- not
           something to trigger from a leave dialog. */}
       <UnsavedChangesGuard active={coverDirty && !saving} />
+      {existingMode && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <span className="font-semibold">Це ваша збережена обкладинка.</span> Її текст і зображення вже злиті в одну
+          картинку, тому окремо не редагуються: можна додати поверх фігуру чи блок задньої сторони. Щоб зібрати
+          обкладинку з окремих елементів — оберіть шаблон на вкладці «Дизайн» (поточну обкладинку буде замінено лише
+          після «Зберегти»).
+        </div>
+      )}
       <div className="flex flex-col gap-4 xl:flex-row">
         {/* ── Шари (WF-SPEC 08 п.3) ─────────────────────────────────────── */}
         <div className="w-full shrink-0 space-y-2 xl:w-[220px]">
@@ -3108,7 +3222,18 @@ export default function CoverDesignerCanvas({
 
           {panelTab === "design" && (
             <div className="space-y-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Шаблони</p>
+              {/* The 14 auto-cover templates live on the cover page, not in
+                  this editor -- without a way back to them from here the
+                  author concluded they were gone. Unpublished books only,
+                  same rule as that page's own picker. */}
+              {!isPublished && (
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href={`/dashboard/books/${bookId}/output-data/cover?pick=1`}>
+                    Готові шаблони обкладинок (14) →
+                  </Link>
+                </Button>
+              )}
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Шаблони редактора</p>
         {(
           <div className="space-y-4">
             {(() => {

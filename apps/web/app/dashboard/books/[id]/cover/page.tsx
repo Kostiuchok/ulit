@@ -22,6 +22,8 @@ interface BookInfo {
   status?: string | null;
   coverApprovedAt?: string | null;
   pendingCoverUrl?: string | null;
+  pendingBackCoverUrl?: string | null;
+  pendingSpineUrl?: string | null;
   bookAuthors?: { lastName: string; firstName: string; photoUrl?: string }[] | null;
   subtitle?: string | null;
   description?: string | null;
@@ -267,7 +269,11 @@ export default function CoverPage() {
             pageCount={book?.printPageCount ?? book?.pageCount}
             trimMm={{ widthMm: trimFormat.widthMm, heightMm: trimFormat.heightMm }}
             format={format}
-            existingCoverUrl={book?.coverUrl}
+            // A published book's cover awaiting approval is "the current
+            // cover" from the author's side -- that is what they last saved.
+            existingCoverUrl={book?.pendingCoverUrl ?? book?.coverUrl}
+            existingBackCoverUrl={book?.pendingBackCoverUrl ?? book?.backCoverUrl}
+            existingSpineUrl={book?.pendingSpineUrl ?? book?.spineUrl}
             savedDesign={book?.coverDesign}
             coverImageLibrary={book?.coverImageLibrary ?? []}
             syncFromBookData={!book?.coverIndependentFromBookData}

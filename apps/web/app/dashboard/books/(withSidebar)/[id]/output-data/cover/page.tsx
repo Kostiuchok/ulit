@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Expand, Info, Lock, Upload } from "lucide-react";
 import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSectionHeading";
@@ -83,7 +83,10 @@ export default function OutputDataCoverPage() {
   const [coverFormat, setCoverFormat] = useState<"softcover" | "hardcover">("softcover");
   const [fullscreen, setFullscreen] = useState<null | "ebook" | "print">(null);
   const [replaceOpen, setReplaceOpen] = useState(false);
-  const [pickTemplate, setPickTemplate] = useState(false);
+  // ?pick=1 -- the cover editor's "Готові шаблони обкладинок" link lands
+  // here with the template picker already open.
+  const searchParams = useSearchParams();
+  const [pickTemplate, setPickTemplate] = useState(() => searchParams.get("pick") === "1");
 
   if (loading) {
     return <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />;
@@ -253,6 +256,15 @@ export default function OutputDataCoverPage() {
                 <Upload size={14} />
                 Замінити файлом
               </Button>
+              {/* The same 14 ready-made templates the author picked the first
+                  cover from -- a real button next to the other two ways of
+                  changing the cover (it used to be a small grey link below,
+                  easy to miss: "шаблонів немає"). */}
+              {!isPublished && (
+                <Button variant="outline" disabled={actionsDisabled} onClick={() => setPickTemplate(true)}>
+                  Шаблони обкладинок
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -267,11 +279,6 @@ export default function OutputDataCoverPage() {
         </div>
       )}
 
-      {book?.coverUrl && !showPicker && !isPublished && (
-        <button type="button" onClick={() => setPickTemplate(true)} className="text-xs text-gray-600 underline hover:no-underline">
-          Обрати шаблон автообкладинки
-        </button>
-      )}
 
       {book?.coverUrl && !showPicker && (
         <p className="text-xs text-gray-500">
