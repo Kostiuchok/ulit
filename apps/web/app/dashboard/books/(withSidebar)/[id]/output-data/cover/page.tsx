@@ -8,6 +8,7 @@ import { OutputDataSectionHeading } from "@/components/dashboard/OutputDataSecti
 import { CollapsibleSection } from "@/components/dashboard/CollapsibleSection";
 import { CoverPrintSpread } from "@/components/books/CoverPrintSpread";
 import { TabletCoverFrame } from "@/components/books/TabletCoverFrame";
+import { AutoCoverPicker } from "@/components/books/AutoCoverPicker";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,14 @@ import {
 
 interface CoverBook {
   status?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  description?: string | null;
+  authorBio?: string | null;
+  isbn?: string | null;
+  bookAuthors?: { lastName: string; firstName: string; middleName?: string; photoUrl?: string }[] | null;
+  autoCoverStyleId?: string | null;
+  autoCoverBaseColor?: string | null;
   coverUrl?: string | null;
   backCoverUrl?: string | null;
   spineUrl?: string | null;
@@ -61,9 +70,9 @@ function fmt(d: string | Date) {
 // means a change is awaiting admin approval; coverLockedUntil(coverApprovedAt)
 // is non-null while the 90-day re-change window from the last APPROVED
 // change hasn't elapsed. "none" (no cover at all yet) isn't one of this
-// phase's three states -- that's 06d/06e's auto-template flow (Opus, not
-// built yet); this page keeps the pre-existing "Створити обкладинку" link
-// for that case, unchanged.
+// three -- that's 06d/06e: AutoCoverPicker (14 templates themed from one
+// author colour) renders a ready cover straight away. An unpublished book
+// that already has a cover can reopen the picker too ("Обрати шаблон").
 type CoverState = "none" | "uploaded" | "pending" | "locked";
 
 export default function OutputDataCoverPage() {
@@ -73,6 +82,7 @@ export default function OutputDataCoverPage() {
   const [coverFormat, setCoverFormat] = useState<"softcover" | "hardcover">("softcover");
   const [fullscreen, setFullscreen] = useState<null | "ebook" | "print">(null);
   const [replaceOpen, setReplaceOpen] = useState(false);
+  const [pickTemplate, setPickTemplate] = useState(false);
 
   if (loading) {
     return <div className="h-96 bg-gray-200 rounded-xl animate-pulse" />;
@@ -133,11 +143,16 @@ export default function OutputDataCoverPage() {
     const form = new FormData();
     form.append("file", file);
     await apiUpload(`/api/books/${id}/upload-cover`, form);
-    await refetch();
+    setPickTemplate(false);
+    await refetch({ silent: true });
     window.dispatchEvent(new Event("ulit:books-changed"));
   }
 
   const actionsDisabled = state === "pending" || state === "locked";
+  // The auto-cover picker: always for a book with no cover yet; on request
+  // for an unpublished book that has one (a published book's cover change
+  // goes through the editor / file replace + moderation instead).
+  const showPicker = !!book && !!trimMm && (state === "none" || (pickTemplate && !isPublished));
   const lockedUntilLabel = lockedUntil ? fmt(lockedUntil) : null;
 
   return (
@@ -176,7 +191,22 @@ export default function OutputDataCoverPage() {
 
       <OutputDataSectionHeading label={SECTION_LABELS.cover} done={coverSectionDone && !coverRejected} />
 
-      {book?.coverUrl && (
+      {showPicker && book && trimMm && (
+        <AutoCoverPicker
+          bookId={id}
+          book={book}
+          trimMm={trimMm}
+          pageCount={printPageCount}
+          onUploadOwn={() => setReplaceOpen(true)}
+          onCancel={state === "none" ? undefined : () => setPickTemplate(false)}
+          onApplied={async () => {
+            await refetch({ silent: true });
+            setPickTemplate(false);
+          }}
+        />
+      )}
+
+      {book?.coverUrl && !showPicker && (
         <Card className={cn("p-5 shadow-sm", coverRejected && "border-2 border-red-400")}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm">
@@ -236,7 +266,13 @@ export default function OutputDataCoverPage() {
         </div>
       )}
 
-      {book?.coverUrl && (
+      {book?.coverUrl && !showPicker && !isPublished && (
+        <button type="button" onClick={() => setPickTemplate(true)} className="text-xs text-gray-600 underline hover:no-underline">
+          Обрати шаблон автообкладинки
+        </button>
+      )}
+
+      {book?.coverUrl && !showPicker && (
         <p className="text-xs text-gray-500">
           {state === "uploaded" && "Поточна обкладинка · лише перегляд."}
           {state === "pending" && "Нова обкладинка на перевірці · читачі бачать попередню · показано нову."}
@@ -244,7 +280,7 @@ export default function OutputDataCoverPage() {
         </p>
       )}
 
-      {book?.coverUrl && (
+      {book?.coverUrl && !showPicker && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card className="group relative cursor-pointer p-5 shadow-sm" onClick={() => setFullscreen("ebook")}>
             <p className="mb-2 text-xs font-medium text-gray-600">Електронна версія</p>
@@ -313,23 +349,6 @@ export default function OutputDataCoverPage() {
               ))}
             </ul>
           </CollapsibleSection>
-        </Card>
-      )}
-
-      {!book?.coverUrl && (
-        <Card className={cn("p-6 shadow-sm space-y-3", coverRejected && "border-2 border-red-400")}>
-          <div className="flex items-start gap-2 text-sm">
-            <span className="mt-0.5 text-amber-500">○</span>
-            <span className="text-gray-500">
-              Обкладинка ще не створена
-              <span className="block text-xs text-amber-600">
-                Обов&apos;язково для модерації — без обкладинки адмін поверне книгу на доопрацювання.
-              </span>
-            </span>
-          </div>
-          <Button asChild>
-            <Link href={`/dashboard/books/${id}/cover`}>Створити обкладинку</Link>
-          </Button>
         </Card>
       )}
 

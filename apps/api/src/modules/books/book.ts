@@ -15,6 +15,7 @@ import {
   getRequiredDescriptionMinLength,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
+  coverBaseColorPattern,
 } from "shared-types";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
@@ -48,6 +49,8 @@ const BOOK_SELECT = {
   coverUpdatedAt: true,
   coverImageLibrary: true,
   coverDesign: true,
+  autoCoverStyleId: true,
+  autoCoverBaseColor: true,
   originalDocxUrl: true,
   docxUpdatedAt: true,
   republishRequestedAt: true,
@@ -183,6 +186,8 @@ const patchSchema = z.object({
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).optional(),
   distributionChannels: distributionChannelsSchema.optional(),
   kdpSelectExpiry: z.string().datetime().nullable().optional(),
+  autoCoverStyleId: z.string().max(60).nullable().optional(),
+  autoCoverBaseColor: z.string().regex(coverBaseColorPattern).nullable().optional(),
   coverDesign: z
     .object({
       front: z.array(z.any()),

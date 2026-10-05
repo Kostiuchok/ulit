@@ -181,6 +181,12 @@ model Book {
   coverUpdatedAt       DateTime? // bumped only by upload-cover/upload-back-cover/upload-spine, same split as printMetaUpdatedAt -- withCoverVersion (coverVersion.ts) keys the cache-busting ?v= off THIS, not the blanket `updatedAt` (which fires on every PATCH, incl. price/distribution, none of which change the actual image bytes). Falls back to `updatedAt` for rows written before this column existed.
   coverImageLibrary    Json? // previously uploaded cover images the author can re-pick — [{url, uploadedAt}]
   coverDesign          Json? // editable cover design state — {front, backSpine, background}, restored into the canvas on next open of /cover (T-1962 sibling; see coverVersion.ts for the exported-PNG cache-busting, this is the separate editable-state save)
+  // Auto-cover (WF-SPEC 06d/06e): the template + the ONE author colour the
+  // whole theme derives from (shared-types deriveCoverTheme). Remembered so
+  // the picker reopens on the author's last choice; the cover readers see is
+  // still the rendered PNG in coverUrl, same as any other cover.
+  autoCoverStyleId     String?
+  autoCoverBaseColor   String?
   // Phase 3 (WF-SPEC.md dashboard-ui, "cover-approval" 03.10) -- a cover
   // change on an already-PUBLISHED book stages here instead of writing
   // coverUrl/backCoverUrl/spineUrl/coverThumbUrl live, same model as
