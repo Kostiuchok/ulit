@@ -76,14 +76,43 @@ export interface RenderResult {
   overflow: boolean;
 }
 
+// Print bleed around a panel, in px, per side (a panel of the wrap only
+// bleeds on its OUTER edges -- none at a spine fold). The layout itself is
+// always computed for the W x H trim box; bleed only lets whatever reaches a
+// trim edge keep going past it, so the bleed is real artwork.
+export interface Bleed {
+  l: number;
+  t: number;
+  r: number;
+  b: number;
+}
+export const NO_BLEED: Bleed = { l: 0, t: 0, r: 0, b: 0 };
+
 interface Env {
   ctx: CanvasRenderingContext2D;
   W: number;
   H: number;
+  bleed: Bleed;
   theme: CoverTheme;
   titleLines: number;
   // Auto-fit factor applied to every text size (1 = as designed).
   scale: number;
+}
+
+// fillRect for anything that may sit flush against a trim edge: a side that
+// ends on the edge is carried on to the end of the bleed.
+function fillRectToBleed(env: Env, x: number, y: number, w: number, h: number) {
+  const { W, H, bleed } = env;
+  const eps = 0.75;
+  let x0 = x;
+  let y0 = y;
+  let x1 = x + w;
+  let y1 = y + h;
+  if (Math.abs(x0) <= eps) x0 = -bleed.l;
+  if (Math.abs(y0) <= eps) y0 = -bleed.t;
+  if (Math.abs(x1 - W) <= eps) x1 = W + bleed.r;
+  if (Math.abs(y1 - H) <= eps) y1 = H + bleed.b;
+  env.ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
 }
 
 const FALLBACK: Record<string, string> = {
@@ -266,7 +295,7 @@ function draw(env: Env, node: Node, m: Measured, x: number, y: number, availW: n
         star8Path(ctx, sx + m.w / 2, y + m.h / 2, m.w / 2);
         ctx.fill();
       } else {
-        ctx.fillRect(sx, y, m.w, m.h);
+        fillRectToBleed(env, sx, y, m.w, m.h);
       }
       return;
     }
@@ -276,7 +305,7 @@ function draw(env: Env, node: Node, m: Measured, x: number, y: number, availW: n
       g.addColorStop(1, theme.bg);
       ctx.fillStyle = g;
       // +1px so no hairline shows between the fade and the plate below.
-      ctx.fillRect(0, y, W, m.h + 1);
+      fillRectToBleed(env, 0, y, W, m.h + 1);
       return;
     }
     case "image": {
@@ -318,7 +347,7 @@ function draw(env: Env, node: Node, m: Measured, x: number, y: number, availW: n
       const pr = node.pad?.[1] ?? 0;
       if (node.fill) {
         ctx.fillStyle = theme[node.fill];
-        ctx.fillRect(ox, y, m.w, m.h);
+        fillRectToBleed(env, ox, y, m.w, m.h);
       }
       if (node.stroke) {
         const sw = (node.stroke.px * W) / 400;
@@ -341,7 +370,7 @@ function draw(env: Env, node: Node, m: Measured, x: number, y: number, availW: n
 }
 
 function drawDecor(env: Env, d: Decor) {
-  const { ctx, W, H, theme } = env;
+  const { ctx, W, H, theme, bleed } = env;
   const X = (v: number) => (v / 100) * W;
   const Y = (v: number) => (v / 100) * H;
   ctx.save();
@@ -349,7 +378,7 @@ function drawDecor(env: Env, d: Decor) {
     case "rect":
       ctx.globalAlpha = d.opacity ?? 1;
       ctx.fillStyle = theme[d.token];
-      ctx.fillRect(X(d.x), Y(d.y), X(d.w), Y(d.h));
+      fillRectToBleed(env, X(d.x), Y(d.y), X(d.w), Y(d.h));
       break;
     case "rect-stroke": {
       const sw = (d.stroke * W) / 400;
@@ -413,8 +442,11 @@ function drawDecor(env: Env, d: Decor) {
       const step = X(10);
       const ox = X(5);
       const oy = Y(3.12);
-      for (let j = 0; oy + j * step < H + step; j += 1) {
-        for (let i = 0; ox + i * step < W + step; i += 1) {
+      // The rapport simply continues into the bleed (negative indices).
+      const i0 = -Math.ceil(bleed.l / step) - 1;
+      const j0 = -Math.ceil(bleed.t / step) - 1;
+      for (let j = bleed.t ? j0 : 0; oy + j * step < H + bleed.b + step; j += 1) {
+        for (let i = bleed.l ? i0 : 0; ox + i * step < W + bleed.r + step; i += 1) {
           const cx = ox + i * step;
           const cy = oy + j * step;
           if ((i + j) % 2 === 0) {
@@ -443,12 +475,15 @@ function drawDecor(env: Env, d: Decor) {
           ctx.fillStyle = theme[tok];
           ctx.fillRect(Math.round(col * cell), Math.round(top + row * cell), Math.ceil(cell), Math.ceil(cell));
         };
-        for (let col = 0; col < 100; col += 2) {
+        // Bands run on into the bleed on both sides.
+        const colMin = -Math.ceil(bleed.l / cell);
+        const colMax = 100 + Math.ceil(bleed.r / cell);
+        for (let col = colMin - (Math.abs(colMin) % 2); col < colMax; col += 2) {
           put(col, 0, "line");
           put(col, rows - 1, "line");
         }
         // Motif centres at 50 +/- k*18 (cell columns), centred on the cover.
-        for (let k = -3; k <= 3; k += 1) {
+        for (let k = -4; k <= 4; k += 1) {
           const centre = 50 + k * 18 - 0.5;
           for (let i = 0; i < 17; i += 1) {
             for (let j = 0; j < 17; j += 1) {
@@ -460,13 +495,13 @@ function drawDecor(env: Env, d: Decor) {
               const b = dist <= 2 || (dist === 4 && dx === dy);
               if (!a && !b) continue;
               const col = centre - C + i;
-              if (col < -1 || col > 100) continue;
+              if (col < colMin - 1 || col > colMax) continue;
               put(col, motifTop + j, a ? "accent" : "line");
             }
           }
           // Small vertical cross in the one-cell gap between motifs.
           const gapCol = centre + 9;
-          if (gapCol > 0 && gapCol < 99) {
+          if (gapCol > colMin && gapCol < colMax - 1) {
             for (let j = -1; j <= 1; j += 1) put(gapCol, motifTop + C + j, "line");
           }
         }
@@ -477,10 +512,14 @@ function drawDecor(env: Env, d: Decor) {
       ctx.strokeStyle = theme[d.token];
       ctx.lineWidth = X(d.stripe);
       const period = X(d.period) * Math.SQRT2;
+      // Same lines, same phase -- just longer and a few more of them, so
+      // they cross the bleed on every side.
+      const e = Math.max(bleed.l, bleed.t, bleed.r, bleed.b);
+      const extra = e ? Math.ceil((2 * e) / period) * period : 0;
       ctx.beginPath();
-      for (let x = -H; x < W + H; x += period) {
-        ctx.moveTo(x, H);
-        ctx.lineTo(x + H, 0);
+      for (let x = -H - extra; x < W + H + extra; x += period) {
+        ctx.moveTo(x - e, H + e);
+        ctx.lineTo(x + H + e, -e);
       }
       ctx.stroke();
       break;
@@ -490,21 +529,25 @@ function drawDecor(env: Env, d: Decor) {
         // object-fit: cover around the focal point.
         const iw = (d.img as HTMLCanvasElement).width;
         const ih = (d.img as HTMLCanvasElement).height;
-        const scale = Math.max(W / iw, H / ih);
+        // With bleed the photo must cover the bled box, so it is fitted
+        // to that box (about 1% larger than the trim-only fit).
+        const BW = W + bleed.l + bleed.r;
+        const BH = H + bleed.t + bleed.b;
+        const scale = Math.max(BW / iw, BH / ih);
         const dw = iw * scale;
         const dh = ih * scale;
-        const dx = Math.min(0, Math.max(W - dw, W / 2 - dw * d.focal[0]));
-        const dy = Math.min(0, Math.max(H - dh, H / 2 - dh * d.focal[1]));
-        ctx.drawImage(d.img, dx, dy, dw, dh);
+        const dx = Math.min(0, Math.max(BW - dw, BW / 2 - dw * d.focal[0]));
+        const dy = Math.min(0, Math.max(BH - dh, BH / 2 - dh * d.focal[1]));
+        ctx.drawImage(d.img, dx - bleed.l, dy - bleed.t, dw, dh);
       }
       // tint: the photo takes on the base hue; wash: evens out the tone.
       ctx.globalCompositeOperation = "color";
       ctx.globalAlpha = theme.photoTint;
       ctx.fillStyle = theme.bg;
-      ctx.fillRect(0, 0, W, H);
+      fillRectToBleed(env, 0, 0, W, H);
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = theme.photoWash;
-      ctx.fillRect(0, 0, W, H);
+      fillRectToBleed(env, 0, 0, W, H);
       break;
     }
   }
@@ -516,15 +559,16 @@ export function renderDoc(
   W: number,
   H: number,
   theme: CoverTheme,
-  doc: CoverDoc
+  doc: CoverDoc,
+  bleed: Bleed = NO_BLEED
 ): RenderResult {
-  const env: Env = { ctx, W, H, theme, titleLines: 0, scale: 1 };
+  const env: Env = { ctx, W, H, bleed, theme, titleLines: 0, scale: 1 };
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, 0, W, H);
+  ctx.rect(-bleed.l, -bleed.t, W + bleed.l + bleed.r, H + bleed.t + bleed.b);
   ctx.clip();
   ctx.fillStyle = theme.bg;
-  ctx.fillRect(0, 0, W, H);
+  fillRectToBleed(env, 0, 0, W, H);
   for (const d of doc.decor) drawDecor(env, d);
 
   const [pt, pr, pb, pl] = doc.pad;

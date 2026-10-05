@@ -1,8 +1,8 @@
 import JsBarcode from "jsbarcode";
 import qrcode from "qrcode-generator";
-import { deriveCoverTheme, isSpineTooThinForText, type CoverTheme } from "shared-types";
+import { deriveCoverTheme, isSpineTooThinForText, COVER_BLEED_MM, type CoverTheme } from "shared-types";
 import { computeCoverLayout } from "@/lib/coverLayout";
-import { fontString, renderDoc, type Node, type RenderResult } from "./engine";
+import { fontString, renderDoc, NO_BLEED, type Bleed, type Node, type RenderResult } from "./engine";
 import { COVER_FONT_CSS_URL, COVER_FONT_FACES, findCoverStyle, type CoverStyle, type CoverTexts } from "./styles";
 
 // ── Fonts ────────────────────────────────────────────────────────────────
@@ -96,9 +96,10 @@ export function drawFront(
   style: CoverStyle,
   theme: CoverTheme,
   texts: CoverTexts,
-  photo: CanvasImageSource | null
+  photo: CanvasImageSource | null,
+  bleed: Bleed = NO_BLEED
 ): RenderResult {
-  return renderDoc(ctx, W, H, theme, style.build(texts, photo));
+  return renderDoc(ctx, W, H, theme, style.build(texts, photo), bleed);
 }
 
 // ── Back ("Промо автора") ────────────────────────────────────────────────
@@ -148,7 +149,14 @@ function clip(text: string, max: number): string {
 
 // Every block is driven by real book data; a block with no data is simply
 // absent -- placeholder copy must never be able to reach a printed cover.
-export function drawBack(ctx: CanvasRenderingContext2D, W: number, H: number, theme: CoverTheme, data: BackCoverData) {
+export function drawBack(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  theme: CoverTheme,
+  data: BackCoverData,
+  bleed: Bleed = NO_BLEED
+) {
   const heading = (text: string): Node => ({
     t: "text",
     text,
@@ -234,7 +242,7 @@ export function drawBack(ctx: CanvasRenderingContext2D, W: number, H: number, th
       { t: "stack", gap: 1.6, children: top },
       { t: "stack", gap: 2, children: bottom },
     ],
-  });
+  }, bleed);
 }
 
 // ── Spine ────────────────────────────────────────────────────────────────
@@ -244,13 +252,15 @@ export function drawSpine(
   H: number,
   theme: CoverTheme,
   texts: CoverTexts,
-  showText: boolean
+  showText: boolean,
+  bleed: Bleed = NO_BLEED
 ) {
   ctx.save();
+  // The spine only bleeds at the head and the foot.
   ctx.fillStyle = theme.bg;
-  ctx.fillRect(0, 0, w, H);
+  ctx.fillRect(0, -bleed.t, w, H + bleed.t + bleed.b);
   ctx.fillStyle = theme.accent;
-  ctx.fillRect(0, 0, w, H * 0.012);
+  ctx.fillRect(0, -bleed.t, w, H * 0.012 + bleed.t);
   if (showText && w >= 14) {
     const px = Math.min(w * 0.5, H * 0.022);
     ctx.translate(w / 2, H / 2);
@@ -298,25 +308,65 @@ function spineShowsText(input: AutoCoverInput, hardcover: boolean): boolean {
   return input.pageCount != null && !isSpineTooThinForText(input.pageCount, hardcover);
 }
 
-// Print-resolution PNGs, same sizing convention as the cover editor's own
-// export (trim size at 300 DPI; the spine at the softcover thickness).
-export async function exportAutoCover(input: AutoCoverInput): Promise<{ front: Blob; back: Blob; spine: Blob; overflow: boolean }> {
+// The print wrap (back | spine | front) with `B` px of bleed on its outer
+// edges only -- none at the two spine folds. The canvas must be
+// (2W + spineW + 2B) x (H + 2B).
+export function drawPrintWrap(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  spineW: number,
+  B: number,
+  input: AutoCoverInput,
+  photo: CanvasImageSource | null,
+  hardcover: boolean
+): RenderResult {
   const style = findCoverStyle(input.styleId);
   const theme = deriveCoverTheme(input.baseColor);
+  ctx.save();
+  ctx.translate(B, B);
+  drawBack(ctx, W, H, theme, input.back, { l: B, t: B, r: 0, b: B });
+  ctx.translate(W, 0);
+  drawSpine(ctx, spineW, H, theme, input.texts, spineShowsText(input, hardcover), { l: 0, t: B, r: 0, b: B });
+  ctx.translate(spineW, 0);
+  const result = drawFront(ctx, W, H, style, theme, input.texts, photo, { l: 0, t: B, r: B, b: B });
+  ctx.restore();
+  return result;
+}
+
+// Print-resolution PNGs, same sizing convention as the cover editor's own
+// export (trim size at 300 DPI; the spine at the softcover thickness).
+// The whole wrap is drawn ONCE, with real bleed on its outer edges -- that
+// canvas is the print-house file -- and the three trim-size panels are cut
+// out of it, so what the reader sees and what gets printed cannot differ.
+export async function exportAutoCover(
+  input: AutoCoverInput
+): Promise<{ front: Blob; back: Blob; spine: Blob; wrap: Blob; overflow: boolean }> {
+  const style = findCoverStyle(input.styleId);
   const photo = await prepareCoverAssets(style, `${input.texts.title} ${input.texts.author} ${input.texts.subtitle ?? ""}`);
   const W = Math.round((input.trimMm.widthMm / 25.4) * EXPORT_DPI);
   const H = Math.round((input.trimMm.heightMm / 25.4) * EXPORT_DPI);
   const layout = computeCoverLayout("softcover", input.pageCount, input.trimMm);
   const spineW = Math.max(12, Math.round((layout.spine!.w / layout.front.w) * W));
 
-  const [front, fctx] = newCanvas(W, H);
-  const { overflow } = drawFront(fctx, W, H, style, theme, input.texts, photo);
-  const [back, bctx] = newCanvas(W, H);
-  drawBack(bctx, W, H, theme, input.back);
-  const [spine, sctx] = newCanvas(spineW, H);
-  drawSpine(sctx, spineW, H, theme, input.texts, spineShowsText(input, false));
+  const B = Math.round((COVER_BLEED_MM / 25.4) * EXPORT_DPI);
 
-  return { front: await toPngBlob(front), back: await toPngBlob(back), spine: await toPngBlob(spine), overflow };
+  const [wrap, wctx] = newCanvas(W * 2 + spineW + B * 2, H + B * 2);
+  const { overflow } = drawPrintWrap(wctx, W, H, spineW, B, input, photo, false);
+
+  const cut = (x: number, w: number) => {
+    const [c, cctx] = newCanvas(w, H);
+    cctx.drawImage(wrap, B + x, B, w, H, 0, 0, w, H);
+    return toPngBlob(c);
+  };
+
+  return {
+    back: await cut(0, W),
+    spine: await cut(W, spineW),
+    front: await cut(W + spineW, W),
+    wrap: await toPngBlob(wrap),
+    overflow,
+  };
 }
 
 // One canvas with the whole print wrap (back · spine · front) plus fold

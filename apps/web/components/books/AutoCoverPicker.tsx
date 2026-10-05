@@ -220,7 +220,7 @@ export function AutoCoverPicker({ bookId, book, trimMm, pageCount, onApplied, on
     setApplying(true);
     setError("");
     try {
-      const { front, back: backBlob, spine } = await exportAutoCover(input);
+      const { front, back: backBlob, spine, wrap } = await exportAutoCover(input);
       const upload = (blob: Blob, route: string) => {
         const form = new FormData();
         form.append("file", blob, "cover.png");
@@ -229,6 +229,10 @@ export function AutoCoverPicker({ bookId, book, trimMm, pageCount, onApplied, on
       await upload(front, "upload-cover");
       await upload(backBlob, "upload-back-cover");
       await upload(spine, "upload-spine");
+      // The print-house file with real bleed. Last on purpose (upload-cover
+      // drops any earlier wrap) and non-fatal: without it the print-house
+      // download falls back to a mirrored bleed.
+      await upload(wrap, "upload-cover-wrap").catch(() => undefined);
       await apiFetch(`/api/books/${bookId}`, {
         method: "PATCH",
         body: JSON.stringify({ autoCoverStyleId: styleId, autoCoverBaseColor: baseColor }),
