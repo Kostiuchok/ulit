@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -29,7 +28,6 @@ interface Props {
 // browser's own beforeunload prompt. NOT covered: the browser Back button
 // and navigations fired from code (router.push from a plain button).
 export function UnsavedChangesGuard({ active, onSave, saveDisabled, isStillUnsaved }: Props) {
-  const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const activeRef = useRef(active);
@@ -69,25 +67,16 @@ export function UnsavedChangesGuard({ active, onSave, saveDisabled, isStillUnsav
     return () => document.removeEventListener("click", onClick, true);
   }, [active]);
 
+  // A plain full page load, deliberately not router.push: the soft
+  // navigation proved unreliable from here (reported live twice -- the
+  // dialog closed and the page stayed put). The page's own beforeunload
+  // prompt is disarmed first, otherwise the browser would ask a second time.
   const leave = () => {
     const href = pendingHref;
     setPendingHref(null);
     if (!href) return;
-    // Found live: "Вийти без збереження" closed the dialog and went nowhere.
-    // The page still had its beforeunload prompt armed, so when the router
-    // fell back to a full page load the browser's own "Leave site?" prompt
-    // cancelled it. Disarm first; and if the soft navigation has not moved
-    // the URL shortly after, do the full load ourselves.
     leavingRef.current = true;
-    const from = window.location.pathname + window.location.search;
-    router.push(href);
-    window.setTimeout(() => {
-      if (window.location.pathname + window.location.search === from) window.location.assign(href);
-    }, 1500);
-    // If this component survives the navigation (shared layout), re-arm.
-    window.setTimeout(() => {
-      leavingRef.current = false;
-    }, 4000);
+    window.location.assign(href);
   };
 
   const saveAndLeave = async () => {
