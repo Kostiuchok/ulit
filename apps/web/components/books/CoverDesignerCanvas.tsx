@@ -20,7 +20,17 @@ import {
   AlignHorizontalJustifyEnd,
   Minus,
   Plus,
+  Type,
+  Image as ImageIcon,
+  Square,
+  PaintBucket,
+  QrCode,
+  Barcode,
+  UserRound,
+  BookCopy,
+  AlertTriangle,
 } from "lucide-react";
+import { Switch } from "../ui/switch";
 import {
   PRINT_TRIM_SIZE_MM,
   MIN_SPINE_TEXT_PAGES,
@@ -674,13 +684,31 @@ const LAYER_LABELS: Record<string, string> = {
 const LINKED_TEXT_ROLES = new Set(["text-title", "text-subtitle", "text-author", "text-blurb", "text-bio"]);
 const BG_LAYER_ROLES = new Set(["accent", "style-bg", "pattern", "bg-image", "photo-slot", "existing-cover"]);
 
-const BACK_TOGGLES: { role: string; label: string; linked?: boolean }[] = [
-  { role: "text-blurb", label: "Анотація", linked: true },
-  { role: "text-bio", label: "Біографія автора", linked: true },
-  { role: "author-photo", label: "Фото автора" },
-  { role: "other-book", label: "Інші книги автора на ULIT" },
-  { role: "qr", label: "QR-код на сторінку книги" },
+// Back cover "Промо автора": one switch per block, each saying where its
+// content comes from (Figma 47:2). `parts` are the style's own texts that
+// belong to the block and are shown/hidden with it (its heading, the
+// author's name).
+const BACK_TOGGLES: { role: string; label: string; source: string; linked?: boolean; parts?: string[] }[] = [
+  { role: "author-photo", label: "Фото автора", source: "з «Авторів книги»" },
+  { role: "text-bio", label: "Біографія", source: "з «Авторів книги» · до 360 символів", linked: true, parts: ["heading-bio", "author-name"] },
+  { role: "text-blurb", label: "Анотація", source: "коротка, з «Вихідних даних» · до 420 символів", linked: true, parts: ["heading-blurb"] },
+  { role: "other-book", label: "Інші книги автора", source: "до 3 опублікованих на ULIT", parts: ["heading-others"] },
+  { role: "qr", label: "QR / посилання на книгу", source: "необов'язково · сторінка книги на ULIT" },
 ];
+
+// Small icon in front of a layer's name (Figma 46:2 / 47:2).
+function LayerIcon({ obj }: { obj: any }) {
+  const role: string | undefined = obj?.data?.role;
+  const size = 13;
+  if (role === "qr") return <QrCode size={size} />;
+  if (role === "barcode") return <Barcode size={size} />;
+  if (role === "author-photo") return <UserRound size={size} />;
+  if (role === "other-book") return <BookCopy size={size} />;
+  if (role === "accent" || role === "style-bg" || role === "pattern") return <PaintBucket size={size} />;
+  if (role === "bg-image" || role === "photo-slot" || role === "existing-cover" || obj?.type === "image") return <ImageIcon size={size} />;
+  if (obj?.type === "textbox" || obj?.type === "text" || obj?.type === "i-text") return <Type size={size} />;
+  return <Square size={size} />;
+}
 
 interface LayerRow {
   key: string;
@@ -2819,7 +2847,9 @@ export default function CoverDesignerCanvas({
               ? `Заголовок «${String(o.text ?? "").trim()}»`
               : part === "author-name"
                 ? "Ім'я автора"
-                : o.type === "textbox"
+                : part?.startsWith("heading")
+                  ? `Заголовок «${String(o.text ?? "").trim()}»`
+                  : o.type === "textbox"
                   ? "Текст"
                   : o.type === "image"
                     ? "Зображення"
@@ -2847,7 +2877,8 @@ export default function CoverDesignerCanvas({
     });
     rows.reverse();
     if (!spine) return [{ title: "", rows }];
-    return ["Лицева сторона", "Корінець", "Задня сторона", "Фон та ілюстрація"]
+    // Left to right as the wrap lies on the canvas (Figma 47:2).
+    return ["Задня сторона", "Корінець", "Лицева сторона", "Фон та ілюстрація"]
       .map((title) => ({ title, rows: rows.filter((r) => r.group === title) }))
       .filter((g) => g.rows.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2990,6 +3021,16 @@ export default function CoverDesignerCanvas({
         existing.set({ visible: existing.visible === false });
         if (canvas.getActiveObject() === existing && existing.visible === false) canvas.discardActiveObject();
       }
+      // The block's own heading / author name (ready-made styles) follow it.
+      const parts = BACK_TOGGLES.find((t) => t.role === role)?.parts ?? [];
+      if (parts.length > 0) {
+        const shown = canvas.getObjects().some((o: any) => o.data?.role === role && o.visible !== false);
+        canvas.getObjects().forEach((o: any) => {
+          // "author-name" stays while the photo block is still on.
+          if (!parts.includes(o.data?.part)) return;
+          o.set({ visible: shown });
+        });
+      }
       canvas.requestRenderAll();
       setLayersVersion((v) => v + 1);
       saveSnapshot();
@@ -3058,6 +3099,9 @@ export default function CoverDesignerCanvas({
                             : "cursor-default text-gray-400"
                     )}
                   >
+                    <span className="shrink-0 text-gray-400">
+                      <LayerIcon obj={row.obj} />
+                    </span>
                     <span className="min-w-0 flex-1 truncate">{row.label}</span>
                     {row.hidden && <span className="shrink-0 text-[0.625rem] text-gray-400">приховано</span>}
                     {row.covered && <span className="shrink-0" title="Фігура перекриває цей текст">⚠</span>}
@@ -3086,6 +3130,16 @@ export default function CoverDesignerCanvas({
           >
             {activeObj ? selectedLabel : "Клікніть елемент, щоб змінити його"}
           </span>
+          {/* Spine callout above the canvas (Figma 47:2). */}
+          {format !== "ebook" && (
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-orange-300 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-800">
+              <AlertTriangle size={13} />
+              Корінець {spineMm.toFixed(1)} мм{format === "hardcover" ? " (тверда)" : ""} —{" "}
+              {pageCount != null && pageCount > 0 && isSpineTooThinForText(pageCount, format === "hardcover")
+                ? `без тексту: текст можливий від ${MIN_SPINE_TEXT_PAGES} сторінок`
+                : "текст на корінці вміщується"}
+            </span>
+          )}
         <div ref={canvasHostRef} className="w-full max-w-full">
           <div
             className="mx-auto rounded-lg border-2 border-gray-200 shadow-md"
@@ -3142,17 +3196,14 @@ export default function CoverDesignerCanvas({
                   />
                 )
             )}
+            {/* The spine as a tinted band between its two fold lines (Figma
+                47:2) -- tinted, not solid, so the spine's own text stays
+                readable through it. */}
             {ctx.layout.spine && ctx.layout.spine.w > 0 && (
-              <>
-                <div
-                  className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-orange-500/80"
-                  style={{ left: ctx.layout.spine.x + ctx.layout.bleed }}
-                />
-                <div
-                  className="pointer-events-none absolute top-0 bottom-0 border-l-2 border-dashed border-orange-500/80"
-                  style={{ left: ctx.layout.spine.x + ctx.layout.spine.w + ctx.layout.bleed }}
-                />
-              </>
+              <div
+                className="pointer-events-none absolute top-0 bottom-0 border-x-2 border-dashed border-orange-500/80 bg-orange-400/10"
+                style={{ left: ctx.layout.spine.x + ctx.layout.bleed, width: ctx.layout.spine.w }}
+              />
             )}
           </div>
           </div>
@@ -3641,27 +3692,39 @@ export default function CoverDesignerCanvas({
 
               {format !== "ebook" && (
                 <div className="space-y-1.5 rounded-lg border bg-gray-50 p-2">
-                  <p className="text-xs font-medium text-gray-500">Задня сторона: що показувати</p>
-                  {BACK_TOGGLES.map((t) => (
-                    <label key={t.role} className="flex items-center gap-2 text-xs text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={backBlockShown(t.role)}
-                        disabled={
-                          (t.role === "qr" && !bookUrl) ||
-                          (t.role === "author-photo" && !authorPhotoUrl) ||
-                          (t.role === "other-book" && otherBookCovers.length === 0)
-                        }
-                        onChange={() => toggleBackBlock(t.role)}
-                      />
-                      {t.label}
-                      {t.linked && syncFromBookData && <span title="Береться з «Вихідних даних»">🔗</span>}
-                      {t.role === "author-photo" && !authorPhotoUrl && <span className="text-gray-400">— немає фото</span>}
-                      {t.role === "other-book" && otherBookCovers.length === 0 && (
-                        <span className="text-gray-400">— немає інших книг</span>
-                      )}
-                    </label>
-                  ))}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-900">Задня сторона · макет</p>
+                    <p className="text-[0.6875rem] text-gray-500">Промо автора (за замовчуванням)</p>
+                  </div>
+                  <p className="pt-1 text-xs font-medium text-gray-500">Що показувати</p>
+                  {BACK_TOGGLES.map((t) => {
+                    const unavailable =
+                      (t.role === "qr" && !bookUrl) ||
+                      (t.role === "author-photo" && !authorPhotoUrl) ||
+                      (t.role === "other-book" && otherBookCovers.length === 0);
+                    return (
+                      <label key={t.role} className="flex items-start gap-2.5 py-0.5 text-xs text-gray-800">
+                        <Switch
+                          checked={backBlockShown(t.role)}
+                          disabled={unavailable}
+                          onCheckedChange={() => toggleBackBlock(t.role)}
+                          className="mt-0.5 scale-90"
+                        />
+                        <span className="min-w-0">
+                          <span className="font-medium">
+                            {t.label} {t.linked && syncFromBookData && <span title="Оновлюється разом із даними книги">🔗</span>}
+                          </span>
+                          <span className="block text-[0.6875rem] text-gray-500">
+                            {t.role === "author-photo" && !authorPhotoUrl
+                              ? "немає фото — додайте у «Вихідних даних»"
+                              : t.role === "other-book" && otherBookCovers.length === 0
+                                ? "немає інших опублікованих книг — блок приховано"
+                                : t.source}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
                   <p className="text-[0.6875rem] leading-snug text-gray-400">
                     Порожній блок (без анотації чи біографії у «Вихідних даних») на обкладинку не потрапляє.
                   </p>
@@ -3959,7 +4022,9 @@ export default function CoverDesignerCanvas({
           </Button>
         </div>
         <span className="text-xs text-gray-400">
-          Збережеться як PNG {exportPx.w}×{exportPx.h} px (300 DPI)
+          {format === "ebook"
+            ? `Збережеться як PNG ${exportPx.w}×${exportPx.h} px (300 DPI)`
+            : "Збережеться як PNG-розворот (300 DPI): зад · корінець · перед"}
         </span>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
           {saveError && <span className="text-xs text-red-500">{saveError}</span>}

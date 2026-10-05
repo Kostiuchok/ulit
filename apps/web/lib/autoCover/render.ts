@@ -163,9 +163,11 @@ export function drawBack(
   bleed: Bleed = NO_BLEED,
   opts: RenderOptions = {}
 ) {
-  const heading = (text: string): Node => ({
+  // Each heading says which block it belongs to, so switching a block off in
+  // the editor can take its heading with it.
+  const heading = (text: string, block: "blurb" | "bio" | "others"): Node => ({
     t: "text",
-    role: "heading",
+    role: `heading-${block}`,
     text,
     spec: { family: "Montserrat", weight: 600, size: 1.6, letterSpacing: 0.18, upper: true, token: "accent", align: "left" },
   });
@@ -178,10 +180,10 @@ export function drawBack(
 
   const top: Node[] = [];
   if (data.description?.trim()) {
-    top.push(heading("Про книгу"), body(clip(data.description, BACK_BLURB_MAX), "blurb"), { t: "spacer", h: 2.2 });
+    top.push(heading("Про книгу", "blurb"), body(clip(data.description, BACK_BLURB_MAX), "blurb"), { t: "spacer", h: 2.2 });
   }
   if (data.authorBio?.trim() || data.authorPhoto) {
-    top.push(heading("Про автора"));
+    top.push(heading("Про автора", "bio"));
     const name: Node = {
       t: "text",
       role: "author-name",
@@ -196,7 +198,7 @@ export function drawBack(
     if (data.authorBio?.trim()) top.push(body(clip(data.authorBio, BACK_BIO_MAX), "bio"));
   }
   if (data.otherCovers?.length) {
-    top.push({ t: "spacer", h: 2.2 }, heading("Інші книги автора на ULIT"), {
+    top.push({ t: "spacer", h: 2.2 }, heading("Інші книги автора на ULIT", "others"), {
       t: "row",
       gap: 3,
       children: data.otherCovers.slice(0, 3).map((img): Node => ({ t: "image", img, w: 13, ratio: 1.5, tag: "other-book" })),
