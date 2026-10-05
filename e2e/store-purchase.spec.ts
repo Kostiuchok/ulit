@@ -28,10 +28,15 @@ test.describe("Store — catalog, book page, search, purchase flow", () => {
     await searchInput.press("Enter");
 
     await page.waitForURL(/q=/, { timeout: 5_000 });
-    // Either results or empty state message
-    const hasResults = await page.getByTestId("book-card").count() > 0;
-    const hasEmpty = await page.getByText(/не знайдено/i).isVisible();
-    expect(hasResults || hasEmpty).toBe(true);
+    // The results header is rendered for every search, with or without hits.
+    await expect(page.getByText(/результати пошуку за/i)).toBeVisible({ timeout: 10_000 });
+    // Then either the empty state or at least one link to a book page. The
+    // old check counted elements with data-testid="book-card" -- an id no
+    // component has -- so it only ever passed while the search found nothing,
+    // and started failing the day a published book matched the query.
+    await expect(
+      page.getByText(/книг не знайдено/i).or(page.locator('a[href^="/books/"]').first())
+    ).toBeVisible();
   });
 
   test("/terms page renders legal content", async ({ page }) => {
