@@ -22,6 +22,8 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { withCoverVersion } from "../../lib/coverVersion";
 import { validateIsbn13 } from "../../services/isbn.service";
+import { planDistributionChange } from "../../lib/distributionPlan";
+import { scheduleKdpExpiryWarning } from "../../lib/email-queue";
 
 const BOOK_SELECT = {
   id: true,
@@ -391,11 +393,20 @@ export async function bookRoutes(app: FastifyInstance) {
       data.printHeightMm !== undefined ||
       printFormatOverride !== undefined;
 
+    // A changed store list goes through the same decision as the dedicated
+    // /distribution endpoint (strategy, KDP Select fields, "not while KDP
+    // Select is active") -- and is validated HERE, before the one update
+    // below, so a request that carries prices + stores either applies in
+    // full or not at all.
+    const distributionPlan =
+      data.distributionChannels !== undefined ? planDistributionChange(existing, data.distributionChannels) : null;
+
     const book = await prisma.book.update({
       where: { id },
       data: {
         ...data,
         ...printFormatOverride,
+        ...(distributionPlan ? distributionPlan.data : {}),
         printMetaUpdatedAt: isPrintRelevant ? new Date() : undefined,
         title: stageTitle ? undefined : data.title,
         description: stageDescription ? undefined : data.description,
@@ -414,9 +425,11 @@ export async function bookRoutes(app: FastifyInstance) {
         // here silently coerced an explicit null BACK to undefined --
         // Prisma treats undefined as "don't touch this column" -- so
         // clearing a price via this endpoint never actually reached the DB.
-        kdpSelectExpiry: data.kdpSelectExpiry !== undefined
-          ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
-          : undefined,
+        kdpSelectExpiry: distributionPlan
+          ? distributionPlan.data.kdpSelectExpiry
+          : data.kdpSelectExpiry !== undefined
+            ? (data.kdpSelectExpiry ? new Date(data.kdpSelectExpiry) : null)
+            : undefined,
         discountStartsAt: data.discountStartsAt !== undefined
           ? (data.discountStartsAt ? new Date(data.discountStartsAt) : null)
           : undefined,
@@ -435,6 +448,17 @@ export async function bookRoutes(app: FastifyInstance) {
       },
       select: BOOK_SELECT,
     });
+
+    if (distributionPlan?.newKdpSelectExpiry) {
+      const expiry = distributionPlan.newKdpSelectExpiry;
+      const author = await prisma.user.findUnique({ where: { id: request.user.id }, select: { email: true, name: true } });
+      if (author) {
+        await scheduleKdpExpiryWarning(
+          { email: author.email, name: author.name, bookTitle: book.title, bookId: id, expiryDate: expiry.toISOString() },
+          expiry
+        ).catch((err) => console.error("[email] Failed to schedule KDP warning:", err));
+      }
+    }
 
     return reply.send({ book: withCoverVersion(book) });
   });

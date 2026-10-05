@@ -339,13 +339,14 @@ function OutputDataPriceForm({
           discountPercent: discountPercentNum,
           discountStartsAt: discountPercentNum != null && discountStartsAt ? new Date(discountStartsAt).toISOString() : null,
           discountEndsAt: discountPercentNum != null && discountEndsAt ? new Date(discountEndsAt).toISOString() : null,
+          // Stores travel in the SAME request as prices and discount: the
+          // server validates everything first and writes once, so nothing
+          // is ever half-saved (it used to be a second request that could
+          // fail after the prices were already applied).
+          distributionChannels: channels,
         }),
       });
       setBook(updated);
-      await apiFetch(`/api/books/${id}/distribution`, {
-        method: "PATCH",
-        body: JSON.stringify({ distributionChannels: channels }),
-      });
       originalRef.current = { royaltyEbook, royaltyPrint, discountPercent, discountStartsAt, discountEndsAt };
       setFormatsSaved(true);
       setFormatsDirty(false);

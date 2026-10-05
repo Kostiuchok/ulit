@@ -5,19 +5,11 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { scheduleKdpExpiryWarning } from "../../lib/email-queue";
-
-const KDP_SELECT_DAYS = 90;
+import { planDistributionChange } from "../../lib/distributionPlan";
 
 const switchSchema = z.object({
   distributionChannels: distributionChannelsSchema,
 });
-
-function deriveStrategy(channels: string[]): "WIDE" | "KDP_SELECT" {
-  const hasKdp = channels.includes("KDP");
-  const hasD2d = channels.includes("D2D");
-  const hasGoogle = channels.includes("GOOGLE");
-  return hasKdp && !hasD2d && !hasGoogle ? "KDP_SELECT" : "WIDE";
-}
 
 export async function distributionRoutes(app: FastifyInstance) {
   // GET distribution status for a book
@@ -97,11 +89,7 @@ export async function distributionRoutes(app: FastifyInstance) {
       if (!book) throw AppError.notFound("Book");
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
 
-      const now = new Date();
-      const kdpActive = book.kdpSelectEnrolled && book.kdpSelectExpiry && book.kdpSelectExpiry > now;
-
       const { distributionChannels } = result.data;
-      const distributionStrategy = deriveStrategy(distributionChannels);
 
       // This is the endpoint output-data's "Ціна та розповсюдження" section
       // actually calls to change channels (book.ts's own patchSchema also
@@ -113,27 +101,11 @@ export async function distributionRoutes(app: FastifyInstance) {
       const annotationError = storeAnnotationErrorMessage(book.description, distributionChannels);
       if (annotationError) throw new AppError(annotationError, 400, "ANNOTATION_TOO_SHORT_FOR_STORES");
 
-      if (kdpActive && distributionStrategy === "WIDE") {
-        throw new AppError(
-          `Cannot switch to WIDE while KDP Select is active (expires ${book.kdpSelectExpiry!.toLocaleDateString("uk-UA")})`,
-          400,
-          "KDP_SELECT_ACTIVE"
-        );
-      }
-
-      const isEnrollingKdp = distributionStrategy === "KDP_SELECT" && !kdpActive;
-      const expiry = isEnrollingKdp
-        ? new Date(now.getTime() + KDP_SELECT_DAYS * 24 * 60 * 60 * 1000)
-        : book.kdpSelectExpiry;
+      const plan = planDistributionChange(book, distributionChannels);
 
       const updated = await prisma.book.update({
         where: { id },
-        data: {
-          distributionChannels,
-          distributionStrategy,
-          kdpSelectEnrolled: distributionStrategy === "KDP_SELECT",
-          kdpSelectExpiry: isEnrollingKdp ? expiry : (distributionStrategy === "WIDE" ? null : undefined),
-        },
+        data: plan.data,
         select: {
           distributionStrategy: true,
           distributionChannels: true,
@@ -142,7 +114,8 @@ export async function distributionRoutes(app: FastifyInstance) {
         },
       });
 
-      if (isEnrollingKdp && expiry) {
+      if (plan.newKdpSelectExpiry) {
+        const expiry = plan.newKdpSelectExpiry;
         await scheduleKdpExpiryWarning(
           { email: book.author.email, name: book.author.name, bookTitle: book.title, bookId: id, expiryDate: expiry.toISOString() },
           expiry
