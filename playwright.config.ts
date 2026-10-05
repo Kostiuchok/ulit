@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Sprint 3 specs publish real books. They run from playwright.sprint3.config.ts
+  // on workflow_dispatch (and labeled PRs), not from the push-to-main smoke job.
+  testIgnore: ["**/sprint3/**"],
   timeout: 30_000,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
