@@ -65,7 +65,7 @@ test.describe("Authenticated author flows", () => {
     // The old glob "**/dashboard/**" needs a path segment AFTER /dashboard/, so
     // it never matched and every authenticated test timed out right here --
     // regardless of whether the credentials were right.
-    const landed = page.waitForURL(//dashboard(/|$|?)/, { timeout: 15_000 });
+    const landed = page.waitForURL(/\/dashboard(\/|$|\?)/, { timeout: 15_000 });
     // A rejected login must say so, not look like a slow redirect.
     const rejected = page
       .getByText(/невірний email або пароль|email не підтверджено/i)
