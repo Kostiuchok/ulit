@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowUp, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SaveActionButton } from "@/components/ui/SaveActionButton";
@@ -113,9 +114,7 @@ export function OutputDataSaveBar({ bookId }: { bookId: string }) {
     <div className="sticky bottom-0 z-20 -mx-8 border-t border-gray-200 bg-white/95 px-8 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] backdrop-blur">
       <div className="flex items-center gap-4">
         <Button asChild variant="ghost" className="h-auto gap-1.5 px-0 text-sm text-gray-600 hover:bg-transparent hover:text-black">
-          {/* Plain <a> -- standard page load, same decision as OutputDataTabs. */}
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href={`/dashboard/books/${bookId}`}>← До дашборду книги</a>
+          <Link href={`/dashboard/books/${bookId}`}>← До дашборду книги</Link>
         </Button>
 
         {state && (state.dirty || state.saving || state.savedAt || state.statusNote !== undefined) && (
