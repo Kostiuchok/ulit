@@ -34,10 +34,14 @@ export function UnsavedChangesGuard({ active, onSave, saveDisabled, isStillUnsav
   const [saving, setSaving] = useState(false);
   const activeRef = useRef(active);
   activeRef.current = active;
+  // Set once the author has chosen to leave: from then on nothing here may
+  // stand in the way of the navigation.
+  const leavingRef = useRef(false);
 
   useEffect(() => {
     if (!active) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (leavingRef.current) return;
       e.preventDefault();
       e.returnValue = "";
     };
@@ -48,7 +52,7 @@ export function UnsavedChangesGuard({ active, onSave, saveDisabled, isStillUnsav
   useEffect(() => {
     if (!active) return;
     const onClick = (e: MouseEvent) => {
-      if (!activeRef.current) return;
+      if (!activeRef.current || leavingRef.current) return;
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const anchor = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
       if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
@@ -68,7 +72,22 @@ export function UnsavedChangesGuard({ active, onSave, saveDisabled, isStillUnsav
   const leave = () => {
     const href = pendingHref;
     setPendingHref(null);
-    if (href) router.push(href);
+    if (!href) return;
+    // Found live: "Вийти без збереження" closed the dialog and went nowhere.
+    // The page still had its beforeunload prompt armed, so when the router
+    // fell back to a full page load the browser's own "Leave site?" prompt
+    // cancelled it. Disarm first; and if the soft navigation has not moved
+    // the URL shortly after, do the full load ourselves.
+    leavingRef.current = true;
+    const from = window.location.pathname + window.location.search;
+    router.push(href);
+    window.setTimeout(() => {
+      if (window.location.pathname + window.location.search === from) window.location.assign(href);
+    }, 1500);
+    // If this component survives the navigation (shared layout), re-arm.
+    window.setTimeout(() => {
+      leavingRef.current = false;
+    }, 4000);
   };
 
   const saveAndLeave = async () => {
@@ -90,13 +109,13 @@ export function UnsavedChangesGuard({ active, onSave, saveDisabled, isStillUnsav
 
   return (
     <Dialog open={pendingHref !== null} onOpenChange={(open) => !open && !saving && setPendingHref(null)}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogTitle className="text-base font-semibold text-gray-900">Є незбережені зміни</DialogTitle>
         <DialogDescription className="text-sm text-gray-600">
           Якщо перейти на іншу сторінку зараз, зміни на цій сторінці буде втрачено.
           {onSave && saveDisabled && " Зберегти поки не можна — заповніть обов'язкові поля, підсвічені помаранчевим."}
         </DialogDescription>
-        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:space-x-0">
           <Button type="button" variant="outline" onClick={() => setPendingHref(null)} disabled={saving}>
             Залишитись
           </Button>
