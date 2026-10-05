@@ -5,6 +5,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { uploadFile, publicUrl, IMMUTABLE_CACHE_CONTROL } from "../../services/storage.service";
 import { toCoverThumbnail } from "../../lib/coverThumbnail";
+import { coverLockedUntil } from "shared-types";
 
 const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp"];
@@ -16,9 +17,24 @@ export async function uploadCoverRoute(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string };
 
-      const book = await prisma.book.findUnique({ where: { id }, select: { authorId: true } });
+      const book = await prisma.book.findUnique({
+        where: { id },
+        select: { authorId: true, status: true, coverApprovedAt: true },
+      });
       if (!book) throw AppError.notFound("Book");
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
+
+      const isPublished = book.status === "PUBLISHED";
+      if (isPublished) {
+        const lockedUntil = coverLockedUntil(book.coverApprovedAt);
+        if (lockedUntil) {
+          throw new AppError(
+            `Обкладинку опублікованої книги можна змінювати раз на 90 днів. Наступна зміна можлива з ${lockedUntil.toISOString().slice(0, 10)}.`,
+            400,
+            "COVER_LOCKED"
+          );
+        }
+      }
 
       const data = await request.file();
       if (!data) throw new AppError("No file uploaded", 400, "NO_FILE");
@@ -37,7 +53,12 @@ export async function uploadCoverRoute(app: FastifyInstance) {
 
       const buffer = Buffer.concat(chunks);
       const ext = data.mimetype === "image/png" ? "png" : data.mimetype === "image/webp" ? "webp" : "jpg";
-      const objectName = `public/covers/${id}.${ext}`;
+      // Staged for a PUBLISHED book: write to a DIFFERENT object path so the
+      // live file at the plain path (what readers' already-cached pages and
+      // the storefront keep pointing at) is never touched until admin
+      // approval applies pendingCoverUrl -> coverUrl (admin.ts). No rename
+      // needed at that point -- the "-pending" URL just becomes permanent.
+      const objectName = isPublished ? `public/covers/${id}-pending.${ext}` : `public/covers/${id}.${ext}`;
 
       await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype, {
         cacheControl: IMMUTABLE_CACHE_CONTROL,
@@ -49,7 +70,7 @@ export async function uploadCoverRoute(app: FastifyInstance) {
       // nothing that relies on it -- cover print spread, admin's per-book
       // cover download for distribution, the store page -- changes).
       const thumbBuffer = await toCoverThumbnail(buffer);
-      const thumbObjectName = `public/covers-thumb/${id}.webp`;
+      const thumbObjectName = isPublished ? `public/covers-thumb/${id}-pending.webp` : `public/covers-thumb/${id}.webp`;
       await uploadFile(thumbObjectName, Readable.from(thumbBuffer), thumbBuffer.length, "image/webp", {
         cacheControl: IMMUTABLE_CACHE_CONTROL,
       });
@@ -57,10 +78,12 @@ export async function uploadCoverRoute(app: FastifyInstance) {
 
       await prisma.book.update({
         where: { id },
-        data: { coverUrl, coverThumbUrl, coverUpdatedAt: new Date() },
+        data: isPublished
+          ? { pendingCoverUrl: coverUrl, pendingCoverThumbUrl: coverThumbUrl }
+          : { coverUrl, coverThumbUrl, coverUpdatedAt: new Date() },
         select: { id: true },
       });
-      return reply.send({ coverUrl, coverThumbUrl });
+      return reply.send({ coverUrl, coverThumbUrl, pending: isPublished });
     }
   );
 }

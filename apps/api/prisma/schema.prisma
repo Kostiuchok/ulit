@@ -161,6 +161,16 @@ model Book {
   // field -- officially discontinued for Ukrainian publishers (Cabinet of
   // Ministers resolution, March 2017, mandatory switch to УДК only).
   bookChamberSubmittedAt DateTime? // admin marked the book as submitted to Книжкова палата for cataloguing
+  // Phase 3 (WF-SPEC.md dashboard-ui, "ISBN-правило" 03.10, частина 2) --
+  // {printFormatKey, printWidthMm, printHeightMm, title, primaryAuthor,
+  // pageCount} captured by book-chamber.ts whenever an admin assigns/changes
+  // `isbn`. Compared (shared-types isbnStillValidForEdition()) against the
+  // book's current values at republish-approve time: unchanged within the
+  // allowed drift (±10% pages, everything else exact) keeps the same ISBN;
+  // otherwise it's a new edition and isbn/udcCode/authorSign/
+  // bookChamberSubmittedAt get cleared so the admin re-registers. No prior
+  // snapshot (never assigned) means nothing to compare against yet.
+  isbnEditionSnapshot  Json?
   copyrightYear        String? // e.g. "2013" -- may predate this book's ULIT createdAt if it was published elsewhere first
   copyrightHolder      String? // © name shown on a prior edition, if different from the account's own display name
   priorPublicationCertificate String? // "Свідоцтво про публікацію №..." from a prior self-publishing platform (proza.ru/stihi.ru etc.)
@@ -171,6 +181,27 @@ model Book {
   coverUpdatedAt       DateTime? // bumped only by upload-cover/upload-back-cover/upload-spine, same split as printMetaUpdatedAt -- withCoverVersion (coverVersion.ts) keys the cache-busting ?v= off THIS, not the blanket `updatedAt` (which fires on every PATCH, incl. price/distribution, none of which change the actual image bytes). Falls back to `updatedAt` for rows written before this column existed.
   coverImageLibrary    Json? // previously uploaded cover images the author can re-pick — [{url, uploadedAt}]
   coverDesign          Json? // editable cover design state — {front, backSpine, background}, restored into the canvas on next open of /cover (T-1962 sibling; see coverVersion.ts for the exported-PNG cache-busting, this is the separate editable-state save)
+  // Phase 3 (WF-SPEC.md dashboard-ui, "cover-approval" 03.10) -- a cover
+  // change on an already-PUBLISHED book stages here instead of writing
+  // coverUrl/backCoverUrl/spineUrl/coverThumbUrl live, same model as
+  // pendingTitle/pendingDescription/pendingGenre below (gated in
+  // cover.ts/back-cover.ts/spine-cover.ts, applied+cleared by admin.ts's
+  // republish approve). Upload routes write the NEW file to a `-pending`
+  // object path while staged, so the live file readers already see is
+  // never touched until approval. `coverDesign` (the editable Fabric.js
+  // canvas state, above) deliberately stays UNstaged/live -- it's the
+  // author's own private working draft, never shown to readers directly;
+  // only the rendered image exports staged here are what moderation
+  // actually reviews.
+  pendingCoverUrl      String?
+  pendingBackCoverUrl  String?
+  pendingSpineUrl      String?
+  pendingCoverThumbUrl String?
+  // Set to the republish-approve timestamp whenever a staged cover change
+  // (above) gets applied -- WF-SPEC "раз на 90 днів": the author can't
+  // submit another cover change until 90 days after THIS date. Null means
+  // no approved post-publish cover change yet (nothing to lock against).
+  coverApprovedAt      DateTime?
   originalDocxUrl      String?
   docxUpdatedAt        DateTime? // set whenever the source .docx changes; compared to publishedAt to know if a live book has unpublished file changes
   republishRequestedAt DateTime? // author submitted post-publish changes for re-moderation; cleared once admin approves or rejects

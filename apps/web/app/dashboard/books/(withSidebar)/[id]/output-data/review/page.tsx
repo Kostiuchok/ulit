@@ -60,6 +60,7 @@ interface ReviewBook {
   pendingTitle?: string | null;
   pendingDescription?: string | null;
   pendingGenre?: string | null;
+  pendingCoverUrl?: string | null;
 }
 
 interface IsbnChecklistItem {
@@ -240,8 +241,10 @@ function OutputDataReviewForm({ book, bookId: id }: { book: ReviewBook | null; b
     pendingTitle: book?.pendingTitle,
     pendingDescription: book?.pendingDescription,
     pendingGenre: book?.pendingGenre,
+    pendingCoverUrl: book?.pendingCoverUrl,
   });
   const infoChanged = changedBlocks.includes("Вихідні дані");
+  const coverChanged = changedBlocks.includes("Обкладинка");
   const manuscriptChanged = changedBlocks.includes("Рукопис");
   const isPending = !!republishRequestedAt;
 
@@ -319,7 +322,7 @@ function OutputDataReviewForm({ book, bookId: id }: { book: ReviewBook | null; b
           <Row label="Файл" value={book?.originalDocxUrl ? "Завантажено" : "Не завантажено"} />
         </SectionCard>
 
-        <SectionCard title="Обкладинка" editHref={`/dashboard/books/${id}/output-data/cover`} changed={false}>
+        <SectionCard title="Обкладинка" editHref={`/dashboard/books/${id}/output-data/cover`} changed={coverChanged}>
           <Row label="Обкладинка" value={book?.coverUrl ? "Завантажено" : "Не завантажено"} />
         </SectionCard>
 

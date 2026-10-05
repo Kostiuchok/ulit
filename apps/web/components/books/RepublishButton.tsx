@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
+import { getPendingChangeBlocks } from "shared-types";
 import { useApi } from "../../hooks/useApi";
 import { Button } from "../ui/button";
 
@@ -11,6 +12,11 @@ interface PendingFieldsProps {
   pendingTitle?: string | null;
   pendingDescription?: string | null;
   pendingGenre?: string | null;
+  // Phase 3 -- staged cover change (cover.ts etc.). Optional: every existing
+  // caller of this component (the "Опублікувати із змінами" button itself)
+  // doesn't pass it yet, which is fine -- undefined just means "no cover
+  // change" for getChangesSummary below, same as the other pending* fields.
+  pendingCoverUrl?: string | null;
 }
 
 function getPendingFields({ docxUpdatedAt, publishedAt, pendingTitle, pendingDescription, pendingGenre }: PendingFieldsProps) {
@@ -31,14 +37,13 @@ function getPendingFields({ docxUpdatedAt, publishedAt, pendingTitle, pendingDes
 // of a second parallel hasChanges calculation drifting from this one.
 // "Блок" here, not "поле": title/description/genre all belong to one
 // "Вихідні дані" block (matches "07 Огляд"'s own per-block grouping), the
-// manuscript docx is its own "Рукопис" block. Cover isn't staged yet
-// (Phase 3 generalizes cover-approval) so it can't appear here.
+// manuscript docx is its own "Рукопис" block. Delegates the actual block
+// computation to shared-types' getPendingChangeBlocks -- the SAME function
+// republish.ts (backend gate) and admin.ts (queue) use, so "Обкладинка" now
+// shows up here automatically once cover.ts ever sets pendingCoverUrl
+// (Phase 3), with no logic duplicated/re-derived on this side.
 export function getChangesSummary(props: PendingFieldsProps) {
-  const { hasDocxChanges, pendingFields } = getPendingFields(props);
-  const blocks = [
-    pendingFields.length > 0 && "Вихідні дані",
-    hasDocxChanges && "Рукопис",
-  ].filter(Boolean) as string[];
+  const blocks = getPendingChangeBlocks(props);
   return { hasChanges: blocks.length > 0, blocks };
 }
 

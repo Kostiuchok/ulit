@@ -1,10 +1,12 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { getConversionStatus } from "../../services/publishing.service";
 import { bookQueue } from "../../lib/queue";
+import { buildIsbnEditionSnapshot, isbnStillValidForEdition, formatAuthorFullName, type IsbnEditionSnapshot } from "shared-types";
 
 const updateStatusSchema = z.object({
   format: z.string(),
@@ -85,6 +87,46 @@ export async function conversionStatusRoutes(app: FastifyInstance) {
             },
             select: { id: true },
           });
+        }
+
+        // Phase 3 "ISBN-правило" (WF-SPEC.md) -- a docx re-conversion
+        // (republish approved admin.ts-side) only reveals the NEW page
+        // count here, once the worker's print-PDF render actually
+        // finishes; admin.ts's own republish-approve check explicitly
+        // skips this case for that reason. Re-checked here, right when the
+        // fresh printPageCount lands, against whatever edition was
+        // snapshotted when the ISBN was last assigned (book-chamber.ts).
+        if (format === "PRINT_PDF" && printPageCount) {
+          const book = await prisma.book.findUnique({
+            where: { id },
+            select: {
+              isbn: true,
+              isbnEditionSnapshot: true,
+              title: true,
+              bookAuthors: true,
+              printFormatKey: true,
+              printWidthMm: true,
+              printHeightMm: true,
+            },
+          });
+          if (book?.isbn && book.isbnEditionSnapshot) {
+            const current: IsbnEditionSnapshot = buildIsbnEditionSnapshot({
+              printFormatKey: book.printFormatKey,
+              printWidthMm: book.printWidthMm,
+              printHeightMm: book.printHeightMm,
+              title: book.title,
+              primaryAuthor: formatAuthorFullName(book.bookAuthors),
+              pageCount: printPageCount,
+            });
+            const stillValid = isbnStillValidForEdition(book.isbnEditionSnapshot as unknown as IsbnEditionSnapshot, current);
+            if (!stillValid) {
+              await prisma.book.update({
+                where: { id },
+                data: { isbn: null, udcCode: null, authorSign: null, bookChamberSubmittedAt: null, isbnEditionSnapshot: Prisma.JsonNull },
+                select: { id: true },
+              });
+            }
+          }
         }
       }
 

@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
+import { hasPendingChanges } from "shared-types";
 
 // "Опублікувати із змінами" — the author staged a change to an already-
 // PUBLISHED book (a new .docx via upload.ts, and/or a sensitive metadata
@@ -31,6 +32,7 @@ export async function republishRoute(app: FastifyInstance) {
           pendingTitle: true,
           pendingDescription: true,
           pendingGenre: true,
+          pendingCoverUrl: true,
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -41,9 +43,7 @@ export async function republishRoute(app: FastifyInstance) {
       if (!book.originalDocxUrl) {
         throw new AppError("Немає файлу рукопису", 400, "NO_DOCX");
       }
-      const hasDocxChanges = book.docxUpdatedAt && (!book.publishedAt || book.docxUpdatedAt > book.publishedAt);
-      const hasPendingMetadata = book.pendingTitle != null || book.pendingDescription != null || book.pendingGenre != null;
-      if (!hasDocxChanges && !hasPendingMetadata) {
+      if (!hasPendingChanges(book)) {
         throw new AppError("Немає нових змін для публікації", 400, "NO_CHANGES");
       }
       // republishRequestedAt is always cleared back to null by the admin's

@@ -4,6 +4,7 @@ import { authenticate } from "../../lib/jwt.middleware";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { uploadFile, publicUrl, IMMUTABLE_CACHE_CONTROL } from "../../services/storage.service";
+import { coverLockedUntil } from "shared-types";
 
 const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp"];
@@ -15,9 +16,26 @@ export async function uploadSpineCoverRoute(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string };
 
-      const book = await prisma.book.findUnique({ where: { id }, select: { authorId: true } });
+      const book = await prisma.book.findUnique({
+        where: { id },
+        select: { authorId: true, status: true, coverApprovedAt: true },
+      });
       if (!book) throw AppError.notFound("Book");
       if (book.authorId !== request.user.id) throw AppError.forbidden("Not your book");
+
+      // Same 90-day lock as upload-cover (cover.ts) -- front/back/spine are
+      // one editing session in CoverDesignerCanvas, one shared lock.
+      const isPublished = book.status === "PUBLISHED";
+      if (isPublished) {
+        const lockedUntil = coverLockedUntil(book.coverApprovedAt);
+        if (lockedUntil) {
+          throw new AppError(
+            `Обкладинку опублікованої книги можна змінювати раз на 90 днів. Наступна зміна можлива з ${lockedUntil.toISOString().slice(0, 10)}.`,
+            400,
+            "COVER_LOCKED"
+          );
+        }
+      }
 
       const data = await request.file();
       if (!data) throw new AppError("No file uploaded", 400, "NO_FILE");
@@ -36,7 +54,7 @@ export async function uploadSpineCoverRoute(app: FastifyInstance) {
 
       const buffer = Buffer.concat(chunks);
       const ext = data.mimetype === "image/png" ? "png" : data.mimetype === "image/webp" ? "webp" : "jpg";
-      const objectName = `public/covers-spine/${id}.${ext}`;
+      const objectName = isPublished ? `public/covers-spine/${id}-pending.${ext}` : `public/covers-spine/${id}.${ext}`;
 
       await uploadFile(objectName, Readable.from(buffer), buffer.length, data.mimetype, {
         cacheControl: IMMUTABLE_CACHE_CONTROL,
@@ -45,10 +63,10 @@ export async function uploadSpineCoverRoute(app: FastifyInstance) {
 
       await prisma.book.update({
         where: { id },
-        data: { spineUrl, coverUpdatedAt: new Date() },
+        data: isPublished ? { pendingSpineUrl: spineUrl } : { spineUrl, coverUpdatedAt: new Date() },
         select: { id: true },
       });
-      return reply.send({ spineUrl });
+      return reply.send({ spineUrl, pending: isPublished });
     }
   );
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 export * from "./manuscript";
 export * from "./print-specs";
 export * from "./discounts";
+export * from "./republish";
 
 import { MIN_SPINE_TEXT_PAGES } from "./print-specs";
 import { MIN_DISCOUNT_PERCENT, MAX_DISCOUNT_PERCENT } from "./discounts";

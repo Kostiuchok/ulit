@@ -54,6 +54,7 @@ interface DashboardBook {
   pendingTitle?: string | null;
   pendingDescription?: string | null;
   pendingGenre?: string | null;
+  pendingCoverUrl?: string | null;
   unpublishedAt?: string | null;
   manuscriptImportedAt?: string | null;
   manuscriptEditedAt?: string | null;
@@ -136,6 +137,7 @@ export function BookDashboard() {
         pendingTitle: book.pendingTitle,
         pendingDescription: book.pendingDescription,
         pendingGenre: book.pendingGenre,
+        pendingCoverUrl: book.pendingCoverUrl,
       })
     : { hasChanges: false, blocks: [] as string[] };
   const isRepublishPending = !!book?.republishRequestedAt;
@@ -319,6 +321,7 @@ export function BookDashboard() {
                     pendingTitle={book?.pendingTitle}
                     pendingDescription={book?.pendingDescription}
                     pendingGenre={book?.pendingGenre}
+                    pendingCoverUrl={book?.pendingCoverUrl}
                     onSubmitted={(republishRequestedAt) =>
                       setBook((b) => (b ? { ...b, republishRequestedAt } : b))
                     }

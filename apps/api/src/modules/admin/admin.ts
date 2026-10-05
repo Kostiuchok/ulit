@@ -10,7 +10,18 @@ const { ZipArchive } = require("archiver") as { ZipArchive: new (opts?: Record<s
 import { Readable } from "stream";
 import { Client } from "minio";
 import { BookStatus, ModerationStatus, RoyaltyStatus, Prisma } from "@prisma/client";
-import { REJECTION_REASONS, getRejectionSnapshotValue, platformFeePercentFromEnv, siteRoyaltyRate, type RejectionReasonKey } from "shared-types";
+import {
+  REJECTION_REASONS,
+  getRejectionSnapshotValue,
+  platformFeePercentFromEnv,
+  siteRoyaltyRate,
+  buildIsbnEditionSnapshot,
+  isbnStillValidForEdition,
+  effectivePageCount,
+  formatAuthorFullName,
+  type RejectionReasonKey,
+  type IsbnEditionSnapshot,
+} from "shared-types";
 import { queuePublishedEmail, queueRejectedEmail, scheduleKdpExpiryWarning } from "../../lib/email-queue";
 import { enqueueConversionJobs } from "../../services/publishing.service";
 import { withAvatarVersion } from "../../lib/coverVersion";
@@ -114,6 +125,11 @@ const BOOK_ADMIN_SELECT = {
   pendingTitle: true,
   pendingDescription: true,
   pendingGenre: true,
+  pendingCoverUrl: true,
+  pendingBackCoverUrl: true,
+  pendingSpineUrl: true,
+  pendingCoverThumbUrl: true,
+  coverApprovedAt: true,
   unpublishedAt: true,
   author: {
     select: {
@@ -639,9 +655,22 @@ export async function adminRoutes(app: FastifyInstance) {
           republishRequestedAt: true,
           docxUpdatedAt: true,
           publishedAt: true,
+          title: true,
           pendingTitle: true,
           pendingDescription: true,
           pendingGenre: true,
+          pendingCoverUrl: true,
+          pendingBackCoverUrl: true,
+          pendingSpineUrl: true,
+          pendingCoverThumbUrl: true,
+          bookAuthors: true,
+          printFormatKey: true,
+          printWidthMm: true,
+          printHeightMm: true,
+          printPageCount: true,
+          pageCount: true,
+          isbn: true,
+          isbnEditionSnapshot: true,
         },
       });
       if (!book) throw AppError.notFound("Book");
@@ -658,6 +687,30 @@ export async function adminRoutes(app: FastifyInstance) {
         await enqueueConversionJobs(id, book.originalDocxUrl, { setProcessing: false });
       }
 
+      const hasPendingCover =
+        book.pendingCoverUrl != null || book.pendingBackCoverUrl != null || book.pendingSpineUrl != null;
+      const newTitle = book.pendingTitle != null ? book.pendingTitle : book.title;
+
+      // Phase 3 "ISBN-правило" -- only checked here for a docx-UNCHANGED
+      // republish (metadata/cover only): page count can't have drifted
+      // without a manuscript reconversion, so the book's current
+      // printPageCount is still accurate. When docx DID change, the new
+      // page count isn't known yet (enqueueConversionJobs above just queued
+      // the worker job) -- that case is checked later, when
+      // conversion-status.ts actually writes the fresh printPageCount.
+      let clearIsbnForNewEdition = false;
+      if (!docxChanged && book.isbn && book.isbnEditionSnapshot) {
+        const current: IsbnEditionSnapshot = buildIsbnEditionSnapshot({
+          printFormatKey: book.printFormatKey,
+          printWidthMm: book.printWidthMm,
+          printHeightMm: book.printHeightMm,
+          title: newTitle,
+          primaryAuthor: formatAuthorFullName(book.bookAuthors),
+          pageCount: effectivePageCount(book),
+        });
+        clearIsbnForNewEdition = !isbnStillValidForEdition(book.isbnEditionSnapshot as unknown as IsbnEditionSnapshot, current);
+      }
+
       const updated = await prisma.book.update({
         where: { id },
         data: {
@@ -672,6 +725,25 @@ export async function adminRoutes(app: FastifyInstance) {
           pendingTitle: null,
           pendingDescription: null,
           pendingGenre: null,
+          // Same apply-then-clear for a staged cover change (Phase 3) --
+          // coverApprovedAt starts the WF-SPEC 90-day re-change lock.
+          coverUrl: book.pendingCoverUrl != null ? book.pendingCoverUrl : undefined,
+          backCoverUrl: book.pendingBackCoverUrl != null ? book.pendingBackCoverUrl : undefined,
+          spineUrl: book.pendingSpineUrl != null ? book.pendingSpineUrl : undefined,
+          coverThumbUrl: book.pendingCoverThumbUrl != null ? book.pendingCoverThumbUrl : undefined,
+          coverUpdatedAt: hasPendingCover ? new Date() : undefined,
+          coverApprovedAt: hasPendingCover ? new Date() : undefined,
+          pendingCoverUrl: null,
+          pendingBackCoverUrl: null,
+          pendingSpineUrl: null,
+          pendingCoverThumbUrl: null,
+          // New edition (format/title/author changed, or pages drifted >10%)
+          // -- the existing ISBN no longer identifies this book; clear it so
+          // isIsbnReady/the admin's УДК queue treat it as needing a fresh
+          // registration instead of silently keeping a now-wrong ISBN live.
+          ...(clearIsbnForNewEdition
+            ? { isbn: null, udcCode: null, authorSign: null, bookChamberSubmittedAt: null, isbnEditionSnapshot: Prisma.JsonNull }
+            : {}),
         },
         select: BOOK_ADMIN_SELECT,
       });

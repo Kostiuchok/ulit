@@ -1,29 +1,17 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../errors/AppError";
 import { requireAdmin } from "../../lib/jwt.middleware";
 import { validateIsbn13 } from "../../services/isbn.service";
 import { getSignedUrl } from "../../services/storage.service";
-import { PRINT_FORMATS, resolveBookPrintFormat, type PrintFormatKey } from "shared-types";
+import { PRINT_FORMATS, resolveBookPrintFormat, buildIsbnEditionSnapshot, effectivePageCount, formatAuthorFullName, type PrintFormatKey } from "shared-types";
 
 // T-2078 -- same annotation-length cap as output-data/page.tsx's
 // IsbnReadinessChecklist (ISBN_ANNOTATION_HALF_PAGE_CHARS), kept in sync
 // manually since there's no shared-types entry for it yet.
 const ISBN_ANNOTATION_HALF_PAGE_CHARS = 1000;
-
-interface BookAuthorEntry {
-  lastName?: string;
-  firstName?: string;
-  middleName?: string;
-}
-
-function formatAuthorFullName(bookAuthors: unknown): string | null {
-  const authors = Array.isArray(bookAuthors) ? (bookAuthors as BookAuthorEntry[]) : [];
-  const a = authors.find((x) => x?.lastName?.trim() && x?.firstName?.trim());
-  if (!a) return null;
-  return [a.lastName, a.firstName, a.middleName].filter((p) => p?.trim()).join(" ");
-}
 
 // A book is "ready" for the ISBN queue once every piece of information the
 // Книжкова палата submission checklist requires (docs/isbn-udc-requirements.md)
@@ -87,7 +75,20 @@ export async function bookChamberRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: result.error.errors[0].message });
       }
 
-      const existing = await prisma.book.findUnique({ where: { id }, select: { id: true } });
+      const existing = await prisma.book.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          isbn: true,
+          title: true,
+          bookAuthors: true,
+          printFormatKey: true,
+          printWidthMm: true,
+          printHeightMm: true,
+          printPageCount: true,
+          pageCount: true,
+        },
+      });
       if (!existing) throw AppError.notFound("Book");
 
       const { submittedAt, isbn, udcCode, authorSign } = result.data;
@@ -106,6 +107,15 @@ export async function bookChamberRoutes(app: FastifyInstance) {
       // fields the render actually reads.
       const isPrintRelevant = isbn !== undefined || udcCode !== undefined || authorSign !== undefined;
 
+      // Phase 3 -- baseline the "edition fingerprint" (shared-types
+      // isbnStillValidForEdition()) the moment this ISBN is actually
+      // (re)assigned, so a later republish-approve (admin.ts) can tell
+      // whether the book has drifted into a new edition. Only snapshotted
+      // when isbn is genuinely changing -- resending the same value (e.g.
+      // the admin re-submitting udcCode alongside an already-set isbn)
+      // shouldn't reset the baseline.
+      const isbnChanging = isbn !== undefined && isbn !== existing.isbn;
+
       const book = await prisma.book.update({
         where: { id },
         data: {
@@ -114,6 +124,18 @@ export async function bookChamberRoutes(app: FastifyInstance) {
           udcCode: udcCode === undefined ? undefined : udcCode,
           authorSign: authorSign === undefined ? undefined : authorSign,
           printMetaUpdatedAt: isPrintRelevant ? new Date() : undefined,
+          isbnEditionSnapshot: isbnChanging
+            ? isbn
+              ? (buildIsbnEditionSnapshot({
+                  printFormatKey: existing.printFormatKey,
+                  printWidthMm: existing.printWidthMm,
+                  printHeightMm: existing.printHeightMm,
+                  title: existing.title,
+                  primaryAuthor: formatAuthorFullName(existing.bookAuthors),
+                  pageCount: effectivePageCount(existing),
+                }) as unknown as Prisma.InputJsonValue)
+              : Prisma.JsonNull // isbn cleared -- no edition to track anymore
+            : undefined,
         },
         select: { id: true, isbn: true, udcCode: true, authorSign: true, bookChamberSubmittedAt: true },
       });
