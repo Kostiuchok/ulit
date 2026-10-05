@@ -20,7 +20,13 @@ export default async function BooksWithSidebarLayout({ children }: { children: R
     // site header, so a min-h-svh (100vh) wrapper is always taller than that
     // area -- <main> got its own scrollbar on top of the content pane's
     // (two scrollbars). The content pane below is the one and only scroller.
-    <SidebarProvider className="h-full min-h-0">
+    <SidebarProvider
+      className="h-full min-h-0"
+      // WF-SPEC "01 Дашборд" п.10 -- 264px (було 16rem/256px default):
+      // жоден пункт нав навчастини ("Передперегляд книги" тощо) більше не
+      // обрізається "...".
+      style={{ "--sidebar-width": "264px" } as React.CSSProperties}
+    >
       <AuthorBooksSidebar user={session?.user} />
       <SidebarInset className="min-h-0 min-w-0">
         <header className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-3">

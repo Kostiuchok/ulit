@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Send } from "lucide-react";
 import { useApi } from "../../hooks/useApi";
 import { Button } from "../ui/button";
 
@@ -20,6 +21,25 @@ function getPendingFields({ docxUpdatedAt, publishedAt, pendingTitle, pendingDes
     pendingGenre != null && "жанр",
   ].filter(Boolean) as string[];
   return { hasDocxChanges, pendingFields };
+}
+
+// BookDashboard's header needs the same "is there anything waiting to be
+// resubmitted" fact RepublishButton computes internally, both to decide
+// which primary action to show (WF-SPEC "01 Дашборд" п.5: "Надіслати на
+// модерацію (N)" replaces "Сайт книги" as primary when there are changes)
+// and for the amber banner's block list -- single source of truth instead
+// of a second parallel hasChanges calculation drifting from this one.
+// "Блок" here, not "поле": title/description/genre all belong to one
+// "Вихідні дані" block (matches "07 Огляд"'s own per-block grouping), the
+// manuscript docx is its own "Рукопис" block. Cover isn't staged yet
+// (Phase 3 generalizes cover-approval) so it can't appear here.
+export function getChangesSummary(props: PendingFieldsProps) {
+  const { hasDocxChanges, pendingFields } = getPendingFields(props);
+  const blocks = [
+    pendingFields.length > 0 && "Вихідні дані",
+    hasDocxChanges && "Рукопис",
+  ].filter(Boolean) as string[];
+  return { hasChanges: blocks.length > 0, blocks };
 }
 
 // Same "очікує на надсилання" note RepublishButton shows inline below its
@@ -143,6 +163,58 @@ export function RepublishButton({
         pendingDescription={pendingDescription}
         pendingGenre={pendingGenre}
       />
+    </div>
+  );
+}
+
+// WF-SPEC "01 Дашборд" п.5: when there are changes, the dashboard header's
+// primary action becomes "Надіслати на модерацію (N)" (not the plain
+// outline "Опублікувати із змінами" RepublishButton renders everywhere
+// else) -- a separate component rather than a style prop on RepublishButton
+// itself, since that one is already used as-is on 4 other pages (output-data,
+// manuscript, BookDistribution, output-data/publish) this session isn't
+// touching. Renders nothing when republishRequestedAt is set (BookDashboard
+// shows RepublishPendingNote's "⏳ На модерації" state instead) or when
+// there's nothing to send.
+export function RepublishPrimaryButton({
+  bookId,
+  republishRequestedAt,
+  onSubmitted,
+  ...pendingProps
+}: Props) {
+  const { apiFetch } = useApi();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { hasChanges, blocks } = getChangesSummary(pendingProps);
+  const isPending = !!republishRequestedAt;
+
+  if (isPending || !hasChanges) return null;
+
+  async function handleClick() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { book } = await apiFetch<{ book: { republishRequestedAt: string } }>(
+        `/api/books/${bookId}/republish`,
+        { method: "POST", body: JSON.stringify({}) }
+      );
+      onSubmitted?.(book.republishRequestedAt);
+    } catch (e: any) {
+      setError(e.message || "Помилка надсилання змін");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button onClick={handleClick} loading={loading} title="Надіслати зміни на повторну модерацію" className="gap-1.5">
+        <Send size={14} />
+        Надіслати на модерацію
+        <span className="ml-0.5 rounded-full bg-white/25 px-1.5 text-xs">{blocks.length}</span>
+      </Button>
+      {error && <span className="text-xs text-red-600">{error}</span>}
     </div>
   );
 }

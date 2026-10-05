@@ -12,15 +12,14 @@ import {
   BarChart3,
   Users,
   Percent,
-  Trash2,
   Info,
   Plus,
   ChevronDown,
+  Clock,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { getBookStatusLabel } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
-import { DeleteBookModal } from "@/components/books/DeleteBookModal";
 import { AuthorSidebarNavUser } from "@/components/dashboard/AuthorSidebarNavUser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,16 +47,20 @@ interface SidebarBook {
 }
 
 type SubNavItem =
-  | { label: string; href: (bookId: string) => string; icon?: React.ReactNode; disabled?: false; action?: undefined }
-  | { label: string; icon?: React.ReactNode; disabled: true; action?: undefined }
-  | { label: string; icon?: React.ReactNode; action: "delete"; disabled?: false };
+  | { label: string; href: (bookId: string) => string; icon?: React.ReactNode; disabled?: false }
+  | { label: string; icon?: React.ReactNode; disabled: true };
 
-const TOP_ITEMS: SubNavItem[] = [
-  {
-    label: "Завантажити файли",
-    icon: <Download size={14} />,
-    disabled: true,
-  },
+// WF-SPEC "01 Дашборд" п.10: усі неактивні ("скоро") пункти згруповано в один
+// розділ унизу замість того, щоб бути розкидані серед робочих груп нижче --
+// колишнє розташування змушувало автора вгадувати, чому сусідні пункти в тій
+// самій групі поводяться по-різному (один веде на сторінку, другий — сірий і
+// нічого не робить).
+const SOON_ITEMS: SubNavItem[] = [
+  { label: "Завантаження", icon: <Download size={14} />, disabled: true },
+  { label: "Статистика", icon: <BarChart3 size={14} />, disabled: true },
+  { label: "Обговорення книги", icon: <MessageSquare size={14} />, disabled: true },
+  { label: "Знайти читачів", icon: <Users size={14} />, disabled: true },
+  { label: "Включити акцію на книгу", icon: <Percent size={14} />, disabled: true },
 ];
 
 const EDIT_GROUP: SubNavItem[] = [
@@ -85,7 +88,8 @@ const EDIT_GROUP: SubNavItem[] = [
   // side-effect is still called out separately wherever a label needs to
   // convey it (e.g. "Відкрити «Передперегляд книги» (згенерує його) →").
   { label: "Передперегляд книги", icon: <FileText size={14} />, href: (id) => `/dashboard/books/${id}/manuscript/preview` },
-  { label: "Видалити", icon: <Trash2 size={14} />, action: "delete" },
+  // "Видалити" moved to the dashboard's own "⋯" menu next to "Зняти з
+  // публікації" (WF-SPEC "Рішення цієї сесії", Phase 2) -- no longer here.
 ];
 
 const STORE_GROUP: SubNavItem[] = [
@@ -94,26 +98,20 @@ const STORE_GROUP: SubNavItem[] = [
     icon: <img src="/figma/icon-publication.svg" alt="" className="h-3.5 w-3.5" />,
     href: (id) => `/dashboard/books/${id}/publish`,
   },
-  { label: "Статистика", icon: <BarChart3 size={14} />, disabled: true },
 ];
 
 const PROMO_GROUP: SubNavItem[] = [
   { label: "Замовити тираж", icon: <Package size={14} />, href: (id) => `/dashboard/books/${id}/print-order` },
-  { label: "Обговорення книги", icon: <MessageSquare size={14} />, disabled: true },
-  { label: "Знайти нових читачів", icon: <Users size={14} />, disabled: true },
-  { label: "Включити акцію на книгу", icon: <Percent size={14} />, disabled: true },
 ];
 
 function NavRow({
   item,
   bookId,
   pathname,
-  onDeleteClick,
 }: {
   item: SubNavItem;
   bookId: string;
   pathname: string;
-  onDeleteClick: (bookId: string) => void;
 }) {
   const iconEl = item.icon ? <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-gray-500">{item.icon}</span> : null;
 
@@ -125,22 +123,7 @@ function NavRow({
       >
         {iconEl}
         <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
-        <span className="shrink-0 rounded-sm bg-gray-200/60 px-1 py-px text-[0.6875rem] text-gray-400">скоро</span>
       </div>
-    );
-  }
-
-  if (item.action === "delete") {
-    return (
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={() => onDeleteClick(bookId)}
-        className="h-[2rem] w-full justify-start gap-2.5 rounded-none pl-12 pr-8 text-left text-[0.875rem] font-medium text-black hover:bg-[#e9e9e9] hover:text-black"
-      >
-        {iconEl}
-        <span className="truncate whitespace-nowrap">{item.label}</span>
-      </Button>
     );
   }
 
@@ -192,10 +175,10 @@ export function AuthorBooksSidebar({ user }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedBookId, setExpandedBookId] = useState<string | null>(routeId ?? null);
-  const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(true);
   const [storeOpen, setStoreOpen] = useState(true);
   const [promoOpen, setPromoOpen] = useState(true);
+  const [soonOpen, setSoonOpen] = useState(false);
 
   function load(opts?: { silent?: boolean }) {
     if (!token) return;
@@ -352,22 +335,44 @@ export function AuthorBooksSidebar({ user }: Props) {
                         <nav className="bg-[#f3f3f3] py-1 group-data-[collapsible=icon]:hidden">
                           <GroupLabel label="Редагувати книгу" expanded={editOpen} onClick={() => setEditOpen((v) => !v)} />
                           {editOpen && EDIT_GROUP.map((item) => (
-                            <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
+                            <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} />
                           ))}
 
-                          <GroupLabel label="Ваша книга у магазинах" expanded={storeOpen} onClick={() => setStoreOpen((v) => !v)} />
+                          <GroupLabel label="У магазинах" expanded={storeOpen} onClick={() => setStoreOpen((v) => !v)} />
                           {storeOpen && STORE_GROUP.map((item) => (
-                            <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
-                          ))}
-
-                          {TOP_ITEMS.map((item) => (
-                            <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
+                            <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} />
                           ))}
 
                           <GroupLabel label="Реклама" expanded={promoOpen} onClick={() => setPromoOpen((v) => !v)} />
                           {promoOpen && PROMO_GROUP.map((item) => (
-                            <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} onDeleteClick={setDeleteBookId} />
+                            <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} />
                           ))}
+
+                          {/* WF-SPEC п.10 -- усі "скоро"-пункти згруповані в
+                              один розгортний розділ унизу, а не розкидані
+                              серед робочих груп вище. */}
+                          <button
+                            type="button"
+                            onClick={() => setSoonOpen((v) => !v)}
+                            className="mt-1 flex w-full items-center gap-2 border-t border-dashed border-gray-300 px-2.5 pt-2 pb-1.5 text-left text-[0.8125rem] text-gray-500"
+                          >
+                            <Clock size={13} className="shrink-0 text-gray-400" />
+                            <span className="flex-1 truncate">
+                              Скоро: ще {SOON_ITEMS.length} розділ{SOON_ITEMS.length === 1 ? "" : SOON_ITEMS.length < 5 ? "и" : "ів"}
+                            </span>
+                            <img
+                              src="/figma/chevron-collapse.svg"
+                              alt=""
+                              className={cn("h-2 w-3 shrink-0 transition-transform", soonOpen ? "rotate-180" : "rotate-90")}
+                            />
+                          </button>
+                          {soonOpen && (
+                            <div className="space-y-0.5 pb-1">
+                              {SOON_ITEMS.map((item) => (
+                                <NavRow key={item.label} item={item} bookId={book.id} pathname={pathname} />
+                              ))}
+                            </div>
+                          )}
                         </nav>
                       )}
                     </SidebarMenuItem>
@@ -384,25 +389,6 @@ export function AuthorBooksSidebar({ user }: Props) {
       </SidebarFooter>
 
       <SidebarRail />
-
-      {deleteBookId && (
-        <DeleteBookModal
-          bookId={deleteBookId}
-          bookStatus={books.find((b) => b.id === deleteBookId)?.status}
-          onClose={() => setDeleteBookId(null)}
-          onDeleted={() => {
-            const wasViewingDeleted = routeId === deleteBookId;
-            setDeleteBookId(null);
-            load();
-            // MyBooksList ("Мої книги" в основному контенті) рендериться
-            // поруч із цим сайдбаром і має власний незалежний fetch --
-            // без цього повідомлення воно й далі показувало щойно видалену
-            // книгу, поки хтось не перезавантажить сторінку вручну.
-            window.dispatchEvent(new Event("ulit:books-changed"));
-            if (wasViewingDeleted) router.push("/dashboard/books");
-          }}
-        />
-      )}
     </Sidebar>
   );
 }

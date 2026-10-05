@@ -1,79 +1,67 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import Link from "next/link";
+import { ChevronDown, Clock, Package } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const PREP_ITEMS = [
-  { label: "Про-акаунт", price: "від 2 700 ₴" },
-  { label: "Редактура", price: "від 5 200 ₴" },
-  { label: "Коректура", price: "від 2 500 ₴" },
-  { label: "Проста верстка", price: "від 1 990 ₴" },
-  { label: "Дизайн обкладинки", price: "від 4 800 ₴" },
+const SOON_LABELS = [
+  "Про-акаунт",
+  "Редактура",
+  "Коректура",
+  "Проста верстка",
+  "Дизайн обкладинки",
+  "Аудіокнига",
+  "Офлайн-продаж",
+  "Просування книги",
+  "Буктрейлер",
 ];
 
-const READY_ITEMS = ["Тираж книги", "Аудіокнига"];
-const PROMO_ITEMS = ["Офлайн-продаж", "Просування", "Буктрейлер"];
-
-function ComingSoonTag() {
-  return (
-    <Badge variant="outline" className="shrink-0 rounded-full border-green-200 bg-green-50 text-[0.6875rem] font-medium text-green-700 hover:bg-green-50">
-      Скоро
-    </Badge>
-  );
+interface Props {
+  bookId: string;
 }
 
-// Not wired to anything yet — every action here is disabled (T-1952). Colors
-// intentionally stick to our neutral/green palette, not the orange used in
-// the Figma reference (docs/ulit-reference/ is visual inspiration only).
-export function BookPromoSidebar() {
+// WF-SPEC "01 Дашборд" п.9 asked for active, clickable service cards with
+// real prices (Про-акаунт, Редактура, ...) -- none of that is actually
+// purchasable yet (no request form, no backend), so showing a price/chevron
+// on them would be a fake "buy" affordance. Confirmed with Анатолій
+// (2026-10-05): only "Замовити тираж" is real right now (/print-order
+// already exists and works); everything else stays a single collapsed
+// "Скоро" row with no prices, no fake buttons. Revisit once a request form
+// for these services exists.
+export function BookPromoSidebar({ bookId }: Props) {
+  const [soonOpen, setSoonOpen] = useState(false);
+
   return (
-    <div className="space-y-6">
-      <h2 className="text-xs font-bold uppercase tracking-wide text-black">Зробіть книгу кращою</h2>
+    <div className="space-y-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Зробіть книгу кращою</h2>
 
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Підготовка книги</p>
-        <div className="space-y-1.5">
-          {PREP_ITEMS.map((item) => (
-            <Button
-              key={item.label}
-              type="button"
-              variant="outline"
-              disabled
-              title="Скоро буде доступно"
-              className="h-auto w-full cursor-not-allowed justify-between gap-2 border-gray-200 bg-gray-50 px-3 py-2 font-normal text-gray-400"
-            >
-              <span className="truncate">{item.label}</span>
-              <span className="shrink-0 text-xs">{item.price}</span>
-            </Button>
-          ))}
-        </div>
+      <Link
+        href={`/dashboard/books/${bookId}/print-order`}
+        className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 hover:border-gray-400"
+      >
+        <Package size={16} className="shrink-0 text-green-700" />
+        <span className="text-sm font-medium text-black">Замовити тираж</span>
+      </Link>
+
+      <div className="rounded-lg border border-dashed border-gray-300">
+        <button
+          type="button"
+          onClick={() => setSoonOpen((v) => !v)}
+          className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] text-gray-600"
+        >
+          <Clock size={14} className="shrink-0 text-gray-400" />
+          <span>
+            <b className="font-medium">Скоро:</b> {SOON_LABELS.join(", ")}
+          </span>
+          <ChevronDown size={14} className={cn("ml-auto shrink-0 text-gray-400 transition-transform", soonOpen && "rotate-180")} />
+        </button>
+        {soonOpen && (
+          <div className="px-3 pb-3 text-xs text-gray-500">
+            Ми повідомимо, коли ці послуги з&apos;являться.
+          </div>
+        )}
       </div>
-
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Коли книга готова</p>
-        <div className="divide-y divide-gray-100 border-t border-gray-100">
-          {READY_ITEMS.map((label) => (
-            <div key={label} className="flex items-center justify-between py-2 text-sm text-black">
-              <span>{label}</span>
-              <ComingSoonTag />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Просування книги</p>
-        <div className="divide-y divide-gray-100 border-t border-gray-100">
-          {PROMO_ITEMS.map((label) => (
-            <div key={label} className="flex items-center justify-between py-2 text-sm text-black">
-              <span>{label}</span>
-              <ComingSoonTag />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <p className="text-xs text-gray-300 cursor-not-allowed select-none">Усі послуги</p>
     </div>
   );
 }

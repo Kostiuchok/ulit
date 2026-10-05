@@ -8,6 +8,10 @@ import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
 interface Props {
   bookId: string;
   onUnpublished?: () => void;
+  // Dashboard's "⋯" menu needs this dialog triggered from a
+  // DropdownMenuItem instead of this component's own standalone Button
+  // (BookDistribution.tsx, the only other caller, keeps the default).
+  trigger?: (open: () => void) => React.ReactNode;
 }
 
 interface DeleteImpact {
@@ -22,7 +26,7 @@ const EXTERNAL_CHANNEL_LABELS: Record<keyof DeleteImpact["externalLive"], string
   google: "Google Play Books",
 };
 
-export function UnpublishButton({ bookId, onUnpublished }: Props) {
+export function UnpublishButton({ bookId, onUnpublished, trigger }: Props) {
   const { apiFetch } = useApi();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,14 +67,18 @@ export function UnpublishButton({ bookId, onUnpublished }: Props) {
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => setOpen(true)}
-        className="border-black text-black hover:bg-gray-50 hover:text-black"
-      >
-        Зняти з публікації
-      </Button>
+      {trigger ? (
+        trigger(() => setOpen(true))
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setOpen(true)}
+          className="border-black text-black hover:bg-gray-50 hover:text-black"
+        >
+          Зняти з публікації
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={(v) => { if (!loading) setOpen(v); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogTitle className="text-center text-lg font-bold text-black">Зняти книгу з публікації?</DialogTitle>
