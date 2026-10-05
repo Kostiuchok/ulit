@@ -29,6 +29,7 @@ import {
   resolveBookPrintFormat,
   isPublishStepComplete,
   DESCRIPTION_MIN_LENGTH,
+  getRequiredDescriptionMinLength,
   DESCRIPTION_MAX_LENGTH,
   AGE_RATINGS,
   ageRatingSchema,
@@ -100,6 +101,7 @@ interface Contributor {
 
 interface InfoBook {
   status?: string | null;
+  distributionChannels?: string[] | null;
   title: string;
   subtitle?: string | null;
   description?: string | null;
@@ -557,7 +559,7 @@ function OutputDataInfoForm({
   // author resolves a rejection, so rejection state must never block Save.
   const infoIncomplete =
     !titleValue.trim() ||
-    descValue.trim().length < DESCRIPTION_MIN_LENGTH ||
+    descValue.trim().length < getRequiredDescriptionMinLength(book.distributionChannels) ||
     descValue.trim().length > DESCRIPTION_MAX_LENGTH ||
     genreMissing ||
     ageRatingMissing ||
@@ -588,7 +590,14 @@ function OutputDataInfoForm({
   // points at "the fields highlighted in amber".
   const titleMissing = !titleValue.trim();
   const descLen = descValue.trim().length;
-  const descTooShort = descLen < DESCRIPTION_MIN_LENGTH;
+  // The stores the author enabled on "Ціна" can demand a longer annotation
+  // than ULIT's own 120 (Amazon KDP 250, Google Play 150) -- the server
+  // rejects the save otherwise ("Анотація має містити щонайменше 250
+  // символів для обраних платформ"), so the field must show THAT minimum,
+  // not just the baseline (reported live: 188 characters, no highlight).
+  const descRequiredMin = getRequiredDescriptionMinLength(book.distributionChannels);
+  const descStoresRaiseMin = descRequiredMin > DESCRIPTION_MIN_LENGTH;
+  const descTooShort = descLen < descRequiredMin;
   const descTooLong = descLen > DESCRIPTION_MAX_LENGTH;
   const infoErrorCount = Object.keys(infoForm.formState.errors).length;
   const infoFirstErrorHref =
@@ -685,12 +694,12 @@ function OutputDataInfoForm({
                   <span
                     className={cn(
                       "text-xs font-medium",
-                      descValue.length > 0 && (descValue.length < DESCRIPTION_MIN_LENGTH || descValue.length > DESCRIPTION_MAX_LENGTH)
+                      descValue.length > 0 && (descTooShort || descTooLong)
                         ? "text-red-500"
                         : "text-gray-400"
                     )}
                   >
-                    {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {DESCRIPTION_MIN_LENGTH} до {DESCRIPTION_MAX_LENGTH})
+                    {descValue.length}/{DESCRIPTION_MAX_LENGTH} (від {descRequiredMin} до {DESCRIPTION_MAX_LENGTH})
                   </span>
                 </div>
                 <Textarea
@@ -711,9 +720,11 @@ function OutputDataInfoForm({
                 {!infoForm.formState.errors.description && (descTooShort || descTooLong) && (
                   <p className="text-xs text-amber-600">
                     {descLen === 0
-                      ? `Додайте анотацію — щонайменше ${DESCRIPTION_MIN_LENGTH} символів`
+                      ? `Додайте анотацію — щонайменше ${descRequiredMin} символів`
                       : descTooShort
-                        ? `Ще ${DESCRIPTION_MIN_LENGTH - descLen} симв. до мінімуму (${DESCRIPTION_MIN_LENGTH})`
+                        ? descStoresRaiseMin
+                          ? `Ще ${descRequiredMin - descLen} симв.: обрані магазини вимагають щонайменше ${descRequiredMin} (зараз ${descLen}). Доповніть анотацію або вимкніть магазин на вкладці «Ціна та розповсюдження».`
+                          : `Ще ${descRequiredMin - descLen} симв. до мінімуму (${descRequiredMin})`
                         : `Забагато: скоротіть на ${descLen - DESCRIPTION_MAX_LENGTH} симв. (максимум ${DESCRIPTION_MAX_LENGTH})`}
                   </p>
                 )}

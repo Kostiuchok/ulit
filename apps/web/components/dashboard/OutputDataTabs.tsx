@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SECTION_LABELS, SECTION_ORDER, SECTION_PATH, type OutputDataSectionKey } from "@/lib/outputDataSections";
@@ -73,11 +72,15 @@ export function OutputDataTabs({ bookId, sectionDone, isDraftStatus, readyToPubl
         // hasn't rendered yet.
         const finalHref = isPublishTrigger && readyToPublish ? `${href}?autovalidate=1` : href;
 
+        // Plain <a>, a normal full page load -- by the owner's decision
+        // (2026-10-05) after the tabs stopped switching: soft navigation
+        // comes back later, once it is proven reliable here.
         return (
-          <Link key={key} href={finalHref} className={pillClassName}>
+          // eslint-disable-next-line @next/next/no-html-link-for-pages
+          <a key={key} href={finalHref} className={pillClassName}>
             {badge}
             {label}
-          </Link>
+          </a>
         );
       })}
     </nav>

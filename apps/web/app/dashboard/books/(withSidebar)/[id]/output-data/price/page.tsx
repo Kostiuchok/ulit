@@ -12,6 +12,7 @@ import {
   type PrintCost,
 } from "@/components/books/FormatsAndDistribution";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
+import Link from "next/link";
 import { QuestionHint } from "@/components/books/QuestionHint";
 import { Badge } from "@/components/ui/badge";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
@@ -38,10 +39,12 @@ import {
   MIN_DISCOUNT_PERCENT,
   MAX_DISCOUNT_PERCENT,
   KDP_PRINT_ROYALTY_RATE,
+  getRequiredDescriptionMinLength,
 } from "shared-types";
 
 interface PriceBook {
   status?: string | null;
+  description?: string | null;
   language: string;
   printFormatKey?: string | null;
   printWidthMm?: number | null;
@@ -381,6 +384,28 @@ function OutputDataPriceForm({
     : false;
   const dirtyBlockCount = [ebookDirty, printDirty, discountDirty].filter(Boolean).length;
 
+  // Some stores need a longer annotation than ULIT itself (Amazon KDP 250,
+  // Google Play 150). The server refuses to save the store list otherwise --
+  // so the store that causes it is flagged right in its row, and Save is
+  // held back with the reason, instead of a half-applied save and an error
+  // the author has to hunt for (reported live).
+  const annotationLen = (book.description ?? "").trim().length;
+  const annotationRequiredMin = getRequiredDescriptionMinLength(channels);
+  const annotationTooShort = annotationLen > 0 && annotationLen < annotationRequiredMin;
+  const annotationHint = (channel: string) => {
+    const min = getRequiredDescriptionMinLength([channel]);
+    if (!channels.includes(channel) || annotationLen === 0 || annotationLen >= min) return null;
+    return (
+      <p className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
+        ⚠ Цей магазин вимагає анотацію від {min} символів (зараз {annotationLen}).{" "}
+        <Link href={`/dashboard/books/${id}/output-data#description`} className="font-medium underline">
+          Доповнити анотацію →
+        </Link>{" "}
+        або зніміть позначку з магазину.
+      </p>
+    );
+  };
+
   // ── Електронна книга: ONE shared royalty drives every channel's own
   // derived price (Рішення 03.10 -- "один гонорар для е-книги, всі
   // магазини"). Rows only ever DISPLAY the result now.
@@ -441,12 +466,20 @@ function OutputDataPriceForm({
     saving: formatsSaving,
     savedAt: formatsSaved && !formatsDirty ? savedAt : null,
     onSave: saveFormatsAndDistribution,
+    saveDisabled: annotationTooShort,
+    disabledTitle: annotationTooShort
+      ? `Анотація закоротка для обраних магазинів: потрібно від ${annotationRequiredMin} символів, зараз ${annotationLen}. Доповніть анотацію або зніміть позначку з магазину, підсвіченого помаранчевим.`
+      : undefined,
     statusNote:
       // A failed save must be visible right next to the button -- the red
       // box at the very bottom of this long page is usually off-screen
       // (found live: the server rejected the store list for a too-short
       // annotation and the page just stayed "unsaved" with no visible reason).
-      formatsError ? (
+      annotationTooShort ? (
+        <span className="max-w-xl text-sm text-amber-700" role="alert">
+          ⚠ Анотація закоротка для обраних магазинів ({annotationLen} з {annotationRequiredMin}) — див. підсвічений магазин
+        </span>
+      ) : formatsError ? (
         <span className="max-w-xl text-sm text-red-600" role="alert">
           ⚠ Не збережено: {formatsError}
         </span>
@@ -567,6 +600,7 @@ function OutputDataPriceForm({
                     ) : (
                       <div className="space-y-1">
                         {channels.includes("KDP") && <PlacedBadge />}
+                        {annotationHint("KDP")}
                         <p className="text-xs text-gray-500">
                           Ціна на книгу може бути знижена магазином під час проведення акцій або розпродажу
                         </p>
@@ -584,6 +618,7 @@ function OutputDataPriceForm({
                   conditions={
                     <div className="space-y-1">
                       {channels.includes("GOOGLE") && <PlacedBadge />}
+                      {annotationHint("GOOGLE")}
                       <p className="text-xs text-gray-500">
                         Ціну встановлює магазин. Роялті не регулюється автором.
                       </p>
@@ -718,6 +753,7 @@ function OutputDataPriceForm({
                       conditions={
                         <div className="space-y-1">
                           {channels.includes("KDP") && <PlacedBadge />}
+                        {annotationHint("KDP")}
                           <p className="text-xs text-gray-500">
                             Друк на вимогу. Роялті KDP — фіксовано 60% ціни мінус собівартість друку в KDP.
                           </p>
