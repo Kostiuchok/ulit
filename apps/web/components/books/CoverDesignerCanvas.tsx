@@ -1437,6 +1437,12 @@ export default function CoverDesignerCanvas({
     applyCanvasGeometry(canvas, ctx.layout);
 
     if (formatChanged) {
+      // Switching the format only re-lays the SAME design out on another
+      // canvas -- the rebuild below (and the images it reloads afterwards)
+      // must not read as an edit. Anything genuinely unsaved from before
+      // the switch keeps coverDirty as it was; a new edit needs a new
+      // pointer/keyboard action inside the editor.
+      userTouchedRef.current = false;
       pauseHistoryRef.current = true;
 
       const needFresh = !frontStateRef.current || (!!ctx.layout.back && !backSpineStateRef.current);
