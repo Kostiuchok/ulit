@@ -487,6 +487,14 @@ function OutputDataPriceForm({
     disabledTitle: annotationTooShort
       ? `Анотація закоротка для обраних магазинів: потрібно від ${annotationRequiredMin} символів, зараз ${annotationLen}. Доповніть анотацію або зніміть позначку з магазину, підсвіченого помаранчевим.`
       : undefined,
+    // What the status text below currently says -- the bar re-renders when
+    // this changes (see OutputDataSaveBarState.statusKey).
+    statusKey: [
+      annotationTooShort ? `short:${annotationLen}/${annotationRequiredMin}` : "",
+      formatsError,
+      formatsSaved && !formatsDirty && savedAt ? `saved:${savedAt.getTime()}` : "",
+      `dirty:${dirtyBlockCount}`,
+    ].join("|"),
     statusNote:
       // A failed save must be visible right next to the button -- the red
       // box at the very bottom of this long page is usually off-screen

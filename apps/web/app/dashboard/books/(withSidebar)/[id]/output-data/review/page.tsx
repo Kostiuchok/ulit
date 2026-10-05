@@ -273,16 +273,25 @@ function OutputDataReviewForm({ book, bookId: id }: { book: ReviewBook | null; b
     !isPublished
       ? { dirty: false }
       : isPending
-        ? { dirty: false, statusNote: <span className="text-sm font-medium text-amber-700">⏳ Зміни на модерації</span> }
+        ? {
+            dirty: false,
+            statusKey: "pending",
+            statusNote: <span className="text-sm font-medium text-amber-700">⏳ Зміни на модерації</span>,
+          }
         : hasChanges
           ? {
               dirty: true,
               saving: submitting,
               onSave: submitForModeration,
               saveLabel: `Надіслати на модерацію (${changedBlocks.length})`,
+              statusKey: `error:${submitError}`,
               statusNote: submitError ? <span className="text-sm text-red-600">{submitError}</span> : undefined,
             }
-          : { dirty: false, statusNote: <span className="text-sm font-medium text-green-700">✓ Усі зміни опубліковано</span> }
+          : {
+              dirty: false,
+              statusKey: "published",
+              statusNote: <span className="text-sm font-medium text-green-700">✓ Усі зміни опубліковано</span>,
+            }
   );
 
   // WF-SPEC п.3 -- ULIT завжди активний (locked-канал), навіть якщо

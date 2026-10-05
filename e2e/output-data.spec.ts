@@ -175,6 +175,24 @@ test.describe("Вихідні дані: підсвічування, «Зміне
     await expect(page.locator("#subtitle")).toHaveValue("");
   });
 
+  test("кнопка «Назад» у браузері з незбереженими змінами теж питає", async ({ page }) => {
+    await openOutputData(page);
+    await page.locator("#subtitle").fill("не збережено");
+    await expect(page.getByText("Є незбережені зміни", { exact: true })).toBeVisible();
+
+    await page.goBack();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Є незбережені зміни" })).toBeVisible();
+    await dialog.getByRole("button", { name: "Залишитись на сторінці" }).click();
+    await expect(page).toHaveURL(/\/output-data$/);
+    await expect(page.locator("#subtitle")).toHaveValue("не збережено");
+
+    await page.goBack();
+    await page.getByRole("dialog").getByRole("button", { name: "Вийти без збереження" }).click();
+    // openOutputData came here from the books list.
+    await page.waitForURL(/\/dashboard\/books$/, { timeout: 15_000 });
+  });
+
   test("вкладки перемикаються на чистій сторінці без вікна попередження", async ({ page }) => {
     await openOutputData(page);
 

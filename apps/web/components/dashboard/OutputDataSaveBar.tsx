@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowUp, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,53 +42,102 @@ export interface OutputDataSaveBarState {
   // text can't express. undefined keeps the default; a page can pass
   // `null` to render no status text at all.
   statusNote?: React.ReactNode;
+  // Names what `statusNote` currently shows. The bar re-renders when this
+  // string changes (a React node itself cannot be compared) -- so a page
+  // that passes a statusNote whose content varies MUST pass a key that
+  // varies with it.
+  statusKey?: string;
 }
 
-const Ctx = createContext<{ setState: (s: OutputDataSaveBarState | null) => void } | null>(null);
-const StateCtx = createContext<OutputDataSaveBarState | null>(null);
+// The bar's state lives in a small store OUTSIDE React state
+// (FORMS-REFACTOR-PLAN.md, етап 4 / правило 6: shared state travels by
+// subscription, never by "set state after every render").
+//
+// How it got here: the first version kept this state in the provider's
+// useState and had every leaf page call setState after each of its renders.
+// One unstable context value was then enough for page and provider to
+// re-render each other forever; the loop starved React transitions and
+// in-app navigation silently stopped working (CLAUDE.md журнал #39).
+//
+// Now a page hands over its latest state (so callbacks and status nodes are
+// always fresh) but the bar is only told to re-render when something it
+// actually SHOWS has changed -- compared by `signature`. A page render that
+// changes nothing visible notifies nobody, so there is nothing to loop on,
+// whatever the surrounding components do.
+interface SaveBarStore {
+  get: () => OutputDataSaveBarState | null;
+  version: () => number;
+  set: (state: OutputDataSaveBarState | null) => void;
+  subscribe: (listener: () => void) => () => void;
+}
+
+function signature(s: OutputDataSaveBarState | null): string {
+  if (!s) return "";
+  return JSON.stringify([
+    s.dirty,
+    !!s.saving,
+    s.savedAt ? s.savedAt.getTime() : null,
+    s.errorCount ?? 0,
+    s.firstErrorHref ?? "",
+    !!s.unsaved,
+    s.saveLabel ?? "",
+    s.savingLabel ?? "",
+    s.disabledTitle ?? "",
+    !!s.saveDisabled,
+    !!s.onSave,
+    // A status node cannot be compared; the page names what it shows.
+    s.statusNote === undefined ? "default" : s.statusNote === null ? "none" : `node:${s.statusKey ?? ""}`,
+  ]);
+}
+
+function createSaveBarStore(): SaveBarStore {
+  let state: OutputDataSaveBarState | null = null;
+  let sig = "";
+  let version = 0;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => state,
+    version: () => version,
+    set(next) {
+      state = next;
+      const nextSig = signature(next);
+      if (nextSig === sig) return;
+      sig = nextSig;
+      version += 1;
+      listeners.forEach((l) => l());
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+const StoreCtx = createContext<SaveBarStore | null>(null);
 
 export function OutputDataSaveBarProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<OutputDataSaveBarState | null>(null);
-  // MUST be a stable object. A fresh `{ setState }` on every provider render
-  // re-rendered every Ctx consumer (the leaf page), whose effect then called
-  // setState again with a new object -> provider re-renders -> ... an
-  // endless urgent render loop. It starved React transitions, so in-app
-  // navigation (tabs, sidebar links, router.push) silently never completed
-  // -- reported live as "tabs don't switch at all".
-  const ctxValue = useMemo(() => ({ setState }), []);
-  return (
-    <Ctx.Provider value={ctxValue}>
-      <StateCtx.Provider value={state}>{children}</StateCtx.Provider>
-    </Ctx.Provider>
-  );
+  // One store per layout mount; the context value never changes.
+  const store = useMemo(createSaveBarStore, []);
+  return <StoreCtx.Provider value={store}>{children}</StoreCtx.Provider>;
 }
 
-// Split into two contexts on purpose: a leaf page only needs the stable
-// `setState` setter (from Ctx) to REGISTER its own state -- it must never
-// re-render just because some OTHER page's bar state changed. Only
-// OutputDataSaveBar itself (below) reads StateCtx.
-function useSetSaveBarState() {
-  const ctx = useContext(Ctx);
-  if (!ctx) throw new Error("useOutputDataSaveBar must be used inside OutputDataSaveBarProvider");
-  return ctx.setState;
+function useSaveBarStore(): SaveBarStore {
+  const store = useContext(StoreCtx);
+  if (!store) throw new Error("useOutputDataSaveBar must be used inside OutputDataSaveBarProvider");
+  return store;
 }
 
-// Leaf pages call this every render with their current save state. Runs
-// after EVERY render (no dependency array) -- safe here specifically
-// because this hook only consumes the stable `setState` setter (via Ctx),
-// never StateCtx's value, so calling setState can't make THIS component
-// re-render; it only re-renders OutputDataSaveBar (a different component
-// elsewhere in the tree), so there's no feedback loop. This is what lets a
-// page pass a live `statusNote` (e.g. "Ціна"'s "...у N блоках" message)
-// that always reflects the latest render, not a stale one gated behind a
-// primitive dependency list.
+// A leaf page calls this on every render with its current save state.
 export function useOutputDataSaveBar(input: OutputDataSaveBarState) {
-  const setState = useSetSaveBarState();
+  const store = useSaveBarStore();
 
+  // Hand over the latest state after each render -- a plain assignment into
+  // the store, which notifies the bar only if its signature changed.
   useEffect(() => {
-    setState(input);
-    return () => setState(null);
+    store.set(input);
   });
+  // The bar empties when the page goes away (and only then).
+  useEffect(() => () => store.set(null), [store]);
 }
 
 function fmtTime(d: Date) {
@@ -98,10 +147,12 @@ function fmtTime(d: Date) {
 // Rendered once, by OutputDataLayout -- reads StateCtx so it (and only it)
 // re-renders when a leaf page's registered state changes.
 export function OutputDataSaveBar({ bookId }: { bookId: string }) {
-  const state = useContext(StateCtx);
+  const store = useSaveBarStore();
+  // Re-renders when the store's version moves, i.e. when a page reported a
+  // state that looks different on the bar.
+  useSyncExternalStore(store.subscribe, store.version, store.version);
+  const state = store.get();
   const hasErrors = !!state?.errorCount && state.errorCount > 0;
-  const stateRef = useRef(state);
-  stateRef.current = state;
 
   return (
     <>
@@ -109,7 +160,7 @@ export function OutputDataSaveBar({ bookId }: { bookId: string }) {
       active={!!state?.unsaved && !state.saving}
       onSave={state?.onSave}
       saveDisabled={hasErrors || !!state?.saveDisabled}
-      isStillUnsaved={() => !!stateRef.current?.unsaved}
+      isStillUnsaved={() => !!store.get()?.unsaved}
     />
     <div className="sticky bottom-0 z-20 -mx-8 border-t border-gray-200 bg-white/95 px-8 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] backdrop-blur">
       <div className="flex items-center gap-4">

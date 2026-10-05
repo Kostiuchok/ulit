@@ -1431,6 +1431,8 @@ export default function CoverDesignerCanvas({
   const [saving, setSaving] = useState(false);
   const [coverSaved, setCoverSaved] = useState(false);
   const [coverDirty, setCoverDirty] = useState(false);
+  const coverDirtyRef = useRef(coverDirty);
+  coverDirtyRef.current = coverDirty;
   // Images (illustration, background) finish loading after the cover is
   // "ready" and each adds its own snapshot, which used to light up "Є
   // незбережені зміни" on a cover nobody had touched (seen live on prod).
@@ -3051,10 +3053,15 @@ export default function CoverDesignerCanvas({
       onPointerDownCapture={() => (userTouchedRef.current = true)}
       onKeyDownCapture={() => (userTouchedRef.current = true)}
     >
-      {/* No "save and leave" here on purpose: saving a published book's
-          cover sends it to moderation and starts the 90-day lock -- not
-          something to trigger from a leave dialog. */}
-      <UnsavedChangesGuard active={coverDirty && !saving} />
+      {/* A draft can "save and leave" like any other page. A PUBLISHED
+          book cannot: saving its cover sends it to moderation and starts
+          the 90-day lock -- not something to trigger from a leave dialog
+          (owner's decision 2026-10-05). */}
+      <UnsavedChangesGuard
+        active={coverDirty && !saving}
+        onSave={isPublished || lockedUntilLabel ? undefined : saveToBook}
+        isStillUnsaved={() => coverDirtyRef.current}
+      />
       {existingMode && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
           <span className="font-semibold">Це ваша збережена обкладинка.</span> Її текст і зображення вже злиті в одну
