@@ -4,11 +4,14 @@
 // confirmed -- every consumer (cover editor overlays, 06/06d/06e preview,
 // price page) reads from here instead of a scattered literal.
 
-// KDP's own publicly documented cover bleed is 0.125in = 3.175mm, rounded
-// to 3.2mm -- not the 3mm this app used informally before this file
-// existed. TODO: confirm the Ukrainian print house's own bleed requirement
-// once available; it may differ from KDP's.
-export const COVER_BLEED_MM = 3.2;
+// Bleed ("вильоти") the print house needs on every outer edge of the cover
+// wrap -- 1.5 mm per side, confirmed by the owner 2026-10-05. The earlier
+// 3.2 here was Amazon KDP's own figure (0.125in = 3.175mm), a placeholder
+// from before the printer's number was known. A KDP print upload would
+// still want KDP's 3.2 -- buildCoverPrintWrap (apps/api) takes the bleed
+// as a parameter for exactly that case.
+export const COVER_BLEED_MM = 1.5;
+export const KDP_COVER_BLEED_MM = 3.2;
 
 // Safe-zone margin from the trim edge that text/important content should
 // stay clear of. WF-SPEC's own number -- not yet confirmed with a printer.

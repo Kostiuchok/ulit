@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Table, TableBody, TableCell, TableRow } from "../../../components/ui/table";
 import { Textarea } from "../../../components/ui/textarea";
 import { toast } from "sonner";
+import { COVER_BLEED_MM } from "shared-types";
 
 
 interface Book {
@@ -23,6 +24,8 @@ interface Book {
   moderationStatus: string;
   isbn?: string | null;
   coverUrl?: string | null;
+  backCoverUrl?: string | null;
+  spineUrl?: string | null;
   genre?: string | null;
   language?: string;
   publishedAt?: string | null;
@@ -651,7 +654,9 @@ export default function AdminBooksPage() {
   async function downloadFile(bookId: string, type: string, filename: string) {
     setFileLoading(type);
     try {
-      const res = await fetch(`/api/admin/books/${bookId}/file/${type}`, {
+      // The print-house cover is assembled on request, not a stored file.
+      const path = type === "cover-wrap" ? "cover-print-wrap" : `file/${type}`;
+      const res = await fetch(`/api/admin/books/${bookId}/${path}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) {
@@ -877,6 +882,12 @@ export default function AdminBooksPage() {
                   { type: "mobi",  label: "MOBI",       ext: "mobi",  available: !!filesBook.mobiUrl },
                   { type: "print", label: "Print PDF",  ext: "pdf",   available: !!filesBook.printPdfUrl },
                   { type: "cover", label: "Обкладинка", ext: "jpg",   available: !!filesBook.coverUrl },
+                  {
+                    type: "cover-wrap",
+                    label: `Обкладинка для друкарні (розворот, вильоти ${COVER_BLEED_MM} мм)`,
+                    ext: "png",
+                    available: !!filesBook.coverUrl && !!filesBook.backCoverUrl && !!filesBook.spineUrl,
+                  },
                 ].map(({ type, label, ext, available }) => (
                   <div key={type} className="flex items-center justify-between rounded-lg border px-3 py-2">
                     <span className={`text-sm font-medium ${available ? "text-gray-800" : "text-gray-300"}`}>
@@ -886,7 +897,13 @@ export default function AdminBooksPage() {
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => downloadFile(filesBook.id, type, `${safeFilename(filesBook.title)}.${ext}`)}
+                        onClick={() =>
+                          downloadFile(
+                            filesBook.id,
+                            type,
+                            `${safeFilename(filesBook.title)}${type === "cover-wrap" ? "-cover-print" : ""}.${ext}`
+                          )
+                        }
                         loading={fileLoading === type}
                         className="h-auto px-2.5 py-1 text-xs"
                       >

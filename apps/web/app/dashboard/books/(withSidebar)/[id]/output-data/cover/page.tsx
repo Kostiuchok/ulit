@@ -325,7 +325,8 @@ export default function OutputDataCoverPage() {
               </div>
               <Expand size={16} className="pointer-events-none absolute right-3 top-3 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
               <p className="mt-2 text-xs text-gray-400">
-                ┄ пунктир — згин (корінець) · ⋯ обріз {COVER_BLEED_MM} мм
+                ┄ пунктир — згин (корінець) · край розвороту — лінія обрізу. Вильоти {COVER_BLEED_MM} мм з
+                кожного боку додаються автоматично у файлі для друкарні.
               </p>
             </Card>
           )}

@@ -25,6 +25,7 @@ import {
   PRINT_TRIM_SIZE_MM,
   MIN_SPINE_TEXT_PAGES,
   COVER_SAFE_ZONE_MIN_MM,
+  COVER_BLEED_MM,
   COVER_SAFE_ZONE_MAX_MM,
   isSpineTooThinForText,
   spineThicknessMm,
@@ -2513,6 +2514,12 @@ export default function CoverDesignerCanvas({
               <span className="inline-block h-0 w-5 border-t-2 border-dashed border-blue-500" />
               безпечна зона {COVER_SAFE_ZONE_MIN_MM}–{COVER_SAFE_ZONE_MAX_MM} мм — текст тримайте всередині
             </span>
+            {format !== "ebook" && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-3 w-5 border-2 border-gray-300" />
+                край полотна — лінія обрізу · вильоти {COVER_BLEED_MM} мм додаються у файлі для друкарні
+              </span>
+            )}
             {format !== "ebook" && (
               <span className="inline-flex items-center gap-1.5">
                 <span className="inline-block h-0 w-5 border-t-2 border-dashed border-orange-500" />

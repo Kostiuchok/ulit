@@ -19,6 +19,8 @@ import {
   isbnStillValidForEdition,
   effectivePageCount,
   formatAuthorFullName,
+  resolveBookPrintFormat,
+  COVER_BLEED_MM,
   type RejectionReasonKey,
   type IsbnEditionSnapshot,
 } from "shared-types";
@@ -26,6 +28,7 @@ import { queuePublishedEmail, queueRejectedEmail, scheduleKdpExpiryWarning } fro
 import { enqueueConversionJobs } from "../../services/publishing.service";
 import { withAvatarVersion } from "../../lib/coverVersion";
 import { isIsbnReady } from "./book-chamber";
+import { buildCoverPrintWrap, coverObjectNameFromUrl } from "../../lib/coverPrintWrap";
 
 const KDP_SELECT_DAYS = 90;
 const WARN_BEFORE_DAYS = 7;
@@ -97,6 +100,8 @@ const BOOK_ADMIN_SELECT = {
   bookChamberSubmittedAt: true,
   rejectedAt: true,
   coverUrl: true,
+  backCoverUrl: true,
+  spineUrl: true,
   epubUrl: true,
   fb2Url: true,
   mobiUrl: true,
@@ -819,6 +824,72 @@ export async function adminRoutes(app: FastifyInstance) {
       } catch {
         return reply.status(404).send({ error: "File not found in storage" });
       }
+    }
+  );
+
+  // ─── Cover for the print house ────────────────────────────────────────────
+  // One file -- back | spine | front at the book's trim size, plus bleed on
+  // every outer edge (COVER_BLEED_MM). Assembled on demand from the stored
+  // panels (lib/coverPrintWrap.ts), so it needs nothing re-saved and works
+  // whether the cover came from the editor, an auto-cover or an upload.
+  app.get(
+    "/api/admin/books/:id/cover-print-wrap",
+    { preHandler: requireAdmin },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const book = await prisma.book.findUnique({
+        where: { id },
+        select: {
+          coverUrl: true,
+          backCoverUrl: true,
+          spineUrl: true,
+          genre: true,
+          printFormatKey: true,
+          printWidthMm: true,
+          printHeightMm: true,
+        },
+      });
+      if (!book) throw AppError.notFound("Book");
+
+      const names = {
+        front: coverObjectNameFromUrl(book.coverUrl),
+        back: coverObjectNameFromUrl(book.backCoverUrl),
+        spine: coverObjectNameFromUrl(book.spineUrl),
+      };
+      if (!names.front || !names.back || !names.spine) {
+        throw new AppError(
+          "Для друкарського файлу потрібні лицева сторона, задня сторона і корінець обкладинки",
+          409,
+          "COVER_WRAP_INCOMPLETE"
+        );
+      }
+
+      const read = async (objectName: string): Promise<Buffer> => {
+        const stream = await minio.getObject(BUCKET, objectName);
+        const chunks: Buffer[] = [];
+        for await (const chunk of stream) chunks.push(chunk as Buffer);
+        return Buffer.concat(chunks);
+      };
+
+      let panels: [Buffer, Buffer, Buffer];
+      try {
+        panels = await Promise.all([read(names.front), read(names.back), read(names.spine)]);
+      } catch {
+        return reply.status(404).send({ error: "File not found in storage" });
+      }
+
+      const format = resolveBookPrintFormat(book);
+      const wrap = await buildCoverPrintWrap({
+        front: panels[0],
+        back: panels[1],
+        spine: panels[2],
+        trimMm: { widthMm: format.widthMm, heightMm: format.heightMm },
+        bleedMm: COVER_BLEED_MM,
+      });
+
+      reply.header("Content-Type", "image/png");
+      reply.header("Content-Disposition", "attachment");
+      return reply.send(wrap.buffer);
     }
   );
 
