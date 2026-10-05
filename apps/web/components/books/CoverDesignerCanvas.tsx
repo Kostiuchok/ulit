@@ -1088,6 +1088,11 @@ export default function CoverDesignerCanvas({
   const [saving, setSaving] = useState(false);
   const [coverSaved, setCoverSaved] = useState(false);
   const [coverDirty, setCoverDirty] = useState(false);
+  // Images (illustration, background) finish loading after the cover is
+  // "ready" and each adds its own snapshot, which used to light up "Є
+  // незбережені зміни" on a cover nobody had touched (seen live on prod).
+  // Only a snapshot that follows a real pointer/keyboard action counts.
+  const userTouchedRef = useRef(false);
   const coverReadyRef = useRef(false);
   const canvasHostRef = useRef<HTMLDivElement>(null);
   const [canvasScale, setCanvasScale] = useState(1);
@@ -1151,7 +1156,7 @@ export default function CoverDesignerCanvas({
       historyIndexRef.current = historyRef.current.length - 1;
       setCanUndo(historyIndexRef.current > 0);
       setCanRedo(false);
-      if (coverReadyRef.current) {
+      if (coverReadyRef.current && userTouchedRef.current) {
         setCoverDirty(true);
         setCoverSaved(false);
       }
@@ -2388,7 +2393,11 @@ export default function CoverDesignerCanvas({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      className="flex flex-col gap-4"
+      onPointerDownCapture={() => (userTouchedRef.current = true)}
+      onKeyDownCapture={() => (userTouchedRef.current = true)}
+    >
       <div className="flex flex-col gap-4 xl:flex-row">
         {/* ── Шари (WF-SPEC 08 п.3) ─────────────────────────────────────── */}
         <div className="w-full shrink-0 space-y-2 xl:w-[220px]">
