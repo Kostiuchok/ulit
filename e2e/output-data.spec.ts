@@ -5,10 +5,11 @@ import { test, expect, type Page } from "@playwright/test";
 // fixture account (E2E_TEST_EMAIL / E2E_TEST_PASSWORD).
 //
 // One permanent draft, "E2E чернетка (не видаляти)", lives in that account:
-// the first run creates it through the wizard, every later run (and every
-// retry, which starts in a fresh worker with no memory of the previous
-// attempt) finds and reuses it. No test here ever saves, so the draft stays
-// exactly as the wizard left it -- Жанр empty, no file, no cover, no price.
+// the first run creates it (one POST /api/books with the title -- the same
+// request the "Нова книга" dialog sends), every later run (and every retry,
+// which starts in a fresh worker with no memory of the previous attempt)
+// finds and reuses it. No test here ever saves, so the draft stays exactly
+// as it was created -- Жанр empty, no file, no cover, no price.
 // The first version created a timestamped draft per run and archived it in
 // a final test; with retries that produced several drafts and, whenever an
 // earlier test failed, the clean-up test did not run at all.
@@ -17,11 +18,6 @@ const FIXTURE_EMAIL = process.env.E2E_TEST_EMAIL;
 const FIXTURE_PASSWORD = process.env.E2E_TEST_PASSWORD;
 
 const TITLE = "E2E чернетка (не видаляти)";
-// 130+ characters: above ULIT's own 120 minimum, so the annotation itself is
-// valid until a test shortens it on purpose.
-const ANNOTATION =
-  "Автоматична чернетка для перевірки форм кабінету автора. Створюється тестом після кожного деплою і видаляється наприкінці того самого запуску.";
-
 test.describe("Вихідні дані: підсвічування, «Змінено», вихід зі сторінки", () => {
   // Never two of these at once: they share one draft and must not race to create it.
   test.describe.configure({ mode: "default" });
@@ -56,19 +52,25 @@ test.describe("Вихідні дані: підсвічування, «Зміне
     }, TITLE);
   }
 
-  // Finds the permanent draft, creating it only if the API says there is none.
+  // Finds the permanent draft, creating it only if the API says there is
+  // none -- through the API as well, not by clicking through the dialog, so
+  // a UI hiccup can never turn into a second draft (CLAUDE.md журнал #40).
   async function ensureDraft(page: Page): Promise<string> {
     await page.goto("/dashboard/books");
     let id = await findDraftId(page);
     if (!id) {
-      await page.goto("/dashboard/books/new");
-      await page.getByLabel(/назва книги/i).fill(TITLE);
-      await page.getByLabel(/анотація/i).fill(ANNOTATION);
-      await page.getByRole("combobox", { name: /вікові обмеження/i }).click();
-      await page.getByRole("option", { name: "0+", exact: true }).click();
-      await page.getByRole("button", { name: /зберегти і перейти на наступний крок/i }).click();
-      await expect(page.getByText(/завантажити рукопис/i)).toBeVisible({ timeout: 20_000 });
-      id = await findDraftId(page);
+      id = await page.evaluate(async (title) => {
+        const session = await fetch("/api/auth/session").then((r) => r.json());
+        const token = session?.user?.apiToken;
+        if (!token) throw new Error("no api token in session");
+        const res = await fetch("/api/books", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        });
+        if (!res.ok) throw new Error(`POST /api/books -> ${res.status}`);
+        return (await res.json()).book.id as string;
+      }, TITLE);
     }
     expect(id, "id of the fixture draft").toBeTruthy();
     return id!;
@@ -90,7 +92,7 @@ test.describe("Вихідні дані: підсвічування, «Зміне
   test("незаповнене обов'язкове поле підсвічене з поясненням, «Зберегти» неактивне", async ({ page }) => {
     await openOutputData(page);
 
-    // The wizard leaves Жанр empty -- the form must say so by itself.
+    // A new draft has no Жанр -- the form must say so by itself.
     await expect(page.getByText("Оберіть жанр", { exact: true }).last()).toBeVisible();
 
     await page.locator("#title").fill("");
@@ -191,6 +193,22 @@ test.describe("Вихідні дані: підсвічування, «Зміне
     await page.getByRole("dialog").getByRole("button", { name: "Вийти без збереження" }).click();
     // openOutputData came here from the books list.
     await page.waitForURL(/\/dashboard\/books$/, { timeout: 15_000 });
+  });
+
+  test("дашборд незаповненої чернетки: «Надіслати на модерацію» неактивна, кроки видно", async ({ page }) => {
+    await login(page);
+    const bookId = await ensureDraft(page);
+    await page.goto(`/dashboard/books/${bookId}`);
+
+    await expect(page.getByRole("heading", { name: TITLE })).toBeVisible({ timeout: 20_000 });
+    // The fixture draft has no file, cover or price -- nothing to send yet.
+    await expect(page.getByRole("button", { name: /надіслати на модерацію/i })).toBeDisabled();
+    await expect(page.getByText(/Наступний крок · \d+ з 13/)).toBeVisible();
+
+    const stepsToggle = page.getByRole("button", { name: /\d+ з 13 кроків виконано/ });
+    await expect(stepsToggle).toBeVisible();
+    await stepsToggle.click();
+    await expect(page.getByText("Обкладинку додано", { exact: true })).toBeVisible();
   });
 
   test("вкладки перемикаються на чистій сторінці без вікна попередження", async ({ page }) => {

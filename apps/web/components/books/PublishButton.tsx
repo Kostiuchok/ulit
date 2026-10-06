@@ -25,6 +25,11 @@ interface Props {
   // Only meaningful together with hideTrigger -- decides which hint text
   // shows before the nav pill has been clicked.
   readyToPublish?: boolean;
+  // Set while the book cannot be sent yet (getSubmitReadiness): the trigger
+  // is then a disabled button with this text as its tooltip -- the same
+  // look and the same rule as the «Публікація» tab of «Вихідні дані» --
+  // instead of a live button that only answers with a list of errors.
+  notReadyReason?: string;
 }
 
 export interface PublishButtonHandle {
@@ -32,7 +37,7 @@ export interface PublishButtonHandle {
 }
 
 export const PublishButton = forwardRef<PublishButtonHandle, Props>(function PublishButton(
-  { bookId, bookStatus, onSubmitted, hideTrigger, readyToPublish }: Props,
+  { bookId, bookStatus, onSubmitted, hideTrigger, readyToPublish, notReadyReason }: Props,
   ref
 ) {
   const { apiFetch } = useApi();
@@ -146,6 +151,14 @@ export const PublishButton = forwardRef<PublishButtonHandle, Props>(function Pub
                 ? "Натисніть «Публікація» у меню вгорі, щоб надіслати книгу на модерацію."
                 : "Заповніть усі розділи вище (позначені сірим у меню), щоб надіслати книгу на модерацію."}
           </p>
+        ) : notReadyReason ? (
+          // A disabled <button> shows no native tooltip in some browsers, so
+          // the title sits on a wrapper.
+          <span title={notReadyReason} className="inline-block cursor-not-allowed">
+            <Button variant="outline" disabled className="pointer-events-none w-full border-gray-300 text-gray-300">
+              Надіслати на модерацію →
+            </Button>
+          </span>
         ) : (
           <Button onClick={handleValidate} loading={validating} className="w-full">
             Надіслати на модерацію →

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { History, Link2, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
-import { BookStepsCard } from "@/components/books/BookStepsCard";
+import { BookNextStep, BookStepsList, type BookStepsProps } from "@/components/books/BookStepsCard";
 import { PublishButton } from "@/components/books/PublishButton";
 import { RepublishPrimaryButton, getChangesSummary } from "@/components/books/RepublishButton";
 import { UnpublishButton } from "@/components/books/UnpublishButton";
@@ -14,7 +14,7 @@ import { BookCoverCarousel } from "@/components/books/BookCoverCarousel";
 import { BookPromoSidebar } from "@/components/books/BookPromoSidebar";
 import { useBook } from "@/hooks/useBook";
 import { useApi } from "@/hooks/useApi";
-import { getAllRejectionLines } from "@/lib/rejectedBlocks";
+import { getAllRejectionLines, getSubmitReadiness } from "@/lib/rejectedBlocks";
 import { getBookStatusLabel } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
 import { isPublishStepComplete, type PublishStepBook } from "shared-types";
@@ -142,6 +142,45 @@ export function BookDashboard() {
       })
     : { hasChanges: false, blocks: [] as string[] };
   const isRepublishPending = !!book?.republishRequestedAt;
+
+  // «Надіслати на модерацію» stays disabled until every section is filled
+  // and every moderator remark dealt with -- the very check that unlocks the
+  // «Публікація» tab of «Вихідні дані» (owner's decision 2026-10-06: a new
+  // book starts from its title alone, so a live button on an empty draft
+  // could only answer with a list of errors).
+  const submitReadiness = getSubmitReadiness(book as Parameters<typeof getSubmitReadiness>[0]);
+
+  // Feeds both step blocks: the «Наступний крок» hero on top and the
+  // collapsed list in the middle column.
+  const stepsProps: BookStepsProps | null = book
+    ? {
+        bookId: id,
+        timeline: book.publicationTimeline,
+        contractAcceptedAt: book.author?.contractAcceptedAt,
+        isbn: book.isbn,
+        bookStatus: book.status,
+        distributionChannels: book.distributionChannels ?? [],
+        creation: {
+          title: book.title,
+          genre: book.genre,
+          originalDocxUrl: book.originalDocxUrl,
+          manuscriptImportedAt: book.manuscriptImportedAt,
+          manuscriptEditedAt: book.manuscriptEditedAt,
+          priceEbook: book.priceEbook,
+          pricePrint: book.pricePrint,
+          pricePrintHardcover: book.pricePrintHardcover,
+          coverUrl: book.coverUrl,
+          printPdfUrl: book.printPdfUrl,
+          udcCode: book.udcCode,
+        },
+        readiness: {
+          info: isPublishStepComplete("info", book as PublishStepBook),
+          file: isPublishStepComplete("file", book as PublishStepBook),
+          cover: isPublishStepComplete("cover", book as PublishStepBook),
+          price: isPublishStepComplete("price", book as PublishStepBook),
+        },
+      }
+    : null;
 
   async function copyBookLink() {
     if (!book) return;
@@ -339,6 +378,11 @@ export function BookDashboard() {
                 bookId={id}
                 bookStatus={book?.status ?? "DRAFT"}
                 onSubmitted={() => setBook((b) => (b ? { ...b, status: "REVIEW" } : b))}
+                notReadyReason={
+                  submitReadiness.ready
+                    ? undefined
+                    : "Доступно, коли заповнено всі кроки — дивіться «Наступний крок» нижче"
+                }
               />
             )}
             {isPublished ? (
@@ -418,36 +462,7 @@ export function BookDashboard() {
           </div>
         )}
 
-        {book && (
-          <BookStepsCard
-            bookId={id}
-            createdAt={book.createdAt}
-            timeline={book.publicationTimeline}
-            contractAcceptedAt={book.author?.contractAcceptedAt}
-            isbn={book.isbn}
-            bookStatus={book.status}
-            distributionChannels={book.distributionChannels ?? []}
-            creation={{
-              title: book.title,
-              genre: book.genre,
-              originalDocxUrl: book.originalDocxUrl,
-              manuscriptImportedAt: book.manuscriptImportedAt,
-              manuscriptEditedAt: book.manuscriptEditedAt,
-              priceEbook: book.priceEbook,
-              pricePrint: book.pricePrint,
-              pricePrintHardcover: book.pricePrintHardcover,
-              coverUrl: book.coverUrl,
-              printPdfUrl: book.printPdfUrl,
-              udcCode: book.udcCode,
-            }}
-            readiness={{
-              info: isPublishStepComplete("info", book as PublishStepBook),
-              file: isPublishStepComplete("file", book as PublishStepBook),
-              cover: isPublishStepComplete("cover", book as PublishStepBook),
-              price: isPublishStepComplete("price", book as PublishStepBook),
-            }}
-          />
-        )}
+        {stepsProps && <BookNextStep {...stepsProps} />}
 
         {/* Three fixed-ish columns (320 + 1fr + 260 + gaps) need ~1200px of
             CONTENT width. A landscape tablet (1024-1194px) loses 256px of that
@@ -475,8 +490,12 @@ export function BookDashboard() {
             </Link>
           </div>
 
-          {/* Middle: compact price card -- WF-SPEC п.8, above the fold */}
-          <div className="min-w-0">
+          {/* Middle: the collapsed list of steps, then the compact price
+              card (WF-SPEC п.8). The list used to be a full-width block of
+              its own above this grid; it moved in here to save a screen row
+              of height (owner's decision 2026-10-06). */}
+          <div className="min-w-0 space-y-4">
+            {stepsProps && <BookStepsList {...stepsProps} />}
             {(book?.priceEbook || book?.pricePrint || book?.pricePrintHardcover) && (
               <Card className="p-4 shadow-sm">
                 <div className="flex items-center justify-between">

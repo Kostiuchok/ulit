@@ -21,9 +21,8 @@ interface CreationInfo {
   udcCode?: string | null;
 }
 
-interface Props {
+export interface BookStepsProps {
   bookId: string;
-  createdAt: string;
   timeline?: Record<string, string> | null;
   contractAcceptedAt?: string | null;
   isbn?: string | null;
@@ -76,9 +75,11 @@ function badgeClasses(tone: "amber" | "gray" | "green") {
   return "bg-gray-100 text-gray-600";
 }
 
-export function BookStepsCard({
+// The 13 steps and the "next step" derived from them. One computation for
+// both blocks below, which sit in different places on the book dashboard
+// (the hero on top, the list in the middle column above «Ціни»).
+function computeBookSteps({
   bookId,
-  createdAt,
   timeline,
   contractAcceptedAt,
   isbn,
@@ -86,9 +87,7 @@ export function BookStepsCard({
   distributionChannels,
   creation,
   readiness,
-}: Props) {
-  const [expanded, setExpanded] = useState(false);
-
+}: BookStepsProps) {
   const hasBasicInfo = readiness.info;
   const hasManuscript = readiness.file;
   const manuscriptDate = creation.manuscriptEditedAt ?? creation.manuscriptImportedAt;
@@ -197,107 +196,118 @@ export function BookStepsCard({
   const hero = NEXT_STEP_CONTENT[heroKey];
   const heroDone = !nextStep;
 
+  return { items, doneCount, total, nextStep, hero, heroDone };
+}
+
+// "Наступний крок" -- WF-SPEC п.1
+export function BookNextStep(props: BookStepsProps) {
+  const { doneCount, total, hero, heroDone } = computeBookSteps(props);
+
   return (
-    <div className="space-y-4">
-      {/* "Наступний крок" -- WF-SPEC п.1 */}
-      <section className="flex flex-wrap items-center gap-4 rounded-xl border border-green-200 bg-green-50/60 p-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-600 text-white">
-          <Store size={20} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-semibold uppercase tracking-wide text-green-700">
-            Наступний крок · {doneCount} з {total}
-          </div>
-          <div className="text-[17px] font-bold text-black">{hero.title}</div>
-          <p className="mt-0.5 text-[13px] text-gray-700">{hero.description}</p>
-        </div>
-        {hero.cta && (
-          <Link
-            href={hero.cta.href}
-            className={cn(
-              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md px-4 text-sm font-medium",
-              heroDone
-                ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
-                : "border border-black bg-white text-black hover:bg-gray-50"
-            )}
-          >
-            {hero.cta.label}
-            <ArrowRight size={14} />
-          </Link>
-        )}
-      </section>
-
-      {/* Згорнутий список "N з 13 кроків" -- WF-SPEC п.2-4 */}
-      <div className="rounded-xl border border-gray-200">
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="flex w-full items-center gap-3 p-4 text-left"
-        >
-          <span
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white"
-            style={{ backgroundColor: ACCENT }}
-          >
-            <Check size={14} />
-          </span>
-          <span className="text-[15px] font-semibold text-black">
-            {doneCount} з {total} кроків виконано
-          </span>
-          <span className="ml-auto inline-flex items-center gap-1 text-[13px] text-gray-500">
-            {expanded ? "Згорнути" : "Показати"}
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </span>
-        </button>
-
-        {expanded && (
-          <ol className="space-y-1.5 border-t border-gray-100 px-4 py-3">
-            {items.map((it) => (
-              <li key={it.key} className="flex items-start gap-2.5 text-sm">
-                <span
-                  className={cn(
-                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-                    it.done ? "text-white" : "border border-gray-300 text-gray-300"
-                  )}
-                  style={it.done ? { backgroundColor: ACCENT } : undefined}
-                >
-                  {it.done && <Check size={12} strokeWidth={3} />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  {it.href && !it.done ? (
-                    <Link href={it.href} className="font-medium text-black underline hover:no-underline">
-                      {it.label}
-                    </Link>
-                  ) : (
-                    <span className={cn("font-medium", it.done ? "" : "text-gray-400")} style={it.done ? { color: ACCENT } : undefined}>
-                      {it.label}
-                    </span>
-                  )}
-                  {it.date && <span className="ml-1 text-gray-500">· {fmt(it.date)}</span>}
-                  {it.badge && (
-                    <span className={cn("ml-1.5 rounded-full px-1.5 py-px text-[11px] font-medium", badgeClasses(it.badge.tone))}>
-                      {it.badge.text}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-
-        {/* Поточний крок завжди видно окремим рядком, навіть коли список
-            згорнуто -- WF-SPEC п.2. */}
-        {!expanded && nextStep && (
-          <div className="flex items-center gap-3 border-t border-gray-100 px-4 py-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2" style={{ borderColor: ACCENT }}>
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ACCENT }} />
-            </span>
-            <span className="text-sm font-medium text-black">{nextStep.label}</span>
-            <span className="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-amber-200">
-              в процесі
-            </span>
-          </div>
-        )}
+    <section className="flex flex-wrap items-center gap-4 rounded-xl border border-green-200 bg-green-50/60 p-5">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-600 text-white">
+        <Store size={20} />
       </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-semibold uppercase tracking-wide text-green-700">
+          Наступний крок · {doneCount} з {total}
+        </div>
+        <div className="text-[17px] font-bold text-black">{hero.title}</div>
+        <p className="mt-0.5 text-[13px] text-gray-700">{hero.description}</p>
+      </div>
+      {hero.cta && (
+        <Link
+          href={hero.cta.href}
+          className={cn(
+            "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md px-4 text-sm font-medium",
+            heroDone
+              ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
+              : "border border-black bg-white text-black hover:bg-gray-50"
+          )}
+        >
+          {hero.cta.label}
+          <ArrowRight size={14} />
+        </Link>
+      )}
+    </section>
+  );
+}
+
+// Згорнутий список "N з 13 кроків" -- WF-SPEC п.2-4
+export function BookStepsList(props: BookStepsProps) {
+  const [expanded, setExpanded] = useState(false);
+  const { items, doneCount, total, nextStep } = computeBookSteps(props);
+
+  return (
+    <div className="rounded-xl border border-gray-200">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-3 p-4 text-left"
+      >
+        <span
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white"
+          style={{ backgroundColor: ACCENT }}
+        >
+          <Check size={14} />
+        </span>
+        <span className="text-[15px] font-semibold text-black">
+          {doneCount} з {total} кроків виконано
+        </span>
+        <span className="ml-auto inline-flex items-center gap-1 text-[13px] text-gray-500">
+          {expanded ? "Згорнути" : "Показати"}
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </span>
+      </button>
+
+      {expanded && (
+        <ol className="space-y-1.5 border-t border-gray-100 px-4 py-3">
+          {items.map((it) => (
+            <li key={it.key} className="flex items-start gap-2.5 text-sm">
+              <span
+                className={cn(
+                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                  it.done ? "text-white" : "border border-gray-300 text-gray-300"
+                )}
+                style={it.done ? { backgroundColor: ACCENT } : undefined}
+              >
+                {it.done && <Check size={12} strokeWidth={3} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                {it.href && !it.done ? (
+                  <Link href={it.href} className="font-medium text-black underline hover:no-underline">
+                    {it.label}
+                  </Link>
+                ) : (
+                  <span className={cn("font-medium", it.done ? "" : "text-gray-400")} style={it.done ? { color: ACCENT } : undefined}>
+                    {it.label}
+                  </span>
+                )}
+                {it.date && <span className="ml-1 text-gray-500">· {fmt(it.date)}</span>}
+                {it.badge && (
+                  <span className={cn("ml-1.5 rounded-full px-1.5 py-px text-[11px] font-medium", badgeClasses(it.badge.tone))}>
+                    {it.badge.text}
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {/* Поточний крок завжди видно окремим рядком, навіть коли список
+          згорнуто -- WF-SPEC п.2. */}
+      {!expanded && nextStep && (
+        <div className="flex items-center gap-3 border-t border-gray-100 px-4 py-3">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2" style={{ borderColor: ACCENT }}>
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ACCENT }} />
+          </span>
+          <span className="text-sm font-medium text-black">{nextStep.label}</span>
+          <span className="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-amber-200">
+            в процесі
+          </span>
+        </div>
+      )}
     </div>
   );
 }

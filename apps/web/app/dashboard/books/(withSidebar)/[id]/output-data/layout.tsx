@@ -5,8 +5,11 @@ import { useParams } from "next/navigation";
 import { OutputDataTabs } from "@/components/dashboard/OutputDataTabs";
 import { OutputDataSaveBar, OutputDataSaveBarProvider } from "@/components/dashboard/OutputDataSaveBar";
 import { useBook } from "@/hooks/useBook";
-import { getUnresolvedRejectionLines, type OutputDataSectionKey as RejectionTargetKey } from "@/lib/rejectedBlocks";
-import { isPublishStepComplete } from "shared-types";
+import {
+  getSubmitReadiness,
+  getUnresolvedRejectionLines,
+  type OutputDataSectionKey as RejectionTargetKey,
+} from "@/lib/rejectedBlocks";
 
 // Trimmed to exactly what this layout needs: PublishStepBook's fields (for
 // the nav's ✓/○ badges) + RejectionFieldState's fields (for the banner) +
@@ -51,11 +54,6 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
   const { book } = useBook<LayoutBook>(id);
   const base = `/dashboard/books/${id}/output-data`;
 
-  const infoSectionDone = isPublishStepComplete("info", book ?? {});
-  const fileSectionDone = isPublishStepComplete("file", book ?? {});
-  const coverSectionDone = isPublishStepComplete("cover", book ?? {});
-  const priceSectionDone = isPublishStepComplete("price", book ?? {});
-
   const unresolvedRejectionLines = book ? getUnresolvedRejectionLines(book) : [];
   const unresolvedCategory = (cat: (typeof unresolvedRejectionLines)[number]["category"]) =>
     unresolvedRejectionLines.some((l) => l.category === cat);
@@ -67,20 +65,17 @@ export default function OutputDataLayout({ children }: { children: React.ReactNo
     unresolvedCategory("language");
   const priceCardRejected = unresolvedCategory("price");
   const manuscriptRejected = unresolvedCategory("manuscript");
-  const coverRejected = unresolvedCategory("cover");
   const showRejection = infoCardRejected || priceCardRejected || manuscriptRejected;
 
-  const readyToPublish =
-    infoSectionDone && !infoCardRejected &&
-    fileSectionDone && !manuscriptRejected &&
-    coverSectionDone && !coverRejected &&
-    priceSectionDone && !priceCardRejected;
+  // Shared with the book dashboard's «Надіслати на модерацію» button.
+  const readiness = getSubmitReadiness(book);
+  const readyToPublish = readiness.ready;
 
   const sectionDone = {
-    info: infoSectionDone && !infoCardRejected,
-    file: fileSectionDone && !manuscriptRejected,
-    cover: coverSectionDone && !coverRejected,
-    price: priceSectionDone && !priceCardRejected,
+    info: readiness.info,
+    file: readiness.file,
+    cover: readiness.cover,
+    price: readiness.price,
     review: readyToPublish,
     publish: readyToPublish,
   };

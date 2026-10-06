@@ -3,6 +3,8 @@ import {
   isRejectionReasonResolved,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
+  isPublishStepComplete,
+  type PublishStepBook,
   type RejectionReasonKey,
 } from "shared-types";
 import type { OutputDataSectionKey } from "./outputDataSections";
@@ -184,4 +186,34 @@ export function getAllRejectionLines(book: ModeratedBook & RejectionFieldState):
 // Convenience for a caller that just wants "what's left to fix".
 export function getUnresolvedRejectionLines(book: ModeratedBook & RejectionFieldState): RejectionLine[] {
   return getAllRejectionLines(book).filter((l) => !l.resolved);
+}
+
+const INFO_REJECTION_CATEGORIES: RejectionLine["category"][] = ["title", "description", "genre", "author", "language"];
+
+export interface SubmitReadiness {
+  info: boolean;
+  file: boolean;
+  cover: boolean;
+  price: boolean;
+  // All four: the book can be sent to moderation.
+  ready: boolean;
+}
+
+// Whether a draft can be sent to moderation, section by section: a section
+// counts once its required fields are filled (isPublishStepComplete,
+// shared-types) AND the moderator's last remark about it has been dealt
+// with. One answer for everything that offers "send to moderation" -- the
+// «Публікація» tab of «Вихідні дані» and the button on the book dashboard --
+// so the two can never disagree about whether the book is ready.
+export function getSubmitReadiness(
+  book: (ModeratedBook & RejectionFieldState & PublishStepBook) | null | undefined
+): SubmitReadiness {
+  const b = book ?? {};
+  const unresolved = book ? getUnresolvedRejectionLines(book) : [];
+  const rejected = (...cats: RejectionLine["category"][]) => unresolved.some((l) => cats.includes(l.category));
+  const info = isPublishStepComplete("info", b) && !rejected(...INFO_REJECTION_CATEGORIES);
+  const file = isPublishStepComplete("file", b) && !rejected("manuscript");
+  const cover = isPublishStepComplete("cover", b) && !rejected("cover");
+  const price = isPublishStepComplete("price", b) && !rejected("price");
+  return { info, file, cover, price, ready: info && file && cover && price };
 }
