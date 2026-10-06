@@ -77,7 +77,13 @@ async function bootstrap() {
   await app.register(formbody);
 
   await app.register(rateLimit, {
-    max: 100,
+    // A signed-in author gets a larger budget than an anonymous address: one
+    // cabinet page fires 5-8 requests (book, list, notifications, profile,
+    // print cost...), so 100 a minute was a dozen quick page changes -- the
+    // post-deploy E2E run, one account walking the cabinet for a minute,
+    // hit 429 on every run (measured from this container's log, 2026-10-06:
+    // ~110 requests a minute), and a fast author could too.
+    max: (_request, key) => (key.startsWith("user:") ? 300 : 100),
     timeWindow: "1 minute",
     // API sits behind Next.js's server-side rewrite proxy, so request.ip is always
     // that proxy's docker-internal address — never the real client. Key by the
