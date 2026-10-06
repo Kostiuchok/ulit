@@ -1,20 +1,21 @@
-import { BookWizard } from "../../../../components/books/BookWizard";
-import { Card, CardContent } from "@/components/ui/card";
+"use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useCreateBook } from "@/components/books/CreateBookProvider";
+
+// No page of its own any more (the creation wizard that lived here is gone):
+// this address only opens the "Нова книга" dialog over «Мої книги». Kept for
+// bookmarks, the store's "Опублікувати книгу" button and links opened in a
+// new tab.
 export default function NewBookPage() {
-  return (
-    <div className="p-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Нова книга</h1>
-          <p className="mt-1 text-sm text-gray-500">Заповніть інформацію крок за кроком</p>
-        </div>
-        <Card className="shadow-sm">
-          <CardContent className="p-8">
-            <BookWizard />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+  const router = useRouter();
+  const { open } = useCreateBook();
+
+  useEffect(() => {
+    open();
+    router.replace("/dashboard/books");
+  }, [open, router]);
+
+  return null;
 }

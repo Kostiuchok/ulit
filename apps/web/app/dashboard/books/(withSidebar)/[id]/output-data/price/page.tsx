@@ -10,7 +10,7 @@ import {
   parseRoyalty,
   suggestedPriceRange,
   type PrintCost,
-} from "@/components/books/FormatsAndDistribution";
+} from "@/lib/bookPricing";
 import { KdpSelectPanel } from "@/components/books/KdpSelectPanel";
 import Link from "next/link";
 import { QuestionHint } from "@/components/books/QuestionHint";

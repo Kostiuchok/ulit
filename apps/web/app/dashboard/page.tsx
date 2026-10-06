@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useApi } from "../../hooks/useApi";
+import { CreateBookLink } from "@/components/books/CreateBookProvider";
 import { ProfileTabs } from "../../components/dashboard/ProfileTabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,7 @@ export default function DashboardPage() {
 
           <div className="mt-8 flex gap-4">
             <Button asChild>
-              <Link href="/dashboard/books/new">+ Нова книга</Link>
+              <CreateBookLink>+ Нова книга</CreateBookLink>
             </Button>
           </div>
         </div>

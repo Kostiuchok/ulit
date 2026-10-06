@@ -21,8 +21,8 @@ interface Props {
   bookStatus: string;
 }
 
-// Post-publish strategy management (pre-publish, FormatsAndDistribution
-// already covers channel selection — this is specifically for switching an
+// Post-publish strategy management (pre-publish, «Ціна» already covers
+// channel selection — this is specifically for switching an
 // already-live book, which needs the extra confirmation/warning UX below).
 export function KdpSelectPanel({ bookId, bookStatus }: Props) {
   const { apiFetch, token } = useApi();

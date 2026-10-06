@@ -87,18 +87,34 @@ test.describe("Authenticated author flows", () => {
     await expect(page.getByRole("heading", { name: /мої книги/i })).toBeVisible();
   });
 
-  test("book wizard opens on step 1 with its required fields", async ({ page }) => {
+  test("«Нова книга» opens a dialog that asks for the title only", async ({ page }) => {
+    await login(page);
+    await page.goto("/dashboard/books");
+    await page.getByRole("link", { name: "+ Нова книга" }).click();
+
+    // Opens only -- it must NOT submit: «Створити книжку» creates a real
+    // book, and this test would leave a new draft behind on every deploy
+    // (CLAUDE.md журнал #40). The request itself is covered by the API tests.
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Нова книга" })).toBeVisible();
+    await expect(dialog.getByLabel("Назва книги")).toBeVisible();
+    const create = dialog.getByRole("button", { name: "Створити книжку" });
+    await expect(create).toBeDisabled();
+    await dialog.getByLabel("Назва книги").fill("Назва");
+    await expect(create).toBeEnabled();
+
+    await dialog.getByRole("button", { name: "Скасувати" }).click();
+    await expect(dialog).toHaveCount(0);
+    // The click opened the dialog in place, it did not navigate.
+    await expect(page).toHaveURL(/\/dashboard\/books$/);
+  });
+
+  test("the old wizard address opens the same dialog over «Мої книги»", async ({ page }) => {
     await login(page);
     await page.goto("/dashboard/books/new");
-    // Renders only -- it must NOT submit: step 1's button creates a real
-    // book, and this test would leave a new draft behind on every deploy.
-    // (The old version looked for a "Публікація" heading and an "Опис"
-    // field that the wizard no longer has.) Creating a draft through the
-    // wizard is covered once, in output-data.spec.ts, which reuses its book.
-    await expect(page.getByRole("heading", { name: "Нова книга" })).toBeVisible();
-    await expect(page.getByLabel(/назва книги/i)).toBeVisible();
-    await expect(page.getByLabel(/анотація/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /зберегти і перейти на наступний крок/i })).toBeVisible();
+    await expect(page.getByRole("dialog").getByLabel("Назва книги")).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard\/books$/);
+    await expect(page.getByRole("heading", { name: /мої книги/i })).toBeVisible();
   });
 
   test("author can access settings page", async ({ page }) => {

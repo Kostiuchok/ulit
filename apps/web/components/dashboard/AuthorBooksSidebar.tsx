@@ -18,6 +18,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
+import { CreateBookLink } from "@/components/books/CreateBookProvider";
 import { getBookStatusLabel } from "@/lib/bookStatus";
 import { cn } from "@/lib/utils";
 import { AuthorSidebarNavUser } from "@/components/dashboard/AuthorSidebarNavUser";
@@ -83,7 +84,7 @@ const EDIT_GROUP: SubNavItem[] = [
   // something meant for them to look at, and avoided it. "Передперегляд
   // книги" -- unified across every place that links here (this sidebar
   // item, the editor toolbar button, the cover editor link, the ISBN
-  // checklist link, FormatsAndDistribution's hint, output-data's own
+  // checklist link, the «Ціна» page's hint, output-data's own
   // manuscript-section hint, and PublicationTimeline's). The generation
   // side-effect is still called out separately wherever a label needs to
   // convey it (e.g. "Відкрити «Передперегляд книги» (згенерує його) →").
@@ -232,10 +233,10 @@ export function AuthorBooksSidebar({ user }: Props) {
           className="h-9 w-full gap-1.5 bg-[#50a406] text-[0.875rem] font-medium hover:bg-[#458c05] group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-0"
           title="Створити нову книжку"
         >
-          <Link href="/dashboard/books/new">
+          <CreateBookLink>
             <Plus size={14} className="shrink-0" />
             <span className="truncate group-data-[collapsible=icon]:hidden">Створити нову книжку</span>
-          </Link>
+          </CreateBookLink>
         </Button>
       </SidebarHeader>
 

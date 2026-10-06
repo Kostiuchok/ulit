@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "@/hooks/useApi";
+import { CreateBookLink } from "@/components/books/CreateBookProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -148,7 +149,7 @@ export default function PublishedPage() {
             <Link href={`/dashboard/books/${id}`}>Сторінка книги</Link>
           </Button>
           <Button asChild className="bg-gray-900 hover:bg-gray-800">
-            <Link href="/dashboard/books/new">+ Опублікувати ще одну</Link>
+            <CreateBookLink>+ Опублікувати ще одну</CreateBookLink>
           </Button>
         </div>
       </div>

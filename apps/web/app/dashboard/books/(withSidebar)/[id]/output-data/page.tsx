@@ -58,7 +58,7 @@ const DESCRIPTION_PLATFORM_TARGETS = [
 
 const infoSchema = z.object({
   // min(1), not min(3) -- matches every OTHER place a title gets validated
-  // (apps/api's POST/PATCH, BookWizard step 1).
+  // (apps/api's POST/PATCH, the "Нова книга" dialog).
   title: z.string().min(1, "Назва обов'язкова").max(255),
   subtitle: z.string().max(255).optional(),
   description: z
@@ -340,8 +340,8 @@ function OutputDataInfoForm({
   const missingRing = "border-amber-400 focus:ring-amber-300 ring-1 ring-amber-200";
 
   // Розмір книги is its own independent field now (not derived from genre)
-  // -- same "Розмір книги" selector BookWizard's creation step has, so it
-  // can be changed after creation too, not just once at the start.
+  // -- a new book starts as "standard" (apps/api books.ts) and the author
+  // changes it here.
   const selectedFormatKey = (infoForm.watch("printFormatKey") || "standard") as PrintFormatKey;
   const displayFormat = PRINT_FORMATS[selectedFormatKey] ?? PRINT_FORMATS.standard;
 

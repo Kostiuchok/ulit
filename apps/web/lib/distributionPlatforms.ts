@@ -17,7 +17,7 @@ export interface DistributionPlatform {
 // ONLY -- Kindle ebook distribution is not possible, confirmed against KDP's
 // own supported-languages page (docs/kdp-publishing-guide.md, T-2062,
 // 2026-08-17). Ukrainian and Polish are the two that overlap with our own
-// LANGUAGES list (BookWizard.tsx); Yiddish shares the restriction but isn't
+// LANGUAGES list (shared-types); Yiddish shares the restriction but isn't
 // one of our supported languages. Russian was NOT grouped with this
 // print-only set in the research pass but wasn't independently re-verified --
 // deliberately excluded here rather than guessed.

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BookCard } from "@/components/books/BookCard";
+import { CreateBookLink } from "@/components/books/CreateBookProvider";
 import { DeleteBookModal } from "@/components/books/DeleteBookModal";
 import { PurgeArchivedModal } from "@/components/books/PurgeArchivedModal";
 import { Button } from "@/components/ui/button";
@@ -121,7 +122,7 @@ export function MyBooksList({ contentClassName = "" }: { contentClassName?: stri
             )}
           </div>
           <Button asChild>
-            <Link href="/dashboard/books/new">+ Нова книга</Link>
+            <CreateBookLink>+ Нова книга</CreateBookLink>
           </Button>
         </div>
 
@@ -159,7 +160,7 @@ export function MyBooksList({ contentClassName = "" }: { contentClassName?: stri
               <h2 className="text-lg font-semibold text-gray-700">Поки немає книг</h2>
               <p className="mt-1 text-sm text-gray-500">Опублікуйте свою першу книгу на платформі ULIT</p>
               <Button asChild className="mt-6">
-                <Link href="/dashboard/books/new">Опублікувати книгу</Link>
+                <CreateBookLink>Опублікувати книгу</CreateBookLink>
               </Button>
             </CardContent>
           </Card>
