@@ -147,9 +147,13 @@ test.describe("Вихідні дані: підсвічування, «Зміне
     await expect(royalty).toBeVisible({ timeout: 15_000 });
     const original = await royalty.inputValue();
     await royalty.fill("77");
-    await expect(page.getByText(/Є незбережені зміни у 1 блоці/)).toBeVisible();
+    // The block's own badge, not the bar's "Є незбережені зміни у 1 блоці":
+    // the bar gives that line up to a more urgent one, and on this draft
+    // there always is one -- its annotation is empty, too short for the
+    // stores selected by default.
+    await expect(page.getByText(/^Змінено · 1 /)).toBeVisible();
     await royalty.fill(original);
-    await expect(page.getByText(/Є незбережені зміни/)).toHaveCount(0);
+    await expect(page.getByText(/^Змінено ·/)).toHaveCount(0);
   });
 
   test("вихід із незбереженими змінами питає; «Залишитись» зберігає правки, «Вийти» переходить", async ({ page }) => {
@@ -200,7 +204,8 @@ test.describe("Вихідні дані: підсвічування, «Зміне
     const bookId = await ensureDraft(page);
     await page.goto(`/dashboard/books/${bookId}`);
 
-    await expect(page.getByRole("heading", { name: TITLE })).toBeVisible({ timeout: 20_000 });
+    // h1 only: the sidebar lists the book under the same name as an h2.
+    await expect(page.locator("h1")).toHaveText(TITLE, { timeout: 20_000 });
     // The fixture draft has no file, cover or price -- nothing to send yet.
     await expect(page.getByRole("button", { name: /надіслати на модерацію/i })).toBeDisabled();
     await expect(page.getByText(/Наступний крок · \d+ з 13/)).toBeVisible();

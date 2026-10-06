@@ -112,8 +112,13 @@ test.describe("Authenticated author flows", () => {
   test("the old wizard address opens the same dialog over «Мої книги»", async ({ page }) => {
     await login(page);
     await page.goto("/dashboard/books/new");
-    await expect(page.getByRole("dialog").getByLabel("Назва книги")).toBeVisible();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByLabel("Назва книги")).toBeVisible();
     await expect(page).toHaveURL(/\/dashboard\/books$/);
+    // While a dialog is open the page behind it is hidden from the
+    // accessibility tree, so the heading is only "visible" by role once the
+    // dialog is closed.
+    await dialog.getByRole("button", { name: "Скасувати" }).click();
     await expect(page.getByRole("heading", { name: /мої книги/i })).toBeVisible();
   });
 
