@@ -23,39 +23,61 @@ import { withCoverVersion } from "../../lib/coverVersion";
 
 const createSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
-  // 120-500 (BookWizard step 1 already enforces this client-side, matching
-  // the same shared-types constants) -- required now, not just capped at
-  // 5000, so this endpoint can't itself be a way around the requirement
-  // every real caller (BookWizard) already applies before ever getting here.
-  description: z.string().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH),
+  // A book is created from its title alone (the "Створити книжку" dialog,
+  // owner's decision 2026-10-06 -- the creation wizard is gone). Everything
+  // else is filled in on the book's own pages. The annotation is optional
+  // HERE but, when sent, must already be valid (120-500) so this endpoint
+  // can't store a value the edit form would immediately flag; it stays
+  // REQUIRED for publishing (PUBLISH_FIELD_CHECKS, shared-types).
+  description: z.string().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH).optional(),
   genre: genreSchema.optional(),
-  // Book size is its own independent choice in BookWizard, not derived from
-  // genre -- see packages/shared-types PRINT_FORMATS for the allowed keys.
+  // Book size is its own independent choice, not derived from genre -- see
+  // packages/shared-types PRINT_FORMATS for the allowed keys. Defaults to
+  // DEFAULT_PRINT_FORMAT_KEY below when omitted.
   printFormatKey: z.enum(PRINT_FORMAT_KEYS as [string, ...string[]]).optional(),
   language: languageSchema.default("uk"),
-  // Same enum as book.ts's patchSchema -- BookWizard step 1 already collects
-  // this (required there) but it was silently dropped on create since this
-  // schema didn't declare it, forcing authors to re-enter it on output-data.
+  // Same enum as book.ts's patchSchema.
   ageRating: ageRatingSchema.optional(),
   priceEbook: priceFieldSchema,
   pricePrint: priceFieldSchema,
   pricePrintHardcover: priceFieldSchema,
   pricePrintBw: priceFieldSchema,
   pricePrintHardcoverBw: priceFieldSchema,
-  // Real distribution channel selection never arrives here -- BookWizard
-  // collects it on step 2, AFTER this draft already exists, via the
-  // dedicated PATCH /api/books/:id/distribution (distribution.ts's own
-  // switchSchema, already the real source of truth). A `distributionChannels`
-  // field used to live in this schema too, parsed/defaulted but never
-  // destructured or passed to prisma.book.create() below -- dead code,
-  // removed (book-form-validation-audit.md's C.13 candidate).
+  // Distribution channels are never set here -- the new draft takes the
+  // column default and the author changes them on «Ціна» (PATCH /api/books/:id).
   distributionStrategy: z.enum(["WIDE", "KDP_SELECT"]).default("WIDE"),
-  // BookWizard shows the author's account-profile name as a read-only badge
-  // ("ці дані беруться з Кабінету автора") and submits it here on create --
-  // same bookAuthorSchema book.ts's PATCH already validates against, so even
-  // auto-derived data (not hand-typed) is checked, not just trusted.
+  // Normally omitted: the server fills the book's author from the account
+  // profile (profileBookAuthor below). Same bookAuthorSchema book.ts's PATCH
+  // validates against.
   bookAuthors: z.array(bookAuthorSchema).max(10).optional(),
 });
+
+// The size a new book starts with -- the first entry of the "Розмір книги"
+// selector, and what the removed wizard preselected.
+const DEFAULT_PRINT_FORMAT_KEY: PrintFormatKey = "standard";
+
+// The account owner as the book's first author, or null when the profile has
+// no first/last name yet (the author then adds themselves on «Вихідні дані»,
+// which flags the empty block). Checked against bookAuthorSchema like any
+// hand-typed author; a photo address that fails it is dropped rather than
+// costing the author the whole entry.
+export function profileBookAuthor(profile: {
+  firstName?: string | null;
+  lastName?: string | null;
+  patronymic?: string | null;
+  avatarUrl?: string | null;
+} | null): z.infer<typeof bookAuthorSchema> | null {
+  if (!profile) return null;
+  const base = {
+    lastName: profile.lastName?.trim() ?? "",
+    firstName: profile.firstName?.trim() ?? "",
+    middleName: profile.patronymic?.trim() || undefined,
+  };
+  const withPhoto = bookAuthorSchema.safeParse({ ...base, photoUrl: profile.avatarUrl?.trim() || undefined });
+  if (withPhoto.success) return withPhoto.data;
+  const withoutPhoto = bookAuthorSchema.safeParse(base);
+  return withoutPhoto.success ? withoutPhoto.data : null;
+}
 
 function slugifyTitle(title: string): string {
   return title
@@ -178,14 +200,23 @@ export async function booksRoutes(app: FastifyInstance) {
     const {
       title, description, genre, printFormatKey, language, ageRating,
       priceEbook, pricePrint, pricePrintHardcover, pricePrintBw, pricePrintHardcoverBw,
-      distributionStrategy, bookAuthors,
+      distributionStrategy,
     } = result.data;
     const slug = await uniqueBookSlug(title);
 
-    // Explicit, independent from genre -- if the wizard sent a known format
-    // key, lock it in now so upload validation/cover geometry/output-data all
-    // use it from the start instead of falling back to a genre-derived guess.
-    const format = printFormatKey ? PRINT_FORMATS[printFormatKey as PrintFormatKey] : undefined;
+    // Locked in from the start so upload validation, cover geometry and
+    // output-data never fall back to a genre-derived guess.
+    const format = PRINT_FORMATS[(printFormatKey as PrintFormatKey | undefined) ?? DEFAULT_PRINT_FORMAT_KEY];
+
+    let bookAuthors = result.data.bookAuthors;
+    if (!bookAuthors || bookAuthors.length === 0) {
+      const profile = await prisma.user.findUnique({
+        where: { id: request.user.id },
+        select: { firstName: true, lastName: true, patronymic: true, avatarUrl: true },
+      });
+      const fromProfile = profileBookAuthor(profile);
+      bookAuthors = fromProfile ? [fromProfile] : undefined;
+    }
 
     const book = await prisma.book.create({
       data: {
@@ -193,9 +224,9 @@ export async function booksRoutes(app: FastifyInstance) {
         title,
         description,
         genre,
-        printFormatKey: format?.key,
-        printWidthMm: format?.widthMm,
-        printHeightMm: format?.heightMm,
+        printFormatKey: format.key,
+        printWidthMm: format.widthMm,
+        printHeightMm: format.heightMm,
         language,
         ageRating,
         priceEbook: priceEbook ? priceEbook : undefined,
