@@ -8,6 +8,7 @@ import formbody from "@fastify/formbody";
 import rateLimit from "@fastify/rate-limit";
 import { AppError } from "./errors/AppError";
 import { prisma } from "./lib/prisma";
+import { TRUSTED_PROXIES, isInternalRequest } from "./lib/clientAddress";
 import { registerRoute } from "./modules/auth/register";
 import { loginRoute } from "./modules/auth/login";
 import { oauthLoginRoute } from "./modules/auth/oauth-login";
@@ -54,6 +55,9 @@ import { metricsRegistry } from "./lib/metrics";
 import { cancelExpiredPendingOrders } from "./modules/orders/orders";
 
 const app = Fastify({
+  // request.ip = the visitor's address from X-Forwarded-For, not the web
+  // container's (see lib/clientAddress.ts).
+  trustProxy: TRUSTED_PROXIES,
   logger: {
     level: process.env.NODE_ENV === "production" ? "info" : "debug",
   },
@@ -85,10 +89,14 @@ async function bootstrap() {
     // ~110 requests a minute), and a fast author could too.
     max: (_request, key) => (key.startsWith("user:") ? 300 : 100),
     timeWindow: "1 minute",
-    // API sits behind Next.js's server-side rewrite proxy, so request.ip is always
-    // that proxy's docker-internal address — never the real client. Key by the
-    // authenticated user instead so one noisy user/session can't exhaust the
-    // shared budget for every other visitor; anonymous requests fall back to IP.
+    // Our own servers (Next.js rendering a store page, Prometheus) are not
+    // visitors and are not limited.
+    allowList: (request) => isInternalRequest(request),
+    // A signed-in user is counted by account; an anonymous visitor by their
+    // own address (trustProxy above). Until 2026-10-06 request.ip was the web
+    // container's address for everybody, so ALL anonymous visitors -- every
+    // login, registration and password reset on the site -- shared one budget
+    // of 100 a minute, and one person could use it up for everyone.
     keyGenerator: async (request) => {
       try {
         await request.jwtVerify();
