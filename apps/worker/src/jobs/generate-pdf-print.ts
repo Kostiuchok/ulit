@@ -143,7 +143,7 @@ export async function generatePdfPrint(job: Job<PrintPdfData>) {
     } else {
       // Ghostscript: PDF/X-3, CMYK, 300 DPI, 3mm bleed -- unchanged from the
       // old pipeline, just now runs over WeasyPrint's output instead of
-      // LibreOffice's (docs/T-2057-checklist.md checklist item).
+      // LibreOffice's (docs/specs/T-2057-checklist.md checklist item).
       execFileSync(
         "gs",
         [

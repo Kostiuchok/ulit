@@ -1,5 +1,5 @@
 // Centralized print/cover technical constants for the dashboard redesign
-// (docs/dashboard-ui/WF-SPEC.md v1). Single place to edit once the
+// (docs/design/dashboard-ui/WF-SPEC.md v1). Single place to edit once the
 // Ukrainian print house and Amazon KDP numbers below are formally
 // confirmed -- every consumer (cover editor overlays, 06/06d/06e preview,
 // price page) reads from here instead of a scattered literal.

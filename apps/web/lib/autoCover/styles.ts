@@ -2,7 +2,7 @@ import type { Genre } from "shared-types";
 import type { CoverDoc, Node, TextSpec, Tok, Align } from "./engine";
 
 // The 14 auto-cover templates -- parameters transcribed from
-// docs/dashboard-ui/cover-styles/STYLES.md §2 (Figma "Cover styles v1",
+// docs/design/dashboard-ui/cover-styles/STYLES.md §2 (Figma "Cover styles v1",
 // node 88:14). Each template is a function of the book's texts so an empty
 // subtitle simply isn't in the tree (no blank gap left behind).
 

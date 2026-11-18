@@ -7,7 +7,7 @@ import { Card } from "../ui/card";
 
 // Publisher-level (ULIT itself, not per-book) documents needed to register
 // for a block of ISBN numbers and to submit УДК requests to Книжкова палата
-// (docs/instr_isbn.pdf §2.1, ukrbook.net/UDC_poslugy.html) -- fixed set,
+// (docs/publishing/instr_isbn.pdf §2.1, ukrbook.net/UDC_poslugy.html) -- fixed set,
 // mirrors PUBLISHER_DOCUMENT_KEYS in apps/api/src/modules/admin/
 // publisher-documents.ts. "Копія Статуту видавця" (§2.1.3) deliberately
 // left out -- only applies to publishers NOT in the Державний реєстр, which

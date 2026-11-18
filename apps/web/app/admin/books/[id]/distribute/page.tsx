@@ -1000,7 +1000,7 @@ export default function DistributePage() {
               <p className="text-xs text-gray-400">
                 Для друкованого видання не забути про обов&apos;язкові примірники (2 шт., за рахунок автора) для
                 звіту в Книжкову палату — докладніше в{" "}
-                <code className="text-[0.6875rem]">docs/isbn-udc-requirements.md</code>. Заявку на УДК + авторський
+                <code className="text-[0.6875rem]">docs/publishing/isbn-udc-requirements.md</code>. Заявку на УДК + авторський
                 знак надсилати на <code className="text-[0.6875rem]">udc2920054@ukr.net</code>, тема листа:{" "}
                 <code className="text-[0.6875rem]">«УДК, [назва видавця]»</code>.
               </p>

@@ -31,11 +31,11 @@ import {
 // by the live scrolling editor). Everything here is CSS Paged Media
 // (https://www.w3.org/TR/css-gcpm-3/) -- WeasyPrint was picked specifically
 // because it supports `break-before/after: recto/verso` natively
-// (docs/T-2057-checklist.md section 3); Chromium/Puppeteer does not.
+// (docs/specs/T-2057-checklist.md section 3); Chromium/Puppeteer does not.
 //
 // Margins (printGeometry.ts): 20mm inner (binding side) / 15mm outer, per
 // the printer's own technical requirements for books
-// (docs/print-file-technical-requirements.md, printto.ua) -- the live
+// (docs/publishing/print-file-technical-requirements.md, printto.ua) -- the live
 // editor's own book-format check (apps/web/components/manuscript/
 // manuscriptLayout.ts) now reads the exact same constants, so the two can
 // no longer drift on margins the way they used to when the editor hardcoded

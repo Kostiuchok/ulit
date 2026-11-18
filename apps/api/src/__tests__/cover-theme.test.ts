@@ -3,10 +3,10 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { deriveCoverTheme, coverThemeTextContrasts } from "shared-types";
 
-// Reference output of docs/dashboard-ui/cover-styles/derive.py (4 Figma
+// Reference output of docs/design/dashboard-ui/cover-styles/derive.py (4 Figma
 // modes + 8 stress colours) -- the TS port must match it hex-for-hex.
 const reference = JSON.parse(
-  readFileSync(join(__dirname, "../../../../docs/dashboard-ui/cover-styles/tokens.json"), "utf8")
+  readFileSync(join(__dirname, "../../../../docs/design/dashboard-ui/cover-styles/tokens.json"), "utf8")
 ) as Record<string, { tokens: Record<string, string>; lightBase: boolean }>;
 
 const TOKEN_KEYS: Record<string, string> = {

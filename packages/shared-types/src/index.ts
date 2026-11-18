@@ -124,7 +124,7 @@ export function resolveExcerptRange(
 export type BookFormat = "EPUB" | "FB2" | "MOBI" | "PRINT";
 
 // Print formats per ДСТУ 3018-95 (Ukrainian state standard for book/print
-// formats -- see docs/ridero-print-format-selection-guide.md for full sourcing
+// formats -- see docs/research/ridero-print-format-selection-guide.md for full sourcing
 // and cross-references against two other sources that used conflicting names
 // for the same sheet fractions). "Стандартний" (84x108/32 -> 130x200mm) is the
 // dominant format for fiction specifically -- confirmed 2026-08-17.
@@ -286,7 +286,7 @@ export function resolveBookPrintFormat(book: {
     // so a book's real printFormatKey almost never equals a fresh
     // genre-derived key -- the previous comparison made this show
     // "Індивідуальний" for what was actually just the "Стандартний" preset
-    // (docs/dashboard-ui/WF-SPEC.md "Знайдені баги" #2).
+    // (docs/design/dashboard-ui/WF-SPEC.md "Знайдені баги" #2).
     const known = book.printFormatKey ? PRINT_FORMATS[book.printFormatKey as PrintFormatKey] : undefined;
     if (known && known.widthMm === book.printWidthMm && known.heightMm === book.printHeightMm) {
       return known;

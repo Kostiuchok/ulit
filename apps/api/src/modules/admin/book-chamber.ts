@@ -14,7 +14,7 @@ import { PRINT_FORMATS, resolveBookPrintFormat, buildIsbnEditionSnapshot, effect
 const ISBN_ANNOTATION_HALF_PAGE_CHARS = 1000;
 
 // A book is "ready" for the ISBN queue once every piece of information the
-// Книжкова палата submission checklist requires (docs/isbn-udc-requirements.md)
+// Книжкова палата submission checklist requires (docs/publishing/isbn-udc-requirements.md)
 // is actually present -- this mirrors IsbnReadinessChecklist's checks
 // (output-data/page.tsx) but server-side, since that's what gates which
 // books show up in /api/admin/isbn-queue, not just what nudges the author.

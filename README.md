@@ -233,7 +233,7 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 | [`docs/ALPHA-SPRINTS.md`](./docs/ALPHA-SPRINTS.md) | Порядок спринтів до виходу з альфи (наступний — спринт 2) |
 | [`docs/TASKS.md`](./docs/TASKS.md) | Повний бэклог задач по фазах розробки (постійно росте, зараз — за 20 фаз) |
 | [`docs/TECHNICAL-DECISIONS.md`](./docs/TECHNICAL-DECISIONS.md) | Wiki рішень: юридика, договір з автором, дистрибуція |
-| [`docs/knyha-complete.html`](./docs/knyha-complete.html) | Повний UI прототип (24 екрани, відкрити у браузері) |
+| [`docs/design/knyha-complete.html`](./docs/design/knyha-complete.html) | Повний UI прототип (24 екрани, відкрити у браузері) |
 
 ---
 

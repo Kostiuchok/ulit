@@ -10,7 +10,7 @@ const ALLOWED_MIME = ["image/jpeg", "image/png", "application/pdf"];
 
 // Publisher-level (ULIT itself) documents needed to register for a block of
 // ISBN numbers and to submit УДК requests to Книжкова палата
-// (docs/instr_isbn.pdf §2.1, ukrbook.net/UDC_poslugy.html) -- not tied to
+// (docs/publishing/instr_isbn.pdf §2.1, ukrbook.net/UDC_poslugy.html) -- not tied to
 // any one book or author. Fixed set, no admin-defined custom types.
 export const PUBLISHER_DOCUMENT_KEYS = [
   "guarantee_letter",

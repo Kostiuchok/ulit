@@ -11,7 +11,7 @@ import { PageBreak } from "./pageBreak";
 // which appends its own local TocEntry on top of this) and the server-side
 // print-PDF render (T-2057, printHtml.ts). Deliberately does NOT include
 // TocEntry -- the print render has no auto-generated TOC (out of scope,
-// docs/T-2057-checklist.md section 2) and doesn't need it.
+// docs/specs/T-2057-checklist.md section 2) and doesn't need it.
 export const MANUSCRIPT_CORE_EXTENSIONS: any[] = [
   StarterKit.configure({ paragraph: false }),
   TextAlign.configure({ types: ["paragraph"] }),

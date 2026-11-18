@@ -10,7 +10,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    /* green-600 (#16a34a) -- dashboard redesign (docs/dashboard-ui/WF-SPEC.md
+    /* green-600 (#16a34a) -- dashboard redesign (docs/design/dashboard-ui/WF-SPEC.md
        v1, acceptance criteria #12): primary accent is green app-wide, not
        shadcn's default blue. --ring follows so focus rings match. */
     --primary: 142.1 76.2% 36.3%;

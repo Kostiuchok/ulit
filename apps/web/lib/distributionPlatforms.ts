@@ -15,7 +15,7 @@ export interface DistributionPlatform {
 
 // KDP officially supports these languages for print (paperback/hardcover)
 // ONLY -- Kindle ebook distribution is not possible, confirmed against KDP's
-// own supported-languages page (docs/kdp-publishing-guide.md, T-2062,
+// own supported-languages page (docs/publishing/kdp-publishing-guide.md, T-2062,
 // 2026-08-17). Ukrainian and Polish are the two that overlap with our own
 // LANGUAGES list (shared-types); Yiddish shares the restriction but isn't
 // one of our supported languages. Russian was NOT grouped with this

@@ -3,7 +3,7 @@
 // page-geometry check (apps/web/components/manuscript/manuscriptLayout.ts)
 // so that check can never drift from what actually prints.
 // Top/bottom/outer measured directly off a real printed book (author,
-// 2026-09-09) -- docs/print-file-technical-requirements.md (printto.ua) only
+// 2026-09-09) -- docs/publishing/print-file-technical-requirements.md (printto.ua) only
 // ever specified inner/outer (20mm/15mm for books), no top/bottom split, and
 // its own outer figure is now superseded by this direct measurement.
 export const PAGE_MARGIN_TOP_MM = 15;

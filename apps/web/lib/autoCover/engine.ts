@@ -1,7 +1,7 @@
 import type { CoverTheme, CoverThemeToken } from "shared-types";
 
 // Canvas-2D layout engine for the auto-cover templates
-// (docs/dashboard-ui/cover-styles/STYLES.md). Canvas rather than HTML/SVG on
+// (docs/design/dashboard-ui/cover-styles/STYLES.md). Canvas rather than HTML/SVG on
 // purpose: the SAME draw call renders the on-screen preview and the
 // print-resolution PNG that gets uploaded as the book's cover, with word
 // wrapping measured by the real font (measureText) -- no DOM-to-image step,

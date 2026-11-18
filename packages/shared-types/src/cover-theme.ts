@@ -1,4 +1,4 @@
-// Auto-cover colour theme (docs/dashboard-ui/cover-styles/STYLES.md §1):
+// Auto-cover colour theme (docs/design/dashboard-ui/cover-styles/STYLES.md §1):
 // the author picks ONE colour (`base`); every token the 14 templates paint
 // with is derived from it here. A line-for-line port of the reference
 // derive.py in that folder -- including Python's colorsys HLS maths, so the

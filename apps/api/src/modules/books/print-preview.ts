@@ -5,7 +5,7 @@ import { AppError } from "../../errors/AppError";
 import { bookQueue } from "../../lib/queue";
 import { getSignedUrl } from "../../services/storage.service";
 
-// T-2057 -- "Передперегляд = сама генерація друкованого PDF" (docs/T-2057-checklist.md
+// T-2057 -- "Передперегляд = сама генерація друкованого PDF" (docs/specs/T-2057-checklist.md
 // section 0). This is the single trigger point for the print-PDF render: both
 // the manuscript editor's "Передперегляд" button and the sidebar preview link
 // call this same route, so they can never show two different files.

@@ -103,7 +103,7 @@ export default function PrintCostSettingsPage() {
           </li>
           <li>Файл до 1000 МБ — активної перевірки поки немає</li>
         </ul>
-        <p className="text-xs text-blue-700">Повний довідник — <code>docs/print-file-technical-requirements.md</code></p>
+        <p className="text-xs text-blue-700">Повний довідник — <code>docs/publishing/print-file-technical-requirements.md</code></p>
       </div>
 
       <Card className="p-6 shadow-sm space-y-5">

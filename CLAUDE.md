@@ -2,7 +2,7 @@
 
 > Платформа самовидавництва для українських авторів. Аналог Ridero.
 > Автор завантажує книгу → ISBN → публікує у електронному та/або друкованому форматі → магазин + зовнішні сервіси.
-> **Прототип:** `knyha-complete.html` — 24 екрани (автор + адмін + договір + KU-вибір)
+> **Прототип:** `docs/design/knyha-complete.html` — 24 екрани (автор + адмін + договір + KU-вибір)
 
 ---
 
@@ -137,10 +137,12 @@ knyha-platform/
 │   ├── ci.yml
 │   └── deploy.yml
 │
-├── docs/
-│   ├── knyha-complete.html          # Повний прототип (24 екрани)
-│   ├── TASKS.md
-│   └── TECHNICAL-DECISIONS.md       # Wiki рішень (юридика, дистрибуція, договір)
+├── docs/                            # зміст — docs/README.md
+│   ├── TASKS.md / ALPHA-SPRINTS.md / ALPHA-READINESS.md
+│   ├── TECHNICAL-DECISIONS.md       # Wiki рішень (юридика, дистрибуція, договір)
+│   ├── brand/  legal/  publishing/  research/  specs/  testing/  dev/
+│   ├── design/                      # knyha-complete.html (прототип), dashboard-ui/ (вайрфрейми)
+│   └── ulit-reference/              # лише візуальний референс (правило 13)
 ├── CLAUDE.md                        # ← цей файл
 ├── turbo.json
 └── package.json

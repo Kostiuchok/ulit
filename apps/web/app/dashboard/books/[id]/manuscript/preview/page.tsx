@@ -39,7 +39,7 @@ interface PreviewBook {
   printFormatKey?: string | null;
 }
 
-// T-2057 -- "Передперегляд = сама генерація друкованого PDF" (docs/T-2057-checklist.md
+// T-2057 -- "Передперегляд = сама генерація друкованого PDF" (docs/specs/T-2057-checklist.md
 // section 0). This page no longer runs its own client-side pagination; it
 // triggers the same GET /api/books/:id/print-preview the "Завантажити PDF"
 // QA link resolves to, and shows exactly that file. What the author sees
@@ -185,7 +185,7 @@ export default function ManuscriptPreviewPage() {
             </Button>
             {/* T-2057 п.4 -- temporary QA link, byte-for-byte the same file the
                 viewer below shows. Remove once the pipeline has a confirmed live
-                test (docs/T-2057-checklist.md checklist). */}
+                test (docs/specs/T-2057-checklist.md checklist). */}
             <Button asChild variant="ghost" className="h-auto gap-1.5 rounded-none px-4 py-3 text-[0.8125rem] text-gray-500 hover:text-black">
               <a href={state.printPdfUrl} target="_blank" rel="noopener noreferrer">
                 <Download size={13} className="shrink-0" />

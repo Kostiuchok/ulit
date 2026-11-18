@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 // T-2063/T-2074 -- Ridero's "Заказать тираж" is its own page, separate from
-// "Публикация в магазинах" (docs/ridero-research-preview-cover.md live test,
+// "Публикация в магазинах" (docs/research/ridero-research-preview-cover.md live test,
 // same book id): author picks a quantity + binding, sees per-copy cost drop
 // at bulk tiers, no store/channel involved -- this is the author buying
 // physical copies for themselves, not a sale to a reader. Reuses the

@@ -28,7 +28,7 @@ export interface RenderManuscriptPdfInput {
 
 // T-2057 -- renders Book.manuscriptContent straight to a print-ready PDF via
 // WeasyPrint (CSS Paged Media: @page, break-before/after: recto/verso -- see
-// docs/T-2057-checklist.md section 3 for why WeasyPrint over Puppeteer).
+// docs/specs/T-2057-checklist.md section 3 for why WeasyPrint over Puppeteer).
 // The SAME HTML/CSS this produces is what a live "Завантажити PDF" QA link
 // would show byte-for-byte -- no separate preview-only approximation.
 export function renderManuscriptPdf({
