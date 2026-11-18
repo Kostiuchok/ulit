@@ -10,7 +10,7 @@ export default function TermsPage() {
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-12">
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Умови використання</h1>
-        <p className="text-sm text-gray-400">Редакція від 01.01.2025</p>
+        <p className="text-sm text-gray-400">Редакція від 18.11.2026</p>
       </div>
 
       <div className="prose prose-gray max-w-none space-y-8 text-gray-700 leading-relaxed">
@@ -18,7 +18,9 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-semibold text-gray-900 mb-3">1. Загальні положення</h2>
           <p>
-            1.1. Ці Умови використання (далі — «Умови») регулюють відносини між платформою ULIT
+            1.1. Ці Умови використання (далі — «Умови») регулюють відносини між фізичною особою —
+            підприємцем Костючком Анатолієм Михайловичем (РНОКПП: 3107518152), який здійснює діяльність
+            через вебпортал самовидавництва «Видавництво &quot;Українська Літера&quot; Уліт» (ULIT)
             (далі — «Платформа», «ми», «нам») та будь-якою особою, яка використовує сайт
             <strong> ulit.ua</strong> та пов&apos;язані сервіси (далі — «Користувач», «ви»).
           </p>

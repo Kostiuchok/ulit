@@ -158,3 +158,15 @@ Email: legal@ulit.ua
 <дата формування>
 
 /підпис/
+---
+
+## Де цей текст на сайті
+
+| Що | Файл |
+|---|---|
+| Повний текст (розділи 1–11), «Редакція від …», реквізити Платформи | `apps/web/components/legal/ContractText.tsx` → `SECTIONS`, `AGREEMENT_EDITION`, `PLATFORM_REQUISITES` |
+| Заголовок публічної сторінки `/author-agreement` | `apps/web/app/(store)/author-agreement/page.tsx` |
+| Додаток для книжки | `ContractText.tsx` → `ContractAddendum()`, `addendumTextPlain()` |
+| Файл Word («Завантажити договір») | `ContractText.tsx` → `contractTextPlain()` + `signatureBlockPlain()` |
+
+Сайт і файл Word будуються з одного списку `SECTIONS`, тож текст правиться в одному місці.
